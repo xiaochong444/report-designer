@@ -1,0 +1,93 @@
+import type { ReportTemplate, ValidationResult, ReportComponent, Band, Page } from './types';
+
+export function validateTemplate(template: ReportTemplate): ValidationResult {
+  const errors: string[] = [];
+
+  if (!template.pages || template.pages.length === 0) {
+    errors.push('Template must have at least one pages entry');
+  }
+
+  template.pages?.forEach((page, pi) => {
+    validatePage(page, pi, errors);
+  });
+
+  // 检查全局 ID 唯一性
+  const allIds = new Set<string>();
+  collectIds(template, allIds, errors);
+
+  return { valid: errors.length === 0, errors };
+}
+
+function validatePage(page: Page, pageIndex: number, errors: string[]): void {
+  const prefix = `Page[${pageIndex}]`;
+
+  if (page.width <= 0) {
+    errors.push(`${prefix}.width must be positive, got ${page.width}`);
+  }
+  if (page.height <= 0) {
+    errors.push(`${prefix}.height must be positive, got ${page.height}`);
+  }
+  if (page.margins.top < 0 || page.margins.right < 0 || page.margins.bottom < 0 || page.margins.left < 0) {
+    errors.push(`${prefix}.margins must be non-negative`);
+  }
+
+  page.bands.forEach((band, bi) => {
+    validateBand(band, `${prefix}.bands[${bi}]`, errors);
+  });
+}
+
+function validateBand(band: Band, prefix: string, errors: string[]): void {
+  if (band.height < 0) {
+    errors.push(`${prefix}.height must be non-negative, got ${band.height}`);
+  }
+
+  band.components.forEach((comp, ci) => {
+    validateComponent(comp, `${prefix}.components[${ci}]`, errors);
+  });
+}
+
+function validateComponent(comp: ReportComponent, prefix: string, errors: string[]): void {
+  if (comp.width < 0) {
+    errors.push(`${prefix}.width must be non-negative, got ${comp.width}`);
+  }
+  if (comp.height < 0) {
+    errors.push(`${prefix}.height must be non-negative, got ${comp.height}`);
+  }
+  if (comp.x < 0) {
+    errors.push(`${prefix}.x must be non-negative, got ${comp.x}`);
+  }
+  if (comp.y < 0) {
+    errors.push(`${prefix}.y must be non-negative, got ${comp.y}`);
+  }
+}
+
+function collectIds(template: ReportTemplate, ids: Set<string>, errors: string[]): void {
+  const checkId = (id: string, label: string) => {
+    if (ids.has(id)) {
+      errors.push(`Duplicate id: ${id} (${label})`);
+    }
+    ids.add(id);
+  };
+
+  template.pages.forEach(page => {
+    checkId(page.id, 'page');
+    page.bands.forEach(band => {
+      checkId(band.id, 'band');
+      band.components.forEach(comp => {
+        checkId(comp.id, 'component');
+      });
+    });
+  });
+
+  template.dataSources.forEach(ds => {
+    checkId(ds.id, 'dataSource');
+  });
+
+  template.styles.forEach(s => {
+    checkId(s.id, 'style');
+  });
+
+  template.conditionalFormats.forEach(cf => {
+    checkId(cf.id, 'conditionalFormat');
+  });
+}
