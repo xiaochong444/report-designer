@@ -423,6 +423,192 @@ export const PropertyEditor: React.FC = () => {
             ),
           },
 
+          // ---- 线条 ----
+          component.type === 'line' ? {
+            key: 'line',
+            label: '线条属性',
+            children: (
+              <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+                <Form.Item label="颜色">
+                  <ColorPicker
+                    size="small"
+                    value={comp.lineColor || '#000000'}
+                    onChange={(color) => handleChange('lineColor', color.toHexString())}
+                  />
+                </Form.Item>
+                <Form.Item label="宽度 (mm)">
+                  <InputNumber
+                    value={comp.lineWidth ?? 0.2}
+                    onChange={(v) => handleChange('lineWidth', v ?? 0.2)}
+                    size="small"
+                    style={{ width: '100%' }}
+                    min={0.1}
+                    max={5}
+                    step={0.1}
+                  />
+                </Form.Item>
+                <Form.Item label="样式">
+                  <Select
+                    value={comp.lineStyle || 'solid'}
+                    onChange={(v) => handleChange('lineStyle', v)}
+                    size="small"
+                    style={{ width: '100%' }}
+                    options={[
+                      { value: 'solid', label: '实线' },
+                      { value: 'dashed', label: '虚线' },
+                      { value: 'dotted', label: '点线' },
+                    ]}
+                  />
+                </Form.Item>
+                <Divider style={{ margin: '4px 0' }} />
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>端点坐标 (mm)</div>
+                <Form.Item label="起点 X">
+                  <InputNumber value={comp.startX ?? 0} onChange={(v) => handleChange('startX', v ?? 0)} size="small" style={{ width: '100%' }} step={0.5} />
+                </Form.Item>
+                <Form.Item label="起点 Y">
+                  <InputNumber value={comp.startY ?? 0} onChange={(v) => handleChange('startY', v ?? 0)} size="small" style={{ width: '100%' }} step={0.5} />
+                </Form.Item>
+                <Form.Item label="终点 X">
+                  <InputNumber value={comp.endX ?? comp.width} onChange={(v) => handleChange('endX', v ?? comp.width)} size="small" style={{ width: '100%' }} step={0.5} />
+                </Form.Item>
+                <Form.Item label="终点 Y">
+                  <InputNumber value={comp.endY ?? comp.height} onChange={(v) => handleChange('endY', v ?? comp.height)} size="small" style={{ width: '100%' }} step={0.5} />
+                </Form.Item>
+              </Form>
+            ),
+          } : null,
+
+          // ---- 形状 ----
+          component.type === 'shape' ? {
+            key: 'shape',
+            label: '形状属性',
+            children: (
+              <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+                <Form.Item label="形状类型">
+                  <Select
+                    value={comp.shapeType || 'rectangle'}
+                    onChange={(v) => handleChange('shapeType', v)}
+                    size="small"
+                    style={{ width: '100%' }}
+                    options={[
+                      { value: 'rectangle', label: '矩形' },
+                      { value: 'ellipse', label: '椭圆' },
+                      { value: 'roundRect', label: '圆角矩形' },
+                      { value: 'triangle', label: '三角形' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="填充色">
+                  <ColorPicker
+                    size="small"
+                    value={comp.fillColor || '#ffffff'}
+                    onChange={(color) => handleChange('fillColor', color.toHexString())}
+                    allowClear
+                  />
+                </Form.Item>
+                <Form.Item label="边框色">
+                  <ColorPicker
+                    size="small"
+                    value={comp.borderColor || '#000000'}
+                    onChange={(color) => handleChange('borderColor', color.toHexString())}
+                  />
+                </Form.Item>
+                <Form.Item label="边框宽 (mm)">
+                  <InputNumber
+                    value={comp.borderWidth ?? 0.2}
+                    onChange={(v) => handleChange('borderWidth', v ?? 0.2)}
+                    size="small"
+                    style={{ width: '100%' }}
+                    min={0}
+                    max={5}
+                    step={0.1}
+                  />
+                </Form.Item>
+                <Form.Item label="边框样式">
+                  <Select
+                    value={comp.borderStyle || 'solid'}
+                    onChange={(v) => handleChange('borderStyle', v)}
+                    size="small"
+                    style={{ width: '100%' }}
+                    options={[
+                      { value: 'solid', label: '实线' },
+                      { value: 'dashed', label: '虚线' },
+                      { value: 'dotted', label: '点线' },
+                    ]}
+                  />
+                </Form.Item>
+              </Form>
+            ),
+          } : null,
+
+          // ---- 页码 ----
+          component.type === 'pagenumber' ? {
+            key: 'pagenumber',
+            label: '页码属性',
+            children: (
+              <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+                <Form.Item label="格式">
+                  <Select
+                    value={comp.format || '1/N'}
+                    onChange={(v) => handleChange('format', v)}
+                    size="small"
+                    style={{ width: '100%' }}
+                    options={[
+                      { value: '1', label: '1, 2, 3...' },
+                      { value: '1/N', label: '1/N, 2/N...' },
+                      { value: 'Page 1 of N', label: 'Page 1 of N' },
+                      { value: 'Page 1', label: 'Page 1' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="水平对齐">
+                  <Select
+                    value={comp.textAlign || 'center'}
+                    onChange={(v) => handleChange('textAlign', v)}
+                    size="small"
+                    style={{ width: '100%' }}
+                    options={[
+                      { value: 'left', label: '左对齐' },
+                      { value: 'center', label: '居中' },
+                      { value: 'right', label: '右对齐' },
+                    ]}
+                  />
+                </Form.Item>
+              </Form>
+            ),
+          } : null,
+
+          // ---- 日期时间 ----
+          component.type === 'datetime' ? {
+            key: 'datetime',
+            label: '日期时间属性',
+            children: (
+              <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+                <Form.Item label="格式">
+                  <Input
+                    value={comp.format || 'yyyy-MM-dd'}
+                    onChange={(e) => handleChange('format', e.target.value)}
+                    size="small"
+                    placeholder="yyyy-MM-dd HH:mm:ss"
+                  />
+                </Form.Item>
+                <Form.Item label="水平对齐">
+                  <Select
+                    value={comp.textAlign || 'left'}
+                    onChange={(v) => handleChange('textAlign', v)}
+                    size="small"
+                    style={{ width: '100%' }}
+                    options={[
+                      { value: 'left', label: '左对齐' },
+                      { value: 'center', label: '居中' },
+                      { value: 'right', label: '右对齐' },
+                    ]}
+                  />
+                </Form.Item>
+              </Form>
+            ),
+          } : null,
+
           // ---- 数据绑定 ----
           {
             key: 'data',

@@ -74,7 +74,7 @@ export interface DataSource {
 }
 
 /** 组件类型枚举 */
-export type ComponentType = 'text' | 'image' | 'table' | 'barcode' | 'checkbox' | 'richtext' | 'subreport' | 'panel';
+export type ComponentType = 'text' | 'image' | 'table' | 'barcode' | 'checkbox' | 'richtext' | 'subreport' | 'panel' | 'line' | 'shape' | 'pagenumber' | 'datetime';
 
 /** 组件基类 */
 export interface ReportComponent {
@@ -171,6 +171,44 @@ export interface PanelComponent extends ReportComponent {
   border: BorderConfig;
 }
 
+/** 线条组件 */
+export interface LineComponent extends ReportComponent {
+  type: 'line';
+  startX: number;  // mm, relative to component position
+  startY: number;
+  endX: number;
+  endY: number;
+  lineColor: string;
+  lineWidth: number; // mm
+  lineStyle: 'solid' | 'dashed' | 'dotted';
+}
+
+/** 形状组件 */
+export interface ShapeComponent extends ReportComponent {
+  type: 'shape';
+  shapeType: 'rectangle' | 'ellipse' | 'roundRect' | 'triangle';
+  fillColor: string;
+  borderColor: string;
+  borderWidth: number; // mm
+  borderStyle: 'solid' | 'dashed' | 'dotted';
+}
+
+/** 页码组件 */
+export interface PageNumberComponent extends ReportComponent {
+  type: 'pagenumber';
+  format: '1' | '1/N' | 'Page 1 of N' | 'Page 1';
+  font: FontConfig;
+  textAlign: 'left' | 'center' | 'right';
+}
+
+/** 日期时间组件 */
+export interface DateTimeComponent extends ReportComponent {
+  type: 'datetime';
+  format: string; // e.g. 'yyyy-MM-dd HH:mm:ss'
+  font: FontConfig;
+  textAlign: 'left' | 'center' | 'right';
+}
+
 /** 带类型 */
 export type BandType = 'reportTitle' | 'reportSummary' | 'pageHeader' | 'pageFooter' | 'groupHeader' | 'groupFooter' | 'data' | 'child';
 
@@ -218,7 +256,11 @@ export type ReportComponentUnion =
   | CheckboxComponent
   | RichtextComponent
   | SubreportComponent
-  | PanelComponent;
+  | PanelComponent
+  | LineComponent
+  | ShapeComponent
+  | PageNumberComponent
+  | DateTimeComponent;
 
 /** 数据上下文 */
 export type DataContext = Record<string, Record<string, any>[] | Record<string, any>>;

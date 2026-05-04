@@ -970,6 +970,17 @@ function getCompStyle(comp: ReportComponent): React.CSSProperties {
   return {};
 }
 
+function getFontStyle(font: any): React.CSSProperties {
+  if (!font) return {};
+  return {
+    fontFamily: font.family || 'Arial',
+    fontSize: font.size ? `${font.size * 1.33}px` : '16px',
+    fontWeight: font.bold ? 'bold' : 'normal',
+    fontStyle: font.italic ? 'italic' : 'normal',
+    color: font.color || '#000',
+  };
+}
+
 function getCompContent(comp: ReportComponent): React.ReactNode {
   switch (comp.type) {
     case 'text':
@@ -992,6 +1003,53 @@ function getCompContent(comp: ReportComponent): React.ReactNode {
       return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ccc', fontSize: 10, border: '1px dashed #ddd' }}>子报表</div>;
     case 'panel':
       return <div style={{ width: '100%', height: '100%', border: '1px dashed #ddd' }} />;
+    case 'line': {
+      const t = comp as any;
+      const lw = (t.lineWidth ?? 0.2) * MM_TO_PX;
+      const sx = (t.startX ?? 0) * MM_TO_PX;
+      const sy = (t.startY ?? 0) * MM_TO_PX;
+      const ex = (t.endX ?? comp.width) * MM_TO_PX;
+      const ey = (t.endY ?? comp.height) * MM_TO_PX;
+      const dash = t.lineStyle === 'dashed' ? '6,4' : t.lineStyle === 'dotted' ? '2,2' : undefined;
+      return (
+        <svg width="100%" height="100%" style={{ overflow: 'visible' }}>
+          <line x1={sx} y1={sy} x2={ex} y2={ey}
+            stroke={t.lineColor || '#000'}
+            strokeWidth={lw}
+            strokeDasharray={dash}
+            strokeLinecap="round" />
+        </svg>
+      );
+    }
+    case 'shape': {
+      const t = comp as any;
+      const bw = (t.borderWidth ?? 0) * MM_TO_PX;
+      const bc = t.borderColor || '#000';
+      const fc = t.fillColor || 'transparent';
+      const bs = t.borderStyle || 'solid';
+      const dash = bs === 'dashed' ? '6,4' : bs === 'dotted' ? '2,2' : undefined;
+      const wp = comp.width * MM_TO_PX;
+      const hp = comp.height * MM_TO_PX;
+      if (t.shapeType === 'rectangle') {
+        return <svg width="100%" height="100%"><rect x={bw/2} y={bw/2} width={wp-bw} height={hp-bw} fill={fc} stroke={bc} strokeWidth={bw} strokeDasharray={dash} /></svg>;
+      } else if (t.shapeType === 'ellipse') {
+        return <svg width="100%" height="100%"><ellipse cx={wp/2} cy={hp/2} rx={wp/2-bw/2} ry={hp/2-bw/2} fill={fc} stroke={bc} strokeWidth={bw} strokeDasharray={dash} /></svg>;
+      } else if (t.shapeType === 'roundRect') {
+        const r = Math.min(wp, hp) * 0.15;
+        return <svg width="100%" height="100%"><rect x={bw/2} y={bw/2} width={wp-bw} height={hp-bw} rx={r} ry={r} fill={fc} stroke={bc} strokeWidth={bw} strokeDasharray={dash} /></svg>;
+      } else if (t.shapeType === 'triangle') {
+        return <svg width="100%" height="100%"><polygon points={`${wp/2},${bw} ${wp-bw},${hp-bw} ${bw},${hp-bw}`} fill={fc} stroke={bc} strokeWidth={bw} strokeDasharray={dash} /></svg>;
+      }
+      return null;
+    }
+    case 'pagenumber': {
+      const t = comp as any;
+      return <div style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2, textAlign: t.textAlign || 'center', ...getFontStyle(t.font) }}>页码</div>;
+    }
+    case 'datetime': {
+      const t = comp as any;
+      return <div style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2, textAlign: t.textAlign || 'left', ...getFontStyle(t.font) }}>日期</div>;
+    }
     default:
       return '';
   }

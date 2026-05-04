@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { Tabs, Tree, Button, Space, Tag, Tooltip } from 'antd';
+import React from 'react';
+import { Tabs, Tree, Button, Tag, Tooltip } from 'antd';
 import {
   FileTextOutlined,
   DatabaseOutlined,
@@ -55,6 +55,10 @@ const COMPONENT_TYPES = [
   { type: 'richtext', label: 'Rich Text', icon: 'R' },
   { type: 'subreport', label: 'Subreport', icon: 'S' },
   { type: 'panel', label: 'Panel', icon: 'P' },
+  { type: 'line', label: 'Line', icon: '╱' },
+  { type: 'shape', label: 'Shape', icon: '▭' },
+  { type: 'pagenumber', label: 'Page #', icon: '#' },
+  { type: 'datetime', label: 'Date/Time', icon: '📅' },
 ];
 
 const ComponentPalette: React.FC = () => {
@@ -237,6 +241,14 @@ function createDefaultComponent(type: string, xMm: number, yMm: number): ReportC
       return { id, type: 'subreport', x, y, width: 80, height: 60, style: '', templateUrl: '', parameters: {} } as ReportComponent;
     case 'panel':
       return { id, type: 'panel', x, y, width: 60, height: 40, style: '', components: [], border: { style: 'none', width: 0, color: '#000', sides: { top: false, right: false, bottom: false, left: false } } } as ReportComponent;
+    case 'line':
+      return { id, type: 'line', x, y, width: 50, height: 10, startX: 0, startY: 0, endX: 50, endY: 0, lineColor: '#000000', lineWidth: 0.2, lineStyle: 'solid' } as ReportComponent;
+    case 'shape':
+      return { id, type: 'shape', x, y, width: 30, height: 30, shapeType: 'rectangle', fillColor: 'transparent', borderColor: '#000000', borderWidth: 0.2, borderStyle: 'solid' } as ReportComponent;
+    case 'pagenumber':
+      return { id, type: 'pagenumber', x, y, width: 30, height: 15, format: '1/N', font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' }, textAlign: 'center' } as ReportComponent;
+    case 'datetime':
+      return { id, type: 'datetime', x, y, width: 50, height: 15, format: 'yyyy-MM-dd', font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' }, textAlign: 'left' } as ReportComponent;
     default:
       return { id, type: 'text', x, y, width: 30, height: 20, style: '', text: '', font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000' }, textAlign: 'left', verticalAlign: 'middle', border: { style: 'none', width: 0, color: '#000', sides: { top: false, right: false, bottom: false, left: false } }, canGrow: false, canShrink: false } as ReportComponent;
   }
@@ -285,7 +297,6 @@ const DataDictionary: React.FC = () => {
         showLine
         defaultExpandAll
         blockNode
-        size="small"
       />
     </div>
   );
