@@ -10,6 +10,7 @@ export interface DesignerState {
   selectedBandId: string | null;
   dataSources: Record<string, any[]>;
   dispatcher: CommandDispatcher;
+  clipboard: ReportComponent[];
 
   // Actions
   loadTemplate: (template: ReportTemplate) => void;
@@ -39,7 +40,33 @@ export interface DesignerState {
   sizeComponents: (sizeMode: string) => void;
   bringToFront: () => void;
   sendToBack: () => void;
+
+  // Component operations
+  deleteSelected: () => void;
+  copySelected: () => void;
+  pasteClipboard: () => void;
+  getClipboard: () => ReportComponent[];
+
+  // Band management
+  addBand: (pageId: string, band: Omit<Band, 'id'>) => void;
+  deleteBand: (pageId: string, bandId: string) => void;
+
+  // Page management
+  addPage: () => void;
+  deletePage: (pageId: string) => void;
+  setPageSettings: (pageId: string, settings: Partial<Page>) => void;
+
+  // Font / text helpers (for toolbar)
+  setFontBold: (bold: boolean) => void;
+  setFontSize: (size: number) => void;
+  setTextAlign: (align: 'left' | 'center' | 'right') => void;
+  setBorderAll: (enabled: boolean) => void;
+  getSelectedFont: () => { family?: string; size?: number; bold?: boolean; italic?: boolean; underline?: boolean; strikethrough?: boolean; color?: string } | null;
+  getSelectedTextAlign: () => ('left' | 'center' | 'right') | null;
 }
+
+const DEFAULT_PAGE_WIDTH = 210; // A4
+const DEFAULT_PAGE_HEIGHT = 297;
 
 export const useDesignerStore = create<DesignerState>((set, get) => {
   const dispatcher = new CommandDispatcher();
@@ -51,6 +78,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     selectedBandId: null,
     dataSources: {},
     dispatcher,
+    clipboard: [],
 
   loadTemplate: (template) => {
     set({
@@ -449,6 +477,317 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     }
 
     set({ template: newTemplate });
+  },
+
+  deleteSelected: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page) return;
+    let newTemplate = template;
+    for (const band of page.bands) {
+      for (const id of selectedComponentIds) {
+        if (band.components.some(c => c.id === id)) {
+          newTemplate = {
+            ...newTemplate,
+            pages: newTemplate.pages.map(p => {
+              if (p.id !== currentPageId) return p;
+              return {
+                ...p,
+                bands: p.bands.map(b => {
+                  if (b.id !== band.id) return b;
+                  return { ...b, components: b.components.filter(c => c.id !== id) };
+                }),
+              };
+            }),
+          };
+        }
+      }
+    }
+    set({ template: newTemplate, selectedComponentIds: [] });
+  },
+
+  copySelected: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page) return;
+    const comps: ReportComponent[] = [];
+    for (const band of page.bands) {
+      for (const comp of band.components) {
+        if (selectedComponentIds.includes(comp.id)) {
+          comps.push({ ...comp });
+        }
+      }
+    }
+    set({ clipboard: comps });
+  },
+
+  pasteClipboard: () => {
+    const { template, currentPageId, selectedComponentIds, clipboard } = get();
+    if (clipboard.length === 0) return;
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page) return;
+    let newTemplate = template;
+    const pasteBandId = selectedComponentIds.length > 0
+      ? page.bands.find(b => b.components.some(c => c.id === selectedComponentIds[0]))?.id
+      : page.bands.find(b => b.type === 'data')?.id;
+    if (!pasteBandId) return;
+    const newIds: string[] = [];
+    for (const comp of clipboard) {
+      const newComp = { ...comp, id: `${comp.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, x: comp.x + 5, y: comp.y + 5 };
+      newIds.push(newComp.id);
+      const band = page.bands.find(b => b.id === pasteBandId)!;
+      newTemplate = {
+        ...newTemplate,
+        pages: newTemplate.pages.map(p => {
+          if (p.id !== currentPageId) return p;
+          return {
+            ...p,
+            bands: p.bands.map(b => {
+              if (b.id !== pasteBandId) return b;
+              return { ...b, components: [...b.components, newComp] };
+            }),
+          };
+        }),
+      };
+    }
+    set({ template: newTemplate, selectedComponentIds: newIds });
+  },
+
+  getClipboard: () => get().clipboard,
+
+  addBand: (pageId, band) => {
+    const { template, dispatcher } = get();
+    const newBand: Band = { ...band, id: `band_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, components: [] };
+    const newTemplate = {
+      ...template,
+      pages: template.pages.map(p => {
+        if (p.id !== pageId) return p;
+        return { ...p, bands: [...p.bands, newBand] };
+      }),
+    };
+    set({ template: newTemplate });
+  },
+
+  deleteBand: (pageId, bandId) => {
+    const { template } = get();
+    const newTemplate = {
+      ...template,
+      pages: template.pages.map(p => {
+        if (p.id !== pageId) return p;
+        return { ...p, bands: p.bands.filter(b => b.id !== bandId) };
+      }),
+    };
+    set({ template: newTemplate });
+  },
+
+  addPage: () => {
+    const { template, dispatcher } = get();
+    const newPage: Page = {
+      id: `page_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      width: DEFAULT_PAGE_WIDTH,
+      height: DEFAULT_PAGE_HEIGHT,
+      margins: { top: 10, right: 10, bottom: 10, left: 10 },
+      orientation: 'portrait',
+      bands: [
+        { id: `band_ph_${Date.now()}`, type: 'pageHeader', height: 20, components: [] },
+        { id: `band_data_${Date.now()}`, type: 'data', height: 50, components: [] },
+        { id: `band_pf_${Date.now()}`, type: 'pageFooter', height: 20, components: [] },
+      ],
+    };
+    set({ template: { ...template, pages: [...template.pages, newPage] }, currentPageId: newPage.id, selectedComponentIds: [] });
+  },
+
+  deletePage: (pageId) => {
+    const { template, currentPageId } = get();
+    if (template.pages.length <= 1) return;
+    const newPages = template.pages.filter(p => p.id !== pageId);
+    set({
+      template: { ...template, pages: newPages },
+      currentPageId: currentPageId === pageId ? newPages[0].id : currentPageId,
+      selectedComponentIds: [],
+    });
+  },
+
+  setPageSettings: (pageId, settings) => {
+    const { template } = get();
+    const newTemplate = {
+      ...template,
+      pages: template.pages.map(p => {
+        if (p.id !== pageId) return p;
+        return { ...p, ...settings } as Page;
+      }),
+    };
+    set({ template: newTemplate });
+  },
+
+  setFontBold: (bold) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page) return;
+    let newTemplate = template;
+    for (const band of page.bands) {
+      for (const comp of band.components) {
+        if (selectedComponentIds.includes(comp.id) && (comp as any).font) {
+          newTemplate = {
+            ...newTemplate,
+            pages: newTemplate.pages.map(p => {
+              if (p.id !== currentPageId) return p;
+              return {
+                ...p,
+                bands: p.bands.map(b => {
+                  if (b.id !== band.id) return b;
+                  return {
+                    ...b,
+                    components: b.components.map(c => {
+                      if (c.id !== comp.id) return c;
+                      return { ...c, font: { ...(c as any).font, bold } };
+                    }),
+                  };
+                }),
+              };
+            }),
+          };
+        }
+      }
+    }
+    set({ template: newTemplate });
+  },
+
+  setFontSize: (size) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page) return;
+    let newTemplate = template;
+    for (const band of page.bands) {
+      for (const comp of band.components) {
+        if (selectedComponentIds.includes(comp.id) && (comp as any).font) {
+          newTemplate = {
+            ...newTemplate,
+            pages: newTemplate.pages.map(p => {
+              if (p.id !== currentPageId) return p;
+              return {
+                ...p,
+                bands: p.bands.map(b => {
+                  if (b.id !== band.id) return b;
+                  return {
+                    ...b,
+                    components: b.components.map(c => {
+                      if (c.id !== comp.id) return c;
+                      return { ...c, font: { ...(c as any).font, size } };
+                    }),
+                  };
+                }),
+              };
+            }),
+          };
+        }
+      }
+    }
+    set({ template: newTemplate });
+  },
+
+  setTextAlign: (align) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page) return;
+    let newTemplate = template;
+    for (const band of page.bands) {
+      for (const comp of band.components) {
+        if (selectedComponentIds.includes(comp.id) && (comp as any).textAlign !== undefined) {
+          newTemplate = {
+            ...newTemplate,
+            pages: newTemplate.pages.map(p => {
+              if (p.id !== currentPageId) return p;
+              return {
+                ...p,
+                bands: p.bands.map(b => {
+                  if (b.id !== band.id) return b;
+                  return {
+                    ...b,
+                    components: b.components.map(c => {
+                      if (c.id !== comp.id) return c;
+                      return { ...c, textAlign: align };
+                    }),
+                  };
+                }),
+              };
+            }),
+          };
+        }
+      }
+    }
+    set({ template: newTemplate });
+  },
+
+  setBorderAll: (enabled) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page) return;
+    let newTemplate = template;
+    for (const band of page.bands) {
+      for (const comp of band.components) {
+        if (selectedComponentIds.includes(comp.id) && (comp as any).border) {
+          const border = (comp as any).border;
+          const newBorder = {
+            ...border,
+            style: enabled ? 'solid' : 'none',
+            width: enabled ? (border.width || 0.2) : 0,
+            sides: { top: enabled, right: enabled, bottom: enabled, left: enabled },
+          };
+          newTemplate = {
+            ...newTemplate,
+            pages: newTemplate.pages.map(p => {
+              if (p.id !== currentPageId) return p;
+              return {
+                ...p,
+                bands: p.bands.map(b => {
+                  if (b.id !== band.id) return b;
+                  return {
+                    ...b,
+                    components: b.components.map(c => {
+                      if (c.id !== comp.id) return c;
+                      return { ...c, border: newBorder };
+                    }),
+                  };
+                }),
+              };
+            }),
+          };
+        }
+      }
+    }
+    set({ template: newTemplate });
+  },
+
+  getSelectedFont: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    if (selectedComponentIds.length !== 1) return null;
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page) return null;
+    for (const band of page.bands) {
+      for (const comp of band.components) {
+        if (selectedComponentIds.includes(comp.id) && (comp as any).font) {
+          const f = (comp as any).font;
+          return { family: f.family, size: f.size, bold: f.bold, italic: f.italic, underline: f.underline, strikethrough: f.strikethrough, color: f.color };
+        }
+      }
+    }
+    return null;
+  },
+
+  getSelectedTextAlign: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    if (selectedComponentIds.length !== 1) return null;
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page) return null;
+    for (const band of page.bands) {
+      for (const comp of band.components) {
+        if (selectedComponentIds.includes(comp.id) && (comp as any).textAlign !== undefined) {
+          return (comp as any).textAlign as 'left' | 'center' | 'right';
+        }
+      }
+    }
+    return null;
   },
   };
 });
