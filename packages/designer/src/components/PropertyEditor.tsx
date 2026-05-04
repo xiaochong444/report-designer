@@ -1,8 +1,10 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Typography, Space, Button, Divider, Checkbox } from 'antd';
+import { EditOutlined } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
 import type { ReportComponent, BorderConfig } from '@report-designer/core';
 import type { CSSProperties } from 'react';
+import { ExpressionEditor } from './ExpressionEditor';
 
 const { Text } = Typography;
 
@@ -54,6 +56,8 @@ export const PropertyEditor: React.FC = () => {
     if (b.dataSource && !acc.includes(b.dataSource)) acc.push(b.dataSource);
     return acc;
   }, []) ?? [];
+
+  const [exprModalOpen, setExprModalOpen] = useState(false);
 
   const handleChange = (field: string, value: any) => {
     if (!component || !bandId || !currentPageId) return;
@@ -178,12 +182,19 @@ export const PropertyEditor: React.FC = () => {
             children: component.type === 'text' ? (
               <Form size="small" labelCol={{ span: 6 }} wrapperCol={{ span: 18 }}>
                 <Form.Item label="表达式">
-                  <Input.TextArea
-                    value={comp.text || ''}
-                    onChange={(e) => handleChange('text', e.target.value)}
-                    autoSize={{ minRows: 2, maxRows: 4 }}
-                    placeholder="{DataSource.Field}"
-                  />
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Input.TextArea
+                      value={comp.text || ''}
+                      onChange={(e) => handleChange('text', e.target.value)}
+                      autoSize={{ minRows: 2, maxRows: 4 }}
+                      placeholder="{DataSource.Field}"
+                    />
+                    <Button
+                      icon={<EditOutlined />}
+                      onClick={() => setExprModalOpen(true)}
+                      style={{ width: 32 }}
+                    />
+                  </Space.Compact>
                 </Form.Item>
                 <Form.Item label="水平对齐">
                   <Select
@@ -638,6 +649,12 @@ export const PropertyEditor: React.FC = () => {
             ),
           },
         ]}
+      />
+      <ExpressionEditor
+        open={exprModalOpen}
+        value={comp.text || ''}
+        onChange={(v) => handleChange('text', v)}
+        onClose={() => setExprModalOpen(false)}
       />
     </div>
   );
