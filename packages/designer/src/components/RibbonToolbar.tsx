@@ -25,9 +25,11 @@ import {
   PlusOutlined,
   MinusOutlined,
   BorderlessTableOutlined,
+  PartitionOutlined,
 } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
 import type { Margins } from '@report-designer/core';
+import { ConditionalFormatManager } from './ConditionalFormatManager';
 
 export const RibbonToolbar: React.FC = () => {
   const { undo, redo, canUndo, canRedo, alignComponents, sizeComponents, bringToFront, sendToBack, deleteSelected, copySelected, pasteClipboard, getClipboard, setFontBold, setFontSize, setTextAlign, setBorderAll, addPage, deletePage, getSelectedFont, getSelectedTextAlign } = useDesignerStore();
@@ -38,6 +40,7 @@ export const RibbonToolbar: React.FC = () => {
 
   const [pageModalOpen, setPageModalOpen] = useState(false);
   const [pageSettings, setPageSettings] = useState<{ width: number; height: number; orientation: 'portrait' | 'landscape'; margins: Margins } | null>(null);
+  const [cfModalOpen, setCfModalOpen] = useState(false);
 
   const alignDisabled = selectedCount < 2;
   const sizeDisabled = selectedCount < 2;
@@ -303,6 +306,15 @@ export const RibbonToolbar: React.FC = () => {
 
       <Divider type="vertical" style={{ height: 24 }} />
 
+      {/* Conditional Format */}
+      <Tooltip title="条件格式">
+        <Button icon={<PartitionOutlined />} size="small" onClick={() => setCfModalOpen(true)}>
+          条件格式
+        </Button>
+      </Tooltip>
+
+      <Divider type="vertical" style={{ height: 24 }} />
+
       {/* Component Alignment */}
       <Tooltip title="对齐 (多选组件)">
         <Dropdown menu={alignMenu} trigger={['click']}>
@@ -397,6 +409,9 @@ export const RibbonToolbar: React.FC = () => {
           </div>
         </Modal>
       )}
+
+      {/* Conditional Format Manager */}
+      <ConditionalFormatManager open={cfModalOpen} onClose={() => setCfModalOpen(false)} />
     </div>
   );
 };
