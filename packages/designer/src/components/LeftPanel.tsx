@@ -1,15 +1,20 @@
 import React from 'react';
-import { Tabs, Tree, Button, Tag, Tooltip } from 'antd';
+import { Tabs, Tree, Button, Tag, Tooltip, Modal, InputNumber, Select, Space, message } from 'antd';
 import {
   FileTextOutlined,
   DatabaseOutlined,
   AppstoreOutlined,
   PlusOutlined,
+  DeleteOutlined,
+  ArrowUpOutlined,
+  ArrowDownOutlined,
+  SettingOutlined,
 } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
-import type { ReportComponent } from '@report-designer/core';
+import type { ReportComponent, BandType } from '@report-designer/core';
 import { nanoid } from 'nanoid';
+import { useState } from 'react';
 
 export const LeftPanel: React.FC = () => {
   return (
@@ -304,18 +309,98 @@ const DataDictionary: React.FC = () => {
 
 // ---- Page Tree ----
 
+const BAND_TYPE_OPTIONS: { value: BandType; label: string }[] = [
+  { value: 'reportTitle', label: '报表标题' },
+  { value: 'reportSummary', label: '报表汇总' },
+  { value: 'pageHeader', label: '页眉' },
+  { value: 'pageFooter', label: '页脚' },
+  { value: 'groupHeader', label: '分组头' },
+  { value: 'groupFooter', label: '分组尾' },
+  { value: 'data', label: '数据' },
+  { value: 'child', label: '子报表' },
+];
+
 const PageTree: React.FC = () => {
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectComponents = useDesignerStore(s => s.selectComponents);
   const selectBand = useDesignerStore(s => s.selectBand);
+  const addBand = useDesignerStore(s => s.addBand);
+  const deleteBand = useDesignerStore(s => s.deleteBand);
+
+  const [bandModalOpen, setBandModalOpen] = useState(false);
+  const [newBandType, setNewBandType] = useState<BandType>('data');
+  const [newBandHeight, setNewBandHeight] = useState(30);
+
+  const currentPage = template.pages.find(p => p.id === currentPageId);
+
+  const handleAddBand = () => {
+    if (!currentPageId) return;
+    addBand(currentPageId, { type: newBandType, height: newBandHeight, components: [] });
+    setBandModalOpen(false);
+    message.success(`已添加 ${newBandType} 带`);
+  };
+
+  const handleMoveBand = (bandId: string, direction: 'up' | 'down') => {
+    if (!currentPage) return;
+    const idx = currentPage.bands.findIndex(b => b.id === bandId);
+    if (idx < 0) return;
+    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
+    if (newIdx < 0 || newIdx >= currentPage.bands.length) return;
+
+    const newBands = [...currentPage.bands];
+    [newBands[idx], newBands[newIdx]] = [newBands[newIdx], newBands[idx]];
+
+    useDesignerStore.getState().setPageSettings(currentPageId, { bands: newBands });
+  };
 
   const treeData: DataNode[] = template.pages.map(page => ({
     key: page.id,
-    title: `Page ${page.id.slice(0, 6)}`,
+    title: (
+      <span>
+        {page.id === currentPageId ? <Tag color="blue">{page.id.slice(0, 6)}</Tag> : `Page ${page.id.slice(0, 6)}`}
+      </span>
+    ),
     children: page.bands.map(band => ({
       key: band.id,
-      title: `${band.type} (${band.height}mm)`,
+      title: (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
+          <span>{band.type} ({band.height}mm)</span>
+          <Space size={0}>
+            <Tooltip title="上移">
+              <Button
+                type="text" size="small" icon={<ArrowUpOutlined />}
+                style={{ height: 20, padding: 0, fontSize: 10 }}
+                onClick={(e) => { e.stopPropagation(); handleMoveBand(band.id, 'up'); }}
+              />
+            </Tooltip>
+            <Tooltip title="下移">
+              <Button
+                type="text" size="small" icon={<ArrowDownOutlined />}
+                style={{ height: 20, padding: 0, fontSize: 10 }}
+                onClick={(e) => { e.stopPropagation(); handleMoveBand(band.id, 'down'); }}
+              />
+            </Tooltip>
+            <Tooltip title="删除">
+              <Button
+                type="text" size="small" danger icon={<DeleteOutlined />}
+                style={{ height: 20, padding: 0, fontSize: 10 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  Modal.confirm({
+                    title: '确认删除',
+                    content: `确定删除 ${band.type} 带及其所有组件？`,
+                    onOk: () => {
+                      deleteBand(page.id, band.id);
+                      message.success('已删除带');
+                    },
+                  });
+                }}
+              />
+            </Tooltip>
+          </Space>
+        </div>
+      ),
       children: band.components.map(comp => ({
         key: comp.id,
         title: `${comp.type} - ${comp.id.slice(0, 8)}`,
@@ -324,30 +409,67 @@ const PageTree: React.FC = () => {
   }));
 
   return (
-    <div style={{ padding: 8 }}>
-      <Tree
-        treeData={treeData}
-        showLine
-        defaultExpandAll
-        blockNode
-        size="small"
-        selectedKeys={[currentPageId]}
-        onSelect={(keys) => {
-          if (keys.length > 0) {
-            const key = keys[0] as string;
-            // Check if it's a page, band, or component
-            const isPage = template.pages.some(p => p.id === key);
-            const isBand = template.pages.flatMap(p => p.bands).some(b => b.id === key);
-            if (isPage) {
-              // selectPage(key); // Would need a selectPage action
-            } else if (isBand) {
-              selectBand(key);
-            } else {
-              selectComponents([key]);
+    <div style={{ padding: 8, height: '100%', display: 'flex', flexDirection: 'column' }}>
+      <div style={{ marginBottom: 8 }}>
+        <Button size="small" icon={<PlusOutlined />} onClick={() => setBandModalOpen(true)} block>
+          添加带
+        </Button>
+      </div>
+      <div style={{ flex: 1, overflow: 'auto' }}>
+        <Tree
+          treeData={treeData}
+          showLine
+          defaultExpandAll
+          blockNode
+          selectedKeys={[currentPageId]}
+          onSelect={(keys) => {
+            if (keys.length > 0) {
+              const key = keys[0] as string;
+              const isPage = template.pages.some(p => p.id === key);
+              const isBand = template.pages.flatMap(p => p.bands).some(b => b.id === key);
+              if (isPage) {
+                useDesignerStore.getState().setCurrentPage(key);
+              } else if (isBand) {
+                selectBand(key);
+              } else {
+                selectComponents([key]);
+              }
             }
-          }
-        }}
-      />
+          }}
+        />
+      </div>
+
+      {/* Add Band Modal */}
+      <Modal
+        title="添加带"
+        open={bandModalOpen}
+        onOk={handleAddBand}
+        onCancel={() => setBandModalOpen(false)}
+        okText="添加"
+        cancelText="取消"
+      >
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ width: 60 }}>类型</span>
+            <Select
+              value={newBandType}
+              onChange={(v) => setNewBandType(v)}
+              style={{ width: '100%' }}
+              options={BAND_TYPE_OPTIONS}
+            />
+          </div>
+          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+            <span style={{ width: 60 }}>高度 (mm)</span>
+            <InputNumber
+              value={newBandHeight}
+              onChange={(v) => setNewBandHeight(v ?? 30)}
+              style={{ width: '100%' }}
+              min={5}
+              max={500}
+            />
+          </div>
+        </div>
+      </Modal>
     </div>
   );
 };
