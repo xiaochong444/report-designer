@@ -50,7 +50,12 @@
       "Bash(findstr /i \"readme\\\\|claude\")",
       "Bash(dir /b /a \"d:/ItemSource/report-designer\")",
       "Bash(findstr /i \"readme claude\")",
-      "Bash(findstr 5175)"
+      "Bash(findstr 5175)",
+      "Bash(cat vite.config.ts)",
+      "Bash(cat vitest.config.ts)",
+      "Bash(pkill -f \"vite\")",
+      "Bash(awk -F/ '{print $1\"/\"$2\"/\"$3}')",
+      "Bash(xargs -I {} git rm -r --cached {})"
     ]
   }
 }

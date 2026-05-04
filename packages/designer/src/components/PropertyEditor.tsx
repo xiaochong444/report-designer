@@ -1,12 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Typography, Space, Button, Divider, Checkbox } from 'antd';
+import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Checkbox } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
-import type { ReportComponent, BorderConfig } from '@report-designer/core';
+import type { BorderConfig } from '@report-designer/core';
 import type { CSSProperties } from 'react';
 import { ExpressionEditor } from './ExpressionEditor';
-
-const { Text } = Typography;
 
 const DEFAULT_BORDER: BorderConfig = {
   style: 'none',
@@ -31,6 +29,8 @@ export const PropertyEditor: React.FC = () => {
     }
     return { component: null, bandId: null };
   }, [template, currentPageId, selectedComponentIds]);
+
+  const [exprModalOpen, setExprModalOpen] = useState(false);
 
   if (selectedComponentIds.length === 0) {
     return (
@@ -57,8 +57,6 @@ export const PropertyEditor: React.FC = () => {
     return acc;
   }, []) ?? [];
 
-  const [exprModalOpen, setExprModalOpen] = useState(false);
-
   const handleChange = (field: string, value: any) => {
     if (!component || !bandId || !currentPageId) return;
     updateComponent(currentPageId, bandId, component.id, { [field]: value }, { [field]: (component as any)[field] });
@@ -78,15 +76,12 @@ export const PropertyEditor: React.FC = () => {
     handleChange('border', newBorder);
   };
 
-  const borderSideStyle = () => {
-    const active = Object.values(border.sides).some(v => v);
-    const style: CSSProperties = {};
-    if (border.sides.top) style.borderTop = `${border.width}mm ${border.style} ${border.color}`;
-    if (border.sides.right) style.borderRight = `${border.width}mm ${border.style} ${border.color}`;
-    if (border.sides.bottom) style.borderBottom = `${border.width}mm ${border.style} ${border.color}`;
-    if (border.sides.left) style.borderLeft = `${border.width}mm ${border.style} ${border.color}`;
-    return style;
-  };
+  const borderSideStyle = (): CSSProperties => ({
+    borderTop: border.sides.top ? `${border.width}mm ${border.style} ${border.color}` : '1px solid #eee',
+    borderRight: border.sides.right ? `${border.width}mm ${border.style} ${border.color}` : '1px solid #eee',
+    borderBottom: border.sides.bottom ? `${border.width}mm ${border.style} ${border.color}` : '1px solid #eee',
+    borderLeft: border.sides.left ? `${border.width}mm ${border.style} ${border.color}` : '1px solid #eee',
+  });
 
   // ---- Font helpers ----
   const font = comp.font ?? { family: '', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' };
@@ -369,7 +364,7 @@ export const PropertyEditor: React.FC = () => {
                   <Checkbox value="bottom">下</Checkbox>
                   <Checkbox value="left">左</Checkbox>
                 </Checkbox.Group>
-                <div style={{ ...borderSideStyle(), width: 60, height: 40, margin: '8px auto 0', border: '1px solid #eee' }} />
+                <div style={{ ...borderSideStyle(), width: 60, height: 40, margin: '8px auto 0', borderStyle: 'solid', borderColor: '#eee', borderWidth: '1px' }} />
               </Form>
             ),
           },
@@ -648,7 +643,7 @@ export const PropertyEditor: React.FC = () => {
               </Form>
             ),
           },
-        ]}
+        ].filter(Boolean) as any}
       />
       <ExpressionEditor
         open={exprModalOpen}

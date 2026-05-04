@@ -899,12 +899,15 @@ const ComponentView: React.FC<{
   const h = mmToPx(component.height);
 
   return (
-    <div style={{ position: 'absolute', left: x, top: y, width: w, height: h }}>
+    <div style={{
+      position: 'absolute', left: x, top: y, width: w, height: h,
+      border: selected ? '2px solid #1890ff' : '2px solid transparent',
+      borderRadius: 2,
+    }}>
       <div data-component-id={component.id}
         onDoubleClick={(e) => { e.stopPropagation(); if (component.type === 'text') onStartEdit(); }}
         style={{
           position: 'absolute', inset: 0,
-          border: selected ? '2px solid #1890ff' : '1px solid transparent',
           boxSizing: 'border-box', cursor: editing ? 'text' : 'grab',
           overflow: 'hidden', padding: 2,
           backgroundColor: selected ? 'rgba(24,144,255,0.06)' : 'transparent',
