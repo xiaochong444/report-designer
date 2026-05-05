@@ -6,6 +6,7 @@ import { CommandDispatcher } from '@report-designer/core';
 export interface DesignerState {
   template: ReportTemplate;
   currentPageId: string;
+  mode: 'design' | 'preview';
   selectedComponentIds: string[];
   selectedBandId: string | null;
   dataSources: Record<string, any[]>;
@@ -14,7 +15,9 @@ export interface DesignerState {
 
   // Actions
   loadTemplate: (template: ReportTemplate) => void;
+  updateTemplate: (updater: (template: ReportTemplate) => ReportTemplate) => void;
   setCurrentPage: (pageId: string) => void;
+  setMode: (mode: 'design' | 'preview') => void;
   selectComponents: (componentIds: string[]) => void;
   selectBand: (bandId: string | null) => void;
   setDataSources: (data: Record<string, any[]>) => void;
@@ -74,6 +77,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   return {
     template: createDefaultTemplate(),
     currentPageId: '',
+    mode: 'design',
     selectedComponentIds: [],
     selectedBandId: null,
     dataSources: {},
@@ -84,12 +88,17 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     set({
       template,
       currentPageId: template.pages[0]?.id || '',
+      mode: 'design',
       selectedComponentIds: [],
       selectedBandId: null,
     });
   },
 
+  updateTemplate: (updater) => set(state => ({ template: updater(state.template) })),
+
   setCurrentPage: (pageId) => set({ currentPageId: pageId }),
+
+  setMode: (mode) => set({ mode }),
 
   selectComponents: (componentIds) => set({ selectedComponentIds: componentIds }),
 

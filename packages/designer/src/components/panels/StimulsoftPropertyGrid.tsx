@@ -1,5 +1,6 @@
 import React from 'react';
 import { useDesignerStore } from '../../store/designer-store';
+import { PropertyGridV2 } from '../properties/PropertyGridV2';
 import { PropertyEditor } from '../PropertyEditor';
 
 export const StimulsoftPropertyGrid: React.FC = () => {
@@ -23,6 +24,11 @@ export const StimulsoftPropertyGrid: React.FC = () => {
     <aside className="rd-property-grid" data-testid="designer-property-grid">
       <div className="rd-panel-title">{selectedType}</div>
       <div className="rd-property-grid-body">
+        {selectedBandId && selectedComponentIds.length === 0 ? (
+          <div className="rd-property-grid-band">
+            <PropertyGridV2 />
+          </div>
+        ) : null}
         <PropertyEditor />
       </div>
     </aside>

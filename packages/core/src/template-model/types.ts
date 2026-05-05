@@ -210,7 +210,19 @@ export interface DateTimeComponent extends ReportComponent {
 }
 
 /** 带类型 */
-export type BandType = 'reportTitle' | 'reportSummary' | 'pageHeader' | 'pageFooter' | 'groupHeader' | 'groupFooter' | 'data' | 'child';
+export type BandType =
+  | 'reportTitle'
+  | 'reportSummary'
+  | 'pageHeader'
+  | 'pageFooter'
+  | 'header'
+  | 'footer'
+  | 'columnHeader'
+  | 'columnFooter'
+  | 'groupHeader'
+  | 'groupFooter'
+  | 'data'
+  | 'child';
 
 /** 带 */
 export interface Band {
@@ -220,6 +232,7 @@ export interface Band {
   components: ReportComponent[];
   dataSource?: string;
   groupField?: string;
+  sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
   visible?: Expression;
 }
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { Button, Select, Tooltip } from 'antd';
 import {
   AlignCenterOutlined,
@@ -15,12 +15,23 @@ import {
   SettingOutlined,
   UndoOutlined,
   RedoOutlined,
+  DatabaseOutlined,
+  ApartmentOutlined,
+  GroupOutlined,
 } from '@ant-design/icons';
 import { useDesignerStore } from '../../store/designer-store';
+import { BandWizardDialog } from '../dialogs/BandWizardDialog';
+import { GroupWizardDialog } from '../dialogs/GroupWizardDialog';
+import { JsonDataSourceDialog } from '../dialogs/JsonDataSourceDialog';
+import { PageSetupDialog } from '../dialogs/PageSetupDialog';
 
 const TAB_LABELS = ['Home', 'Insert', 'Page', 'Layout', 'Preview'];
 
 export const StimulsoftRibbon: React.FC = () => {
+  const [dataDialogOpen, setDataDialogOpen] = useState(false);
+  const [bandDialogOpen, setBandDialogOpen] = useState(false);
+  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
+  const [pageDialogOpen, setPageDialogOpen] = useState(false);
   const {
     undo,
     redo,
@@ -37,10 +48,12 @@ export const StimulsoftRibbon: React.FC = () => {
     addPage,
     getSelectedFont,
     getSelectedTextAlign,
+    setMode,
   } = useDesignerStore();
 
   const selectedCount = useDesignerStore(s => s.selectedComponentIds.length);
   const template = useDesignerStore(s => s.template);
+  const mode = useDesignerStore(s => s.mode);
   const fontInfo = getSelectedFont();
   const textAlign = getSelectedTextAlign();
 
@@ -61,8 +74,9 @@ export const StimulsoftRibbon: React.FC = () => {
         {TAB_LABELS.map((tab, index) => (
           <button
             key={tab}
-            className={index === 0 ? 'rd-ribbon-tab rd-ribbon-tab-active' : 'rd-ribbon-tab'}
+            className={(tab === 'Preview' ? mode === 'preview' : index === 0 && mode === 'design') ? 'rd-ribbon-tab rd-ribbon-tab-active' : 'rd-ribbon-tab'}
             type="button"
+            onClick={() => setMode(tab === 'Preview' ? 'preview' : 'design')}
           >
             {tab}
           </button>
@@ -99,6 +113,24 @@ export const StimulsoftRibbon: React.FC = () => {
           </Tooltip>
         </RibbonGroup>
 
+        <RibbonGroup title="Data">
+          <Tooltip title="JSON data source">
+            <Button size="small" icon={<DatabaseOutlined />} onClick={() => setDataDialogOpen(true)}>
+              JSON
+            </Button>
+          </Tooltip>
+          <Tooltip title="Band wizard">
+            <Button size="small" icon={<ApartmentOutlined />} onClick={() => setBandDialogOpen(true)}>
+              Bands
+            </Button>
+          </Tooltip>
+          <Tooltip title="Group wizard">
+            <Button size="small" icon={<GroupOutlined />} onClick={() => setGroupDialogOpen(true)}>
+              Group
+            </Button>
+          </Tooltip>
+        </RibbonGroup>
+
         <RibbonGroup title="Font">
           <Select
             size="small"
@@ -126,18 +158,22 @@ export const StimulsoftRibbon: React.FC = () => {
             <Button size="small" icon={<PlusOutlined />} onClick={addPage} />
           </Tooltip>
           <Tooltip title="Page settings">
-            <Button size="small" icon={<SettingOutlined />} />
+            <Button size="small" icon={<SettingOutlined />} onClick={() => setPageDialogOpen(true)} />
           </Tooltip>
         </RibbonGroup>
 
         <RibbonGroup title="Preview">
-          <Tooltip title="Requires Phase 4 viewer/print integration">
-            <Button size="small" icon={<PrinterOutlined />} disabled>
+          <Tooltip title="Print preview">
+            <Button size="small" icon={<PrinterOutlined />} onClick={() => setMode('preview')}>
               Print
             </Button>
           </Tooltip>
         </RibbonGroup>
       </div>
+      <JsonDataSourceDialog open={dataDialogOpen} onClose={() => setDataDialogOpen(false)} />
+      <BandWizardDialog open={bandDialogOpen} onClose={() => setBandDialogOpen(false)} />
+      <GroupWizardDialog open={groupDialogOpen} onClose={() => setGroupDialogOpen(false)} />
+      <PageSetupDialog open={pageDialogOpen} onClose={() => setPageDialogOpen(false)} />
     </div>
   );
 };
