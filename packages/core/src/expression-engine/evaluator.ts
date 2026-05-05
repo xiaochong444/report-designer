@@ -3,6 +3,7 @@ import { parse } from './parser';
 import type { ASTNode, LiteralNode, FieldRefNode, BinaryOpNode, UnaryOpNode, FunctionCallNode } from './ast';
 import { ASTNodeType } from './ast';
 import type { DataContext } from '../template-model/types';
+import { evaluateReportFunction } from './report-functions';
 
 /** Evaluation context extends DataContext with current row data */
 export interface EvalContext {
@@ -12,11 +13,19 @@ export interface EvalContext {
   rowIndex?: number;
   /** Optional variables map */
   variables?: Record<string, any>;
+  /** Optional report runtime for Stimulsoft-style aggregate and page functions */
+  reportRuntime?: ReportFunctionRuntime;
 }
 
 /** Built-in function registry */
 export type BuiltinFunction = (args: any[], ctx: EvalContext) => any;
 export const builtinFunctions: Record<string, BuiltinFunction> = {};
+
+export interface ReportFunctionRuntime {
+  pageNumber?: number;
+  totalPages?: number;
+  evaluateFunction: (functionName: string, args: any[], ctx: EvalContext) => any;
+}
 
 function reg(name: string, fn: BuiltinFunction) {
   builtinFunctions[name.toUpperCase()] = fn;
@@ -76,26 +85,60 @@ reg('COALESCE', (args, ctx) => {
 });
 
 reg('SUM', (args, ctx) => {
-  return args.reduce((acc, v) => acc + toNumber(v), 0);
+  return evaluateReportFunction('SUM', args, ctx, (scalarArgs) => scalarArgs.reduce((acc, v) => acc + toNumber(v), 0));
 });
 
 reg('AVG', (args, ctx) => {
-  if (args.length === 0) return 0;
-  return args.reduce((acc, v) => acc + toNumber(v), 0) / args.length;
+  return evaluateReportFunction('AVG', args, ctx, (scalarArgs) => {
+    if (scalarArgs.length === 0) return 0;
+    return scalarArgs.reduce((acc, v) => acc + toNumber(v), 0) / scalarArgs.length;
+  });
 });
 
 reg('MIN', (args, ctx) => {
-  if (args.length === 0) return null;
-  return Math.min(...args.map(toNumber));
+  return evaluateReportFunction('MIN', args, ctx, (scalarArgs) => {
+    if (scalarArgs.length === 0) return null;
+    return Math.min(...scalarArgs.map(toNumber));
+  });
 });
 
 reg('MAX', (args, ctx) => {
-  if (args.length === 0) return null;
-  return Math.max(...args.map(toNumber));
+  return evaluateReportFunction('MAX', args, ctx, (scalarArgs) => {
+    if (scalarArgs.length === 0) return null;
+    return Math.max(...scalarArgs.map(toNumber));
+  });
 });
 
 reg('COUNT', (args, ctx) => {
-  return args.filter(v => v !== null && v !== undefined).length;
+  return evaluateReportFunction('COUNT', args, ctx, (scalarArgs) => scalarArgs.filter(v => v !== null && v !== undefined).length);
+});
+
+reg('COUNTDISTINCT', (args, ctx) => {
+  return evaluateReportFunction('COUNTDISTINCT', args, ctx, (scalarArgs) => new Set(scalarArgs.filter(v => v !== null && v !== undefined)).size);
+});
+
+reg('SUMIF', (args, ctx) => {
+  return evaluateReportFunction('SUMIF', args, ctx, () => 0);
+});
+
+reg('COUNTIF', (args, ctx) => {
+  return evaluateReportFunction('COUNTIF', args, ctx, () => 0);
+});
+
+reg('RUNNINGSUM', (args, ctx) => {
+  return evaluateReportFunction('RUNNINGSUM', args, ctx, () => 0);
+});
+
+reg('TOTALS.SUM', (args, ctx) => {
+  return evaluateReportFunction('TOTALS.SUM', args, ctx, () => 0);
+});
+
+reg('PAGE', (args, ctx) => {
+  return evaluateReportFunction('PAGE', args, ctx, () => 1);
+});
+
+reg('TOTALPAGES', (args, ctx) => {
+  return evaluateReportFunction('TOTALPAGES', args, ctx, () => 1);
 });
 
 reg('ROUND', (args, ctx) => {
@@ -332,8 +375,9 @@ export function evalExpression(
   resolveField: (source: string, field: string) => any,
   rowIndex?: number,
   variables?: Record<string, any>,
+  reportRuntime?: ReportFunctionRuntime,
 ): any {
   const tokens = tokenize(expression);
   const ast = parse(tokens);
-  return evaluate(ast, { resolveField, rowIndex, variables });
+  return evaluate(ast, { resolveField, rowIndex, variables, reportRuntime });
 }

@@ -156,7 +156,7 @@ export function tokenize(input: string): Token[] {
     if (/[a-zA-Z_一-鿿]/.test(input[pos])) {
       const start = pos;
       let ident = '';
-      while (pos < input.length && /[a-zA-Z0-9_一-鿿]/.test(input[pos])) {
+      while (pos < input.length && /[a-zA-Z0-9_.一-鿿]/.test(input[pos])) {
         ident += input[pos];
         pos++;
       }
