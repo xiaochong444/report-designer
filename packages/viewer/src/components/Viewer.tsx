@@ -96,9 +96,9 @@ const PagePreview: React.FC<PagePreviewProps> = ({ page, zoom }) => {
           key={band.id}
           style={{
             position: 'absolute',
-            left: band.absoluteX * MM_TO_PX * scale,
+            left: 0,
             top: band.absoluteY * MM_TO_PX * scale,
-            width: (page.width - band.absoluteX * 2) * MM_TO_PX * scale,
+            width: page.width * MM_TO_PX * scale,
             height: band.height * MM_TO_PX * scale,
             border: '1px dashed #eee',
             boxSizing: 'border-box',
@@ -129,7 +129,7 @@ const PagePreview: React.FC<PagePreviewProps> = ({ page, zoom }) => {
               style={{
                 position: 'absolute',
                 left: comp.absoluteX * MM_TO_PX * scale,
-                top: comp.absoluteY * MM_TO_PX * scale,
+                top: (comp.absoluteY - band.absoluteY) * MM_TO_PX * scale,
                 width: comp.width * MM_TO_PX * scale,
                 height: comp.height * MM_TO_PX * scale,
                 overflow: 'hidden',

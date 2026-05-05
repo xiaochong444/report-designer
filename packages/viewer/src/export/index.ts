@@ -1,5 +1,5 @@
-import { PDFDocument, StandardFonts, rgb, PageSizes } from 'pdf-lib';
-import type { PaginatedPage, PaginatedBand, PaginatedComponent } from '@report-designer/core';
+import { PDFDocument, StandardFonts, rgb } from 'pdf-lib';
+import type { PaginatedPage, PaginatedComponent } from '@report-designer/core';
 
 /** Convert mm to PDF points (1 pt = 1/72 inch, 1 mm = 72/25.4 pt) */
 const MM_TO_PT = 72 / 25.4;
@@ -26,12 +26,6 @@ export async function exportToPDF(
     const { drawBand, drawComponent, drawText } = createDrawHelpers(pdfPage, font, boldFont);
 
     for (const band of page.bands) {
-      // Band background
-      const bandY = height - (band.absoluteY + band.height) * MM_TO_PT;
-      const bandX = band.absoluteX * MM_TO_PT;
-      const bandW = (page.width - band.absoluteX * 2) * MM_TO_PT; // approximate
-      const bandH = band.height * MM_TO_PT;
-
       // Draw components within the band
       for (const comp of band.components) {
         drawComponent(comp, height);
@@ -55,7 +49,7 @@ function createDrawHelpers(
     y: number,
     fontSize: number,
     isBold: boolean,
-    color: rgb = rgb(0, 0, 0),
+    color: ReturnType<typeof rgb> = rgb(0, 0, 0),
     align: 'left' | 'center' | 'right' = 'left',
   ) {
     const f = isBold ? boldFont : font;
@@ -136,7 +130,9 @@ export function printReport(): void {
 
 /** Download PDF file */
 export async function downloadPDF(pdfBytes: Uint8Array, filename: string): Promise<void> {
-  const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+  const arrayBuffer = new ArrayBuffer(pdfBytes.byteLength);
+  new Uint8Array(arrayBuffer).set(pdfBytes);
+  const blob = new Blob([arrayBuffer], { type: 'application/pdf' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
