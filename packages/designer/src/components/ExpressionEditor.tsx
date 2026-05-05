@@ -208,7 +208,6 @@ export const ExpressionEditor: React.FC<{
                         showLine
                         defaultExpandAll
                         blockNode
-                        size="small"
                         onSelect={handleFieldSelect}
                       />
                     ) : (
@@ -231,7 +230,6 @@ export const ExpressionEditor: React.FC<{
                       showLine
                       defaultExpandAll
                       blockNode
-                      size="small"
                       onSelect={handleFunctionSelect}
                     />
                   </div>

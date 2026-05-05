@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Button, Space, Select, Tooltip, Divider, Dropdown, Typography, Modal, InputNumber, message } from 'antd';
+import { Button, Space, Select, Tooltip, Dropdown, Typography, Modal, InputNumber, message } from 'antd';
 import {
   UndoOutlined,
   RedoOutlined,
@@ -196,7 +196,7 @@ export const RibbonToolbar: React.FC = () => {
         </Tooltip>
       </Space>
 
-      <Divider type="vertical" style={{ height: 24 }} />
+      <ToolbarDivider />
 
       {/* Undo/Redo */}
       <Space>
@@ -208,7 +208,7 @@ export const RibbonToolbar: React.FC = () => {
         </Tooltip>
       </Space>
 
-      <Divider type="vertical" style={{ height: 24 }} />
+      <ToolbarDivider />
 
       {/* Page management */}
       <Space>
@@ -223,7 +223,7 @@ export const RibbonToolbar: React.FC = () => {
         </Tooltip>
       </Space>
 
-      <Divider type="vertical" style={{ height: 24 }} />
+      <ToolbarDivider />
 
       {/* Delete / Copy / Paste */}
       <Space>
@@ -238,7 +238,7 @@ export const RibbonToolbar: React.FC = () => {
         </Tooltip>
       </Space>
 
-      <Divider type="vertical" style={{ height: 24 }} />
+      <ToolbarDivider />
 
       {/* Font controls */}
       <Space>
@@ -270,7 +270,7 @@ export const RibbonToolbar: React.FC = () => {
         />
       </Space>
 
-      <Divider type="vertical" style={{ height: 24 }} />
+      <ToolbarDivider />
 
       {/* Text Alignment */}
       <Space>
@@ -297,14 +297,14 @@ export const RibbonToolbar: React.FC = () => {
         />
       </Space>
 
-      <Divider type="vertical" style={{ height: 24 }} />
+      <ToolbarDivider />
 
       {/* Border toggle */}
       <Tooltip title="切换边框">
         <Button icon={<BorderOuterOutlined />} size="small" onClick={() => setBorderAll(true)} disabled={selectedCount === 0} />
       </Tooltip>
 
-      <Divider type="vertical" style={{ height: 24 }} />
+      <ToolbarDivider />
 
       {/* Conditional Format */}
       <Tooltip title="条件格式">
@@ -313,7 +313,7 @@ export const RibbonToolbar: React.FC = () => {
         </Button>
       </Tooltip>
 
-      <Divider type="vertical" style={{ height: 24 }} />
+      <ToolbarDivider />
 
       {/* Component Alignment */}
       <Tooltip title="对齐 (多选组件)">
@@ -342,7 +342,7 @@ export const RibbonToolbar: React.FC = () => {
         </Dropdown>
       </Tooltip>
 
-      <Divider type="vertical" style={{ height: 24 }} />
+      <ToolbarDivider />
 
       {/* Selection info */}
       {selectedCount > 0 && (
@@ -415,3 +415,16 @@ export const RibbonToolbar: React.FC = () => {
     </div>
   );
 };
+
+const ToolbarDivider: React.FC = () => (
+  <span
+    aria-hidden="true"
+    style={{
+      width: 1,
+      height: 24,
+      backgroundColor: '#d9d9d9',
+      display: 'inline-block',
+      margin: '0 4px',
+    }}
+  />
+);

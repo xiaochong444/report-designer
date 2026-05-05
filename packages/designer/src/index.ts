@@ -1,4 +1,10 @@
 export { Designer } from './components/Designer';
+export { DesignerShell } from './components/shell/DesignerShell';
+export { DesignerStatusBar } from './components/shell/DesignerStatusBar';
+export { StimulsoftRibbon } from './components/ribbon/StimulsoftRibbon';
+export { StimulsoftLeftPanel } from './components/panels/StimulsoftLeftPanel';
+export { StimulsoftPropertyGrid } from './components/panels/StimulsoftPropertyGrid';
+export { DesignerCanvasFrame } from './components/canvas/DesignerCanvasFrame';
 export { RibbonToolbar } from './components/RibbonToolbar';
 export { Canvas } from './components/Canvas';
 export { LeftPanel } from './components/LeftPanel';
