@@ -2,6 +2,8 @@ export * from './template-model';
 export * from './data-dictionary';
 export * from './band-planner';
 export * from './aggregate-engine';
+export * from './render-document';
+export * from './layout-engine';
 export * from './expression-engine';
 export * from './render-engine';
 export * from './pagination';

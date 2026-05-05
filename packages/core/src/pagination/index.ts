@@ -5,6 +5,8 @@ import type {
   RenderTree, RenderedBand, RenderedComponent,
 } from '../render-engine';
 import { renderTemplate } from '../render-engine';
+export * from './paginate-v2';
+export * from './page-number-pass';
 
 /** A page after pagination */
 export interface PaginatedPage {
