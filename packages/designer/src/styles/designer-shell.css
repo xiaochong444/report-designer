@@ -280,6 +280,140 @@
   background: #fbfcfe;
 }
 
+.rd-report-tree {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px;
+}
+
+.rd-report-tree-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.rd-report-tree-copy {
+  font-size: 11px;
+  color: var(--rd-muted);
+}
+
+.rd-report-tree-body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.rd-report-tree-root {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--rd-text);
+}
+
+.rd-report-tree-root-icon {
+  color: #2f78d4;
+}
+
+.rd-report-tree-tree .ant-tree-treenode {
+  padding: 1px 0;
+}
+
+.rd-report-tree-tree .ant-tree-node-content-wrapper {
+  width: calc(100% - 24px);
+  padding: 2px 4px !important;
+  border-radius: 6px;
+}
+
+.rd-report-tree-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
+  background: #e8f1ff !important;
+}
+
+.rd-report-tree-tree .ant-tree-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rd-report-tree-node {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+}
+
+.rd-report-tree-node-meta {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.rd-report-tree-node-main {
+  min-width: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--rd-text);
+  font-size: 12px;
+}
+
+.rd-report-tree-node-main span:last-child {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rd-report-tree-node-sub {
+  margin-left: 18px;
+  color: var(--rd-muted);
+  font-size: 11px;
+  line-height: 1.15;
+}
+
+.rd-report-tree-actions {
+  flex: none;
+}
+
+.rd-report-tree-action-btn {
+  width: 18px !important;
+  min-width: 18px !important;
+  height: 18px !important;
+  padding: 0 !important;
+  color: #7a8593;
+}
+
+.rd-report-tree-type-icon {
+  color: #6c7a89;
+  font-size: 12px;
+}
+
+.rd-report-tree-band-swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  box-sizing: border-box;
+}
+
+.rd-report-tree-band-reportTitle { background: #b9895b; }
+.rd-report-tree-band-reportSummary { background: #8b6a4b; }
+.rd-report-tree-band-pageHeader { background: #8fd0a0; }
+.rd-report-tree-band-pageFooter { background: #94bff3; }
+.rd-report-tree-band-header { background: #b9c8ee; }
+.rd-report-tree-band-footer { background: #cfd7ea; }
+.rd-report-tree-band-columnHeader { background: #c4d4f5; }
+.rd-report-tree-band-columnFooter { background: #d8dff0; }
+.rd-report-tree-band-groupHeader { background: #7dc8d4; }
+.rd-report-tree-band-groupFooter { background: #a89de8; }
+.rd-report-tree-band-data { background: #7eb3ea; }
+.rd-report-tree-band-child { background: #f0a1be; }
+
 .rd-field-option {
   width: 100%;
   height: 28px;

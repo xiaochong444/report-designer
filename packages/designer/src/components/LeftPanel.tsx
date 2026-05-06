@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tabs, Tree, Button, Tag, Tooltip, Modal, InputNumber, Select, Space, message } from 'antd';
+import { Tabs, Tree, Button, Tooltip, Modal, InputNumber, Select, Space, message, Tag } from 'antd';
 import {
   FileTextOutlined,
   DatabaseOutlined,
@@ -8,21 +8,32 @@ import {
   DeleteOutlined,
   ArrowUpOutlined,
   ArrowDownOutlined,
-  SettingOutlined,
+  PictureOutlined,
+  TableOutlined,
+  CheckSquareOutlined,
+  LineOutlined,
+  CalendarOutlined,
+  ProfileOutlined,
+  FileOutlined,
+  QrcodeOutlined,
+  BorderOutlined,
+  NodeIndexOutlined,
+  ApartmentOutlined,
 } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
 import type { ReportComponent, BandType } from '@report-designer/core';
 import { formatUnitValue, getReportUnitSymbol, getUnitStep, parseUnitValue } from '../page-settings';
+import { getBandDisplayName, getComponentNamePrefix } from '../report-structure';
 import { nanoid } from 'nanoid';
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export const LeftPanel: React.FC = () => {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '0 6px 6px' }}>
       <Tabs
         size="small"
-        defaultActiveKey="report"
+        defaultActiveKey="tree"
         items={[
           {
             key: 'palette',
@@ -325,9 +336,43 @@ const BAND_TYPE_OPTIONS: { value: BandType; label: string }[] = [
   { value: 'child', label: '子报表' },
 ];
 
+function renderComponentTreeIcon(type: ReportComponent['type']) {
+  const props = { className: 'rd-report-tree-type-icon', 'data-testid': `report-tree-icon-${type}` } as const;
+  switch (type) {
+    case 'text':
+      return <FileTextOutlined {...props} />;
+    case 'image':
+      return <PictureOutlined {...props} />;
+    case 'barcode':
+      return <QrcodeOutlined {...props} />;
+    case 'table':
+      return <TableOutlined {...props} />;
+    case 'checkbox':
+      return <CheckSquareOutlined {...props} />;
+    case 'richtext':
+      return <FileTextOutlined {...props} />;
+    case 'subreport':
+      return <NodeIndexOutlined {...props} />;
+    case 'panel':
+      return <BorderOutlined {...props} />;
+    case 'line':
+      return <LineOutlined {...props} />;
+    case 'shape':
+      return <ApartmentOutlined {...props} />;
+    case 'pagenumber':
+      return <NodeIndexOutlined {...props} />;
+    case 'datetime':
+      return <CalendarOutlined {...props} />;
+    default:
+      return <FileTextOutlined {...props} />;
+  }
+}
+
 const PageTree: React.FC = () => {
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
+  const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
+  const selectedBandId = useDesignerStore(s => s.selectedBandId);
   const selectComponents = useDesignerStore(s => s.selectComponents);
   const selectBand = useDesignerStore(s => s.selectBand);
   const addBand = useDesignerStore(s => s.addBand);
@@ -338,9 +383,34 @@ const PageTree: React.FC = () => {
   const [newBandType, setNewBandType] = useState<BandType>('data');
   const [newBandHeight, setNewBandHeight] = useState(30);
   const unitSymbol = getReportUnitSymbol(reportUnit);
+  const autoExpandedKeys = useMemo(
+    () => [
+      'report-root',
+      ...template.pages.flatMap((page) => [page.id, ...page.bands.map((band) => band.id)]),
+    ],
+    [template.pages],
+  );
+  const [expandedKeys, setExpandedKeys] = useState<string[]>(autoExpandedKeys);
+
+  useEffect(() => {
+    setExpandedKeys((previousKeys) => {
+      const nextKeys = [...previousKeys];
+      for (const key of autoExpandedKeys) {
+        if (!nextKeys.includes(key)) {
+          nextKeys.push(key);
+        }
+      }
+      return nextKeys.length === previousKeys.length ? previousKeys : nextKeys;
+    });
+  }, [autoExpandedKeys]);
   const unitStep = getUnitStep(reportUnit);
 
   const currentPage = template.pages.find(p => p.id === currentPageId);
+  const selectedKeys = selectedComponentIds.length > 0
+    ? selectedComponentIds
+    : selectedBandId
+      ? [selectedBandId]
+      : [currentPageId];
 
   const handleAddBand = () => {
     if (!currentPageId) return;
@@ -362,78 +432,117 @@ const PageTree: React.FC = () => {
     useDesignerStore.getState().setPageSettings(currentPageId, { bands: newBands });
   };
 
-  const treeData: DataNode[] = template.pages.map(page => ({
-    key: page.id,
-    title: (
-      <span>
-        {page.id === currentPageId ? <Tag color="blue">{page.id.slice(0, 6)}</Tag> : `Page ${page.id.slice(0, 6)}`}
-      </span>
-    ),
-    children: page.bands.map(band => ({
-      key: band.id,
+  const treeData: DataNode[] = [
+    {
+      key: 'report-root',
+      selectable: false,
       title: (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <span>{band.type} ({formatUnitValue(band.height, reportUnit)} {unitSymbol})</span>
-          <Space size={0}>
-            <Tooltip title="上移">
-              <Button
-                type="text" size="small" icon={<ArrowUpOutlined />}
-                style={{ height: 20, padding: 0, fontSize: 10 }}
-                onClick={(e) => { e.stopPropagation(); handleMoveBand(band.id, 'up'); }}
-              />
-            </Tooltip>
-            <Tooltip title="下移">
-              <Button
-                type="text" size="small" icon={<ArrowDownOutlined />}
-                style={{ height: 20, padding: 0, fontSize: 10 }}
-                onClick={(e) => { e.stopPropagation(); handleMoveBand(band.id, 'down'); }}
-              />
-            </Tooltip>
-            <Tooltip title="删除">
-              <Button
-                type="text" size="small" danger icon={<DeleteOutlined />}
-                style={{ height: 20, padding: 0, fontSize: 10 }}
-                onClick={(e) => {
-                  e.stopPropagation();
-                  Modal.confirm({
-                    title: '确认删除',
-                    content: `确定删除 ${band.type} 带及其所有组件？`,
-                    onOk: () => {
-                      deleteBand(page.id, band.id);
-                      message.success('已删除带');
-                    },
-                  });
-                }}
-              />
-            </Tooltip>
-          </Space>
+        <div className="rd-report-tree-root" data-testid="report-tree-root">
+          <ProfileOutlined className="rd-report-tree-type-icon rd-report-tree-root-icon" />
+          <span>{template.name || 'Untitled Report'}</span>
         </div>
       ),
-      children: band.components.map(comp => ({
-        key: comp.id,
-        title: `${comp.type} - ${comp.id.slice(0, 8)}`,
-      })),
-    })),
-  }));
+      children: template.pages.map((page, pageIndex) => {
+        const bandTypeCounters: Partial<Record<BandType, number>> = {};
+        return {
+          key: page.id,
+          title: (
+            <div className="rd-report-tree-node rd-report-tree-page-node">
+              <div className="rd-report-tree-node-main">
+                <FileOutlined className="rd-report-tree-type-icon" />
+                <span>{`Page${pageIndex + 1}`}</span>
+              </div>
+            </div>
+          ),
+          children: page.bands.map((band) => {
+            bandTypeCounters[band.type] = (bandTypeCounters[band.type] ?? 0) + 1;
+            const bandIndex = bandTypeCounters[band.type] ?? 1;
+            const bandName = getBandDisplayName(band, bandIndex);
+            return {
+              key: band.id,
+              title: (
+                <div className="rd-report-tree-node rd-report-tree-band-node">
+                  <div className="rd-report-tree-node-meta">
+                    <div className="rd-report-tree-node-main">
+                      <span className={`rd-report-tree-band-swatch rd-report-tree-band-${band.type}`} />
+                      <span>{bandName}</span>
+                    </div>
+                    <div className="rd-report-tree-node-sub">{`(${formatUnitValue(band.height, reportUnit)} ${unitSymbol})`}</div>
+                  </div>
+                  <Space size={2} className="rd-report-tree-actions">
+                    <Tooltip title="上移">
+                      <Button
+                        type="text" size="small" icon={<ArrowUpOutlined />}
+                        className="rd-report-tree-action-btn"
+                        onClick={(e) => { e.stopPropagation(); handleMoveBand(band.id, 'up'); }}
+                      />
+                    </Tooltip>
+                    <Tooltip title="下移">
+                      <Button
+                        type="text" size="small" icon={<ArrowDownOutlined />}
+                        className="rd-report-tree-action-btn"
+                        onClick={(e) => { e.stopPropagation(); handleMoveBand(band.id, 'down'); }}
+                      />
+                    </Tooltip>
+                    <Tooltip title="删除">
+                      <Button
+                        type="text" size="small" danger icon={<DeleteOutlined />}
+                        className="rd-report-tree-action-btn"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          Modal.confirm({
+                            title: '确认删除',
+                            content: `确定删除 ${bandName} 及其所有组件？`,
+                            onOk: () => {
+                              deleteBand(page.id, band.id);
+                              message.success('已删除带');
+                            },
+                          });
+                        }}
+                      />
+                    </Tooltip>
+                  </Space>
+                </div>
+              ),
+              children: band.components.map((comp) => ({
+                key: comp.id,
+                title: (
+                  <div className="rd-report-tree-node rd-report-tree-component-node" data-testid={`report-tree-component-${comp.id}`}>
+                    <div className="rd-report-tree-node-main">
+                      {renderComponentTreeIcon(comp.type)}
+                      <span>{comp.name?.trim() || getComponentNamePrefix(comp.type)}</span>
+                    </div>
+                  </div>
+                ),
+              })),
+            };
+          }),
+        };
+      }),
+    },
+  ];
 
   return (
-    <div style={{ padding: 8, height: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-        <div style={{ fontSize: 11, color: '#6b7280' }}>Pages, bands, and components</div>
+    <div className="rd-report-tree" data-testid="report-tree">
+      <div className="rd-report-tree-header">
+        <div className="rd-report-tree-copy">Pages, bands, and components</div>
         <Button size="small" icon={<PlusOutlined />} onClick={() => setBandModalOpen(true)}>
           添加带
         </Button>
       </div>
-      <div style={{ flex: 1, overflow: 'auto' }}>
+      <div className="rd-report-tree-body">
         <Tree
+          className="rd-report-tree-tree"
           treeData={treeData}
-          showLine
-          defaultExpandAll
+          showLine={{ showLeafIcon: false }}
           blockNode
-          selectedKeys={[currentPageId]}
+          expandedKeys={expandedKeys}
+          selectedKeys={selectedKeys}
+          onExpand={(keys) => setExpandedKeys(keys as string[])}
           onSelect={(keys) => {
             if (keys.length > 0) {
               const key = keys[0] as string;
+              if (key === 'report-root') return;
               const isPage = template.pages.some(p => p.id === key);
               const isBand = template.pages.flatMap(p => p.bands).some(b => b.id === key);
               if (isPage) {

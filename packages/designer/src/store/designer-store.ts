@@ -3,6 +3,7 @@ import type { ReportTemplate, ReportComponent, Band, Page, TableComponent } from
 import { createDefaultTemplate } from '@report-designer/core';
 import { CommandDispatcher } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
+import { ensureTemplateComponentNames, prepareComponentForInsert } from '../report-structure';
 import {
   clearTableCell,
   deleteTableColumn,
@@ -128,9 +129,10 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     zoom: 1,
 
   loadTemplate: (template) => {
+    const normalizedTemplate = ensureTemplateComponentNames(template);
     set({
-      template,
-      currentPageId: template.pages[0]?.id || '',
+      template: normalizedTemplate,
+      currentPageId: normalizedTemplate.pages[0]?.id || '',
       mode: 'design',
       selectedComponentIds: [],
       selectedBandId: null,
@@ -157,9 +159,10 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
 
   addComponent: (pageId, bandId, component) => {
     const { template, dispatcher } = get();
+    const normalizedComponent = prepareComponentForInsert(template, component);
     const newTemplate = dispatcher.execute(template, {
       type: 'add-component',
-      payload: { pageId, bandId, component },
+      payload: { pageId, bandId, component: normalizedComponent },
       execute: () => template,
       undo: () => template,
     });
@@ -601,7 +604,8 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     if (!pasteBandId) return;
     const newIds: string[] = [];
     for (const comp of clipboard) {
-      const newComp = { ...comp, id: `${comp.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, x: comp.x + 5, y: comp.y + 5 };
+      const preparedComp = prepareComponentForInsert(newTemplate, { ...comp, name: comp.name });
+      const newComp = { ...preparedComp, id: `${comp.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, x: comp.x + 5, y: comp.y + 5 };
       newIds.push(newComp.id);
       const band = page.bands.find(b => b.id === pasteBandId)!;
       newTemplate = {
