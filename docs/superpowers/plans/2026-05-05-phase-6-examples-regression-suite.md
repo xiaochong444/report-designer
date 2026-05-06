@@ -27,17 +27,17 @@
 
 ### Task 1: Add JSON Fixtures
 
-- [ ] **Step 1: Create employees fixture**
+- [x] **Step 1: Create employees fixture**
 
 Include at least 40 rows across 4 departments with numeric salaries and dates.
 
-- [ ] **Step 2: Create orders fixture**
+- [x] **Step 2: Create orders fixture**
 
 Include at least 10 orders. Each order should contain nested `lines` with sku, name, qty, unitPrice, and lineTotal.
 
 ### Task 2: Add Template Fixtures
 
-- [ ] **Step 1: Create grouped employees report**
+- [x] **Step 1: Create grouped employees report**
 
 Bands:
 
@@ -50,7 +50,7 @@ Bands:
 - Footer with report total
 - PageFooter with page number
 
-- [ ] **Step 2: Create invoice report**
+- [x] **Step 2: Create invoice report**
 
 Bands:
 
@@ -60,7 +60,7 @@ Bands:
 - Footer subtotal/tax/total
 - PageFooter
 
-- [ ] **Step 3: Create master-detail orders report**
+- [x] **Step 3: Create master-detail orders report**
 
 Bands:
 
@@ -68,13 +68,13 @@ Bands:
 - Child/detail DataBand for order lines
 - Group/report totals
 
-- [ ] **Step 4: Create long text pagination report**
+- [x] **Step 4: Create long text pagination report**
 
 Include text with `canGrow` that forces page breaks.
 
 ### Task 3: Core Regression Tests
 
-- [ ] **Step 1: Write RenderDocument tests**
+- [x] **Step 1: Write RenderDocument tests**
 
 Assert:
 
@@ -84,7 +84,7 @@ Assert:
 - invoice total equals line totals
 - long-text report does not overflow page content area
 
-- [ ] **Step 2: Run core regression tests**
+- [x] **Step 2: Run core regression tests**
 
 Run:
 
@@ -96,11 +96,11 @@ Expected: PASS.
 
 ### Task 4: Viewer Regression Tests
 
-- [ ] **Step 1: Write viewer tests**
+- [x] **Step 1: Write viewer tests**
 
 Render each template and assert page count, key labels, and page number text appear.
 
-- [ ] **Step 2: Run viewer regression tests**
+- [x] **Step 2: Run viewer regression tests**
 
 Run:
 
@@ -112,7 +112,7 @@ Expected: PASS.
 
 ### Task 5: Example App Template Picker
 
-- [ ] **Step 1: Modify `App.tsx`**
+- [x] **Step 1: Modify `App.tsx`**
 
 Add a compact template picker inside the designer shell or example wrapper:
 
@@ -121,7 +121,7 @@ Add a compact template picker inside the designer shell or example wrapper:
 - Master Detail Orders
 - Long Text Pagination
 
-- [ ] **Step 2: Browser smoke check**
+- [x] **Step 2: Browser smoke check**
 
 Run:
 
@@ -133,7 +133,7 @@ Open the app, switch templates, preview, export PDF for at least one template.
 
 ### Task 6: Commit
 
-- [ ] **Step 1: Commit**
+- [x] **Step 1: Commit**
 
 ```bash
 git add packages/example/src packages/core/__tests__ packages/viewer/src/__tests__

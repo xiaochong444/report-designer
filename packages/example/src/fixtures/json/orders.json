@@ -1,0 +1,92 @@
+[
+  {
+    "orderNo": "SO-1001",
+    "customer": "Northwind Studio",
+    "orderDate": "2026-01-10",
+    "lines": [
+      { "sku": "P-100", "name": "Design Seat", "qty": 2, "unitPrice": 240, "lineTotal": 480 },
+      { "sku": "P-210", "name": "PDF Export Pack", "qty": 1, "unitPrice": 180, "lineTotal": 180 }
+    ]
+  },
+  {
+    "orderNo": "SO-1002",
+    "customer": "Blue Peak Ltd",
+    "orderDate": "2026-01-13",
+    "lines": [
+      { "sku": "P-110", "name": "Viewer Seat", "qty": 5, "unitPrice": 90, "lineTotal": 450 },
+      { "sku": "S-010", "name": "Implementation", "qty": 8, "unitPrice": 120, "lineTotal": 960 }
+    ]
+  },
+  {
+    "orderNo": "SO-1003",
+    "customer": "Apex Manufacturing",
+    "orderDate": "2026-01-18",
+    "lines": [
+      { "sku": "P-100", "name": "Design Seat", "qty": 1, "unitPrice": 240, "lineTotal": 240 },
+      { "sku": "P-310", "name": "Barcode Module", "qty": 2, "unitPrice": 75, "lineTotal": 150 }
+    ]
+  },
+  {
+    "orderNo": "SO-1004",
+    "customer": "Cedar Finance",
+    "orderDate": "2026-01-22",
+    "lines": [
+      { "sku": "P-210", "name": "PDF Export Pack", "qty": 3, "unitPrice": 180, "lineTotal": 540 },
+      { "sku": "S-020", "name": "Template Migration", "qty": 6, "unitPrice": 130, "lineTotal": 780 }
+    ]
+  },
+  {
+    "orderNo": "SO-1005",
+    "customer": "Harbor Retail",
+    "orderDate": "2026-02-01",
+    "lines": [
+      { "sku": "P-110", "name": "Viewer Seat", "qty": 12, "unitPrice": 90, "lineTotal": 1080 },
+      { "sku": "S-010", "name": "Implementation", "qty": 4, "unitPrice": 120, "lineTotal": 480 }
+    ]
+  },
+  {
+    "orderNo": "SO-1006",
+    "customer": "Maple Health",
+    "orderDate": "2026-02-04",
+    "lines": [
+      { "sku": "P-100", "name": "Design Seat", "qty": 3, "unitPrice": 240, "lineTotal": 720 },
+      { "sku": "P-410", "name": "Grouping Module", "qty": 1, "unitPrice": 160, "lineTotal": 160 }
+    ]
+  },
+  {
+    "orderNo": "SO-1007",
+    "customer": "Silverline Logistics",
+    "orderDate": "2026-02-11",
+    "lines": [
+      { "sku": "P-310", "name": "Barcode Module", "qty": 4, "unitPrice": 75, "lineTotal": 300 },
+      { "sku": "S-030", "name": "Report Training", "qty": 5, "unitPrice": 95, "lineTotal": 475 }
+    ]
+  },
+  {
+    "orderNo": "SO-1008",
+    "customer": "Summit Education",
+    "orderDate": "2026-02-15",
+    "lines": [
+      { "sku": "P-110", "name": "Viewer Seat", "qty": 20, "unitPrice": 90, "lineTotal": 1800 },
+      { "sku": "P-210", "name": "PDF Export Pack", "qty": 2, "unitPrice": 180, "lineTotal": 360 }
+    ]
+  },
+  {
+    "orderNo": "SO-1009",
+    "customer": "Orchid Labs",
+    "orderDate": "2026-02-20",
+    "lines": [
+      { "sku": "P-100", "name": "Design Seat", "qty": 2, "unitPrice": 240, "lineTotal": 480 },
+      { "sku": "S-020", "name": "Template Migration", "qty": 10, "unitPrice": 130, "lineTotal": 1300 }
+    ]
+  },
+  {
+    "orderNo": "SO-1010",
+    "customer": "Prairie Energy",
+    "orderDate": "2026-02-24",
+    "lines": [
+      { "sku": "P-410", "name": "Grouping Module", "qty": 2, "unitPrice": 160, "lineTotal": 320 },
+      { "sku": "S-030", "name": "Report Training", "qty": 6, "unitPrice": 95, "lineTotal": 570 }
+    ]
+  }
+]

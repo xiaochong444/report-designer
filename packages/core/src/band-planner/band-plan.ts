@@ -30,6 +30,7 @@ export interface RenderContextV2 {
   dataSourceId?: string;
   groupValues: Record<string, unknown>;
   parentRow?: Record<string, unknown>;
+  rowsByBand?: Record<string, Record<string, unknown>[]>;
 }
 
 export type LogicalBandItem =

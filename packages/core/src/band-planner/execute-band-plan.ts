@@ -65,14 +65,15 @@ function executeGroupedRows(
     }
 
     const groupValues = pair.header.group?.name ? { [pair.header.group.name]: currentKey } : {};
-    items.push(createBandItem(pair.header, { row: currentGroupRows[0].row, rowIndex: currentGroupRows[0].rowIndex, dataSourceId, groupValues }));
+    const rowsByBand = dataSourceId ? { [dataSourceId]: currentGroupRows.map(item => item.row) } : undefined;
+    items.push(createBandItem(pair.header, { row: currentGroupRows[0].row, rowIndex: currentGroupRows[0].rowIndex, dataSourceId, groupValues, rowsByBand }));
     currentGroupRows.forEach(({ row, rowIndex }) => {
       items.push(createBandItem(section.dataBand, { row, rowIndex, dataSourceId, groupValues }));
       section.childBands.forEach((band) => items.push(createBandItem(band, { row, rowIndex, dataSourceId, groupValues })));
     });
     if (pair.footer) {
       const last = currentGroupRows[currentGroupRows.length - 1];
-      items.push(createBandItem(pair.footer, { row: last.row, rowIndex: last.rowIndex, dataSourceId, groupValues }));
+      items.push(createBandItem(pair.footer, { row: last.row, rowIndex: last.rowIndex, dataSourceId, groupValues, rowsByBand }));
     }
     currentGroupRows = [];
   };

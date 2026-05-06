@@ -1,4 +1,5 @@
 import { evalExpression } from '../expression-engine/evaluator';
+import { AggregateRuntime } from '../aggregate-engine';
 import type { RenderContextV2 } from '../band-planner/band-plan';
 import type { RenderBandBox, RenderComponentBox } from '../render-document/types';
 import type { ReportBandV2, ReportComponentV2, TextComponentV2 } from '../template-model/v2-types';
@@ -9,6 +10,7 @@ export interface LayoutBandOptions {
   y: number;
   width: number;
   context: RenderContextV2;
+  rowsByBand?: Record<string, Record<string, unknown>[]>;
 }
 
 export function layoutBand(band: ReportBandV2, options: LayoutBandOptions): RenderBandBox {
@@ -30,7 +32,7 @@ export function layoutBand(band: ReportBandV2, options: LayoutBandOptions): Rend
 
 function layoutComponent(component: ReportComponentV2, band: ReportBandV2, options: LayoutBandOptions): RenderComponentBox {
   if (component.type === 'text' && 'text' in component) {
-    const text = resolveText(component, options.context);
+    const text = resolveText(component, options.context, options.rowsByBand ?? {});
     const measured = measureTextBox(component as TextComponentV2, text);
     return {
       id: component.id,
@@ -60,7 +62,11 @@ function layoutComponent(component: ReportComponentV2, band: ReportBandV2, optio
   };
 }
 
-function resolveText(component: TextComponentV2, context: RenderContextV2): string {
+function resolveText(
+  component: TextComponentV2,
+  context: RenderContextV2,
+  rowsByBand: Record<string, Record<string, unknown>[]>,
+): string {
   if (component.text.includes('{PageNumber}') || component.text.includes('{TotalPages}')) {
     return component.text;
   }
@@ -75,6 +81,7 @@ function resolveText(component: TextComponentV2, context: RenderContextV2): stri
       (source, field) => resolveField(context, source, field),
       context.rowIndex,
       { row: context.row, groupValues: context.groupValues },
+      new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand }),
     );
     return value == null ? '' : String(value);
   } catch {

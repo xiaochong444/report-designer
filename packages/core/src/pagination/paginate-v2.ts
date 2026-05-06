@@ -12,7 +12,7 @@ export function renderReportV2(
   const templatePage = template.pages[0];
   const plan = buildBandPlan(template);
   const logicalItems = executeBandPlan(plan, data);
-  const pages = paginateV2(templatePage, plan.pageBands, logicalItems);
+  const pages = paginateV2(templatePage, plan.pageBands, logicalItems, data);
   return applyPageNumberPass({ pages });
 }
 
@@ -20,6 +20,7 @@ export function paginateV2(
   templatePage: ReportPageV2,
   pageBands: ReturnType<typeof buildBandPlan>['pageBands'],
   logicalItems: LogicalBandItem[],
+  rowsByBand: Record<string, Record<string, unknown>[]> = {},
 ): RenderPage[] {
   const pages: RenderPage[] = [];
   const printableX = templatePage.margins.left;
@@ -57,12 +58,12 @@ export function paginateV2(
 
   const placeBand = (band: ReportBandV2, context: RenderContextV2, force = false): RenderBandBox => {
     ensurePage();
-    const preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context });
+    const preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand });
     if (!force && cursorY + preview.height > pageBottomY && currentPage!.items.length > 0) {
       newPage();
     }
 
-    const box = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context });
+    const box = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand });
     currentPage!.items.push(box);
     cursorY += box.height;
     return box;
@@ -107,12 +108,12 @@ export function paginateV2(
 
   for (const page of pages) {
     for (const overlay of pageBands.overlay) {
-      page.items.unshift(layoutBand(overlay, { x: printableX, y: templatePage.margins.top, width: printableWidth, context: createEmptyContext() }));
+      page.items.unshift(layoutBand(overlay, { x: printableX, y: templatePage.margins.top, width: printableWidth, context: createEmptyContext(), rowsByBand }));
     }
 
     let footerY = templatePage.height - templatePage.margins.bottom - footerHeight;
     for (const footer of pageBands.pageFooter) {
-      const box = layoutBand(footer, { x: printableX, y: footerY, width: printableWidth, context: createEmptyContext() });
+      const box = layoutBand(footer, { x: printableX, y: footerY, width: printableWidth, context: createEmptyContext(), rowsByBand });
       page.items.push(box);
       footerY += box.height;
     }
