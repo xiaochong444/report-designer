@@ -23,4 +23,31 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('white-space:pre-wrap');
     expect(html).toContain('padding:0.529mm');
   });
+
+  it('renders component coordinates relative to their containing band', () => {
+    const html = buildPrintHtml(makeRenderDocument());
+
+    expect(html).toContain('class="rd-print-band" style="left:20mm;top:20mm;width:170mm;height:20mm;"');
+    expect(html).toContain('class="rd-print-component');
+    expect(html).toContain('left:5mm;top:5mm');
+    expect(html).not.toContain('left:25mm;top:25mm');
+  });
+
+  it('applies centered print text alignment to a full-width text content box', () => {
+    const document = makeRenderDocument();
+    const component = document.pages[0].items[0].components[0];
+    if (component.type === 'text') {
+      component.content = 'Centered Print Title';
+      component.style = {
+        ...component.style,
+        textAlign: 'center',
+      };
+    }
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('class="rd-print-text-content"');
+    expect(html).toContain('style="width:100%;text-align:center;white-space:inherit;"');
+    expect(html).toContain('Centered Print Title');
+  });
 });

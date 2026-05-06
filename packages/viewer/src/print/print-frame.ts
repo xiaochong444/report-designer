@@ -7,7 +7,7 @@ export function buildPrintHtml(document: RenderDocument): string {
     <div class="rd-print-page" style="width:${page.width}mm;height:${page.height}mm;">
       ${page.items.map((band) => `
         <div class="rd-print-band" style="left:${band.x}mm;top:${band.y}mm;width:${band.width}mm;height:${band.height}mm;">
-          ${band.components.map(renderComponentHtml).join('')}
+          ${band.components.map(component => renderComponentHtml(component, band.x, band.y)).join('')}
         </div>
       `).join('')}
     </div>
@@ -53,20 +53,21 @@ export async function printRenderDocument(document: RenderDocument): Promise<voi
   iframe.remove();
 }
 
-function renderComponentHtml(component: RenderComponentBox): string {
-  const style = buildComponentStyle(component);
+function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY: number): string {
+  const style = buildComponentStyle(component, bandX, bandY);
   if (component.type === 'text' && 'content' in component) {
-    return `<div class="rd-print-component" style="${style}">${escapeHtml(component.content)}</div>`;
+    const contentStyle = buildTextContentStyle(component);
+    return `<div class="rd-print-component rd-print-text" style="${style}"><div class="rd-print-text-content" style="${contentStyle}">${escapeHtml(component.content)}</div></div>`;
   }
   return `<div class="rd-print-component" style="${style}"></div>`;
 }
 
-function buildComponentStyle(component: RenderComponentBox): string {
+function buildComponentStyle(component: RenderComponentBox, bandX: number, bandY: number): string {
   const border = component.style?.border;
   const font = component.style?.font;
   const declarations = [
-    `left:${component.x}mm`,
-    `top:${component.y}mm`,
+    `left:${roundCss(component.x - bandX)}mm`,
+    `top:${roundCss(component.y - bandY)}mm`,
     `width:${component.width}mm`,
     `height:${component.height}mm`,
     'box-sizing:border-box',
@@ -84,7 +85,6 @@ function buildComponentStyle(component: RenderComponentBox): string {
     declarations.push(`align-items:${verticalAlignToFlex(component.style?.verticalAlign)}`);
     declarations.push(`padding:${roundCss(2 / (96 / 25.4))}mm`);
     declarations.push('white-space:pre-wrap');
-    if (component.style?.textAlign) declarations.push(`text-align:${component.style.textAlign}`);
     if (font?.color) declarations.push(`color:${font.color}`);
     if (font?.family) declarations.push(`font-family:${font.family}`);
     declarations.push(`font-size:${roundCss((font?.size ?? 10) * 1.333)}px`);
@@ -94,6 +94,14 @@ function buildComponentStyle(component: RenderComponentBox): string {
   }
 
   return `${declarations.join(';')};`;
+}
+
+function buildTextContentStyle(component: RenderComponentBox): string {
+  return [
+    'width:100%',
+    `text-align:${component.style?.textAlign ?? 'left'}`,
+    'white-space:inherit',
+  ].join(';') + ';';
 }
 
 function verticalAlignToFlex(value?: 'top' | 'middle' | 'bottom'): string {
