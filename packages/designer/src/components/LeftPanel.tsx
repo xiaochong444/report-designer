@@ -5,17 +5,6 @@ import {
   DatabaseOutlined,
   AppstoreOutlined,
   PlusOutlined,
-  PictureOutlined,
-  TableOutlined,
-  CheckSquareOutlined,
-  LineOutlined,
-  CalendarOutlined,
-  ProfileOutlined,
-  FileOutlined,
-  QrcodeOutlined,
-  BorderOutlined,
-  NodeIndexOutlined,
-  ApartmentOutlined,
 } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
@@ -334,35 +323,49 @@ const BAND_TYPE_OPTIONS: { value: BandType; label: string }[] = [
 ];
 
 function renderComponentTreeIcon(type: ReportComponent['type']) {
-  const props = { className: 'rd-report-tree-type-icon', 'data-testid': `report-tree-icon-${type}` } as const;
+  const props = {
+    className: `rd-report-tree-glyph rd-report-tree-glyph-${type}`,
+    'data-testid': `report-tree-icon-${type}`,
+    'aria-hidden': true,
+  } as const;
   switch (type) {
     case 'text':
-      return <FileTextOutlined {...props} />;
+      return <span {...props} />;
     case 'image':
-      return <PictureOutlined {...props} />;
+      return <span {...props} />;
     case 'barcode':
-      return <QrcodeOutlined {...props} />;
+      return <span {...props} />;
     case 'table':
-      return <TableOutlined {...props} />;
+      return <span {...props} />;
     case 'checkbox':
-      return <CheckSquareOutlined {...props} />;
+      return <span {...props} />;
     case 'richtext':
-      return <FileTextOutlined {...props} />;
+      return <span {...props} />;
     case 'subreport':
-      return <NodeIndexOutlined {...props} />;
+      return <span {...props} />;
     case 'panel':
-      return <BorderOutlined {...props} />;
+      return <span {...props} />;
     case 'line':
-      return <LineOutlined {...props} />;
+      return <span {...props} />;
     case 'shape':
-      return <ApartmentOutlined {...props} />;
+      return <span {...props} />;
     case 'pagenumber':
-      return <NodeIndexOutlined {...props} />;
+      return <span {...props} />;
     case 'datetime':
-      return <CalendarOutlined {...props} />;
+      return <span {...props} />;
     default:
-      return <FileTextOutlined {...props} />;
+      return <span {...props} />;
   }
+}
+
+function renderTreeDocGlyph(kind: 'report' | 'page') {
+  return (
+    <span
+      className={`rd-report-tree-glyph rd-report-tree-glyph-doc rd-report-tree-glyph-${kind}`}
+      data-testid={`report-tree-icon-${kind}`}
+      aria-hidden
+    />
+  );
 }
 
 const PageTree: React.FC = () => {
@@ -419,7 +422,7 @@ const PageTree: React.FC = () => {
       selectable: false,
       title: (
         <div className="rd-report-tree-root" data-testid="report-tree-root">
-          <ProfileOutlined className="rd-report-tree-type-icon rd-report-tree-root-icon" />
+          {renderTreeDocGlyph('report')}
           <span>{template.name || 'Untitled Report'}</span>
         </div>
       ),
@@ -430,7 +433,7 @@ const PageTree: React.FC = () => {
           title: (
             <div className="rd-report-tree-node rd-report-tree-page-node">
               <div className="rd-report-tree-node-main">
-                <FileOutlined className="rd-report-tree-type-icon" />
+                {renderTreeDocGlyph('page')}
                 <span>{`Page${pageIndex + 1}`}</span>
               </div>
             </div>
