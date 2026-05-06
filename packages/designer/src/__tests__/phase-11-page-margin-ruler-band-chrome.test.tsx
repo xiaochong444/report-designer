@@ -35,6 +35,7 @@ describe('Phase 11 page margin ruler and band chrome', () => {
   it('renders paper margins, printable-area rulers, printable grid, and band chrome outside body height', () => {
     render(<Designer template={createDefaultTemplate('Margin Canvas')} />);
 
+    const pageStack = screen.getByTestId('designer-canvas-page-stack');
     const page = screen.getByTestId('designer-page-sheet');
     const contentArea = screen.getByTestId('designer-page-content-area');
     const horizontalRuler = screen.getByTestId('designer-ruler-horizontal');
@@ -51,12 +52,16 @@ describe('Phase 11 page margin ruler and band chrome', () => {
     expect(contentStyle).toContain('width: 643px');
     expect(contentStyle).toContain('height: 971px');
 
+    const pageStackStyle = pageStack.getAttribute('style') ?? '';
     const horizontalStyle = horizontalRuler.getAttribute('style') ?? '';
     const verticalStyle = verticalRuler.getAttribute('style') ?? '';
-    expect(horizontalStyle).toContain('left: 100px');
-    expect(horizontalStyle).toContain('width: 643px');
-    expect(verticalStyle).toContain('top: 100px');
-    expect(verticalStyle).toContain('height: 971px');
+    expect(pageStackStyle).toContain('margin: 0px');
+    expect(horizontalStyle).toContain('left: 24px');
+    expect(horizontalStyle).toContain('width: 794px');
+    expect(horizontalRuler).toHaveAttribute('data-printable-offset-px', '76');
+    expect(verticalStyle).toContain('top: 24px');
+    expect(verticalStyle).toContain('height: 1123px');
+    expect(verticalRuler).toHaveAttribute('data-printable-offset-px', '76');
     expect(horizontalRuler).toHaveTextContent('0');
     expect(horizontalRuler).toHaveTextContent('10');
     expect(horizontalRuler).toHaveTextContent('20');

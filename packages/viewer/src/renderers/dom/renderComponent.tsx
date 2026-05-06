@@ -15,7 +15,13 @@ export const RenderComponent: React.FC<RenderComponentProps> = ({ component, zoo
 
   switch (component.type) {
     case 'text':
-      return <div data-testid="render-component-text" style={{ ...style, ...textStyle(component as RenderText, scale) }}>{(component as RenderText).content}</div>;
+      return (
+        <div data-testid="render-component-text" style={{ ...style, ...textBoxStyle(component as RenderText, scale) }}>
+          <div data-testid="render-component-text-content" style={textContentStyle(component as RenderText)}>
+            {(component as RenderText).content}
+          </div>
+        </div>
+      );
     case 'image':
       return <img data-testid="render-component-image" src={(component as RenderImage).src} alt="" style={{ ...style, objectFit: 'contain' }} />;
     case 'line':
@@ -49,7 +55,7 @@ export function toAbsoluteStyle(component: RenderComponentBox, scale: number): R
   };
 }
 
-function textStyle(component: RenderText, scale: number): React.CSSProperties {
+function textBoxStyle(component: RenderText, scale: number): React.CSSProperties {
   const font = component.style?.font;
   return {
     color: font?.color,
@@ -58,11 +64,18 @@ function textStyle(component: RenderText, scale: number): React.CSSProperties {
     fontWeight: font?.bold ? 700 : 400,
     fontStyle: font?.italic ? 'italic' : undefined,
     textDecoration: font?.underline ? 'underline' : undefined,
-    textAlign: component.style?.textAlign,
     display: 'flex',
     alignItems: verticalAlignToFlex(component.style?.verticalAlign),
     padding: 2 * scale,
     whiteSpace: 'pre-wrap',
+  };
+}
+
+function textContentStyle(component: RenderText): React.CSSProperties {
+  return {
+    width: '100%',
+    textAlign: component.style?.textAlign ?? 'left',
+    whiteSpace: 'inherit',
   };
 }
 

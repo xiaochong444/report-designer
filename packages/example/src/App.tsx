@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Button, Layout, Select, Typography } from 'antd';
-import type { ReportTemplate, ReportTemplateV2 } from '@report-designer/core';
+import { migrateV1ToV2, type ReportTemplate, type ReportTemplateV2 } from '@report-designer/core';
 import { Designer } from '@report-designer/designer';
 import { Viewer } from '@report-designer/viewer';
 import { sampleReports } from './templates';
@@ -11,14 +11,26 @@ type ViewMode = 'preview' | 'designer';
 function App() {
   const [sampleKey, setSampleKey] = useState(sampleReports[0].key);
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
+  const [designerDrafts, setDesignerDrafts] = useState<Record<string, ReportTemplate>>({});
+  const [previewDrafts, setPreviewDrafts] = useState<Record<string, ReportTemplateV2>>({});
   const selected = useMemo(
     () => sampleReports.find(report => report.key === sampleKey) ?? sampleReports[0],
     [sampleKey],
   );
+  const previewTemplate = previewDrafts[selected.key] ?? selected.template;
   const designerTemplate = useMemo(
-    () => toDesignerTemplate(selected.template),
-    [selected.template],
+    () => designerDrafts[selected.key] ?? toDesignerTemplate(previewTemplate),
+    [designerDrafts, previewTemplate, selected.key],
   );
+  const handleDesignerTemplateChange = useCallback((next: ReportTemplate) => {
+    setDesignerDrafts(current => (
+      current[selected.key] === next ? current : { ...current, [selected.key]: next }
+    ));
+    setPreviewDrafts(current => ({
+      ...current,
+      [selected.key]: toPreviewTemplate(selected.template, next),
+    }));
+  }, [selected.key, selected.template]);
 
   return (
     <Layout style={{ height: '100vh', minWidth: 900, background: '#eef1f5' }}>
@@ -41,7 +53,7 @@ function App() {
           style={{ width: 260 }}
           options={sampleReports.map(report => ({ value: report.key, label: report.label }))}
         />
-        <Typography.Text type="secondary">{selected.template.name}</Typography.Text>
+        <Typography.Text type="secondary">{previewTemplate.name}</Typography.Text>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
           {viewMode === 'preview' ? (
             <Button size="small" type="primary" onClick={() => setViewMode('designer')}>
@@ -56,9 +68,14 @@ function App() {
       </Header>
       <Content style={{ minHeight: 0 }}>
         {viewMode === 'preview' ? (
-          <Viewer template={selected.template} data={selected.data} />
+          <Viewer template={previewTemplate} data={selected.data} />
         ) : (
-          <Designer key={selected.key} template={designerTemplate} data={selected.data} />
+          <Designer
+            key={selected.key}
+            template={designerTemplate}
+            data={selected.data}
+            onTemplateChange={handleDesignerTemplateChange}
+          />
         )}
       </Content>
     </Layout>
@@ -66,6 +83,31 @@ function App() {
 }
 
 export default App;
+
+function toPreviewTemplate(baseTemplate: ReportTemplateV2, designerTemplate: ReportTemplate): ReportTemplateV2 {
+  const migrated = migrateV1ToV2(designerTemplate);
+
+  return {
+    ...migrated,
+    dataSources: baseTemplate.dataSources,
+    parameters: baseTemplate.parameters ?? [],
+    pages: migrated.pages.map((page, pageIndex) => {
+      const basePage = baseTemplate.pages.find(item => item.id === page.id) ?? baseTemplate.pages[pageIndex];
+      return {
+        ...page,
+        bands: page.bands.map((band, bandIndex) => {
+          const baseBand = basePage?.bands.find(item => item.id === band.id) ?? basePage?.bands[bandIndex];
+          return {
+            ...band,
+            behavior: baseBand?.behavior ?? band.behavior,
+            dataBand: band.dataBand ?? baseBand?.dataBand,
+            group: band.group ?? baseBand?.group,
+          };
+        }),
+      };
+    }),
+  };
+}
 
 function toDesignerTemplate(template: ReportTemplateV2): ReportTemplate {
   return {

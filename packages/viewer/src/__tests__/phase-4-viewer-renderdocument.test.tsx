@@ -24,4 +24,25 @@ describe('Phase 4 RenderDocument viewer', () => {
     expect(screen.getByTestId('render-document-page')).toBeInTheDocument();
     expect(screen.getByText('Hello PDF')).toBeInTheDocument();
   });
+
+  it('applies text alignment to the inner text content instead of only the absolute box', () => {
+    const document = makeRenderDocument();
+    const textComponent = document.pages[0].items[0].components[0];
+    if (textComponent.type === 'text') {
+      textComponent.content = 'Centered Title';
+      textComponent.width = 170;
+      textComponent.style = {
+        ...textComponent.style,
+        textAlign: 'center',
+      };
+    }
+
+    render(<RenderDocumentView document={document} zoom={100} />);
+
+    const textBox = screen.getByTestId('render-component-text');
+    const content = screen.getByTestId('render-component-text-content');
+    expect(textBox).toHaveStyle({ display: 'flex' });
+    expect(content).toHaveStyle({ width: '100%', textAlign: 'center' });
+    expect(content).toHaveTextContent('Centered Title');
+  });
 });

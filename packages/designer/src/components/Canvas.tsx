@@ -678,21 +678,23 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     <div ref={containerRef} className={className}
       style={{ overflowX: 'hidden', overflowY: 'auto', backgroundColor: '#e8e8e8', height: '100%', padding: 24, userSelect: isBusy ? 'none' : 'auto', position: 'relative' }}
     >
-      <div style={{ position: 'relative', width: pageWidthPx + RULER_SIZE, margin: '0 auto' }}>
+      <div data-testid="designer-canvas-page-stack" style={{ position: 'relative', width: pageWidthPx + RULER_SIZE, margin: 0 }}>
         {/* 顶部标尺 */}
         <Ruler
           direction="horizontal"
           lengthMm={printableWidthMm}
-          lengthPx={printableWidthPx}
-          offsetPx={RULER_SIZE + marginLeftPx}
+          lengthPx={pageWidthPx}
+          printableOffsetPx={marginLeftPx}
+          offsetPx={RULER_SIZE}
           crossOffsetPx={0}
           zoom={zoom}
         />
         <Ruler
           direction="vertical"
           lengthMm={printableHeightMm}
-          lengthPx={printableHeightPx}
-          offsetPx={marginTopPx + RULER_SIZE}
+          lengthPx={pageHeightPx}
+          printableOffsetPx={marginTopPx}
+          offsetPx={RULER_SIZE}
           crossOffsetPx={0}
           zoom={zoom}
         />
@@ -820,17 +822,18 @@ const Ruler: React.FC<{
   direction: 'horizontal' | 'vertical';
   lengthMm: number;
   lengthPx: number;
+  printableOffsetPx: number;
   offsetPx: number;
   crossOffsetPx: number;
   zoom: number;
-}> = ({ direction, lengthMm, lengthPx, offsetPx, crossOffsetPx, zoom }) => {
+}> = ({ direction, lengthMm, lengthPx, printableOffsetPx, offsetPx, crossOffsetPx, zoom }) => {
   const isHorizontal = direction === 'horizontal';
 
   const ticks = useMemo(() => {
     const result: { pos: number; major: boolean; medium: boolean; label?: string }[] = [];
 
     for (let mm = 0; mm <= Math.floor(lengthMm); mm += 1) {
-      const px = mmToPx(mm) * zoom;
+      const px = printableOffsetPx + mmToPx(mm) * zoom;
       const isMajor = mm % 10 === 0;
       result.push({
         pos: px,
@@ -840,10 +843,13 @@ const Ruler: React.FC<{
       });
     }
     return result;
-  }, [lengthMm, zoom]);
+  }, [lengthMm, printableOffsetPx, zoom]);
 
   return (
-    <div data-testid={`designer-ruler-${direction}`} style={{
+    <div
+      data-testid={`designer-ruler-${direction}`}
+      data-printable-offset-px={Math.round(printableOffsetPx)}
+      style={{
       position: 'absolute',
       ...(isHorizontal
         ? { left: `${offsetPx}px`, top: `${crossOffsetPx}px`, width: `${lengthPx}px`, height: `${RULER_SIZE}px` }
