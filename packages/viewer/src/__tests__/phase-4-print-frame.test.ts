@@ -10,4 +10,17 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('class="rd-print-page"');
     expect(html.match(/class="rd-print-page"/g)).toHaveLength(1);
   });
+
+  it('keeps print text styling aligned with the DOM preview renderer', () => {
+    const html = buildPrintHtml(makeRenderDocument());
+
+    expect(html).toContain('font-family:Arial');
+    expect(html).toContain('font-size:14.663px');
+    expect(html).toContain('color:#000000');
+    expect(html).toContain('background-color:#f5f5f5');
+    expect(html).toContain('border-top:0.2mm solid #000000');
+    expect(html).toContain('text-align:left');
+    expect(html).toContain('white-space:pre-wrap');
+    expect(html).toContain('padding:0.529mm');
+  });
 });

@@ -16,7 +16,8 @@ export const PropertyGridV2: React.FC = () => {
 
   return (
     <Space orientation="vertical" size={10} style={{ width: '100%' }}>
-      <Input value={band.id} readOnly addonBefore="Name" />
+      <Typography.Text type="secondary">Name</Typography.Text>
+      <Input value={band.id} readOnly />
       <Select
         value={band.dataSource}
         placeholder="Data source"
@@ -30,12 +31,12 @@ export const PropertyGridV2: React.FC = () => {
           } : item),
         }))}
       />
+      <Typography.Text type="secondary">Height (mm)</Typography.Text>
       <InputNumber
-        addonBefore="Height"
-        addonAfter="mm"
         value={band.height}
         min={4}
         max={200}
+        style={{ width: '100%' }}
         onChange={value => updateTemplate(current => ({
           ...current,
           pages: current.pages.map(item => item.id === page.id ? {

@@ -54,11 +54,56 @@ export async function printRenderDocument(document: RenderDocument): Promise<voi
 }
 
 function renderComponentHtml(component: RenderComponentBox): string {
-  const style = `left:${component.x}mm;top:${component.y}mm;width:${component.width}mm;height:${component.height}mm;`;
+  const style = buildComponentStyle(component);
   if (component.type === 'text' && 'content' in component) {
     return `<div class="rd-print-component" style="${style}">${escapeHtml(component.content)}</div>`;
   }
   return `<div class="rd-print-component" style="${style}"></div>`;
+}
+
+function buildComponentStyle(component: RenderComponentBox): string {
+  const border = component.style?.border;
+  const font = component.style?.font;
+  const declarations = [
+    `left:${component.x}mm`,
+    `top:${component.y}mm`,
+    `width:${component.width}mm`,
+    `height:${component.height}mm`,
+    'box-sizing:border-box',
+    `overflow:${component.overflow ? 'hidden' : 'visible'}`,
+  ];
+
+  if (component.style?.backgroundColor) declarations.push(`background-color:${component.style.backgroundColor}`);
+  if (border?.sides.top) declarations.push(`border-top:${border.width}mm ${border.style} ${border.color}`);
+  if (border?.sides.right) declarations.push(`border-right:${border.width}mm ${border.style} ${border.color}`);
+  if (border?.sides.bottom) declarations.push(`border-bottom:${border.width}mm ${border.style} ${border.color}`);
+  if (border?.sides.left) declarations.push(`border-left:${border.width}mm ${border.style} ${border.color}`);
+
+  if (component.type === 'text') {
+    declarations.push('display:flex');
+    declarations.push(`align-items:${verticalAlignToFlex(component.style?.verticalAlign)}`);
+    declarations.push(`padding:${roundCss(2 / (96 / 25.4))}mm`);
+    declarations.push('white-space:pre-wrap');
+    if (component.style?.textAlign) declarations.push(`text-align:${component.style.textAlign}`);
+    if (font?.color) declarations.push(`color:${font.color}`);
+    if (font?.family) declarations.push(`font-family:${font.family}`);
+    declarations.push(`font-size:${roundCss((font?.size ?? 10) * 1.333)}px`);
+    declarations.push(`font-weight:${font?.bold ? 700 : 400}`);
+    if (font?.italic) declarations.push('font-style:italic');
+    if (font?.underline) declarations.push('text-decoration:underline');
+  }
+
+  return `${declarations.join(';')};`;
+}
+
+function verticalAlignToFlex(value?: 'top' | 'middle' | 'bottom'): string {
+  if (value === 'middle') return 'center';
+  if (value === 'bottom') return 'flex-end';
+  return 'flex-start';
+}
+
+function roundCss(value: number): string {
+  return String(Math.round(value * 1000) / 1000);
 }
 
 function escapeHtml(value: string): string {

@@ -7,6 +7,7 @@ const MM_TO_PX = 3.78;
 const SNAP_THRESHOLD = 5;
 const HANDLE_SIZE = 8;
 const GRID_MM = 5; // 网格间距 5mm
+const BAND_HEADER_MM = 7;
 const DRAG_THRESHOLD = 3; // px，超过此距离才算真正开始拖拽
 type ResizeHandle = 'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se';
 
@@ -153,6 +154,17 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     let y = 0;
     return currentPage.bands.map(band => { const r = { band, cumY: y }; y += band.height; return r; });
   }, [currentPage]);
+
+  const bandLabelIndexes = useMemo(() => {
+    const counters: Record<string, number> = {};
+    const result: Record<string, number> = {};
+    for (const { band } of bands) {
+      const key = band.type;
+      counters[key] = (counters[key] ?? 0) + 1;
+      result[band.id] = counters[key];
+    }
+    return result;
+  }, [bands]);
 
   const flat = useMemo(() => {
     const items: { comp: ReportComponent; bandId: string; cumY: number }[] = [];
@@ -407,7 +419,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
           let cumY = 0;
           for (const band of page.bands) {
             for (const comp of band.components) {
-              const l = mmToPx(comp.x), t = mmToPx(cumY) + mmToPx(comp.y);
+              const l = mmToPx(comp.x), t = mmToPx(cumY) + mmToPx(BAND_HEADER_MM) + mmToPx(comp.y);
               const r = l + mmToPx(comp.width), b = t + mmToPx(comp.height);
               if (selBoxRef.current.x < r && selBoxRef.current.x + selBoxRef.current.w > l && selBoxRef.current.y < b && selBoxRef.current.y + selBoxRef.current.h > t) {
                 ids.push(comp.id);
@@ -672,7 +684,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         {guides.map((g, i) => (
           <div key={i} style={{
             position: 'absolute',
-            ...(g.type === 'horizontal' ? { left: 14, right: 0, top: mmToPx(flat.find(f => f.comp.id === selectedComponentIds[0])?.cumY ?? 0) + g.position - mmToPx((flat.find(f => f.comp.id === selectedComponentIds[0])?.comp.y ?? 0)), height: 1 } : { top: 0, bottom: 0, left: g.position, width: 1 }),
+            ...(g.type === 'horizontal' ? { left: 0, right: 0, top: mmToPx(flat.find(f => f.comp.id === selectedComponentIds[0])?.cumY ?? 0) + mmToPx(BAND_HEADER_MM) + g.position - mmToPx((flat.find(f => f.comp.id === selectedComponentIds[0])?.comp.y ?? 0)), height: 1 } : { top: 0, bottom: 0, left: g.position, width: 1 }),
             backgroundColor: '#ff4d4f', zIndex: 9998, pointerEvents: 'none',
           }} />
         ))}
@@ -680,6 +692,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         {/* Bands */}
         {bands.map(({ band, cumY }) => (
           <BandView key={band.id} band={band} cumY={cumY}
+            labelIndex={bandLabelIndexes[band.id] ?? 1}
             isSelected={band.id === selectedBandId}
             selectedIds={selectedComponentIds}
             onUpdateComponent={updateComponent} currentPageId={currentPageId} />
@@ -765,57 +778,57 @@ const Ruler: React.FC<{
   const isHorizontal = direction === 'horizontal';
   const rulerSize = 24;
   const totalLen = isHorizontal ? pageWidthPx : pageHeightPx;
-  const majorStep = 10; // 每 10mm 一个主刻度
-  const minorStep = 1;  // 每 1mm 一个次刻度
 
   const ticks = useMemo(() => {
-    const result: { pos: number; major: boolean; label?: string }[] = [];
-    const step = 1;  // 每 1mm 一个次刻度
+    const result: { pos: number; major: boolean; medium: boolean; label?: string }[] = [];
+    const designUnits = Math.ceil(totalLen / zoom);
 
-    for (let mm = 0; mm * zoom * MM_TO_PX < totalLen; mm += step) {
-      const px = mmToPx(mm) * zoom;
-      const isMajor = mm % majorStep === 0;
+    for (let unit = 0; unit <= designUnits; unit += 10) {
+      const px = unit * zoom;
+      const isMajor = unit % 100 === 0;
       result.push({
         pos: px,
         major: isMajor,
-        label: isMajor ? `${mm}` : undefined,
+        medium: !isMajor && unit % 50 === 0,
+        label: isMajor ? `${unit}` : undefined,
       });
     }
     return result;
   }, [totalLen, zoom]);
 
   return (
-    <div style={{
+    <div data-testid={`designer-ruler-${direction}`} style={{
       position: 'absolute',
       ...(isHorizontal
         ? { left: `${rulerSize}px`, top: 0, width: `${totalLen}px`, height: `${rulerSize}px` }
         : { left: 0, top: `${rulerSize}px`, width: `${rulerSize}px`, height: `${totalLen}px` }
       ),
       overflow: 'hidden',
-      backgroundColor: '#f5f5f5',
-      border: isHorizontal ? undefined : '1px solid #ddd',
+      backgroundColor: '#f1f1f1',
+      borderRight: isHorizontal ? undefined : '1px solid #b9b9b9',
+      borderBottom: isHorizontal ? '1px solid #b9b9b9' : undefined,
       zIndex: 1000,
       userSelect: 'none',
     }}>
       <svg width={isHorizontal ? totalLen : rulerSize} height={isHorizontal ? rulerSize : totalLen} style={{ display: 'block' }}>
         {ticks.map((tick, i) => {
           if (isHorizontal) {
-            const tickH = tick.major ? 10 : 5;
+            const tickH = tick.major ? 16 : tick.medium ? 11 : 6;
             return (
               <g key={i}>
-                <line x1={tick.pos} y1={rulerSize} x2={tick.pos} y2={rulerSize - tickH} stroke="#999" strokeWidth={tick.major ? 1 : 0.5} />
+                <line x1={tick.pos} y1={rulerSize} x2={tick.pos} y2={rulerSize - tickH} stroke={tick.major ? '#555' : '#8f8f8f'} strokeWidth={tick.major ? 1 : 0.5} />
                 {tick.label && (
-                  <text x={tick.pos + 2} y={10} fontSize="8" fill="#666" fontFamily="Arial">{tick.label}</text>
+                  <text x={tick.pos + 4} y={11} fontSize="8" fill="#444" fontFamily="Arial">{tick.label}</text>
                 )}
               </g>
             );
           } else {
-            const tickW = tick.major ? 10 : 5;
+            const tickW = tick.major ? 16 : tick.medium ? 11 : 6;
             return (
               <g key={i}>
-                <line x1={rulerSize} y1={tick.pos} x2={rulerSize - tickW} y2={tick.pos} stroke="#999" strokeWidth={tick.major ? 1 : 0.5} />
+                <line x1={rulerSize} y1={tick.pos} x2={rulerSize - tickW} y2={tick.pos} stroke={tick.major ? '#555' : '#8f8f8f'} strokeWidth={tick.major ? 1 : 0.5} />
                 {tick.label && (
-                  <text x={12} y={tick.pos + 3} fontSize="8" fill="#666" fontFamily="Arial" transform={`rotate(-90, 12, ${tick.pos + 3})`}>{tick.label}</text>
+                  <text x={2} y={tick.pos + 3} fontSize="8" fill="#444" fontFamily="Arial">{tick.label}</text>
                 )}
               </g>
             );
@@ -958,43 +971,64 @@ const ContextMenuItem: React.FC<{
 // ---- Band View ----
 
 const BandView: React.FC<{
-  band: Band; cumY: number; isSelected: boolean; selectedIds: string[];
+  band: Band; cumY: number; labelIndex: number; isSelected: boolean; selectedIds: string[];
   onUpdateComponent: (pageId: string, bandId: string, compId: string, updates: Record<string, any>, prev?: Record<string, any>) => void;
   currentPageId: string;
-}> = ({ band, cumY, isSelected, selectedIds, onUpdateComponent, currentPageId }) => {
+}> = ({ band, cumY, labelIndex, isSelected, selectedIds, onUpdateComponent, currentPageId }) => {
   const [editId, setEditId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const baseColor = BAND_COLORS[band.type] || '#757575';
+  const baseLabel = BAND_LABELS[band.type] ?? band.type;
+  const bandLabel = `${baseLabel}${labelIndex}`;
+  const headerHeight = mmToPx(BAND_HEADER_MM);
 
   return (
     <div data-band-id={band.id} style={{
       position: 'absolute', left: 0, top: mmToPx(cumY), width: '100%', height: mmToPx(band.height),
-      border: '1px solid transparent',
+      border: isSelected ? '1px solid #4d90fe' : '1px solid rgba(0,0,0,0.12)',
       boxSizing: 'border-box',
+      backgroundColor: `${baseColor}10`,
     }}>
       <div style={{
-        position: 'absolute', left: 0, top: 0, width: 14, height: '100%',
-        backgroundColor: BAND_COLORS[band.type] || '#757575', opacity: 0.7,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontSize: 8, color: '#fff', writingMode: 'vertical-rl', textOrientation: 'mixed',
-        letterSpacing: 1, cursor: 'default', zIndex: 1, pointerEvents: 'none',
-      }}>{BAND_LABELS[band.type] ?? band.type}</div>
+        position: 'absolute', left: 0, right: 0, top: 0, height: headerHeight,
+        backgroundColor: `${baseColor}44`,
+        borderBottom: `1px solid ${baseColor}66`,
+        display: 'flex', alignItems: 'center',
+        padding: '0 3px',
+        fontSize: 12, lineHeight: `${headerHeight}px`, color: '#111',
+        cursor: 'default', zIndex: 3, pointerEvents: 'none',
+        boxSizing: 'border-box',
+      }}>
+        <span>{bandLabel}</span>
+        <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap' }}>
+          {baseLabel}
+        </span>
+      </div>
 
       <BandResizeHandle bandId={band.id} />
 
-      {band.components
-        .slice()
-        .sort((a, b) => (a.zOrder ?? 0) - (b.zOrder ?? 0))
-        .map(comp => (
-        <ComponentView key={comp.id} component={comp} bandId={band.id}
-          selected={selectedIds.includes(comp.id)} editing={editId === comp.id}
-          editText={editText}
-          onStartEdit={() => { setEditId(comp.id); setEditText((comp as any).text || ''); }}
-          onFinishEdit={(text) => {
-            onUpdateComponent(currentPageId, band.id, comp.id, { text }, { text: (comp as any).text });
-            setEditId(null);
-          }}
-          onEditTextChange={setEditText} />
-      ))}
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: headerHeight,
+        bottom: 0,
+      }}>
+        {band.components
+          .slice()
+          .sort((a, b) => (a.zOrder ?? 0) - (b.zOrder ?? 0))
+          .map(comp => (
+          <ComponentView key={comp.id} component={comp} bandId={band.id}
+            selected={selectedIds.includes(comp.id)} editing={editId === comp.id}
+            editText={editText}
+            onStartEdit={() => { setEditId(comp.id); setEditText((comp as any).text || ''); }}
+            onFinishEdit={(text) => {
+              onUpdateComponent(currentPageId, band.id, comp.id, { text }, { text: (comp as any).text });
+              setEditId(null);
+            }}
+            onEditTextChange={setEditText} />
+        ))}
+      </div>
     </div>
   );
 };
@@ -1003,7 +1037,7 @@ const BandView: React.FC<{
 
 const BandResizeHandle: React.FC<{ bandId: string }> = ({ bandId }) => (
   <div data-band-resize data-band-id={bandId} style={{
-    position: 'absolute', left: 14, right: 0, bottom: -3, height: 6,
+    position: 'absolute', left: 0, right: 0, bottom: -3, height: 6,
     cursor: 'ns-resize', backgroundColor: 'transparent', zIndex: 2,
   }}
     onMouseEnter={(e) => { (e.target as HTMLElement).style.backgroundColor = '#1890ff44'; }}
