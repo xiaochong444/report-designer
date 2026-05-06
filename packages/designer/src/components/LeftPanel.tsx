@@ -1,13 +1,10 @@
 import React from 'react';
-import { Tabs, Tree, Button, Tooltip, Modal, InputNumber, Select, Space, message, Tag } from 'antd';
+import { Tabs, Tree, Button, Tooltip, Modal, InputNumber, Select, Tag, message } from 'antd';
 import {
   FileTextOutlined,
   DatabaseOutlined,
   AppstoreOutlined,
   PlusOutlined,
-  DeleteOutlined,
-  ArrowUpOutlined,
-  ArrowDownOutlined,
   PictureOutlined,
   TableOutlined,
   CheckSquareOutlined,
@@ -23,7 +20,7 @@ import {
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
 import type { ReportComponent, BandType } from '@report-designer/core';
-import { formatUnitValue, getReportUnitSymbol, getUnitStep, parseUnitValue } from '../page-settings';
+import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { getBandDisplayName, getComponentNamePrefix } from '../report-structure';
 import { nanoid } from 'nanoid';
 import { useEffect, useMemo, useState } from 'react';
@@ -376,13 +373,11 @@ const PageTree: React.FC = () => {
   const selectComponents = useDesignerStore(s => s.selectComponents);
   const selectBand = useDesignerStore(s => s.selectBand);
   const addBand = useDesignerStore(s => s.addBand);
-  const deleteBand = useDesignerStore(s => s.deleteBand);
   const reportUnit = useDesignerStore(s => s.reportUnit);
 
   const [bandModalOpen, setBandModalOpen] = useState(false);
   const [newBandType, setNewBandType] = useState<BandType>('data');
   const [newBandHeight, setNewBandHeight] = useState(30);
-  const unitSymbol = getReportUnitSymbol(reportUnit);
   const autoExpandedKeys = useMemo(
     () => [
       'report-root',
@@ -405,7 +400,6 @@ const PageTree: React.FC = () => {
   }, [autoExpandedKeys]);
   const unitStep = getUnitStep(reportUnit);
 
-  const currentPage = template.pages.find(p => p.id === currentPageId);
   const selectedKeys = selectedComponentIds.length > 0
     ? selectedComponentIds
     : selectedBandId
@@ -417,19 +411,6 @@ const PageTree: React.FC = () => {
     addBand(currentPageId, { type: newBandType, height: newBandHeight, components: [] });
     setBandModalOpen(false);
     message.success(`已添加 ${newBandType} 带`);
-  };
-
-  const handleMoveBand = (bandId: string, direction: 'up' | 'down') => {
-    if (!currentPage) return;
-    const idx = currentPage.bands.findIndex(b => b.id === bandId);
-    if (idx < 0) return;
-    const newIdx = direction === 'up' ? idx - 1 : idx + 1;
-    if (newIdx < 0 || newIdx >= currentPage.bands.length) return;
-
-    const newBands = [...currentPage.bands];
-    [newBands[idx], newBands[newIdx]] = [newBands[newIdx], newBands[idx]];
-
-    useDesignerStore.getState().setPageSettings(currentPageId, { bands: newBands });
   };
 
   const treeData: DataNode[] = [
@@ -462,46 +443,10 @@ const PageTree: React.FC = () => {
               key: band.id,
               title: (
                 <div className="rd-report-tree-node rd-report-tree-band-node">
-                  <div className="rd-report-tree-node-meta">
-                    <div className="rd-report-tree-node-main">
-                      <span className={`rd-report-tree-band-swatch rd-report-tree-band-${band.type}`} />
-                      <span>{bandName}</span>
-                    </div>
-                    <div className="rd-report-tree-node-sub">{`(${formatUnitValue(band.height, reportUnit)} ${unitSymbol})`}</div>
+                  <div className="rd-report-tree-node-main">
+                    <span className={`rd-report-tree-band-swatch rd-report-tree-band-${band.type}`} />
+                    <span>{bandName}</span>
                   </div>
-                  <Space size={2} className="rd-report-tree-actions">
-                    <Tooltip title="上移">
-                      <Button
-                        type="text" size="small" icon={<ArrowUpOutlined />}
-                        className="rd-report-tree-action-btn"
-                        onClick={(e) => { e.stopPropagation(); handleMoveBand(band.id, 'up'); }}
-                      />
-                    </Tooltip>
-                    <Tooltip title="下移">
-                      <Button
-                        type="text" size="small" icon={<ArrowDownOutlined />}
-                        className="rd-report-tree-action-btn"
-                        onClick={(e) => { e.stopPropagation(); handleMoveBand(band.id, 'down'); }}
-                      />
-                    </Tooltip>
-                    <Tooltip title="删除">
-                      <Button
-                        type="text" size="small" danger icon={<DeleteOutlined />}
-                        className="rd-report-tree-action-btn"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          Modal.confirm({
-                            title: '确认删除',
-                            content: `确定删除 ${bandName} 及其所有组件？`,
-                            onOk: () => {
-                              deleteBand(page.id, band.id);
-                              message.success('已删除带');
-                            },
-                          });
-                        }}
-                      />
-                    </Tooltip>
-                  </Space>
                 </div>
               ),
               children: band.components.map((comp) => ({
@@ -534,7 +479,6 @@ const PageTree: React.FC = () => {
         <Tree
           className="rd-report-tree-tree"
           treeData={treeData}
-          showLine={{ showLeafIcon: false }}
           blockNode
           expandedKeys={expandedKeys}
           selectedKeys={selectedKeys}

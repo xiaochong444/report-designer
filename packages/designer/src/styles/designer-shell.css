@@ -338,19 +338,15 @@
   justify-content: center;
 }
 
+.rd-report-tree-tree .ant-tree-indent-unit {
+  width: 12px !important;
+}
+
 .rd-report-tree-node {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 8px;
+  gap: 6px;
   min-height: 22px;
-}
-
-.rd-report-tree-node-meta {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
 }
 
 .rd-report-tree-node-main {
@@ -367,25 +363,6 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-}
-
-.rd-report-tree-node-sub {
-  margin-left: 18px;
-  color: var(--rd-muted);
-  font-size: 11px;
-  line-height: 1.15;
-}
-
-.rd-report-tree-actions {
-  flex: none;
-}
-
-.rd-report-tree-action-btn {
-  width: 18px !important;
-  min-width: 18px !important;
-  height: 18px !important;
-  padding: 0 !important;
-  color: #7a8593;
 }
 
 .rd-report-tree-type-icon {

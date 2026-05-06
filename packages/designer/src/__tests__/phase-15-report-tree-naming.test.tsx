@@ -81,6 +81,9 @@ describe('Phase 15 report tree naming and icons', () => {
     expect(screen.queryByText(/text - text-alpha/i)).not.toBeInTheDocument();
     expect(screen.getByTestId('report-tree-icon-text')).toBeInTheDocument();
     expect(screen.getByTestId('report-tree-icon-image')).toBeInTheDocument();
+    expect(document.querySelector('.rd-report-tree-node-sub')).toBeNull();
+    expect(document.querySelector('.rd-report-tree-actions')).toBeNull();
+    expect(document.querySelector('.rd-report-tree-tree.ant-tree-show-line')).toBeNull();
   });
 
   it('continues auto numbering when a new unnamed component is inserted', async () => {
