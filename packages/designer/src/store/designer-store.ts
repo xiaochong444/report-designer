@@ -3,11 +3,16 @@ import type { ReportTemplate, ReportComponent, Band, Page, TableComponent } from
 import { createDefaultTemplate } from '@report-designer/core';
 import { CommandDispatcher } from '@report-designer/core';
 import {
+  clearTableCell,
   deleteTableColumn,
   deleteTableRow,
+  equalizeTableColumns,
+  equalizeTableRows,
   insertTableColumn,
   insertTableRow,
+  mergeTableCellRight,
   setTableStructure,
+  splitTableCell,
 } from '../table/table-structure';
 
 export interface DesignerState {
@@ -70,10 +75,15 @@ export interface DesignerState {
     showBorder?: boolean;
     dataSource?: string;
   }) => void;
-  insertSelectedTableColumn: () => void;
-  deleteSelectedTableColumn: () => void;
-  insertSelectedTableRow: () => void;
-  deleteSelectedTableRow: () => void;
+  insertSelectedTableColumn: (afterColumn?: number) => void;
+  deleteSelectedTableColumn: (columnIndex?: number) => void;
+  insertSelectedTableRow: (afterRow?: number) => void;
+  deleteSelectedTableRow: (rowIndex?: number) => void;
+  mergeSelectedTableCellRight: (row: number, column: number) => void;
+  splitSelectedTableCell: (row: number, column: number) => void;
+  clearSelectedTableCell: (row: number, column: number) => void;
+  equalizeSelectedTableColumns: () => void;
+  equalizeSelectedTableRows: () => void;
 
   // Band management
   addBand: (pageId: string, band: Omit<Band, 'id'>) => void;
@@ -644,34 +654,74 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     set({ template: newTemplate });
   },
 
-  insertSelectedTableColumn: () => {
+  insertSelectedTableColumn: (afterColumn) => {
     const { template, currentPageId, selectedComponentIds } = get();
     const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? insertTableColumn(comp as TableComponent) : comp
+      comp.type === 'table' ? insertTableColumn(comp as TableComponent, afterColumn) : comp
     ));
     set({ template: newTemplate });
   },
 
-  deleteSelectedTableColumn: () => {
+  deleteSelectedTableColumn: (columnIndex) => {
     const { template, currentPageId, selectedComponentIds } = get();
     const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? deleteTableColumn(comp as TableComponent) : comp
+      comp.type === 'table' ? deleteTableColumn(comp as TableComponent, columnIndex) : comp
     ));
     set({ template: newTemplate });
   },
 
-  insertSelectedTableRow: () => {
+  insertSelectedTableRow: (afterRow) => {
     const { template, currentPageId, selectedComponentIds } = get();
     const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? insertTableRow(comp as TableComponent) : comp
+      comp.type === 'table' ? insertTableRow(comp as TableComponent, afterRow) : comp
     ));
     set({ template: newTemplate });
   },
 
-  deleteSelectedTableRow: () => {
+  deleteSelectedTableRow: (rowIndex) => {
     const { template, currentPageId, selectedComponentIds } = get();
     const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? deleteTableRow(comp as TableComponent) : comp
+      comp.type === 'table' ? deleteTableRow(comp as TableComponent, rowIndex) : comp
+    ));
+    set({ template: newTemplate });
+  },
+
+  mergeSelectedTableCellRight: (row, column) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
+      comp.type === 'table' ? mergeTableCellRight(comp as TableComponent, row, column) : comp
+    ));
+    set({ template: newTemplate });
+  },
+
+  splitSelectedTableCell: (row, column) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
+      comp.type === 'table' ? splitTableCell(comp as TableComponent, row, column) : comp
+    ));
+    set({ template: newTemplate });
+  },
+
+  clearSelectedTableCell: (row, column) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
+      comp.type === 'table' ? clearTableCell(comp as TableComponent, row, column) : comp
+    ));
+    set({ template: newTemplate });
+  },
+
+  equalizeSelectedTableColumns: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
+      comp.type === 'table' ? equalizeTableColumns(comp as TableComponent) : comp
+    ));
+    set({ template: newTemplate });
+  },
+
+  equalizeSelectedTableRows: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
+      comp.type === 'table' ? equalizeTableRows(comp as TableComponent) : comp
     ));
     set({ template: newTemplate });
   },

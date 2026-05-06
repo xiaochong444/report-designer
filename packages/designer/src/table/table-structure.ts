@@ -12,6 +12,10 @@ function normalizePositive(value: number | undefined, fallback: number): number 
   return Math.max(1, next);
 }
 
+function roundMm(value: number): number {
+  return Math.round(value * 10) / 10;
+}
+
 function createColumn(index: number, width: number): TableColumn {
   return {
     id: columnId(index),
@@ -38,6 +42,26 @@ function resizeColumns(columns: TableColumn[], count: number, totalWidth: number
   }
 
   return next;
+}
+
+function getTableCell(table: TableComponent, row: number, column: number): TableCell {
+  return table.cells?.find(cell => cell.row === row && cell.column === column) ?? { row, column };
+}
+
+function upsertCell(table: TableComponent, cell: TableCell): TableCell[] {
+  const cells = table.cells?.filter(next => !(next.row === cell.row && next.column === cell.column)) ?? [];
+  return [...cells, cell].sort((a, b) => a.row - b.row || a.column - b.column);
+}
+
+function removeCellsCoveredBy(owner: TableCell, cells: TableCell[] | undefined): TableCell[] | undefined {
+  const rowSpan = owner.rowSpan ?? 1;
+  const colSpan = owner.colSpan ?? 1;
+  return cells?.filter(cell => {
+    if (cell.row === owner.row && cell.column === owner.column) return true;
+    const coveredRow = cell.row >= owner.row && cell.row < owner.row + rowSpan;
+    const coveredColumn = cell.column >= owner.column && cell.column < owner.column + colSpan;
+    return !(coveredRow && coveredColumn);
+  });
 }
 
 function remapCellsForColumnInsert(cells: TableCell[] | undefined, index: number): TableCell[] | undefined {
@@ -161,4 +185,76 @@ export function deleteTableRow(table: TableComponent, rowIndex?: number): TableC
     rowCount: normalized.rowCount! - 1,
     cells: remapCellsForRowDelete(normalized.cells, index),
   });
+}
+
+export function mergeTableCellRight(table: TableComponent, row: number, column: number): TableComponent {
+  const normalized = normalizeTable(table);
+  const rowCount = normalized.rowCount ?? MIN_TABLE_ROWS;
+  const columnCount = normalized.columnCount ?? normalized.columns.length;
+  if (row < 0 || row >= rowCount || column < 0 || column >= columnCount - 1) return normalized;
+
+  const owner = {
+    ...getTableCell(normalized, row, column),
+    rowSpan: 1,
+    colSpan: 2,
+  };
+  const withoutCovered = removeCellsCoveredBy(owner, normalized.cells);
+
+  return {
+    ...normalized,
+    cells: upsertCell({ ...normalized, cells: withoutCovered }, owner),
+  };
+}
+
+export function splitTableCell(table: TableComponent, row: number, column: number): TableComponent {
+  const normalized = normalizeTable(table);
+  const rowCount = normalized.rowCount ?? MIN_TABLE_ROWS;
+  const columnCount = normalized.columnCount ?? normalized.columns.length;
+  if (row < 0 || row >= rowCount || column < 0 || column >= columnCount) return normalized;
+
+  const cell = {
+    ...getTableCell(normalized, row, column),
+    rowSpan: 1,
+    colSpan: 1,
+  };
+
+  return {
+    ...normalized,
+    cells: upsertCell(normalized, cell),
+  };
+}
+
+export function clearTableCell(table: TableComponent, row: number, column: number): TableComponent {
+  const normalized = normalizeTable(table);
+  const rowCount = normalized.rowCount ?? MIN_TABLE_ROWS;
+  const columnCount = normalized.columnCount ?? normalized.columns.length;
+  if (row < 0 || row >= rowCount || column < 0 || column >= columnCount) return normalized;
+
+  const { text: _text, ...cell } = getTableCell(normalized, row, column);
+
+  return {
+    ...normalized,
+    cells: upsertCell(normalized, cell),
+  };
+}
+
+export function equalizeTableColumns(table: TableComponent): TableComponent {
+  const normalized = normalizeTable(table);
+  const columnCount = normalized.columnCount ?? normalized.columns.length;
+  const width = roundMm(normalized.width / Math.max(MIN_TABLE_COLUMNS, columnCount));
+
+  return {
+    ...normalized,
+    columns: normalized.columns.map(column => ({ ...column, width })),
+  };
+}
+
+export function equalizeTableRows(table: TableComponent): TableComponent {
+  const normalized = normalizeTable(table);
+  const rowCount = normalized.rowCount ?? MIN_TABLE_ROWS;
+
+  return {
+    ...normalized,
+    rowHeight: roundMm(normalized.height / Math.max(MIN_TABLE_ROWS, rowCount)),
+  };
 }

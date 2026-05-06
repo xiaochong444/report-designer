@@ -102,7 +102,12 @@ const BAND_LABELS: Record<string, string> = {
 
 // ---- Context Menu ----
 
-interface ContextMenuPos { x: number; y: number; compId?: string }
+interface ContextMenuPos {
+  x: number;
+  y: number;
+  compId?: string;
+  tableCell?: { row: number; column: number };
+}
 
 // ---- Canvas ----
 
@@ -207,6 +212,17 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     return { compId: f.comp.id, bandId: f.bandId };
   }, [flat]);
 
+  const findTableCellAtPoint = useCallback((clientX: number, clientY: number) => {
+    const el = document.elementFromPoint(clientX, clientY);
+    if (!el) return null;
+    const cellEl = el.closest('[data-table-row][data-table-column]') as HTMLElement | null;
+    if (!cellEl) return null;
+    const row = Number(cellEl.dataset.tableRow);
+    const column = Number(cellEl.dataset.tableColumn);
+    if (!Number.isInteger(row) || !Number.isInteger(column)) return null;
+    return { row, column };
+  }, []);
+
   // ---- Mouse down ----
 
   const handlePageMouseDown = useCallback((e: React.MouseEvent) => {
@@ -214,12 +230,13 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     if (e.button === 2) {
       // Right click context menu
       const ch = findComponentAtPoint(e.clientX, e.clientY);
+      const tableCell = findTableCellAtPoint(e.clientX, e.clientY);
       if (ch && !selectedComponentIds.includes(ch.compId)) {
         selectComponents([ch.compId]);
       }
       if (pageRef.current) {
         const rect = pageRef.current.getBoundingClientRect();
-        setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, compId: ch?.compId });
+        setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, compId: ch?.compId, tableCell: tableCell ?? undefined });
       }
       return;
     }
@@ -310,7 +327,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     modeRef.current = m;
     setMode(m);
     setSelBox({ x: sx, y: sy, w: 0, h: 0 });
-  }, [flat, bands, selectedComponentIds, selectComponents, selectBand, findComponentAtPoint, findResizeHandleAtPoint, findBandResizeAtPoint]);
+  }, [flat, bands, selectedComponentIds, selectComponents, selectBand, findComponentAtPoint, findTableCellAtPoint, findResizeHandleAtPoint, findBandResizeAtPoint]);
 
   // ---- Global mouse move/up ----
 
@@ -686,16 +703,37 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             hasSelection={selectedComponentIds.length > 0}
             hasClipboard={storeClipboard.length > 0}
             selectedType={flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]))?.comp.type}
+            tableCell={contextMenu.tableCell}
             onCopy={() => { copySelected(); setContextMenu(null); }}
             onCut={() => { cutSelected(); setContextMenu(null); }}
             onPaste={() => { pasteClipboard(); setContextMenu(null); }}
             onDuplicate={() => { duplicateSelected(); setContextMenu(null); }}
             onBringToFront={() => { useDesignerStore.getState().bringToFront(); setContextMenu(null); }}
             onSendToBack={() => { useDesignerStore.getState().sendToBack(); setContextMenu(null); }}
-            onInsertTableColumn={() => { useDesignerStore.getState().insertSelectedTableColumn(); setContextMenu(null); }}
-            onDeleteTableColumn={() => { useDesignerStore.getState().deleteSelectedTableColumn(); setContextMenu(null); }}
-            onInsertTableRow={() => { useDesignerStore.getState().insertSelectedTableRow(); setContextMenu(null); }}
-            onDeleteTableRow={() => { useDesignerStore.getState().deleteSelectedTableRow(); setContextMenu(null); }}
+            onInsertTableColumn={() => { useDesignerStore.getState().insertSelectedTableColumn(contextMenu.tableCell?.column); setContextMenu(null); }}
+            onDeleteTableColumn={() => { useDesignerStore.getState().deleteSelectedTableColumn(contextMenu.tableCell?.column); setContextMenu(null); }}
+            onInsertTableRow={() => { useDesignerStore.getState().insertSelectedTableRow(contextMenu.tableCell?.row); setContextMenu(null); }}
+            onDeleteTableRow={() => { useDesignerStore.getState().deleteSelectedTableRow(contextMenu.tableCell?.row); setContextMenu(null); }}
+            onMergeTableCellRight={() => {
+              if (contextMenu.tableCell) {
+                useDesignerStore.getState().mergeSelectedTableCellRight(contextMenu.tableCell.row, contextMenu.tableCell.column);
+              }
+              setContextMenu(null);
+            }}
+            onSplitTableCell={() => {
+              if (contextMenu.tableCell) {
+                useDesignerStore.getState().splitSelectedTableCell(contextMenu.tableCell.row, contextMenu.tableCell.column);
+              }
+              setContextMenu(null);
+            }}
+            onClearTableCell={() => {
+              if (contextMenu.tableCell) {
+                useDesignerStore.getState().clearSelectedTableCell(contextMenu.tableCell.row, contextMenu.tableCell.column);
+              }
+              setContextMenu(null);
+            }}
+            onEqualizeTableColumns={() => { useDesignerStore.getState().equalizeSelectedTableColumns(); setContextMenu(null); }}
+            onEqualizeTableRows={() => { useDesignerStore.getState().equalizeSelectedTableRows(); setContextMenu(null); }}
             onToggleTableBorder={() => {
               const table = flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]))?.comp as TableComponent | undefined;
               if (table?.type === 'table') useDesignerStore.getState().updateSelectedTable({ showBorder: !table.showBorder });
@@ -831,16 +869,20 @@ const ContextMenu: React.FC<{
   x: number; y: number;
   hasSelection: boolean; hasClipboard: boolean;
   selectedType?: ReportComponent['type'];
+  tableCell?: { row: number; column: number };
   onCopy: () => void; onCut: () => void; onPaste: () => void; onDuplicate: () => void; onDelete: () => void;
   onBringToFront: () => void; onSendToBack: () => void;
   onInsertTableColumn: () => void; onDeleteTableColumn: () => void;
   onInsertTableRow: () => void; onDeleteTableRow: () => void; onToggleTableBorder: () => void;
+  onMergeTableCellRight: () => void; onSplitTableCell: () => void; onClearTableCell: () => void;
+  onEqualizeTableColumns: () => void; onEqualizeTableRows: () => void;
 }> = ({
   x,
   y,
   hasSelection,
   hasClipboard,
   selectedType,
+  tableCell,
   onCopy,
   onCut,
   onPaste,
@@ -853,12 +895,17 @@ const ContextMenu: React.FC<{
   onInsertTableRow,
   onDeleteTableRow,
   onToggleTableBorder,
+  onMergeTableCellRight,
+  onSplitTableCell,
+  onClearTableCell,
+  onEqualizeTableColumns,
+  onEqualizeTableRows,
 }) => (
   <div style={{
     position: 'absolute', left: x, top: y,
     backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: 4,
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 10000,
-    minWidth: 190, padding: '4px 0',
+    minWidth: 210, padding: '4px 0',
   }}>
     <ContextMenuItem label="复制" shortcut="Ctrl+C" disabled={!hasSelection} onClick={onCopy} />
     <ContextMenuItem label="剪切" shortcut="Ctrl+X" disabled={!hasSelection} onClick={onCut} />
@@ -874,6 +921,12 @@ const ContextMenu: React.FC<{
         <ContextMenuItem label="删除列" onClick={onDeleteTableColumn} />
         <ContextMenuItem label="插入行到下方" onClick={onInsertTableRow} />
         <ContextMenuItem label="删除行" onClick={onDeleteTableRow} />
+        <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
+        <ContextMenuItem label="合并右侧单元格" disabled={!tableCell} onClick={onMergeTableCellRight} />
+        <ContextMenuItem label="拆分单元格" disabled={!tableCell} onClick={onSplitTableCell} />
+        <ContextMenuItem label="清空单元格" disabled={!tableCell} onClick={onClearTableCell} />
+        <ContextMenuItem label="均分列宽" onClick={onEqualizeTableColumns} />
+        <ContextMenuItem label="均分行高" onClick={onEqualizeTableRows} />
         <ContextMenuItem label="切换表格边框" onClick={onToggleTableBorder} />
       </>
     )}
@@ -1141,23 +1194,45 @@ const TablePreview: React.FC<{ table: TableComponent }> = ({ table }) => {
   const headerRowsCount = normalized.headerRowsCount ?? 1;
   const footerRowsCount = normalized.footerRowsCount ?? 0;
   const cellBorder = normalized.showBorder ? '1px solid #8c8c8c' : '1px dashed #d9d9d9';
-  const cells = Array.from({ length: rowCount * columnCount }, (_, index) => {
-    const row = Math.floor(index / columnCount);
-    const column = index % columnCount;
+  const coveredCells = new Set<string>();
+
+  for (const cell of normalized.cells ?? []) {
+    const rowSpan = Math.max(1, Math.min(cell.rowSpan ?? 1, rowCount - cell.row));
+    const colSpan = Math.max(1, Math.min(cell.colSpan ?? 1, columnCount - cell.column));
+    for (let r = cell.row; r < cell.row + rowSpan; r += 1) {
+      for (let c = cell.column; c < cell.column + colSpan; c += 1) {
+        if (r === cell.row && c === cell.column) continue;
+        coveredCells.add(`${r}-${c}`);
+      }
+    }
+  }
+
+  const cells: React.ReactNode[] = [];
+  for (let row = 0; row < rowCount; row += 1) {
+    for (let column = 0; column < columnCount; column += 1) {
+      if (coveredCells.has(`${row}-${column}`)) continue;
+
     const customCell = normalized.cells?.find(cell => cell.row === row && cell.column === column);
+    const rowSpan = customCell ? Math.max(1, Math.min(customCell.rowSpan ?? 1, rowCount - row)) : 1;
+    const colSpan = customCell ? Math.max(1, Math.min(customCell.colSpan ?? 1, columnCount - column)) : 1;
     const isHeader = row < headerRowsCount;
     const isFooter = row >= rowCount - footerRowsCount;
     const label = customCell?.text
       ?? (isHeader ? normalized.columns[column]?.header || `Header ${column + 1}` : '');
 
-    return (
+    cells.push(
       <div
         key={`${row}-${column}`}
+        data-table-row={row}
+        data-table-column={column}
+        data-testid={`designer-table-cell-${row}-${column}`}
         style={{
+          gridColumn: colSpan > 1 ? `span ${colSpan}` : undefined,
+          gridRow: rowSpan > 1 ? `span ${rowSpan}` : undefined,
           minWidth: 0,
           minHeight: 0,
-          borderRight: column === columnCount - 1 ? 'none' : cellBorder,
-          borderBottom: row === rowCount - 1 ? 'none' : cellBorder,
+          borderRight: column + colSpan >= columnCount ? 'none' : cellBorder,
+          borderBottom: row + rowSpan >= rowCount ? 'none' : cellBorder,
           backgroundColor: isHeader ? '#f0f5ff' : isFooter ? '#fff7e6' : '#fff',
           color: isHeader || isFooter ? '#333' : '#999',
           fontSize: 10,
@@ -1171,7 +1246,8 @@ const TablePreview: React.FC<{ table: TableComponent }> = ({ table }) => {
         {label || (row === headerRowsCount && column === 0 ? normalized.dataSource || 'Data' : '')}
       </div>
     );
-  });
+    }
+  }
 
   return (
     <div
