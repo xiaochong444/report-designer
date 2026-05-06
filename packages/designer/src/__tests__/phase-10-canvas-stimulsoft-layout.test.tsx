@@ -36,9 +36,10 @@ describe('Phase 10 Stimulsoft canvas layout', () => {
     render(<Designer template={createDefaultTemplate('Canvas Layout')} />);
 
     expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('0');
+    expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('10');
+    expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('20');
     expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('100');
-    expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('200');
-    expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('300');
+    expect(screen.getByTestId('designer-ruler-horizontal')).not.toHaveTextContent('200');
     expect(screen.getByText('PageHeaderBand1')).toBeInTheDocument();
     expect(screen.getByText('DataBand1')).toBeInTheDocument();
   });

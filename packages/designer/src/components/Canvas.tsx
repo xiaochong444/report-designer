@@ -8,6 +8,7 @@ const SNAP_THRESHOLD = 5;
 const HANDLE_SIZE = 8;
 const GRID_MM = 5; // 网格间距 5mm
 const BAND_HEADER_MM = 7;
+const RULER_SIZE = 24;
 const DRAG_THRESHOLD = 3; // px，超过此距离才算真正开始拖拽
 type ResizeHandle = 'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se';
 
@@ -150,9 +151,15 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const currentPage = useMemo(() => template.pages.find(p => p.id === currentPageId), [template, currentPageId]);
 
   const bands = useMemo(() => {
-    if (!currentPage) return [] as { band: Band; cumY: number }[];
-    let y = 0;
-    return currentPage.bands.map(band => { const r = { band, cumY: y }; y += band.height; return r; });
+    if (!currentPage) return [] as { band: Band; cumY: number; visualY: number }[];
+    let contentY = 0;
+    let visualY = 0;
+    return currentPage.bands.map(band => {
+      const r = { band, cumY: contentY, visualY };
+      contentY += band.height;
+      visualY += band.height + BAND_HEADER_MM;
+      return r;
+    });
   }, [currentPage]);
 
   const bandLabelIndexes = useMemo(() => {
@@ -167,10 +174,10 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   }, [bands]);
 
   const flat = useMemo(() => {
-    const items: { comp: ReportComponent; bandId: string; cumY: number }[] = [];
-    for (const { band, cumY } of bands) {
+    const items: { comp: ReportComponent; bandId: string; cumY: number; visualY: number }[] = [];
+    for (const { band, cumY, visualY } of bands) {
       for (const comp of band.components) {
-        items.push({ comp, bandId: band.id, cumY });
+        items.push({ comp, bandId: band.id, cumY, visualY });
       }
     }
     return items;
@@ -416,16 +423,19 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         const page = useDesignerStore.getState().template.pages.find(p => p.id === currentPageIdRef.current);
         if (page) {
           const ids: string[] = [];
-          let cumY = 0;
+          let visualY = 0;
+          const marginLeft = mmToPx(page.margins?.left ?? 0);
+          const marginTop = mmToPx(page.margins?.top ?? 0);
           for (const band of page.bands) {
             for (const comp of band.components) {
-              const l = mmToPx(comp.x), t = mmToPx(cumY) + mmToPx(BAND_HEADER_MM) + mmToPx(comp.y);
+              const l = marginLeft + mmToPx(comp.x);
+              const t = marginTop + mmToPx(visualY) + mmToPx(BAND_HEADER_MM) + mmToPx(comp.y);
               const r = l + mmToPx(comp.width), b = t + mmToPx(comp.height);
               if (selBoxRef.current.x < r && selBoxRef.current.x + selBoxRef.current.w > l && selBoxRef.current.y < b && selBoxRef.current.y + selBoxRef.current.h > t) {
                 ids.push(comp.id);
               }
             }
-            cumY += band.height;
+            visualY += band.height + BAND_HEADER_MM;
           }
           if (ids.length > 0) selectComponents(ids);
         }
@@ -654,49 +664,86 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const gridPx = mmToPx(GRID_MM) * zoom;
   const pageWidthPx = mmToPx(currentPage.width) * zoom;
   const pageHeightPx = mmToPx(currentPage.height) * zoom;
+  const margins = currentPage.margins ?? { top: 0, right: 0, bottom: 0, left: 0 };
+  const marginLeftPx = mmToPx(margins.left) * zoom;
+  const marginTopPx = mmToPx(margins.top) * zoom;
+  const marginRightPx = mmToPx(margins.right) * zoom;
+  const marginBottomPx = mmToPx(margins.bottom) * zoom;
+  const printableWidthMm = Math.max(0, currentPage.width - margins.left - margins.right);
+  const printableHeightMm = Math.max(0, currentPage.height - margins.top - margins.bottom);
+  const printableWidthPx = mmToPx(printableWidthMm) * zoom;
+  const printableHeightPx = mmToPx(printableHeightMm) * zoom;
 
   return (
     <div ref={containerRef} className={className}
       style={{ overflowX: 'hidden', overflowY: 'auto', backgroundColor: '#e8e8e8', height: '100%', padding: 24, userSelect: isBusy ? 'none' : 'auto', position: 'relative' }}
     >
-      <div style={{ position: 'relative', width: pageWidthPx + 24, margin: '0 auto' }}>
+      <div style={{ position: 'relative', width: pageWidthPx + RULER_SIZE, margin: '0 auto' }}>
         {/* 顶部标尺 */}
-        <Ruler direction="horizontal" pageWidthPx={pageWidthPx} pageHeightPx={pageHeightPx} zoom={zoom} />
-        <Ruler direction="vertical" pageWidthPx={pageWidthPx} pageHeightPx={pageHeightPx} zoom={zoom} />
+        <Ruler
+          direction="horizontal"
+          lengthMm={printableWidthMm}
+          lengthPx={printableWidthPx}
+          offsetPx={RULER_SIZE + marginLeftPx}
+          crossOffsetPx={0}
+          zoom={zoom}
+        />
+        <Ruler
+          direction="vertical"
+          lengthMm={printableHeightMm}
+          lengthPx={printableHeightPx}
+          offsetPx={marginTopPx + RULER_SIZE}
+          crossOffsetPx={0}
+          zoom={zoom}
+        />
 
-        <div ref={pageRef} data-page
+        <div ref={pageRef} data-page data-testid="designer-page-sheet"
           onMouseDown={handlePageMouseDown}
           onContextMenu={(e) => e.preventDefault()}
           style={{
-            width: pageWidthPx, minHeight: pageHeightPx,
+            width: pageWidthPx, height: pageHeightPx,
             backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-            position: 'relative', marginLeft: 24, marginTop: 24, overflow: 'hidden',
+            position: 'relative', marginLeft: RULER_SIZE, marginTop: RULER_SIZE, overflow: 'hidden',
             transform: `scale(${zoom})`,
             transformOrigin: 'top left',
-            // 网格背景
-            backgroundImage: `
-              linear-gradient(rgba(0,0,0,0.04) 1px, transparent 1px),
-              linear-gradient(90deg, rgba(0,0,0,0.04) 1px, transparent 1px)
-            `,
-            backgroundSize: `${gridPx}px ${gridPx}px`,
           }}>
-        {/* Alignment guides */}
-        {guides.map((g, i) => (
-          <div key={i} style={{
-            position: 'absolute',
-            ...(g.type === 'horizontal' ? { left: 0, right: 0, top: mmToPx(flat.find(f => f.comp.id === selectedComponentIds[0])?.cumY ?? 0) + mmToPx(BAND_HEADER_MM) + g.position - mmToPx((flat.find(f => f.comp.id === selectedComponentIds[0])?.comp.y ?? 0)), height: 1 } : { top: 0, bottom: 0, left: g.position, width: 1 }),
-            backgroundColor: '#ff4d4f', zIndex: 9998, pointerEvents: 'none',
-          }} />
-        ))}
+          <div
+            data-testid="designer-page-content-area"
+            style={{
+              position: 'absolute',
+              left: marginLeftPx,
+              top: marginTopPx,
+              width: printableWidthPx,
+              height: printableHeightPx,
+              backgroundImage: `
+                linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
+                linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)
+              `,
+              backgroundSize: `${gridPx}px ${gridPx}px`,
+              overflow: 'visible',
+            }}
+          >
+            {/* Alignment guides */}
+            {guides.map((g, i) => {
+              const selectedFlat = flat.find(f => f.comp.id === selectedComponentIds[0]);
+              return (
+                <div key={i} style={{
+                  position: 'absolute',
+                  ...(g.type === 'horizontal' ? { left: 0, right: 0, top: mmToPx(selectedFlat?.visualY ?? 0) + mmToPx(BAND_HEADER_MM) + g.position - mmToPx((selectedFlat?.comp.y ?? 0)), height: 1 } : { top: 0, bottom: 0, left: g.position, width: 1 }),
+                  backgroundColor: '#ff4d4f', zIndex: 9998, pointerEvents: 'none',
+                }} />
+              );
+            })}
 
-        {/* Bands */}
-        {bands.map(({ band, cumY }) => (
-          <BandView key={band.id} band={band} cumY={cumY}
-            labelIndex={bandLabelIndexes[band.id] ?? 1}
-            isSelected={band.id === selectedBandId}
-            selectedIds={selectedComponentIds}
-            onUpdateComponent={updateComponent} currentPageId={currentPageId} />
-        ))}
+            {/* Bands */}
+            {bands.map(({ band, visualY }) => (
+              <BandView key={band.id} band={band} visualY={visualY}
+                labelIndex={bandLabelIndexes[band.id] ?? 1}
+                isSelected={band.id === selectedBandId}
+                selectedIds={selectedComponentIds}
+                onUpdateComponent={updateComponent} currentPageId={currentPageId} />
+            ))}
+          </div>
 
         {/* Selection box */}
         {mode.type === 'select' && selBox && (
@@ -771,37 +818,36 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
 
 const Ruler: React.FC<{
   direction: 'horizontal' | 'vertical';
-  pageWidthPx: number;
-  pageHeightPx: number;
+  lengthMm: number;
+  lengthPx: number;
+  offsetPx: number;
+  crossOffsetPx: number;
   zoom: number;
-}> = ({ direction, pageWidthPx, pageHeightPx, zoom }) => {
+}> = ({ direction, lengthMm, lengthPx, offsetPx, crossOffsetPx, zoom }) => {
   const isHorizontal = direction === 'horizontal';
-  const rulerSize = 24;
-  const totalLen = isHorizontal ? pageWidthPx : pageHeightPx;
 
   const ticks = useMemo(() => {
     const result: { pos: number; major: boolean; medium: boolean; label?: string }[] = [];
-    const designUnits = Math.ceil(totalLen / zoom);
 
-    for (let unit = 0; unit <= designUnits; unit += 10) {
-      const px = unit * zoom;
-      const isMajor = unit % 100 === 0;
+    for (let mm = 0; mm <= Math.floor(lengthMm); mm += 1) {
+      const px = mmToPx(mm) * zoom;
+      const isMajor = mm % 10 === 0;
       result.push({
         pos: px,
         major: isMajor,
-        medium: !isMajor && unit % 50 === 0,
-        label: isMajor ? `${unit}` : undefined,
+        medium: !isMajor && mm % 5 === 0,
+        label: isMajor ? `${mm}` : undefined,
       });
     }
     return result;
-  }, [totalLen, zoom]);
+  }, [lengthMm, zoom]);
 
   return (
     <div data-testid={`designer-ruler-${direction}`} style={{
       position: 'absolute',
       ...(isHorizontal
-        ? { left: `${rulerSize}px`, top: 0, width: `${totalLen}px`, height: `${rulerSize}px` }
-        : { left: 0, top: `${rulerSize}px`, width: `${rulerSize}px`, height: `${totalLen}px` }
+        ? { left: `${offsetPx}px`, top: `${crossOffsetPx}px`, width: `${lengthPx}px`, height: `${RULER_SIZE}px` }
+        : { left: `${crossOffsetPx}px`, top: `${offsetPx}px`, width: `${RULER_SIZE}px`, height: `${lengthPx}px` }
       ),
       overflow: 'hidden',
       backgroundColor: '#f1f1f1',
@@ -810,13 +856,13 @@ const Ruler: React.FC<{
       zIndex: 1000,
       userSelect: 'none',
     }}>
-      <svg width={isHorizontal ? totalLen : rulerSize} height={isHorizontal ? rulerSize : totalLen} style={{ display: 'block' }}>
+      <svg width={isHorizontal ? lengthPx : RULER_SIZE} height={isHorizontal ? RULER_SIZE : lengthPx} style={{ display: 'block' }}>
         {ticks.map((tick, i) => {
           if (isHorizontal) {
             const tickH = tick.major ? 16 : tick.medium ? 11 : 6;
             return (
               <g key={i}>
-                <line x1={tick.pos} y1={rulerSize} x2={tick.pos} y2={rulerSize - tickH} stroke={tick.major ? '#555' : '#8f8f8f'} strokeWidth={tick.major ? 1 : 0.5} />
+                <line x1={tick.pos} y1={RULER_SIZE} x2={tick.pos} y2={RULER_SIZE - tickH} stroke={tick.major ? '#555' : '#8f8f8f'} strokeWidth={tick.major ? 1 : 0.5} />
                 {tick.label && (
                   <text x={tick.pos + 4} y={11} fontSize="8" fill="#444" fontFamily="Arial">{tick.label}</text>
                 )}
@@ -826,7 +872,7 @@ const Ruler: React.FC<{
             const tickW = tick.major ? 16 : tick.medium ? 11 : 6;
             return (
               <g key={i}>
-                <line x1={rulerSize} y1={tick.pos} x2={rulerSize - tickW} y2={tick.pos} stroke={tick.major ? '#555' : '#8f8f8f'} strokeWidth={tick.major ? 1 : 0.5} />
+                <line x1={RULER_SIZE} y1={tick.pos} x2={RULER_SIZE - tickW} y2={tick.pos} stroke={tick.major ? '#555' : '#8f8f8f'} strokeWidth={tick.major ? 1 : 0.5} />
                 {tick.label && (
                   <text x={2} y={tick.pos + 3} fontSize="8" fill="#444" fontFamily="Arial">{tick.label}</text>
                 )}
@@ -971,20 +1017,21 @@ const ContextMenuItem: React.FC<{
 // ---- Band View ----
 
 const BandView: React.FC<{
-  band: Band; cumY: number; labelIndex: number; isSelected: boolean; selectedIds: string[];
+  band: Band; visualY: number; labelIndex: number; isSelected: boolean; selectedIds: string[];
   onUpdateComponent: (pageId: string, bandId: string, compId: string, updates: Record<string, any>, prev?: Record<string, any>) => void;
   currentPageId: string;
-}> = ({ band, cumY, labelIndex, isSelected, selectedIds, onUpdateComponent, currentPageId }) => {
+}> = ({ band, visualY, labelIndex, isSelected, selectedIds, onUpdateComponent, currentPageId }) => {
   const [editId, setEditId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
   const baseColor = BAND_COLORS[band.type] || '#757575';
   const baseLabel = BAND_LABELS[band.type] ?? band.type;
   const bandLabel = `${baseLabel}${labelIndex}`;
   const headerHeight = mmToPx(BAND_HEADER_MM);
+  const bodyHeight = mmToPx(band.height);
 
   return (
-    <div data-band-id={band.id} style={{
-      position: 'absolute', left: 0, top: mmToPx(cumY), width: '100%', height: mmToPx(band.height),
+    <div data-band-id={band.id} data-testid={`designer-band-frame-${band.type}`} style={{
+      position: 'absolute', left: 0, top: mmToPx(visualY), width: '100%', height: headerHeight + bodyHeight,
       border: isSelected ? '1px solid #4d90fe' : '1px solid rgba(0,0,0,0.12)',
       boxSizing: 'border-box',
       backgroundColor: `${baseColor}10`,
@@ -1007,12 +1054,12 @@ const BandView: React.FC<{
 
       <BandResizeHandle bandId={band.id} />
 
-      <div style={{
+      <div data-testid={`designer-band-body-${band.type}`} style={{
         position: 'absolute',
         left: 0,
         right: 0,
         top: headerHeight,
-        bottom: 0,
+        height: bodyHeight,
       }}>
         {band.components
           .slice()
