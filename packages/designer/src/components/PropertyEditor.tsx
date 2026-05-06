@@ -2,9 +2,10 @@ import React, { useMemo, useState } from 'react';
 import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Checkbox } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
-import type { BorderConfig } from '@report-designer/core';
+import type { BorderConfig, TableComponent } from '@report-designer/core';
 import type { CSSProperties } from 'react';
 import { ExpressionEditor } from './ExpressionEditor';
+import { normalizeTable } from '../table/table-structure';
 
 const DEFAULT_BORDER: BorderConfig = {
   style: 'none',
@@ -18,6 +19,7 @@ export const PropertyEditor: React.FC = () => {
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
   const updateComponent = useDesignerStore(s => s.updateComponent);
+  const updateSelectedTable = useDesignerStore(s => s.updateSelectedTable);
 
   const { component, bandId } = useMemo(() => {
     if (selectedComponentIds.length !== 1) return { component: null, bandId: null };
@@ -56,6 +58,9 @@ export const PropertyEditor: React.FC = () => {
     if (b.dataSource && !acc.includes(b.dataSource)) acc.push(b.dataSource);
     return acc;
   }, []) ?? [];
+  for (const source of template.dataSources) {
+    if (!dataSources.includes(source.name)) dataSources.push(source.name);
+  }
 
   const handleChange = (field: string, value: any) => {
     if (!component || !bandId || !currentPageId) return;
@@ -98,7 +103,7 @@ export const PropertyEditor: React.FC = () => {
   return (
     <div style={{ padding: 8 }}>
       <Collapse
-        defaultActiveKey={['general', 'position', 'text', 'font', 'border', 'appearance', 'data']}
+        defaultActiveKey={['general', 'position', 'text', 'font', 'border', 'appearance', 'table', 'data']}
         size="small"
         items={[
           // ---- 基本信息 ----
@@ -429,6 +434,19 @@ export const PropertyEditor: React.FC = () => {
             ),
           },
 
+          // ---- 表格 ----
+          component.type === 'table' ? {
+            key: 'table',
+            label: '表格',
+            children: (
+              <TablePropertyPanel
+                table={normalizeTable(component as TableComponent)}
+                dataSources={dataSources}
+                onChange={updateSelectedTable}
+              />
+            ),
+          } : null,
+
           // ---- 线条 ----
           component.type === 'line' ? {
             key: 'line',
@@ -654,3 +672,94 @@ export const PropertyEditor: React.FC = () => {
     </div>
   );
 };
+
+const TablePropertyPanel: React.FC<{
+  table: TableComponent;
+  dataSources: string[];
+  onChange: (updates: {
+    rowCount?: number;
+    columnCount?: number;
+    headerRowsCount?: number;
+    footerRowsCount?: number;
+    canBreak?: boolean;
+    showBorder?: boolean;
+    dataSource?: string;
+  }) => void;
+}> = ({ table, dataSources, onChange }) => (
+  <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+    <Form.Item label="数据源">
+      <Select
+        aria-label="表格数据源"
+        value={table.dataSource || undefined}
+        onChange={(value) => onChange({ dataSource: value })}
+        size="small"
+        style={{ width: '100%' }}
+        allowClear
+        placeholder="选择数据源"
+        options={dataSources.map(source => ({ value: source, label: source }))}
+      />
+    </Form.Item>
+    <Form.Item label="列数">
+      <InputNumber
+        aria-label="列数"
+        value={table.columnCount ?? table.columns.length}
+        onChange={(value) => onChange({ columnCount: value ?? 1 })}
+        size="small"
+        style={{ width: '100%' }}
+        min={1}
+        step={1}
+      />
+    </Form.Item>
+    <Form.Item label="行数">
+      <InputNumber
+        aria-label="行数"
+        value={table.rowCount ?? 3}
+        onChange={(value) => onChange({ rowCount: value ?? 1 })}
+        size="small"
+        style={{ width: '100%' }}
+        min={1}
+        step={1}
+      />
+    </Form.Item>
+    <Form.Item label="表头行数">
+      <InputNumber
+        aria-label="表头行数"
+        value={table.headerRowsCount ?? 1}
+        onChange={(value) => onChange({ headerRowsCount: value ?? 0 })}
+        size="small"
+        style={{ width: '100%' }}
+        min={0}
+        max={table.rowCount ?? 3}
+        step={1}
+      />
+    </Form.Item>
+    <Form.Item label="表尾行数">
+      <InputNumber
+        aria-label="表尾行数"
+        value={table.footerRowsCount ?? 0}
+        onChange={(value) => onChange({ footerRowsCount: value ?? 0 })}
+        size="small"
+        style={{ width: '100%' }}
+        min={0}
+        max={table.rowCount ?? 3}
+        step={1}
+      />
+    </Form.Item>
+    <Form.Item label="允许跨页">
+      <Switch
+        aria-label="允许跨页"
+        size="small"
+        checked={table.canBreak ?? true}
+        onChange={(checked) => onChange({ canBreak: checked })}
+      />
+    </Form.Item>
+    <Form.Item label="显示边框">
+      <Switch
+        aria-label="显示边框"
+        size="small"
+        checked={table.showBorder}
+        onChange={(checked) => onChange({ showBorder: checked })}
+      />
+    </Form.Item>
+  </Form>
+);

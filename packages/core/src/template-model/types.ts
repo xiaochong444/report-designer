@@ -121,11 +121,26 @@ export interface TableColumn {
   cellType: 'text' | 'image' | 'barcode' | 'checkbox';
 }
 
+/** 表格单元格（设计时网格结构） */
+export interface TableCell {
+  row: number;
+  column: number;
+  text?: Expression;
+  rowSpan?: number;
+  colSpan?: number;
+}
+
 /** 表格组件 */
 export interface TableComponent extends ReportComponent {
   type: 'table';
   dataSource: string;
   columns: TableColumn[];
+  rowCount?: number;
+  columnCount?: number;
+  headerRowsCount?: number;
+  footerRowsCount?: number;
+  canBreak?: boolean;
+  cells?: TableCell[];
   headerHeight: number;
   rowHeight: number;
   alternateRowStyle?: string;

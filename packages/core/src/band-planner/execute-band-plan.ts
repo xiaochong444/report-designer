@@ -2,6 +2,8 @@ import { evalExpression } from '../expression-engine/evaluator';
 import type { ReportBandV2 } from '../template-model/v2-types';
 import type { BandPlan, DataSectionPlan, LogicalBandItem, RenderContextV2 } from './band-plan';
 
+type BandLogicalItem = Extract<LogicalBandItem, { kind: 'band' }>;
+
 export function executeBandPlan(plan: BandPlan, data: Record<string, Record<string, unknown>[]>): LogicalBandItem[] {
   const items: LogicalBandItem[] = [];
 
@@ -35,13 +37,14 @@ function executeDataSection(
 
   section.headers.forEach((band) => items.push(createBandItem(band, { dataSourceId })));
   section.columnHeaders.forEach((band) => items.push(createBandItem(band, { dataSourceId })));
+  const repeatOnPageBreakBefore = repeatableSectionBands(section);
 
   if (section.groupPairs.length > 0) {
-    executeGroupedRows(section, rows, dataSourceId, items);
+    executeGroupedRows(section, rows, dataSourceId, items, repeatOnPageBreakBefore);
   } else {
     rows.forEach((row, rowIndex) => {
-      items.push(createBandItem(section.dataBand, { row, rowIndex, dataSourceId }));
-      section.childBands.forEach((band) => items.push(createBandItem(band, { row, rowIndex, dataSourceId })));
+      items.push(createSectionBandItem(section.dataBand, { row, rowIndex, dataSourceId }, repeatOnPageBreakBefore));
+      section.childBands.forEach((band) => items.push(createSectionBandItem(band, { row, rowIndex, dataSourceId }, repeatOnPageBreakBefore)));
     });
   }
 
@@ -54,8 +57,29 @@ function executeGroupedRows(
   rows: Record<string, unknown>[],
   dataSourceId: string | undefined,
   items: LogicalBandItem[],
+  repeatOnPageBreakBefore: ReportBandV2[],
 ): void {
-  const pair = section.groupPairs[0];
+  executeGroupDepth(section, rows.map((row, rowIndex) => ({ row, rowIndex })), dataSourceId, items, 0, {}, repeatOnPageBreakBefore);
+}
+
+function executeGroupDepth(
+  section: DataSectionPlan,
+  rows: Array<{ row: Record<string, unknown>; rowIndex: number }>,
+  dataSourceId: string | undefined,
+  items: LogicalBandItem[],
+  depth: number,
+  parentGroupValues: Record<string, unknown>,
+  repeatOnPageBreakBefore: ReportBandV2[],
+): void {
+  const pair = section.groupPairs[depth];
+  if (!pair) {
+    rows.forEach(({ row, rowIndex }) => {
+      items.push(createSectionBandItem(section.dataBand, { row, rowIndex, dataSourceId, groupValues: parentGroupValues }, repeatOnPageBreakBefore));
+      section.childBands.forEach((band) => items.push(createSectionBandItem(band, { row, rowIndex, dataSourceId, groupValues: parentGroupValues }, repeatOnPageBreakBefore)));
+    });
+    return;
+  }
+
   let currentKey: unknown = Symbol('no-group');
   let currentGroupRows: Array<{ row: Record<string, unknown>; rowIndex: number }> = [];
 
@@ -64,13 +88,12 @@ function executeGroupedRows(
       return;
     }
 
-    const groupValues = pair.header.group?.name ? { [pair.header.group.name]: currentKey } : {};
+    const groupValues = pair.header.group?.name
+      ? { ...parentGroupValues, [pair.header.group.name]: currentKey }
+      : parentGroupValues;
     const rowsByBand = dataSourceId ? { [dataSourceId]: currentGroupRows.map(item => item.row) } : undefined;
     items.push(createBandItem(pair.header, { row: currentGroupRows[0].row, rowIndex: currentGroupRows[0].rowIndex, dataSourceId, groupValues, rowsByBand }));
-    currentGroupRows.forEach(({ row, rowIndex }) => {
-      items.push(createBandItem(section.dataBand, { row, rowIndex, dataSourceId, groupValues }));
-      section.childBands.forEach((band) => items.push(createBandItem(band, { row, rowIndex, dataSourceId, groupValues })));
-    });
+    executeGroupDepth(section, currentGroupRows, dataSourceId, items, depth + 1, groupValues, repeatOnPageBreakBefore);
     if (pair.footer) {
       const last = currentGroupRows[currentGroupRows.length - 1];
       items.push(createBandItem(pair.footer, { row: last.row, rowIndex: last.rowIndex, dataSourceId, groupValues, rowsByBand }));
@@ -78,16 +101,20 @@ function executeGroupedRows(
     currentGroupRows = [];
   };
 
-  rows.forEach((row, rowIndex) => {
-    const key = evaluateRowExpression(pair.header.group?.conditionExpression, row, dataSourceId, rowIndex);
+  rows.forEach((item) => {
+    const key = evaluateRowExpression(pair.header.group?.conditionExpression, item.row, dataSourceId, item.rowIndex);
     if (currentGroupRows.length > 0 && key !== currentKey) {
       flush();
     }
     currentKey = key;
-    currentGroupRows.push({ row, rowIndex });
+    currentGroupRows.push(item);
   });
 
   flush();
+}
+
+function repeatableSectionBands(section: DataSectionPlan): ReportBandV2[] {
+  return [...section.headers, ...section.columnHeaders].filter((band) => band.behavior.printOnAllPages);
 }
 
 function prepareRows(
@@ -157,7 +184,7 @@ function resolveRowField(row: Record<string, unknown>, source: string | undefine
 function createBandItem(
   band: ReportBandV2,
   overrides: Partial<RenderContextV2> = {},
-): LogicalBandItem {
+): BandLogicalItem {
   return {
     kind: 'band',
     band,
@@ -166,5 +193,16 @@ function createBandItem(
       groupValues: overrides.groupValues ?? {},
       ...overrides,
     },
+  };
+}
+
+function createSectionBandItem(
+  band: ReportBandV2,
+  overrides: Partial<RenderContextV2>,
+  repeatOnPageBreakBefore: ReportBandV2[],
+): BandLogicalItem {
+  return {
+    ...createBandItem(band, overrides),
+    repeatOnPageBreakBefore,
   };
 }

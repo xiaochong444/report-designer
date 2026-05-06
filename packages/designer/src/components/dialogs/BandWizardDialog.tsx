@@ -75,8 +75,8 @@ export const BandWizardDialog: React.FC<BandWizardDialogProps> = ({ open, onClos
         />
         <Radio.Group value={preset} onChange={event => setPreset(event.target.value)}>
           <Space orientation="vertical">
-            <Radio value="header-data-footer">Header + Data + Footer</Radio>
-            <Radio value="data-only">Data only</Radio>
+            <Radio value="header-data-footer" aria-label="HeaderBand + DataBand + FooterBand">HeaderBand + DataBand + FooterBand</Radio>
+            <Radio value="data-only" aria-label="DataBand only">DataBand only</Radio>
           </Space>
         </Radio.Group>
       </Space>

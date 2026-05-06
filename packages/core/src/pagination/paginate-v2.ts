@@ -28,6 +28,7 @@ export function paginateV2(
   const footerHeight = pageBands.pageFooter.reduce((sum, band) => sum + band.height, 0);
   const pageBottomY = templatePage.height - templatePage.margins.bottom - footerHeight;
   const repeatedGroups: ReportBandV2[] = [];
+  let activeSectionRepeatBands: ReportBandV2[] = [];
   let currentPage: RenderPage | undefined;
   let cursorY = 0;
 
@@ -48,6 +49,9 @@ export function paginateV2(
     for (const groupHeader of repeatedGroups) {
       placeBand(groupHeader, createEmptyContext(), true);
     }
+    for (const sectionBand of activeSectionRepeatBands) {
+      placeBand(sectionBand, createEmptyContext(), true);
+    }
   };
 
   const ensurePage = () => {
@@ -58,14 +62,22 @@ export function paginateV2(
 
   const placeBand = (band: ReportBandV2, context: RenderContextV2, force = false): RenderBandBox => {
     ensurePage();
-    const preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand });
-    if (!force && cursorY + preview.height > pageBottomY && currentPage!.items.length > 0) {
+    let preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand });
+    const breakIfLessThan = band.behavior.breakIfLessThan ?? 0;
+    if (!force && breakIfLessThan > 0 && pageBottomY - cursorY < breakIfLessThan && currentPage!.items.length > 0) {
       newPage();
+      preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand });
     }
 
-    const box = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand });
+    if (!force && cursorY + preview.height > pageBottomY && currentPage!.items.length > 0) {
+      newPage();
+      preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand });
+    }
+
+    const targetY = band.behavior.printAtBottom ? pageBottomY - preview.height : cursorY;
+    const box = layoutBand(band, { x: printableX, y: targetY, width: printableWidth, context, rowsByBand });
     currentPage!.items.push(box);
-    cursorY += box.height;
+    cursorY = band.behavior.printAtBottom ? pageBottomY : cursorY + box.height;
     return box;
   };
 
@@ -86,6 +98,14 @@ export function paginateV2(
       if (cursorY + estimated > pageBottomY && currentPage?.items.length) {
         newPage();
       }
+    }
+
+    if (item.repeatOnPageBreakBefore) {
+      activeSectionRepeatBands = item.repeatOnPageBreakBefore;
+    }
+
+    if (['footer', 'columnFooter', 'reportSummary', 'emptyData'].includes(item.band.type)) {
+      activeSectionRepeatBands = [];
     }
 
     placeBand(item.band, item.context);

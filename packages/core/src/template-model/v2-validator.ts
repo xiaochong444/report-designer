@@ -38,6 +38,7 @@ function validatePage(
   errors: TemplateValidationErrorV2[],
 ): void {
   const groupHeaders: ReportBandV2[] = [];
+  const pendingSectionBands: Array<{ band: ReportBandV2; path: string }> = [];
 
   page.bands.forEach((band, bandIndex) => {
     const path = `pages[${pageIndex}].bands[${bandIndex}]`;
@@ -48,6 +49,18 @@ function validatePage(
 
     if (band.dataBand?.dataSourceId && !dataSourceIds.has(band.dataBand.dataSourceId)) {
       errors.push({ path: `${path}.dataBand.dataSourceId`, message: `DataBand references missing data source "${band.dataBand.dataSourceId}"` });
+    }
+
+    if ((band.type === 'data' || band.type === 'hierarchicalData') && !band.dataBand?.dataSourceId) {
+      errors.push({ path: `${path}.dataBand.dataSourceId`, message: 'DataBand requires dataBand.dataSourceId' });
+    }
+
+    if (band.type === 'header' || band.type === 'columnHeader' || band.type === 'groupHeader') {
+      pendingSectionBands.push({ band, path });
+    }
+
+    if (band.type === 'data' || band.type === 'hierarchicalData') {
+      pendingSectionBands.length = 0;
     }
 
     if (band.type === 'groupHeader') {
@@ -67,6 +80,17 @@ function validatePage(
       });
     }
   });
+
+  pendingSectionBands.forEach(({ band, path }) => {
+    errors.push({ path, message: `${getBandDisplayName(band)} requires a following DataBand` });
+  });
+}
+
+function getBandDisplayName(band: ReportBandV2): string {
+  if (band.type === 'header') return 'HeaderBand';
+  if (band.type === 'columnHeader') return 'ColumnHeaderBand';
+  if (band.type === 'groupHeader') return 'GroupHeaderBand';
+  return band.type;
 }
 
 function hasMatchingGroupHeader(footer: ReportBandV2, headers: ReportBandV2[]): boolean {

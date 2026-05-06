@@ -1,7 +1,14 @@
 import { create } from 'zustand';
-import type { ReportTemplate, ReportComponent, Band, Page } from '@report-designer/core';
+import type { ReportTemplate, ReportComponent, Band, Page, TableComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { CommandDispatcher } from '@report-designer/core';
+import {
+  deleteTableColumn,
+  deleteTableRow,
+  insertTableColumn,
+  insertTableRow,
+  setTableStructure,
+} from '../table/table-structure';
 
 export interface DesignerState {
   template: ReportTemplate;
@@ -47,8 +54,26 @@ export interface DesignerState {
   // Component operations
   deleteSelected: () => void;
   copySelected: () => void;
+  cutSelected: () => void;
+  duplicateSelected: () => void;
   pasteClipboard: () => void;
   getClipboard: () => ReportComponent[];
+  moveSelectedBy: (dx: number, dy: number) => void;
+  resizeSelectedBy: (dw: number, dh: number) => void;
+  toggleSelectedFontStyle: (style: 'bold' | 'italic' | 'underline' | 'strikethrough') => void;
+  updateSelectedTable: (updates: {
+    rowCount?: number;
+    columnCount?: number;
+    headerRowsCount?: number;
+    footerRowsCount?: number;
+    canBreak?: boolean;
+    showBorder?: boolean;
+    dataSource?: string;
+  }) => void;
+  insertSelectedTableColumn: () => void;
+  deleteSelectedTableColumn: () => void;
+  insertSelectedTableRow: () => void;
+  deleteSelectedTableRow: () => void;
 
   // Band management
   addBand: (pageId: string, band: Omit<Band, 'id'>) => void;
@@ -530,6 +555,16 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     set({ clipboard: comps });
   },
 
+  cutSelected: () => {
+    get().copySelected();
+    get().deleteSelected();
+  },
+
+  duplicateSelected: () => {
+    get().copySelected();
+    get().pasteClipboard();
+  },
+
   pasteClipboard: () => {
     const { template, currentPageId, selectedComponentIds, clipboard } = get();
     if (clipboard.length === 0) return;
@@ -563,6 +598,83 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   },
 
   getClipboard: () => get().clipboard,
+
+  moveSelectedBy: (dx, dy) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page || selectedComponentIds.length === 0) return;
+
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => ({
+      ...comp,
+      x: Math.round((comp.x + dx) * 10) / 10,
+      y: Math.round((comp.y + dy) * 10) / 10,
+    }));
+    set({ template: newTemplate });
+  },
+
+  resizeSelectedBy: (dw, dh) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page || selectedComponentIds.length === 0) return;
+
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => ({
+      ...comp,
+      width: Math.max(1, Math.round((comp.width + dw) * 10) / 10),
+      height: Math.max(1, Math.round((comp.height + dh) * 10) / 10),
+    }));
+    set({ template: newTemplate });
+  },
+
+  toggleSelectedFontStyle: (style) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
+      const font = (comp as any).font;
+      if (!font) return comp;
+      return { ...comp, font: { ...font, [style]: !font[style] } };
+    });
+    set({ template: newTemplate });
+  },
+
+  updateSelectedTable: (updates) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
+      if (comp.type !== 'table') return comp;
+      return setTableStructure(comp as TableComponent, updates);
+    });
+    set({ template: newTemplate });
+  },
+
+  insertSelectedTableColumn: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
+      comp.type === 'table' ? insertTableColumn(comp as TableComponent) : comp
+    ));
+    set({ template: newTemplate });
+  },
+
+  deleteSelectedTableColumn: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
+      comp.type === 'table' ? deleteTableColumn(comp as TableComponent) : comp
+    ));
+    set({ template: newTemplate });
+  },
+
+  insertSelectedTableRow: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
+      comp.type === 'table' ? insertTableRow(comp as TableComponent) : comp
+    ));
+    set({ template: newTemplate });
+  },
+
+  deleteSelectedTableRow: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
+      comp.type === 'table' ? deleteTableRow(comp as TableComponent) : comp
+    ));
+    set({ template: newTemplate });
+  },
 
   addBand: (pageId, band) => {
     const { template, dispatcher } = get();
@@ -805,4 +917,29 @@ function findBand(template: ReportTemplate, pageId: string, bandId: string): Ban
   const page = template.pages.find(p => p.id === pageId);
   if (!page) return undefined;
   return page.bands.find(b => b.id === bandId);
+}
+
+function mapSelectedComponents(
+  template: ReportTemplate,
+  pageId: string,
+  selectedComponentIds: string[],
+  mapper: (component: ReportComponent) => ReportComponent,
+): ReportTemplate {
+  if (selectedComponentIds.length === 0) return template;
+  const selected = new Set(selectedComponentIds);
+  return {
+    ...template,
+    pages: template.pages.map(page => {
+      if (page.id !== pageId) return page;
+      return {
+        ...page,
+        bands: page.bands.map(band => ({
+          ...band,
+          components: band.components.map(component => (
+            selected.has(component.id) ? mapper(component) : component
+          )),
+        })),
+      };
+    }),
+  };
 }

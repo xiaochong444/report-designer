@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import type { ReportComponent, Band } from '@report-designer/core';
+import type { ReportComponent, Band, TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
+import { normalizeTable } from '../table/table-structure';
 
 const MM_TO_PX = 3.78;
 const SNAP_THRESHOLD = 5;
@@ -82,6 +83,23 @@ const BAND_COLORS: Record<string, string> = {
   data: '#6a1b9a', groupHeader: '#00838f', groupFooter: '#4527a0', child: '#ad1457',
 };
 
+const BAND_LABELS: Record<string, string> = {
+  reportTitle: 'ReportTitleBand',
+  reportSummary: 'ReportSummaryBand',
+  pageHeader: 'PageHeaderBand',
+  pageFooter: 'PageFooterBand',
+  header: 'HeaderBand',
+  footer: 'FooterBand',
+  columnHeader: 'ColumnHeaderBand',
+  columnFooter: 'ColumnFooterBand',
+  groupHeader: 'GroupHeaderBand',
+  groupFooter: 'GroupFooterBand',
+  data: 'DataBand',
+  child: 'ChildBand',
+  emptyData: 'EmptyDataBand',
+  overlay: 'OverlayBand',
+};
+
 // ---- Context Menu ----
 
 interface ContextMenuPos { x: number; y: number; compId?: string }
@@ -93,6 +111,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
   const selectedBandId = useDesignerStore(s => s.selectedBandId);
+  const storeClipboard = useDesignerStore(s => s.clipboard);
   const selectComponents = useDesignerStore(s => s.selectComponents);
   const selectBand = useDesignerStore(s => s.selectBand);
   const moveComponent = useDesignerStore(s => s.moveComponent);
@@ -101,7 +120,16 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const updateComponentSilent = useDesignerStore(s => s.updateComponentSilent);
   const resizeBand = useDesignerStore(s => s.resizeBand);
   const resizeBandSilent = useDesignerStore(s => s.resizeBandSilent);
-  const removeComponent = useDesignerStore(s => s.removeComponent);
+  const copySelected = useDesignerStore(s => s.copySelected);
+  const cutSelected = useDesignerStore(s => s.cutSelected);
+  const duplicateSelected = useDesignerStore(s => s.duplicateSelected);
+  const pasteClipboard = useDesignerStore(s => s.pasteClipboard);
+  const deleteSelected = useDesignerStore(s => s.deleteSelected);
+  const moveSelectedBy = useDesignerStore(s => s.moveSelectedBy);
+  const resizeSelectedBy = useDesignerStore(s => s.resizeSelectedBy);
+  const toggleSelectedFontStyle = useDesignerStore(s => s.toggleSelectedFontStyle);
+  const setTextAlign = useDesignerStore(s => s.setTextAlign);
+  const setDesignerMode = useDesignerStore(s => s.setMode);
   const undo = useDesignerStore(s => s.undo);
   const redo = useDesignerStore(s => s.redo);
 
@@ -111,7 +139,6 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const [selBox, setSelBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [guides, setGuides] = useState<GuideLine[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuPos | null>(null);
-  const [clipboard, setClipboard] = useState<ReportComponent[]>([]);
   const [zoom, setZoom] = useState(1); // 缩放比例 0.25 ~ 4
 
   const currentPage = useMemo(() => template.pages.find(p => p.id === currentPageId), [template, currentPageId]);
@@ -432,41 +459,35 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       // Delete / Backspace: 删除
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
-        for (const id of [...selectedComponentIds]) {
-          const f = flat.find(x => x.comp.id === id);
-          if (f) removeComponent(currentPageId, f.bandId, id);
-        }
+        deleteSelected();
         return;
       }
 
       // Ctrl+C: 复制
       if (isCtrl && e.key === 'c') {
         e.preventDefault();
-        const comps = selectedComponentIds
-          .map(id => flat.find(f => f.comp.id === id)?.comp)
-          .filter(Boolean) as ReportComponent[];
-        setClipboard(comps.map(c => ({ ...c, id: `copy_${c.id}_${Date.now()}` })));
+        copySelected();
+        return;
+      }
+
+      // Ctrl+X: 剪切
+      if (isCtrl && e.key === 'x') {
+        e.preventDefault();
+        cutSelected();
         return;
       }
 
       // Ctrl+V: 粘贴
       if (isCtrl && e.key === 'v') {
         e.preventDefault();
-        if (clipboard.length > 0 && selectedComponentIds.length > 0) {
-          // 粘贴到选中组件所在的 band
-          const firstId = selectedComponentIds[0];
-          const f = flat.find(x => x.comp.id === firstId);
-          if (f) {
-            for (const clip of clipboard) {
-              const newComp = { ...clip, id: `${clip.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, x: clip.x + 5, y: clip.y + 5 };
-              const t = template.pages.find(p => p.id === currentPageId)?.bands.find(b => b.id === f.bandId);
-              if (t) {
-                // Use addComponent from store
-                useDesignerStore.getState().addComponent(currentPageId, f.bandId, newComp);
-              }
-            }
-          }
-        }
+        pasteClipboard();
+        return;
+      }
+
+      // Ctrl+D: 复制一份
+      if (isCtrl && e.key === 'd') {
+        e.preventDefault();
+        duplicateSelected();
         return;
       }
 
@@ -496,6 +517,34 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         return;
       }
 
+      // F5 / Ctrl+F5: 预览
+      if (e.key === 'F5') {
+        e.preventDefault();
+        setDesignerMode('preview');
+        return;
+      }
+
+      // Ctrl+B/I/U/S: 字体样式
+      if (isCtrl && ['b', 'i', 'u', 's'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        const key = e.key.toLowerCase();
+        if (key === 'b') toggleSelectedFontStyle('bold');
+        if (key === 'i') toggleSelectedFontStyle('italic');
+        if (key === 'u') toggleSelectedFontStyle('underline');
+        if (key === 's') toggleSelectedFontStyle('strikethrough');
+        return;
+      }
+
+      // Ctrl+L/E/R: 文本左/中/右对齐
+      if (isCtrl && ['l', 'e', 'r'].includes(e.key.toLowerCase())) {
+        e.preventDefault();
+        const key = e.key.toLowerCase();
+        if (key === 'l') setTextAlign('left');
+        if (key === 'e') setTextAlign('center');
+        if (key === 'r') setTextAlign('right');
+        return;
+      }
+
       // Ctrl+Shift+Arrow: 对齐
       if (isCtrl && e.shiftKey && ['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && selectedComponentIds.length >= 2) {
         e.preventDefault();
@@ -517,24 +566,20 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       // Arrow keys: 微移
       if (['ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight'].includes(e.key) && selectedComponentIds.length > 0) {
         e.preventDefault();
-        const step = e.shiftKey ? 1 : 0.5; // Shift = 1mm, normal = 0.5mm
-        for (const id of selectedComponentIds) {
-          const f = flat.find(x => x.comp.id === id);
-          if (f) {
-            let { x, y } = f.comp;
-            if (e.key === 'ArrowUp') y -= step;
-            if (e.key === 'ArrowDown') y += step;
-            if (e.key === 'ArrowLeft') x -= step;
-            if (e.key === 'ArrowRight') x += step;
-            moveComponent(currentPageId, f.bandId, id, x, y, f.comp.x, f.comp.y);
-          }
+        const step = e.altKey ? 0.5 : e.ctrlKey || e.metaKey ? GRID_MM : 1;
+        const dx = e.key === 'ArrowLeft' ? -step : e.key === 'ArrowRight' ? step : 0;
+        const dy = e.key === 'ArrowUp' ? -step : e.key === 'ArrowDown' ? step : 0;
+        if (e.shiftKey) {
+          resizeSelectedBy(dx, dy);
+        } else {
+          moveSelectedBy(dx, dy);
         }
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedComponentIds, flat, currentPageId, clipboard, template, removeComponent, undo, redo, selectComponents, moveComponent]);
+  }, [selectedComponentIds, flat, undo, redo, selectComponents, copySelected, cutSelected, duplicateSelected, pasteClipboard, deleteSelected, moveSelectedBy, resizeSelectedBy, toggleSelectedFontStyle, setTextAlign, setDesignerMode]);
 
   // ---- Zoom wheel handler ----
 
@@ -639,31 +684,25 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             x={contextMenu.x}
             y={contextMenu.y}
             hasSelection={selectedComponentIds.length > 0}
-            hasClipboard={clipboard.length > 0}
-            onCopy={() => {
-              const comps = selectedComponentIds
-                .map(id => flat.find(f => f.comp.id === id)?.comp)
-                .filter(Boolean) as ReportComponent[];
-              setClipboard(comps.map(c => ({ ...c, id: `copy_${c.id}` })));
-              setContextMenu(null);
-            }}
-            onPaste={() => {
-              if (clipboard.length > 0 && contextMenu.compId) {
-                const f = flat.find(x => x.comp.id === contextMenu.compId);
-                if (f) {
-                  for (const clip of clipboard) {
-                    const newComp = { ...clip, id: `${clip.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, x: clip.x + 5, y: clip.y + 5 };
-                    useDesignerStore.getState().addComponent(currentPageId, f.bandId, newComp);
-                  }
-                }
-              }
+            hasClipboard={storeClipboard.length > 0}
+            selectedType={flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]))?.comp.type}
+            onCopy={() => { copySelected(); setContextMenu(null); }}
+            onCut={() => { cutSelected(); setContextMenu(null); }}
+            onPaste={() => { pasteClipboard(); setContextMenu(null); }}
+            onDuplicate={() => { duplicateSelected(); setContextMenu(null); }}
+            onBringToFront={() => { useDesignerStore.getState().bringToFront(); setContextMenu(null); }}
+            onSendToBack={() => { useDesignerStore.getState().sendToBack(); setContextMenu(null); }}
+            onInsertTableColumn={() => { useDesignerStore.getState().insertSelectedTableColumn(); setContextMenu(null); }}
+            onDeleteTableColumn={() => { useDesignerStore.getState().deleteSelectedTableColumn(); setContextMenu(null); }}
+            onInsertTableRow={() => { useDesignerStore.getState().insertSelectedTableRow(); setContextMenu(null); }}
+            onDeleteTableRow={() => { useDesignerStore.getState().deleteSelectedTableRow(); setContextMenu(null); }}
+            onToggleTableBorder={() => {
+              const table = flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]))?.comp as TableComponent | undefined;
+              if (table?.type === 'table') useDesignerStore.getState().updateSelectedTable({ showBorder: !table.showBorder });
               setContextMenu(null);
             }}
             onDelete={() => {
-              for (const id of [...selectedComponentIds]) {
-                const f = flat.find(x => x.comp.id === id);
-                if (f) removeComponent(currentPageId, f.bandId, id);
-              }
+              deleteSelected();
               setContextMenu(null);
             }}
           />
@@ -791,16 +830,53 @@ const zoomBtnStyle: React.CSSProperties = {
 const ContextMenu: React.FC<{
   x: number; y: number;
   hasSelection: boolean; hasClipboard: boolean;
-  onCopy: () => void; onPaste: () => void; onDelete: () => void;
-}> = ({ x, y, hasSelection, hasClipboard, onCopy, onPaste, onDelete }) => (
+  selectedType?: ReportComponent['type'];
+  onCopy: () => void; onCut: () => void; onPaste: () => void; onDuplicate: () => void; onDelete: () => void;
+  onBringToFront: () => void; onSendToBack: () => void;
+  onInsertTableColumn: () => void; onDeleteTableColumn: () => void;
+  onInsertTableRow: () => void; onDeleteTableRow: () => void; onToggleTableBorder: () => void;
+}> = ({
+  x,
+  y,
+  hasSelection,
+  hasClipboard,
+  selectedType,
+  onCopy,
+  onCut,
+  onPaste,
+  onDuplicate,
+  onDelete,
+  onBringToFront,
+  onSendToBack,
+  onInsertTableColumn,
+  onDeleteTableColumn,
+  onInsertTableRow,
+  onDeleteTableRow,
+  onToggleTableBorder,
+}) => (
   <div style={{
     position: 'absolute', left: x, top: y,
     backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: 4,
     boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 10000,
-    minWidth: 140, padding: '4px 0',
+    minWidth: 190, padding: '4px 0',
   }}>
     <ContextMenuItem label="复制" shortcut="Ctrl+C" disabled={!hasSelection} onClick={onCopy} />
+    <ContextMenuItem label="剪切" shortcut="Ctrl+X" disabled={!hasSelection} onClick={onCut} />
     <ContextMenuItem label="粘贴" shortcut="Ctrl+V" disabled={!hasClipboard} onClick={onPaste} />
+    <ContextMenuItem label="复制一份" shortcut="Ctrl+D" disabled={!hasSelection} onClick={onDuplicate} />
+    <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
+    <ContextMenuItem label="置于顶层" shortcut="Ctrl+Alt+↑" disabled={!hasSelection} onClick={onBringToFront} />
+    <ContextMenuItem label="置于底层" shortcut="Ctrl+Alt+↓" disabled={!hasSelection} onClick={onSendToBack} />
+    {selectedType === 'table' && (
+      <>
+        <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
+        <ContextMenuItem label="插入列到右侧" onClick={onInsertTableColumn} />
+        <ContextMenuItem label="删除列" onClick={onDeleteTableColumn} />
+        <ContextMenuItem label="插入行到下方" onClick={onInsertTableRow} />
+        <ContextMenuItem label="删除行" onClick={onDeleteTableRow} />
+        <ContextMenuItem label="切换表格边框" onClick={onToggleTableBorder} />
+      </>
+    )}
     <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
     <ContextMenuItem label="删除" shortcut="Del" disabled={!hasSelection} onClick={onDelete} danger />
   </div>
@@ -848,7 +924,7 @@ const BandView: React.FC<{
         display: 'flex', alignItems: 'center', justifyContent: 'center',
         fontSize: 8, color: '#fff', writingMode: 'vertical-rl', textOrientation: 'mixed',
         letterSpacing: 1, cursor: 'default', zIndex: 1, pointerEvents: 'none',
-      }}>{band.type}</div>
+      }}>{BAND_LABELS[band.type] ?? band.type}</div>
 
       <BandResizeHandle bandId={band.id} />
 
@@ -999,7 +1075,7 @@ function getCompContent(comp: ReportComponent): React.ReactNode {
     case 'checkbox':
       return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}><span style={{ fontSize: 16 }}>☐</span></div>;
     case 'table':
-      return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ccc', fontSize: 10, border: '1px dashed #ddd' }}>表格</div>;
+      return <TablePreview table={comp as TableComponent} />;
     case 'richtext':
       return <div style={{ width: '100%', height: '100%', overflow: 'hidden', fontSize: 10, color: '#999' }}>富文本</div>;
     case 'subreport':
@@ -1057,3 +1133,61 @@ function getCompContent(comp: ReportComponent): React.ReactNode {
       return '';
   }
 }
+
+const TablePreview: React.FC<{ table: TableComponent }> = ({ table }) => {
+  const normalized = normalizeTable(table);
+  const rowCount = normalized.rowCount ?? 3;
+  const columnCount = normalized.columnCount ?? normalized.columns.length;
+  const headerRowsCount = normalized.headerRowsCount ?? 1;
+  const footerRowsCount = normalized.footerRowsCount ?? 0;
+  const cellBorder = normalized.showBorder ? '1px solid #8c8c8c' : '1px dashed #d9d9d9';
+  const cells = Array.from({ length: rowCount * columnCount }, (_, index) => {
+    const row = Math.floor(index / columnCount);
+    const column = index % columnCount;
+    const customCell = normalized.cells?.find(cell => cell.row === row && cell.column === column);
+    const isHeader = row < headerRowsCount;
+    const isFooter = row >= rowCount - footerRowsCount;
+    const label = customCell?.text
+      ?? (isHeader ? normalized.columns[column]?.header || `Header ${column + 1}` : '');
+
+    return (
+      <div
+        key={`${row}-${column}`}
+        style={{
+          minWidth: 0,
+          minHeight: 0,
+          borderRight: column === columnCount - 1 ? 'none' : cellBorder,
+          borderBottom: row === rowCount - 1 ? 'none' : cellBorder,
+          backgroundColor: isHeader ? '#f0f5ff' : isFooter ? '#fff7e6' : '#fff',
+          color: isHeader || isFooter ? '#333' : '#999',
+          fontSize: 10,
+          lineHeight: 1.2,
+          padding: '2px 3px',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+          textOverflow: 'ellipsis',
+        }}
+      >
+        {label || (row === headerRowsCount && column === 0 ? normalized.dataSource || 'Data' : '')}
+      </div>
+    );
+  });
+
+  return (
+    <div
+      data-testid="designer-table-grid"
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'grid',
+        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+        gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))`,
+        border: cellBorder,
+        boxSizing: 'border-box',
+        backgroundColor: '#fff',
+      }}
+    >
+      {cells}
+    </div>
+  );
+};

@@ -17,7 +17,7 @@ describe('Phase 5 band wizard', () => {
   it('creates header, data, and footer bands for a data source', () => {
     render(<BandWizardDialog open onClose={() => {}} />);
 
-    fireEvent.click(screen.getByLabelText('Header + Data + Footer'));
+    fireEvent.click(screen.getByLabelText('HeaderBand + DataBand + FooterBand'));
     fireEvent.click(screen.getByRole('button', { name: 'Create bands' }));
 
     const bands = useDesignerStore.getState().template.pages[0].bands;

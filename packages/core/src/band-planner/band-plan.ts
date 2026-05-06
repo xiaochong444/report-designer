@@ -34,5 +34,10 @@ export interface RenderContextV2 {
 }
 
 export type LogicalBandItem =
-  | { kind: 'band'; band: ReportBandV2; context: RenderContextV2 }
+  | {
+      kind: 'band';
+      band: ReportBandV2;
+      context: RenderContextV2;
+      repeatOnPageBreakBefore?: ReportBandV2[];
+    }
   | { kind: 'pageBreak'; reason: string };
