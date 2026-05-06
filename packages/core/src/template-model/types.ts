@@ -40,6 +40,16 @@ export interface ConditionRule {
   overrides: Record<string, any>;
 }
 
+export type TextFormatType = 'none' | 'number' | 'currency' | 'date' | 'time' | 'percent' | 'boolean' | 'custom';
+
+export interface TextFormatConfig {
+  type: TextFormatType;
+  pattern?: string;
+  nullValue?: string;
+  trueText?: string;
+  falseText?: string;
+}
+
 /** 报表样式 */
 export interface ReportStyle {
   id: string;
@@ -97,6 +107,7 @@ export interface ReportComponent {
 export interface TextComponent extends ReportComponent {
   type: 'text';
   text: Expression;
+  format?: TextFormatConfig;
   font: FontConfig;
   textAlign: 'left' | 'center' | 'right';
   verticalAlign: 'top' | 'middle' | 'bottom';

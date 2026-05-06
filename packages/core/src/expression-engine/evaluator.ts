@@ -129,8 +129,36 @@ reg('RUNNINGSUM', (args, ctx) => {
   return evaluateReportFunction('RUNNINGSUM', args, ctx, () => 0);
 });
 
+reg('REPORTSUM', (args, ctx) => {
+  return evaluateReportFunction('REPORTSUM', args, ctx, () => 0);
+});
+
+reg('REPORTCOUNT', (args, ctx) => {
+  return evaluateReportFunction('REPORTCOUNT', args, ctx, () => 0);
+});
+
+reg('PAGESUM', (args, ctx) => {
+  return evaluateReportFunction('PAGESUM', args, ctx, () => 0);
+});
+
+reg('PAGECOUNT', (args, ctx) => {
+  return evaluateReportFunction('PAGECOUNT', args, ctx, () => 0);
+});
+
 reg('TOTALS.SUM', (args, ctx) => {
   return evaluateReportFunction('TOTALS.SUM', args, ctx, () => 0);
+});
+
+reg('TOTALS.REPORTSUM', (args, ctx) => {
+  return evaluateReportFunction('TOTALS.REPORTSUM', args, ctx, () => 0);
+});
+
+reg('TOTALS.PAGESUM', (args, ctx) => {
+  return evaluateReportFunction('TOTALS.PAGESUM', args, ctx, () => 0);
+});
+
+reg('TOTALS.PAGECOUNT', (args, ctx) => {
+  return evaluateReportFunction('TOTALS.PAGECOUNT', args, ctx, () => 0);
 });
 
 reg('PAGE', (args, ctx) => {

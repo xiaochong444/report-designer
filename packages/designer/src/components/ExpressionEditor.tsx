@@ -10,6 +10,13 @@ const BUILT_IN_FUNCTIONS = [
   { name: 'COUNT', desc: '计数', usage: 'COUNT(field)', insert: 'COUNT()' },
   { name: 'MAX', desc: '最大值', usage: 'MAX(field)', insert: 'MAX()' },
   { name: 'MIN', desc: '最小值', usage: 'MIN(field)', insert: 'MIN()' },
+  { name: 'PAGESUM', desc: '按页求和', usage: 'PAGESUM("DataBand", "{DataBand.Field}")', insert: 'PAGESUM("", "")' },
+  { name: 'PAGECOUNT', desc: '按页计数', usage: 'PAGECOUNT("DataBand")', insert: 'PAGECOUNT("")' },
+  { name: 'REPORTSUM', desc: '按报表求和', usage: 'REPORTSUM("DataBand", "{DataBand.Field}")', insert: 'REPORTSUM("", "")' },
+  { name: 'REPORTCOUNT', desc: '按报表计数', usage: 'REPORTCOUNT("DataBand")', insert: 'REPORTCOUNT("")' },
+  { name: 'TOTALS.PAGESUM', desc: '按页求和别名', usage: 'TOTALS.PAGESUM("DataBand", "{DataBand.Field}")', insert: 'TOTALS.PAGESUM("", "")' },
+  { name: 'TOTALS.PAGECOUNT', desc: '按页计数别名', usage: 'TOTALS.PAGECOUNT("DataBand")', insert: 'TOTALS.PAGECOUNT("")' },
+  { name: 'TOTALS.REPORTSUM', desc: '按报表求和别名', usage: 'TOTALS.REPORTSUM("DataBand", "{DataBand.Field}")', insert: 'TOTALS.REPORTSUM("", "")' },
   { name: 'IF', desc: '条件判断', usage: 'IF(condition, trueVal, falseVal)', insert: 'IF(, , )' },
   { name: 'IIF', desc: '条件判断', usage: 'IIF(condition, trueVal, falseVal)', insert: 'IIF(, , )' },
   { name: 'TODATE', desc: '转日期', usage: 'TODATE(field, format)', insert: 'TODATE()' },
@@ -28,6 +35,21 @@ const BUILT_IN_FUNCTIONS = [
   { name: 'TOTALPAGES', desc: '总页数', usage: 'TOTALPAGES()', insert: 'TOTALPAGES()' },
   { name: 'ISNULL', desc: '是否为空', usage: 'ISNULL(field)', insert: 'ISNULL()' },
   { name: 'NEWID', desc: '新 GUID', usage: 'NEWID()', insert: 'NEWID()' },
+];
+
+const QUICK_FUNCTION_NAMES = [
+  'SUM',
+  'AVG',
+  'COUNT',
+  'MAX',
+  'MIN',
+  'IF',
+  'IIF',
+  'FORMAT',
+  'ROUND',
+  'PAGE',
+  'TOTALPAGES',
+  'ISNULL',
 ];
 
 export const ExpressionEditor: React.FC<{
@@ -77,6 +99,22 @@ export const ExpressionEditor: React.FC<{
       key: 'agg',
       title: <span style={{ fontWeight: 500 }}>聚合函数</span>,
       children: BUILT_IN_FUNCTIONS.filter(f => ['SUM', 'AVG', 'COUNT', 'MAX', 'MIN'].includes(f.name)).map(f => ({
+        key: f.name,
+        title: <span>{f.name} <span style={{ color: '#999', fontSize: 10 }}>- {f.desc}</span></span>,
+      })),
+    },
+    {
+      key: 'page-report-totals',
+      title: <span style={{ fontWeight: 500 }}>页/报表合计</span>,
+      children: BUILT_IN_FUNCTIONS.filter(f => [
+        'PAGESUM',
+        'PAGECOUNT',
+        'REPORTSUM',
+        'REPORTCOUNT',
+        'TOTALS.PAGESUM',
+        'TOTALS.PAGECOUNT',
+        'TOTALS.REPORTSUM',
+      ].includes(f.name)).map(f => ({
         key: f.name,
         title: <span>{f.name} <span style={{ color: '#999', fontSize: 10 }}>- {f.desc}</span></span>,
       })),
@@ -243,7 +281,7 @@ export const ExpressionEditor: React.FC<{
         <div style={{ width: 140 }}>
           <div style={{ fontSize: 12, color: '#666', marginBottom: 4, padding: '0 4px' }}>快速插入</div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 4px' }}>
-            {BUILT_IN_FUNCTIONS.slice(0, 12).map(f => (
+            {BUILT_IN_FUNCTIONS.filter(f => QUICK_FUNCTION_NAMES.includes(f.name)).map(f => (
               <Button
                 key={f.name}
                 size="small"

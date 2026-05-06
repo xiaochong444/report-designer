@@ -10,10 +10,18 @@ export type AggregateFunctionName =
   | 'SUMIF'
   | 'COUNTIF'
   | 'RUNNINGSUM'
-  | 'TOTALS.SUM';
+  | 'REPORTSUM'
+  | 'REPORTCOUNT'
+  | 'PAGESUM'
+  | 'PAGECOUNT'
+  | 'TOTALS.SUM'
+  | 'TOTALS.REPORTSUM'
+  | 'TOTALS.PAGESUM'
+  | 'TOTALS.PAGECOUNT';
 
 export interface AggregateRuntimeOptions {
   rowsByBand: Record<string, Array<Record<string, unknown>>>;
+  pageRowsByBand?: Record<string, Array<Record<string, unknown>>>;
   pageNumber?: number;
   totalPages?: number;
 }

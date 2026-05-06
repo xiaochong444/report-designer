@@ -75,6 +75,7 @@ export interface DesignerState {
     showBorder?: boolean;
     dataSource?: string;
   }) => void;
+  applySelectedStyle: (styleId: string | undefined) => void;
   insertSelectedTableColumn: (afterColumn?: number) => void;
   deleteSelectedTableColumn: (columnIndex?: number) => void;
   insertSelectedTableRow: (afterRow?: number) => void;
@@ -650,6 +651,34 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
       if (comp.type !== 'table') return comp;
       return setTableStructure(comp as TableComponent, updates);
+    });
+    set({ template: newTemplate });
+  },
+
+  applySelectedStyle: (styleId) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const style = styleId ? template.styles.find(item => item.id === styleId) : undefined;
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
+      if (comp.type !== 'text') return comp;
+      if (!styleId || !style) {
+        return { ...comp, style: undefined };
+      }
+      const next: ReportComponent = {
+        ...comp,
+        style: style.id,
+        backgroundColor: style.backgroundColor,
+      };
+      if ((comp as any).font && style.font) {
+        (next as any).font = { ...(comp as any).font, ...style.font };
+      }
+      if ((comp as any).border && style.border) {
+        (next as any).border = {
+          ...(comp as any).border,
+          ...style.border,
+          sides: { ...(comp as any).border.sides, ...style.border.sides },
+        };
+      }
+      return next;
     });
     set({ template: newTemplate });
   },

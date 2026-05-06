@@ -12,7 +12,7 @@ export function renderReportV2(
   const templatePage = template.pages[0];
   const plan = buildBandPlan(template);
   const logicalItems = executeBandPlan(plan, data);
-  const pages = paginateV2(templatePage, plan.pageBands, logicalItems, data);
+  const pages = paginateV2(templatePage, plan.pageBands, logicalItems, data, template.styles);
   return applyPageNumberPass({ pages });
 }
 
@@ -21,6 +21,7 @@ export function paginateV2(
   pageBands: ReturnType<typeof buildBandPlan>['pageBands'],
   logicalItems: LogicalBandItem[],
   rowsByBand: Record<string, Record<string, unknown>[]> = {},
+  styles: ReportTemplateV2['styles'] = [],
 ): RenderPage[] {
   const pages: RenderPage[] = [];
   const printableX = templatePage.margins.left;
@@ -28,6 +29,7 @@ export function paginateV2(
   const footerHeight = pageBands.pageFooter.reduce((sum, band) => sum + band.height, 0);
   const pageBottomY = templatePage.height - templatePage.margins.bottom - footerHeight;
   const repeatedGroups: ReportBandV2[] = [];
+  const pageRows = new WeakMap<RenderPage, Record<string, Record<string, unknown>[]>>();
   let activeSectionRepeatBands: ReportBandV2[] = [];
   let currentPage: RenderPage | undefined;
   let cursorY = 0;
@@ -42,6 +44,7 @@ export function paginateV2(
       items: [],
     };
     pages.push(currentPage);
+    pageRows.set(currentPage, {});
     cursorY = templatePage.margins.top;
     for (const header of pageBands.pageHeader) {
       placeBand(header, createEmptyContext(), true);
@@ -62,21 +65,23 @@ export function paginateV2(
 
   const placeBand = (band: ReportBandV2, context: RenderContextV2, force = false): RenderBandBox => {
     ensurePage();
-    let preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand });
+    const currentPageRows = currentPage ? pageRows.get(currentPage) ?? {} : {};
+    let preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand, pageRowsByBand: currentPageRows, styles });
     const breakIfLessThan = band.behavior.breakIfLessThan ?? 0;
     if (!force && breakIfLessThan > 0 && pageBottomY - cursorY < breakIfLessThan && currentPage!.items.length > 0) {
       newPage();
-      preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand });
+      preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles });
     }
 
     if (!force && cursorY + preview.height > pageBottomY && currentPage!.items.length > 0) {
       newPage();
-      preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand });
+      preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles });
     }
 
     const targetY = band.behavior.printAtBottom ? pageBottomY - preview.height : cursorY;
-    const box = layoutBand(band, { x: printableX, y: targetY, width: printableWidth, context, rowsByBand });
+    const box = layoutBand(band, { x: printableX, y: targetY, width: printableWidth, context, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles });
     currentPage!.items.push(box);
+    collectPageRow(pageRows.get(currentPage!)!, band, context);
     cursorY = band.behavior.printAtBottom ? pageBottomY : cursorY + box.height;
     return box;
   };
@@ -128,18 +133,27 @@ export function paginateV2(
 
   for (const page of pages) {
     for (const overlay of pageBands.overlay) {
-      page.items.unshift(layoutBand(overlay, { x: printableX, y: templatePage.margins.top, width: printableWidth, context: createEmptyContext(), rowsByBand }));
+      page.items.unshift(layoutBand(overlay, { x: printableX, y: templatePage.margins.top, width: printableWidth, context: createEmptyContext(), rowsByBand, pageRowsByBand: pageRows.get(page) ?? {}, styles }));
     }
 
     let footerY = templatePage.height - templatePage.margins.bottom - footerHeight;
     for (const footer of pageBands.pageFooter) {
-      const box = layoutBand(footer, { x: printableX, y: footerY, width: printableWidth, context: createEmptyContext(), rowsByBand });
+      const box = layoutBand(footer, { x: printableX, y: footerY, width: printableWidth, context: createEmptyContext(), rowsByBand, pageRowsByBand: pageRows.get(page) ?? {}, styles });
       page.items.push(box);
       footerY += box.height;
     }
   }
 
   return pages;
+}
+
+function collectPageRow(pageRows: Record<string, Record<string, unknown>[]>, band: ReportBandV2, context: RenderContextV2): void {
+  if (band.type !== 'data' && band.type !== 'hierarchicalData') return;
+  if (!context.dataSourceId || !context.row) return;
+  if (!pageRows[context.dataSourceId]) {
+    pageRows[context.dataSourceId] = [];
+  }
+  pageRows[context.dataSourceId].push(context.row);
 }
 
 function createEmptyContext(): RenderContextV2 {

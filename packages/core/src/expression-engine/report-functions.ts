@@ -28,7 +28,11 @@ function shouldDelegateToReportRuntime(functionName: string, args: unknown[]): b
     return true;
   }
 
-  if (functionName === 'COUNT' && args.length === 1 && typeof args[0] === 'string') {
+  if ((functionName === 'COUNT' || functionName === 'PAGECOUNT' || functionName === 'REPORTCOUNT') && args.length === 1 && typeof args[0] === 'string') {
+    return true;
+  }
+
+  if (functionName === 'PAGESUM' || functionName === 'REPORTSUM') {
     return true;
   }
 

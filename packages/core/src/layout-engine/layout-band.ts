@@ -2,7 +2,8 @@ import { evalExpression } from '../expression-engine/evaluator';
 import { AggregateRuntime } from '../aggregate-engine';
 import type { RenderContextV2 } from '../band-planner/band-plan';
 import type { RenderBandBox, RenderComponentBox } from '../render-document/types';
-import type { ReportBandV2, ReportComponentV2, TextComponentV2 } from '../template-model/v2-types';
+import type { ReportBandV2, ReportComponentV2, ReportStyleV2, TextComponentV2 } from '../template-model/v2-types';
+import { formatValue } from '../text-format';
 import { measureTextBox } from './measure';
 
 export interface LayoutBandOptions {
@@ -11,6 +12,8 @@ export interface LayoutBandOptions {
   width: number;
   context: RenderContextV2;
   rowsByBand?: Record<string, Record<string, unknown>[]>;
+  pageRowsByBand?: Record<string, Record<string, unknown>[]>;
+  styles?: ReportStyleV2[];
 }
 
 export function layoutBand(band: ReportBandV2, options: LayoutBandOptions): RenderBandBox {
@@ -32,8 +35,9 @@ export function layoutBand(band: ReportBandV2, options: LayoutBandOptions): Rend
 
 function layoutComponent(component: ReportComponentV2, band: ReportBandV2, options: LayoutBandOptions): RenderComponentBox {
   if (component.type === 'text' && 'text' in component) {
-    const text = resolveText(component, options.context, options.rowsByBand ?? {});
-    const measured = measureTextBox(component as TextComponentV2, text);
+    const effective = resolveTextComponentStyle(component as TextComponentV2, options.styles ?? []);
+    const text = resolveText(component, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {});
+    const measured = measureTextBox(effective, text);
     return {
       id: component.id,
       type: 'text',
@@ -44,10 +48,11 @@ function layoutComponent(component: ReportComponentV2, band: ReportBandV2, optio
       content: text,
       overflow: measured.overflow,
       style: {
-        font: component.font,
-        border: component.border,
-        textAlign: component.textAlign,
-        verticalAlign: component.verticalAlign,
+        font: effective.font,
+        border: effective.border,
+        backgroundColor: effective.backgroundColor,
+        textAlign: effective.textAlign,
+        verticalAlign: effective.verticalAlign,
       },
     };
   }
@@ -66,6 +71,7 @@ function resolveText(
   component: TextComponentV2,
   context: RenderContextV2,
   rowsByBand: Record<string, Record<string, unknown>[]>,
+  pageRowsByBand: Record<string, Record<string, unknown>[]>,
 ): string {
   if (component.text.includes('{PageNumber}') || component.text.includes('{TotalPages}')) {
     return component.text;
@@ -81,12 +87,34 @@ function resolveText(
       (source, field) => resolveField(context, source, field),
       context.rowIndex,
       { row: context.row, groupValues: context.groupValues },
-      new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand }),
+      new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand, pageRowsByBand }),
     );
-    return value == null ? '' : String(value);
+    return formatValue(value, component.format);
   } catch {
     return component.text;
   }
+}
+
+function resolveTextComponentStyle(component: TextComponentV2, styles: ReportStyleV2[]): TextComponentV2 {
+  const style = component.style ? styles.find(item => item.id === component.style) : undefined;
+  if (!style) return component;
+
+  return {
+    ...component,
+    font: {
+      ...component.font,
+      ...(style.font ?? {}),
+    },
+    border: {
+      ...component.border,
+      ...(style.border ?? {}),
+      sides: {
+        ...component.border.sides,
+        ...(style.border?.sides ?? {}),
+      },
+    },
+    backgroundColor: style.backgroundColor ?? component.backgroundColor,
+  };
 }
 
 function resolveField(context: RenderContextV2, source: string, field: string): unknown {

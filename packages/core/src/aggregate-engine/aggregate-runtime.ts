@@ -23,7 +23,23 @@ export class AggregateRuntime implements AggregateRuntimeContract {
     if (fnName === 'TOTALPAGES') return this.totalPages;
 
     if (fnName === 'TOTALS.SUM') {
-      return this.calculate('SUM', this.defaultBandName(), String(args[0] ?? ''));
+      return this.calculateTotalsAlias('SUM', args, this.options.rowsByBand);
+    }
+
+    if (fnName === 'REPORTSUM' || fnName === 'TOTALS.REPORTSUM') {
+      return this.calculateTotalsAlias('SUM', args, this.options.rowsByBand);
+    }
+
+    if (fnName === 'REPORTCOUNT') {
+      return this.calculateTotalsAlias('COUNT', args, this.options.rowsByBand);
+    }
+
+    if (fnName === 'PAGESUM' || fnName === 'TOTALS.PAGESUM') {
+      return this.calculateTotalsAlias('SUM', args, this.options.pageRowsByBand ?? {});
+    }
+
+    if (fnName === 'PAGECOUNT' || fnName === 'TOTALS.PAGECOUNT') {
+      return this.calculateTotalsAlias('COUNT', args, this.options.pageRowsByBand ?? {});
     }
 
     const bandName = String(args[0] ?? this.defaultBandName());
@@ -36,6 +52,15 @@ export class AggregateRuntime implements AggregateRuntimeContract {
     }
 
     return this.calculateRows(fnName, this.options.rowsByBand[bandName] ?? [], expression, condition);
+  }
+
+  private calculateTotalsAlias(
+    functionName: 'SUM' | 'COUNT',
+    args: unknown[],
+    rowsByBand: Record<string, Array<Record<string, unknown>>>,
+  ): unknown {
+    const [bandName, expression, condition] = normalizeAggregateArgs(args, this.defaultBandName());
+    return this.calculateRows(functionName, rowsByBand[bandName] ?? [], expression, condition);
   }
 
   private calculateRows(functionName: string, rows: Array<Record<string, unknown>>, expression?: string, condition?: string): unknown {
@@ -81,6 +106,18 @@ export class AggregateRuntime implements AggregateRuntimeContract {
   private defaultBandName(): string {
     return Object.keys(this.options.rowsByBand)[0] ?? '';
   }
+}
+
+function normalizeAggregateArgs(args: unknown[], fallbackBandName: string): [string, string | undefined, string | undefined] {
+  if (args.length === 1) {
+    return [fallbackBandName, typeof args[0] === 'string' ? args[0] : undefined, undefined];
+  }
+
+  return [
+    String(args[0] ?? fallbackBandName),
+    typeof args[1] === 'string' ? args[1] : undefined,
+    typeof args[2] === 'string' ? args[2] : undefined,
+  ];
 }
 
 function normalizeFunctionName(functionName: string): string {

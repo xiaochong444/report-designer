@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Checkbox } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
-import type { BorderConfig, TableComponent } from '@report-designer/core';
+import type { BorderConfig, TableComponent, TextFormatConfig, TextFormatType } from '@report-designer/core';
 import type { CSSProperties } from 'react';
 import { ExpressionEditor } from './ExpressionEditor';
 import { normalizeTable } from '../table/table-structure';
@@ -20,6 +20,7 @@ export const PropertyEditor: React.FC = () => {
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
   const updateComponent = useDesignerStore(s => s.updateComponent);
   const updateSelectedTable = useDesignerStore(s => s.updateSelectedTable);
+  const applySelectedStyle = useDesignerStore(s => s.applySelectedStyle);
 
   const { component, bandId } = useMemo(() => {
     if (selectedComponentIds.length !== 1) return { component: null, bandId: null };
@@ -67,6 +68,23 @@ export const PropertyEditor: React.FC = () => {
     updateComponent(currentPageId, bandId, component.id, { [field]: value }, { [field]: (component as any)[field] });
   };
 
+  const textFieldOptions = template.dataSources.flatMap(source => source.schema.map(field => ({
+    value: `${source.id}.${field.name}`,
+    label: field.label || field.name,
+    sourceId: source.id,
+  })));
+
+  const handleBindTextField = (value?: string) => {
+    if (!value) {
+      handleChange('text', '');
+      handleChange('dataSource', undefined);
+      return;
+    }
+    const option = textFieldOptions.find(item => item.value === value);
+    handleChange('text', `{${value}}`);
+    handleChange('dataSource', option?.sourceId ?? value.split('.')[0]);
+  };
+
   // ---- Border helpers ----
   const border = (comp.border as BorderConfig) ?? DEFAULT_BORDER;
   const handleBorderField = (path: string, value: any) => {
@@ -92,6 +110,16 @@ export const PropertyEditor: React.FC = () => {
   const font = comp.font ?? { family: '', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' };
   const handleFontField = (field: string, value: any) => {
     handleChange('font', { ...font, [field]: value });
+  };
+
+  const format = (comp.format ?? { type: 'none' }) as TextFormatConfig;
+  const handleFormatField = (field: keyof TextFormatConfig, value: any) => {
+    const next = { ...format, [field]: value } as TextFormatConfig;
+    if (field === 'type' && value === 'none') {
+      handleChange('format', { type: 'none' });
+      return;
+    }
+    handleChange('format', next);
   };
 
   // ---- Padding helpers ----
@@ -195,6 +223,62 @@ export const PropertyEditor: React.FC = () => {
                       style={{ width: 32 }}
                     />
                   </Space.Compact>
+                </Form.Item>
+                <Form.Item label="绑定字段">
+                  <Select
+                    aria-label="绑定字段"
+                    value={textFieldOptions.find(option => comp.text === `{${option.value}}`)?.value}
+                    onChange={handleBindTextField}
+                    size="small"
+                    style={{ width: '100%' }}
+                    allowClear
+                    showSearch
+                    virtual={false}
+                    placeholder="选择 JSON 字段"
+                    options={textFieldOptions}
+                  />
+                </Form.Item>
+                <Form.Item label="文本样式">
+                  <Select
+                    aria-label="文本样式"
+                    value={comp.style}
+                    onChange={(value) => applySelectedStyle(value)}
+                    size="small"
+                    style={{ width: '100%' }}
+                    allowClear
+                    virtual={false}
+                    placeholder="选择样式集"
+                    options={template.styles.map(style => ({ value: style.id, label: style.name }))}
+                  />
+                </Form.Item>
+                <Form.Item label="格式类型">
+                  <Select
+                    aria-label="格式类型"
+                    value={format.type}
+                    onChange={(value: TextFormatType) => handleFormatField('type', value)}
+                    size="small"
+                    style={{ width: '100%' }}
+                    virtual={false}
+                    options={[
+                      { value: 'none', label: '无' },
+                      { value: 'number', label: '数字' },
+                      { value: 'currency', label: '货币' },
+                      { value: 'date', label: '日期' },
+                      { value: 'time', label: '时间' },
+                      { value: 'percent', label: '百分比' },
+                      { value: 'boolean', label: '布尔' },
+                      { value: 'custom', label: '自定义' },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label="格式模式">
+                  <Input
+                    aria-label="格式模式"
+                    value={format.pattern || ''}
+                    onChange={(e) => handleFormatField('pattern', e.target.value)}
+                    size="small"
+                    placeholder="#,##0.00 / yyyy-MM-dd"
+                  />
                 </Form.Item>
                 <Form.Item label="水平对齐">
                   <Select
@@ -369,7 +453,7 @@ export const PropertyEditor: React.FC = () => {
                   <Checkbox value="bottom">下</Checkbox>
                   <Checkbox value="left">左</Checkbox>
                 </Checkbox.Group>
-                <div style={{ ...borderSideStyle(), width: 60, height: 40, margin: '8px auto 0', borderStyle: 'solid', borderColor: '#eee', borderWidth: '1px' }} />
+                <div style={{ ...borderSideStyle(), width: 60, height: 40, margin: '8px auto 0' }} />
               </Form>
             ),
           },
