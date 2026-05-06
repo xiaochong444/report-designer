@@ -1,9 +1,17 @@
 import { create } from 'zustand';
-import type { ReportTemplate, ReportComponent, Band, Page, TableComponent } from '@report-designer/core';
-import { createDefaultTemplate } from '@report-designer/core';
+import type { ReportTemplate, ReportComponent, Band, Page, TableComponent, ReportStyle, TextComponent } from '@report-designer/core';
+import { createDefaultTemplate, getDefaultTextStyle } from '@report-designer/core';
 import { CommandDispatcher } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
 import { ensureTemplateComponentNames, prepareComponentForInsert } from '../report-structure';
+import {
+  applyDefaultTextStyle,
+  applyManualTextComponentUpdates,
+  applyTextStyleToComponent,
+  clearTextStyleReference,
+  normalizeManualTextComponentUpdates,
+  syncTextComponentStyle,
+} from '../text-style-bindings';
 import {
   clearTableCell,
   deleteTableColumn,
@@ -82,6 +90,14 @@ export interface DesignerState {
     dataSource?: string;
   }) => void;
   applySelectedStyle: (styleId: string | undefined) => void;
+  createTextStyle: (style?: Partial<ReportStyle> & { name?: string }) => string;
+  duplicateTextStyle: (styleId: string) => string | undefined;
+  renameTextStyle: (styleId: string, name: string) => void;
+  updateTextStyle: (styleId: string, updates: Partial<ReportStyle>) => void;
+  deleteTextStyle: (styleId: string) => void;
+  setDefaultTextStyle: (styleId: string | undefined) => void;
+  syncTextStyleReferences: (styleId?: string) => void;
+  getTextStyleUsageCount: (styleId: string) => number;
   insertSelectedTableColumn: (afterColumn?: number) => void;
   deleteSelectedTableColumn: (columnIndex?: number) => void;
   insertSelectedTableRow: (afterRow?: number) => void;
@@ -159,7 +175,10 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
 
   addComponent: (pageId, bandId, component) => {
     const { template, dispatcher } = get();
-    const normalizedComponent = prepareComponentForInsert(template, component);
+    const styledComponent = isTextComponent(component)
+      ? applyDefaultTextStyle(component, template.styles)
+      : component;
+    const normalizedComponent = prepareComponentForInsert(template, styledComponent);
     const newTemplate = dispatcher.execute(template, {
       type: 'add-component',
       payload: { pageId, bandId, component: normalizedComponent },
@@ -186,10 +205,13 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     const { template, dispatcher } = get();
     const band = findBand(template, pageId, bandId);
     const comp = band?.components.find(c => c.id === componentId);
+    const normalizedUpdates = comp && isTextComponent(comp)
+      ? normalizeManualTextComponentUpdates(comp, updates)
+      : updates;
     const prevData = previous || (comp ? { ...comp } : undefined);
     const newTemplate = dispatcher.execute(template, {
       type: 'update-component',
-      payload: { pageId, bandId, componentId, updates, previous: prevData },
+      payload: { pageId, bandId, componentId, updates: normalizedUpdates, previous: prevData },
       execute: () => template,
       undo: () => template,
     });
@@ -658,7 +680,11 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
       const font = (comp as any).font;
       if (!font) return comp;
-      return { ...comp, font: { ...font, [style]: !font[style] } };
+      const fontUpdates = { [style]: !font[style] };
+      if (isTextComponent(comp)) {
+        return applyManualTextComponentUpdates(comp, { font: fontUpdates });
+      }
+      return { ...comp, font: { ...font, ...fontUpdates } };
     });
     set({ template: newTemplate });
   },
@@ -676,28 +702,88 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     const { template, currentPageId, selectedComponentIds } = get();
     const style = styleId ? template.styles.find(item => item.id === styleId) : undefined;
     const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
-      if (comp.type !== 'text') return comp;
+      if (!isTextComponent(comp)) return comp;
       if (!styleId || !style) {
-        return { ...comp, style: undefined };
+        return clearTextStyleReference(comp);
       }
-      const next: ReportComponent = {
-        ...comp,
-        style: style.id,
-        backgroundColor: style.backgroundColor,
-      };
-      if ((comp as any).font && style.font) {
-        (next as any).font = { ...(comp as any).font, ...style.font };
-      }
-      if ((comp as any).border && style.border) {
-        (next as any).border = {
-          ...(comp as any).border,
-          ...style.border,
-          sides: { ...(comp as any).border.sides, ...style.border.sides },
-        };
-      }
-      return next;
+      return applyTextStyleToComponent(comp, style);
     });
     set({ template: newTemplate });
+  },
+
+  createTextStyle: (style) => {
+    const { template } = get();
+    const nextStyle = createTextStyleDraft(template, style);
+    set({ template: { ...template, styles: [...template.styles, nextStyle] } });
+    return nextStyle.id;
+  },
+
+  duplicateTextStyle: (styleId) => {
+    const { template } = get();
+    const style = template.styles.find(item => item.id === styleId);
+    if (!style) return undefined;
+
+    const duplicate = cloneTextStyle(style, {
+      id: createTextStyleId(),
+      name: `${style.name} Copy`,
+      isDefault: false,
+    });
+
+    set({ template: { ...template, styles: [...template.styles, duplicate] } });
+    return duplicate.id;
+  },
+
+  renameTextStyle: (styleId, name) => {
+    const { template } = get();
+    set({
+      template: {
+        ...template,
+        styles: template.styles.map(style => (
+          style.id === styleId ? { ...style, name } : style
+        )),
+      },
+    });
+  },
+
+  updateTextStyle: (styleId, updates) => {
+    const { template } = get();
+    const styles = template.styles.map(style => (
+      style.id === styleId ? mergeTextStyle(style, updates) : style
+    ));
+    const nextTemplate = syncTextStyleReferencesInTemplate({ ...template, styles }, styleId);
+    set({ template: nextTemplate });
+  },
+
+  deleteTextStyle: (styleId) => {
+    const { template } = get();
+    const nextTemplate = clearTextStyleReferencesInTemplate({
+      ...template,
+      styles: template.styles.filter(style => style.id !== styleId),
+    }, styleId);
+    set({ template: nextTemplate });
+  },
+
+  setDefaultTextStyle: (styleId) => {
+    const { template } = get();
+    set({
+      template: {
+        ...template,
+        styles: template.styles.map(style => ({
+          ...style,
+          isDefault: styleId ? style.id === styleId : false,
+        })),
+      },
+    });
+  },
+
+  syncTextStyleReferences: (styleId) => {
+    const { template } = get();
+    set({ template: syncTextStyleReferencesInTemplate(template, styleId) });
+  },
+
+  getTextStyleUsageCount: (styleId) => {
+    const { template } = get();
+    return countTextStyleUsage(template, styleId);
   },
 
   insertSelectedTableColumn: (afterColumn) => {
@@ -839,140 +925,63 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
 
   setFontBold: (bold) => {
     const { template, currentPageId, selectedComponentIds } = get();
-    const page = template.pages.find(p => p.id === currentPageId);
-    if (!page) return;
-    let newTemplate = template;
-    for (const band of page.bands) {
-      for (const comp of band.components) {
-        if (selectedComponentIds.includes(comp.id) && (comp as any).font) {
-          newTemplate = {
-            ...newTemplate,
-            pages: newTemplate.pages.map(p => {
-              if (p.id !== currentPageId) return p;
-              return {
-                ...p,
-                bands: p.bands.map(b => {
-                  if (b.id !== band.id) return b;
-                  return {
-                    ...b,
-                    components: b.components.map(c => {
-                      if (c.id !== comp.id) return c;
-                      return { ...c, font: { ...(c as any).font, bold } };
-                    }),
-                  };
-                }),
-              };
-            }),
-          };
-        }
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
+      const font = (comp as any).font;
+      if (!font) return comp;
+      if (isTextComponent(comp)) {
+        return applyManualTextComponentUpdates(comp, { font: { bold } });
       }
-    }
+      return { ...comp, font: { ...font, bold } };
+    });
     set({ template: newTemplate });
   },
 
   setFontSize: (size) => {
     const { template, currentPageId, selectedComponentIds } = get();
-    const page = template.pages.find(p => p.id === currentPageId);
-    if (!page) return;
-    let newTemplate = template;
-    for (const band of page.bands) {
-      for (const comp of band.components) {
-        if (selectedComponentIds.includes(comp.id) && (comp as any).font) {
-          newTemplate = {
-            ...newTemplate,
-            pages: newTemplate.pages.map(p => {
-              if (p.id !== currentPageId) return p;
-              return {
-                ...p,
-                bands: p.bands.map(b => {
-                  if (b.id !== band.id) return b;
-                  return {
-                    ...b,
-                    components: b.components.map(c => {
-                      if (c.id !== comp.id) return c;
-                      return { ...c, font: { ...(c as any).font, size } };
-                    }),
-                  };
-                }),
-              };
-            }),
-          };
-        }
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
+      const font = (comp as any).font;
+      if (!font) return comp;
+      if (isTextComponent(comp)) {
+        return applyManualTextComponentUpdates(comp, { font: { size } });
       }
-    }
+      return { ...comp, font: { ...font, size } };
+    });
     set({ template: newTemplate });
   },
 
   setTextAlign: (align) => {
     const { template, currentPageId, selectedComponentIds } = get();
-    const page = template.pages.find(p => p.id === currentPageId);
-    if (!page) return;
-    let newTemplate = template;
-    for (const band of page.bands) {
-      for (const comp of band.components) {
-        if (selectedComponentIds.includes(comp.id) && (comp as any).textAlign !== undefined) {
-          newTemplate = {
-            ...newTemplate,
-            pages: newTemplate.pages.map(p => {
-              if (p.id !== currentPageId) return p;
-              return {
-                ...p,
-                bands: p.bands.map(b => {
-                  if (b.id !== band.id) return b;
-                  return {
-                    ...b,
-                    components: b.components.map(c => {
-                      if (c.id !== comp.id) return c;
-                      return { ...c, textAlign: align };
-                    }),
-                  };
-                }),
-              };
-            }),
-          };
-        }
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
+      if ((comp as any).textAlign === undefined) return comp;
+      if (isTextComponent(comp)) {
+        return applyManualTextComponentUpdates(comp, { textAlign: align });
       }
-    }
+      return { ...comp, textAlign: align };
+    });
     set({ template: newTemplate });
   },
 
   setBorderAll: (enabled) => {
     const { template, currentPageId, selectedComponentIds } = get();
-    const page = template.pages.find(p => p.id === currentPageId);
-    if (!page) return;
-    let newTemplate = template;
-    for (const band of page.bands) {
-      for (const comp of band.components) {
-        if (selectedComponentIds.includes(comp.id) && (comp as any).border) {
-          const border = (comp as any).border;
-          const newBorder = {
-            ...border,
-            style: enabled ? 'solid' : 'none',
-            width: enabled ? (border.width || 0.2) : 0,
-            sides: { top: enabled, right: enabled, bottom: enabled, left: enabled },
-          };
-          newTemplate = {
-            ...newTemplate,
-            pages: newTemplate.pages.map(p => {
-              if (p.id !== currentPageId) return p;
-              return {
-                ...p,
-                bands: p.bands.map(b => {
-                  if (b.id !== band.id) return b;
-                  return {
-                    ...b,
-                    components: b.components.map(c => {
-                      if (c.id !== comp.id) return c;
-                      return { ...c, border: newBorder };
-                    }),
-                  };
-                }),
-              };
-            }),
-          };
-        }
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
+      const border = (comp as any).border;
+      if (!border) return comp;
+      const borderUpdates = {
+        style: enabled ? 'solid' : 'none',
+        width: enabled ? (border.width || 0.2) : 0,
+        sides: { top: enabled, right: enabled, bottom: enabled, left: enabled },
+      };
+      if (isTextComponent(comp)) {
+        return applyManualTextComponentUpdates(comp, { border: borderUpdates });
       }
-    }
+      return {
+        ...comp,
+        border: {
+          ...border,
+          ...borderUpdates,
+        },
+      };
+    });
     set({ template: newTemplate });
   },
 
@@ -1013,6 +1022,126 @@ function findBand(template: ReportTemplate, pageId: string, bandId: string): Ban
   const page = template.pages.find(p => p.id === pageId);
   if (!page) return undefined;
   return page.bands.find(b => b.id === bandId);
+}
+
+function isTextComponent(component: ReportComponent): component is TextComponent {
+  return component.type === 'text';
+}
+
+function createTextStyleId() {
+  return `text-style_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function cloneTextStyle(style: ReportStyle, overrides?: Partial<ReportStyle>): ReportStyle {
+  return {
+    ...style,
+    ...overrides,
+    font: { ...style.font, ...overrides?.font },
+    border: {
+      ...style.border,
+      ...overrides?.border,
+      sides: {
+        ...style.border.sides,
+        ...overrides?.border?.sides,
+      },
+    },
+    padding: overrides && 'padding' in overrides
+      ? (overrides.padding ? { ...(style.padding ?? { top: 0, right: 0, bottom: 0, left: 0 }), ...overrides.padding } : undefined)
+      : (style.padding ? { ...style.padding } : undefined),
+    format: overrides && 'format' in overrides
+      ? (overrides.format ? { ...(style.format ?? { type: 'none' }), ...overrides.format } : undefined)
+      : (style.format ? { ...style.format } : undefined),
+  };
+}
+
+function createTextStyleDraft(
+  template: ReportTemplate,
+  style?: Partial<ReportStyle> & { name?: string },
+): ReportStyle {
+  const baseStyle = getDefaultTextStyle(template.styles)
+    ?? template.styles[0]
+    ?? {
+      id: 'text-normal',
+      name: 'Normal',
+      category: 'text' as const,
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      border: { style: 'none' as const, width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      backgroundColor: 'transparent',
+      textAlign: 'left' as const,
+      verticalAlign: 'top' as const,
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      canGrow: false,
+      canShrink: false,
+      isDefault: false,
+    };
+
+  return cloneTextStyle(baseStyle, {
+    ...style,
+    id: createTextStyleId(),
+    name: style?.name ?? 'Text Style',
+    category: 'text',
+    isDefault: false,
+  });
+}
+
+function mergeTextStyle(style: ReportStyle, updates: Partial<ReportStyle>): ReportStyle {
+  return cloneTextStyle(style, updates);
+}
+
+function mapAllTextComponents(
+  template: ReportTemplate,
+  mapper: (component: TextComponent) => TextComponent,
+): ReportTemplate {
+  return {
+    ...template,
+    pages: template.pages.map(page => ({
+      ...page,
+      bands: page.bands.map(band => ({
+        ...band,
+        components: band.components.map(component => (
+          isTextComponent(component) ? mapper(component) : component
+        )),
+      })),
+    })),
+  };
+}
+
+function syncTextStyleReferencesInTemplate(template: ReportTemplate, styleId?: string): ReportTemplate {
+  const stylesById = new Map(template.styles.map(style => [style.id, style]));
+
+  return mapAllTextComponents(template, component => {
+    if (!component.style) return component;
+    if (styleId && component.style !== styleId) return component;
+
+    const style = stylesById.get(component.style);
+    if (!style) {
+      return clearTextStyleReference(component);
+    }
+
+    return syncTextComponentStyle(component, style);
+  });
+}
+
+function clearTextStyleReferencesInTemplate(template: ReportTemplate, styleId: string): ReportTemplate {
+  return mapAllTextComponents(template, component => (
+    component.style === styleId ? clearTextStyleReference(component) : component
+  ));
+}
+
+function countTextStyleUsage(template: ReportTemplate, styleId: string): number {
+  let count = 0;
+
+  for (const page of template.pages) {
+    for (const band of page.bands) {
+      for (const component of band.components) {
+        if (isTextComponent(component) && component.style === styleId) {
+          count += 1;
+        }
+      }
+    }
+  }
+
+  return count;
 }
 
 function mapSelectedComponents(

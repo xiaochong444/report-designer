@@ -133,13 +133,13 @@ const ComponentPalette: React.FC = () => {
             checked: `{${dataSourceId}.${fieldName}}`,
           });
         } else {
-          let format = '';
+          let format: any;
           let textAlign = 'left';
           if (fieldType === 'number') {
-            format = '#,##0.00';
+            format = { type: 'number', pattern: '#,##0.00' };
             textAlign = 'right';
           } else if (fieldType === 'date') {
-            format = 'yyyy-MM-dd';
+            format = { type: 'date', pattern: 'yyyy-MM-dd' };
           }
           component = {
             id: `comp_text_${nanoid(6)}`,
@@ -157,6 +157,17 @@ const ComponentPalette: React.FC = () => {
             format,
           } as any;
           addComponent(currentPageId, pos.targetBandId, component);
+          if (fieldType === 'number' || fieldType === 'date') {
+            const state = useDesignerStore.getState();
+            state.updateComponent(
+              currentPageId,
+              pos.targetBandId,
+              component.id,
+              fieldType === 'number'
+                ? { textAlign: 'right', format }
+                : { format },
+            );
+          }
         }
         return;
       } catch { /* fall through to component type handling */ }
