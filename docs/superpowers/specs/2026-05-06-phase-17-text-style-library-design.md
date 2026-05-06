@@ -9,7 +9,7 @@ Bring the current text style workflow closer to Stimulsoft Reports by replacing 
 1. Add a dedicated text style library manager for creating, previewing, editing, duplicating, renaming, deleting, and applying text styles.
 2. Keep a lightweight style picker in the property panel for fast component-level usage.
 3. Expand the current `template.styles` model so text styles can carry typography, alignment, border, background, padding, formatting, and grow/shrink behavior.
-4. Make designer preview and print/viewer output resolve text styles through the same merge logic.
+4. Make designer preview and print/viewer output consume the same final component values after style distribution.
 5. Seed example templates with a small default A4 text-style set.
 
 ## Non-Goals
@@ -98,29 +98,25 @@ interface ReportStyle {
 - Existing text components with `style: string` continue referencing style ids.
 - The structure remains intentionally narrower than a future cross-component style system.
 
-## Style Resolution Rules
+## Style Distribution Rules
 
-Text rendering must resolve style through one shared merge strategy used by:
+This phase uses a simpler distribution model instead of a late runtime inheritance model.
 
-- designer canvas preview
-- viewer preview
-- print iframe generation
+### Distribution Order
 
-### Resolution Order
+When a user assigns a text style to a component:
 
-Final text component appearance resolves in this order:
+1. the style id is stored on the component
+2. every style-defined field is copied onto the component
+3. the copied fields are marked as style-controlled
 
-1. component-local field value
-2. referenced text style field value
-3. component default value
+When the style changes later:
 
-Expressed differently:
+1. all components referencing that style are found
+2. only their style-controlled fields are rewritten from the updated style
+3. unbound fields remain untouched
 
-```text
-resolvedTextProps = local overrides > style library values > intrinsic defaults
-```
-
-This rule is required to prevent designer/preview/print drift and to preserve direct per-component overrides.
+This makes designer preview, viewer preview, and print output all consume the same final component values without a second merge pass in each renderer.
 
 ## Supported Style Fields
 
@@ -150,9 +146,11 @@ Including `format` in the text style scope is intentional because numeric/date/c
 ### Property Panel
 
 - Only text-capable components show the `Text Style` selector in this phase.
-- Selecting a style updates the component's `style` reference.
-- Clearing the selector removes the style reference but keeps explicit local values.
+- Selecting a style updates the component's `style` reference, copies style-defined values into the component, and marks those fields as style-controlled.
+- Clearing the selector removes the style reference and clears style-controlled-field markers.
 - Clicking `Manage` opens the style designer without losing current selection.
+- Style-controlled fields appear disabled in the property panel.
+- A field-level `解除样式控制` action should be available for supported properties so users can opt out of style management for that field.
 
 ### Style Designer Actions
 
@@ -161,8 +159,8 @@ Including `format` in the text style scope is intentional because numeric/date/c
 - `Rename`: rename in place.
 - `Delete`: remove the style after confirmation.
 - `Set Default`: marks one style as the default text style for future inserted text components.
-- `Apply to Selected`: writes the selected style id to all currently selected text components.
-- `Create From Selected Component`: optional secondary action in this phase if the current selection is a single text component; copies resolved text properties into a new style.
+- `Apply to Selected`: writes the selected style id to all currently selected text components, copies style-defined values, and refreshes style-controlled markers.
+- `Create From Selected Component`: optional secondary action in this phase if the current selection is a single text component; copies current component values into a new style.
 
 ### Delete Safety
 
@@ -170,7 +168,7 @@ If a style is in use, delete behavior should be explicit:
 
 - show usage count
 - offer either:
-  - remove the style reference from affected components
+  - remove the style reference and style-controlled markers from affected components
   - cancel deletion
 
 Silent deletion is not allowed.
@@ -193,7 +191,7 @@ One text style may be marked `isDefault`.
 
 Rules:
 
-- Newly inserted text components start with that style id.
+- Newly inserted text components start with that style id and receive its style-defined values.
 - If no default style exists, newly inserted text components use current intrinsic defaults.
 - Changing the default style does not retroactively update existing components.
 
@@ -202,9 +200,9 @@ Rules:
 This phase should touch four layers only:
 
 1. core template types and style-resolution helpers
-2. designer store actions for style-library CRUD and apply operations
+2. designer store actions for style-library CRUD, field-binding, and sync operations
 3. designer UI for property-panel picker and style designer modal
-4. viewer/print style resolution integration
+4. viewer/print staying on direct component values rather than renderer-local style merges
 
 It should not broaden into a generic asset-management rewrite.
 
@@ -213,29 +211,32 @@ It should not broaden into a generic asset-management rewrite.
 ### Automated Tests
 
 - Core tests:
-  - style resolution order
+  - style distribution helpers
   - compatibility migration for old styles
   - default-style selection behavior
 - Designer tests:
   - style designer CRUD flow
   - property-panel style assignment
   - `Apply to Selected` updates selected text components
+  - style-controlled fields are disabled
+  - style change sync updates referencing components
 - Viewer tests:
-  - preview uses resolved text style fields
-  - print output uses the same resolved text style fields
+  - preview uses final component values written by style distribution
+  - print output uses the same final component values
 
 ### Browser Verification
 
 - open example designer
 - assign `Title` style to a text component
 - confirm designer preview reflects the style
-- open preview/print path and confirm the same alignment, font weight, colors, and formatting appear
+- update the `Title` style and confirm referencing components refresh
+- open preview/print path and confirm the same alignment, font weight, colors, padding, and formatting appear
 
 ## Acceptance Criteria
 
 - Users can create, duplicate, rename, delete, and edit report-level text styles.
 - Text components can quickly select a text style from the property panel.
 - Style changes update all referencing text components in designer preview.
-- Preview and print resolve the same text-style values.
+- Preview and print consume the same final component values after style sync.
 - One default text style can be configured for new text components.
 - Example templates ship with a basic A4-oriented text style set.

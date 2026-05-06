@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Stimulsoft-like report-level text style library with dedicated management UI, default text style seeding, and shared preview/print style resolution.
+**Goal:** Build a Stimulsoft-like report-level text style library with dedicated management UI, default text style seeding, and style-to-component distribution with controlled field sync.
 
-**Architecture:** Extend the current `template.styles` asset model instead of introducing a new asset store. Add one shared text-style resolution layer in `packages/core`, route designer CRUD/apply actions through the Zustand store, and make designer preview plus viewer/print consume the same resolved text-style values.
+**Architecture:** Extend the current `template.styles` asset model instead of introducing a new asset store. When a style is assigned, copy style-defined values into the component and record which fields remain style-controlled. Style edits then resync those bound fields across referencing components, so designer preview plus viewer/print all consume the same final component values directly.
 
 **Tech Stack:** TypeScript, React, Zustand, Ant Design 6, `@report-designer/core`, `@report-designer/designer`, `@report-designer/viewer`, `pnpm`
 
@@ -130,7 +130,7 @@ git add packages/core/src/template-model/types.ts packages/core/src/template-mod
 git commit -m "feat(core): 增强文本样式模型与解析"
 ```
 
-### Task 2: Render Engine Integration for Shared Text Style Resolution
+### Task 2: Render Engine Support for Style-Controlled Component Values
 
 **Files:**
 - Modify: `D:/sources/report-designer/packages/core/src/render-engine/index.ts`
@@ -140,8 +140,8 @@ git commit -m "feat(core): 增强文本样式模型与解析"
 
 Add coverage for:
 - text component with `style: <styleId>`
-- text component with local `textAlign` override
-- resolved font, alignment, background, border, format, and grow/shrink values in render output
+- text component with style-controlled values already copied onto the component
+- resolved font, alignment, background, border, padding, format, and grow/shrink values in render output
 
 Run:
 ```bash
@@ -149,13 +149,14 @@ pnpm --filter @report-designer/core test -- --runInBand phase-17-text-style-reso
 ```
 
 Expected:
-- FAIL because render-engine still emits raw component style values
+- FAIL because render-engine still omits part of the text-style payload needed by downstream consumers
 
-- [ ] **Step 2: Route render-engine text emission through the shared resolver**
+- [ ] **Step 2: Keep render-engine aligned with the new style-controlled component model**
 
 In `D:/sources/report-designer/packages/core/src/render-engine/index.ts`:
-- resolve text components against `template.styles`
-- carry resolved style fields into render-document text boxes
+- treat text components as already carrying their final synced values
+- only use shared helper support where needed for backwards-compatible style payload shaping
+- carry full text-style payload fields needed downstream, including padding
 - avoid changing non-text component behavior
 
 - [ ] **Step 3: Re-run targeted core tests and commit**
@@ -174,7 +175,7 @@ git add packages/core/src/render-engine/index.ts packages/core/__tests__/phase-1
 git commit -m "feat(core): 统一文本样式渲染解析"
 ```
 
-### Task 3: Designer Store Actions and Default Text Insertion
+### Task 3: Designer Store Actions, Style-Controlled Fields, and Default Text Insertion
 
 **Files:**
 - Modify: `D:/sources/report-designer/packages/designer/src/store/designer-store.ts`
@@ -189,6 +190,8 @@ Cover:
 - renaming a style
 - deleting a style with in-use count
 - applying a style to selected text components
+- recording style-controlled fields on selected text components
+- resyncing referencing components when a style changes
 - new text insertion using the default text style id
 
 Run:
@@ -210,6 +213,8 @@ Add store actions in `D:/sources/report-designer/packages/designer/src/store/des
 - `setDefaultTextStyle`
 - `applyTextStyleToSelection`
 - `getTextStyleUsageCount`
+- `releaseTextStyleField`
+- `syncTextStyleReferences`
 
 Delete behavior should:
 - detect references from report components
@@ -219,6 +224,8 @@ Delete behavior should:
 
 Update text insertion in `D:/sources/report-designer/packages/designer/src/components/LeftPanel.tsx` so new text controls:
 - receive the default style id when present
+- receive style-defined values copied into the component
+- receive style-controlled-field markers
 - still get component auto-names through existing insert normalization
 
 - [ ] **Step 4: Run targeted designer tests and commit**
@@ -252,6 +259,8 @@ Cover:
 - property-panel `Manage` opens the same dialog
 - selecting a style from the property-panel dropdown updates the current text component
 - `Apply to Selected` updates multiple selected text components
+- style-controlled fields render disabled state
+- field-level release from style control works
 
 Run:
 ```bash
@@ -283,6 +292,8 @@ Use current Ant Design 6 APIs only.
 In `D:/sources/report-designer/packages/designer/src/components/PropertyEditor.tsx`:
 - keep the compact `Text Style` dropdown
 - add `Manage` action next to it
+- show style-controlled fields as disabled
+- provide field-level `解除样式控制` where supported
 
 In `D:/sources/report-designer/packages/designer/src/components/ribbon/StimulsoftRibbon.tsx`:
 - add a `Styles` ribbon group on `Home`
@@ -314,9 +325,9 @@ git commit -m "feat(designer): 增加文本样式库管理界面"
 - [ ] **Step 1: Write the failing parity tests**
 
 Cover:
-- preview DOM text alignment from a style-library value
-- preview DOM local override beating the style-library value
-- print HTML carrying the same resolved font, alignment, background, and border values
+- preview DOM text alignment from final synced component values
+- preview DOM explicit released-field overrides beating the style-controlled value
+- print HTML carrying the same final font, alignment, background, border, and padding values
 
 Run:
 ```bash
@@ -324,7 +335,7 @@ pnpm --filter @report-designer/viewer test -- --runInBand phase-17-text-style-pa
 ```
 
 Expected:
-- FAIL because viewer and print still style text directly from pre-existing assumptions
+- FAIL because viewer and print still omit part of the final text-style payload or diverge from synced component values
 
 - [ ] **Step 2: Consume resolved text-style fields without duplicating merge logic**
 
@@ -334,7 +345,7 @@ Update:
 
 Rules:
 - do not re-implement style precedence in viewer
-- consume the resolved render-document text style fields from core
+- consume the final text style payload already present on rendered components
 - preserve existing preview/print alignment fix behavior
 
 - [ ] **Step 3: Run viewer parity tests and commit**
@@ -428,7 +439,7 @@ git commit -m "feat(example): 接入文本样式库示例模板"
 - style manager UI: covered by Task 4
 - property-panel quick apply: covered by Task 4
 - expanded `template.styles` model: covered by Task 1
-- shared preview/print resolution: covered by Tasks 2 and 5
+- style distribution plus preview/print parity: covered by Tasks 2, 3, and 5
 - default A4 style seed set: covered by Tasks 1 and 6
 
 ### Placeholder Scan

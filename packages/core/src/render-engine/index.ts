@@ -1,7 +1,7 @@
 import type {
   ReportTemplate, Band, ReportComponent,
-  TextComponent, ImageComponent, BarcodeComponent,
-  ConditionalFormat, ReportStyle, FontConfig, BorderConfig,
+  TextComponent, ImageComponent, BarcodeComponent, Padding,
+  ConditionalFormat, ReportStyle, FontConfig, BorderConfig, TextFormatConfig,
 } from '../template-model/types';
 import { evalExpression } from '../expression-engine';
 import type { EvalContext } from '../expression-engine/evaluator';
@@ -28,8 +28,12 @@ export interface RenderedStyle {
   font?: FontConfig;
   background?: string;
   border?: BorderConfig;
+  padding?: Padding;
   textAlign?: 'left' | 'center' | 'right';
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+  format?: TextFormatConfig;
   canGrow?: boolean;
+  canShrink?: boolean;
 }
 
 export interface RenderedBand {
@@ -82,26 +86,32 @@ function getStyleById(comp: ReportComponent, styles: ReportStyle[]): ReportStyle
 
 /** Convert template component to rendered style */
 function componentStyleToRendered(comp: ReportComponent, templateStyles: ReportStyle[]): RenderedStyle {
-  const refStyle = getStyleById(comp, templateStyles);
-  const result: RenderedStyle = {};
-
-  if (refStyle) {
-    result.font = refStyle.font;
-    result.background = refStyle.backgroundColor;
-    result.border = refStyle.border;
-  }
-
-  // Component-level overrides
   if (comp.type === 'text') {
     const tc = comp as TextComponent;
-    result.textAlign = tc.textAlign;
-    result.canGrow = tc.canGrow;
-    if (tc.font) {
-      result.font = { ...result.font, ...tc.font } as FontConfig;
-    }
+
+    return {
+      font: tc.font,
+      background: tc.backgroundColor,
+      border: tc.border,
+      padding: tc.padding,
+      textAlign: tc.textAlign,
+      verticalAlign: tc.verticalAlign,
+      format: tc.format,
+      canGrow: tc.canGrow,
+      canShrink: tc.canShrink,
+    };
   }
 
-  return result;
+  const refStyle = getStyleById(comp, templateStyles);
+  if (!refStyle) {
+    return {};
+  }
+
+  return {
+    font: refStyle.font,
+    background: refStyle.backgroundColor,
+    border: refStyle.border,
+  };
 }
 
 /** Apply conditional rules to a component's style */

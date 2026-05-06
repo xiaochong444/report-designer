@@ -133,6 +133,7 @@ export interface TextComponent extends ReportComponent {
   border: BorderConfig;
   canGrow: boolean;
   canShrink: boolean;
+  styleBindings?: string[];
 }
 
 /** 图片组件 */
