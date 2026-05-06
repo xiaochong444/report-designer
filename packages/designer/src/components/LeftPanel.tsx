@@ -1,15 +1,13 @@
 import React from 'react';
-import { Tabs, Tree, Button, Tooltip, Modal, InputNumber, Select, Tag, message } from 'antd';
+import { Tabs, Tree, Button, Tooltip, Input } from 'antd';
 import {
   FileTextOutlined,
   DatabaseOutlined,
   AppstoreOutlined,
-  PlusOutlined,
 } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
 import type { ReportComponent, BandType } from '@report-designer/core';
-import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { getBandDisplayName, getComponentNamePrefix } from '../report-structure';
 import { nanoid } from 'nanoid';
 import { useEffect, useMemo, useState } from 'react';
@@ -263,45 +261,172 @@ function createDefaultComponent(type: string, xMm: number, yMm: number): ReportC
 
 // ---- Data Dictionary ----
 
+type DictionaryNodeKind =
+  | 'folder'
+  | 'datasource'
+  | 'field-string'
+  | 'field-number'
+  | 'field-boolean'
+  | 'field-date'
+  | 'variable'
+  | 'system'
+  | 'function'
+  | 'format'
+  | 'resource';
+
+function renderDictionaryGlyph(kind: DictionaryNodeKind) {
+  return (
+    <span
+      className={`rd-dictionary-glyph rd-dictionary-glyph-${kind}`}
+      aria-hidden
+    />
+  );
+}
+
+function filterTreeNodes(nodes: DataNode[], query: string): DataNode[] {
+  if (!query) {
+    return nodes;
+  }
+
+  return nodes
+    .map((node) => {
+      const titleText =
+        typeof node.title === 'string'
+          ? node.title
+          : typeof node.key === 'string'
+            ? node.key
+            : '';
+      const children = node.children ? filterTreeNodes(node.children as DataNode[], query) : [];
+      if (titleText.toLowerCase().includes(query) || children.length > 0) {
+        return {
+          ...node,
+          children,
+        };
+      }
+      return null;
+    })
+    .filter(Boolean) as DataNode[];
+}
+
 const DataDictionary: React.FC = () => {
   const dataSources = useDesignerStore(s => s.template.dataSources);
+  const [searchTerm, setSearchTerm] = useState('');
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
 
   const handleFieldDragStart = (e: React.DragEvent, dsId: string, fieldName: string, fieldType: string) => {
     e.dataTransfer.setData('fieldBinding', JSON.stringify({ dataSourceId: dsId, fieldName, fieldType }));
     e.dataTransfer.effectAllowed = 'copy';
   };
 
-  const treeData: DataNode[] = dataSources.map(ds => ({
-    key: ds.id,
-    title: (
-      <span>
-        <DatabaseOutlined style={{ marginRight: 4, color: '#1890ff' }} />
-        {ds.name}
-        <Tag style={{ marginLeft: 8, fontSize: 10 }}>{ds.type}</Tag>
-      </span>
-    ),
-    children: ds.schema.map(field => ({
-      key: `${ds.id}.${field.name}`,
+  const baseTreeData: DataNode[] = [
+    {
+      key: 'dictionary-data-sources',
       title: (
-        <span
-          draggable
-          onDragStart={(e) => handleFieldDragStart(e, ds.id, field.name, field.type)}
-          style={{ cursor: 'grab' }}
-        >
-          {field.name} <span style={{ color: '#999', fontSize: 10 }}>({field.type})</span>
-        </span>
+        <div className="rd-dictionary-node">
+          {renderDictionaryGlyph('folder')}
+          <span>数据源</span>
+        </div>
       ),
-    })),
-  }));
+      children: dataSources.map((ds) => ({
+        key: ds.id,
+        title: (
+          <div className="rd-dictionary-node">
+            {renderDictionaryGlyph('datasource')}
+            <span>{`${ds.name} [${ds.name}]`}</span>
+          </div>
+        ),
+        children: ds.schema.map((field) => ({
+          key: `${ds.id}.${field.name}`,
+          title: (
+            <div
+              className="rd-dictionary-node rd-dictionary-node-field"
+              draggable
+              onDragStart={(event) => handleFieldDragStart(event, ds.id, field.name, field.type)}
+            >
+              {renderDictionaryGlyph(`field-${field.type}` as DictionaryNodeKind)}
+              <span>{field.label || field.name}</span>
+            </div>
+          ),
+        })),
+      })),
+    },
+    {
+      key: 'dictionary-variables',
+      title: (
+        <div className="rd-dictionary-node">
+          {renderDictionaryGlyph('variable')}
+          <span>变量</span>
+        </div>
+      ),
+      children: [
+        {
+          key: 'dictionary-variable-empty',
+          selectable: false,
+          title: <span className="rd-dictionary-empty">暂无变量</span>,
+        },
+      ],
+    },
+    {
+      key: 'dictionary-system-variables',
+      title: (
+        <div className="rd-dictionary-node">
+          {renderDictionaryGlyph('system')}
+          <span>系统变量</span>
+        </div>
+      ),
+      children: [
+        { key: 'sys.Today', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{Today}'}</span></div> },
+        { key: 'sys.PageNumber', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{PageNumber}'}</span></div> },
+        { key: 'sys.TotalPages', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{TotalPages}'}</span></div> },
+      ],
+    },
+    {
+      key: 'dictionary-functions',
+      title: (
+        <div className="rd-dictionary-node">
+          {renderDictionaryGlyph('function')}
+          <span>函数</span>
+        </div>
+      ),
+      children: [
+        { key: 'function.Sum', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('function')}<span>SUM</span></div> },
+        { key: 'function.Count', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('function')}<span>COUNT</span></div> },
+      ],
+    },
+    {
+      key: 'dictionary-resources',
+      title: (
+        <div className="rd-dictionary-node">
+          {renderDictionaryGlyph('resource')}
+          <span>资源</span>
+        </div>
+      ),
+      children: [
+        {
+          key: 'dictionary-resource-empty',
+          selectable: false,
+          title: <span className="rd-dictionary-empty">暂无资源</span>,
+        },
+      ],
+    },
+  ];
+
+  const treeData = filterTreeNodes(baseTreeData, normalizedSearchTerm);
 
   return (
-    <div style={{ padding: 8 }}>
-      <div style={{ marginBottom: 8 }}>
-        <Button size="small" icon={<PlusOutlined />}>Add Data Source</Button>
+    <div className="rd-dictionary-panel" data-testid="dictionary-tree">
+      <div className="rd-dictionary-toolbar">
+        <Input
+          allowClear
+          size="small"
+          placeholder="搜索数据源和字段"
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+        />
       </div>
       <Tree
+        className="rd-dictionary-tree"
         treeData={treeData}
-        showLine
         defaultExpandAll
         blockNode
       />
@@ -310,17 +435,6 @@ const DataDictionary: React.FC = () => {
 };
 
 // ---- Page Tree ----
-
-const BAND_TYPE_OPTIONS: { value: BandType; label: string }[] = [
-  { value: 'reportTitle', label: '报表标题' },
-  { value: 'reportSummary', label: '报表汇总' },
-  { value: 'pageHeader', label: '页眉' },
-  { value: 'pageFooter', label: '页脚' },
-  { value: 'groupHeader', label: '分组头' },
-  { value: 'groupFooter', label: '分组尾' },
-  { value: 'data', label: '数据' },
-  { value: 'child', label: '子报表' },
-];
 
 function renderComponentTreeIcon(type: ReportComponent['type']) {
   const props = {
@@ -375,12 +489,9 @@ const PageTree: React.FC = () => {
   const selectedBandId = useDesignerStore(s => s.selectedBandId);
   const selectComponents = useDesignerStore(s => s.selectComponents);
   const selectBand = useDesignerStore(s => s.selectBand);
-  const addBand = useDesignerStore(s => s.addBand);
-  const reportUnit = useDesignerStore(s => s.reportUnit);
 
-  const [bandModalOpen, setBandModalOpen] = useState(false);
-  const [newBandType, setNewBandType] = useState<BandType>('data');
-  const [newBandHeight, setNewBandHeight] = useState(30);
+  const [searchTerm, setSearchTerm] = useState('');
+  const normalizedSearchTerm = searchTerm.trim().toLowerCase();
   const autoExpandedKeys = useMemo(
     () => [
       'report-root',
@@ -401,20 +512,12 @@ const PageTree: React.FC = () => {
       return nextKeys.length === previousKeys.length ? previousKeys : nextKeys;
     });
   }, [autoExpandedKeys]);
-  const unitStep = getUnitStep(reportUnit);
 
   const selectedKeys = selectedComponentIds.length > 0
     ? selectedComponentIds
-    : selectedBandId
-      ? [selectedBandId]
-      : [currentPageId];
-
-  const handleAddBand = () => {
-    if (!currentPageId) return;
-    addBand(currentPageId, { type: newBandType, height: newBandHeight, components: [] });
-    setBandModalOpen(false);
-    message.success(`已添加 ${newBandType} 带`);
-  };
+      : selectedBandId
+        ? [selectedBandId]
+        : [currentPageId];
 
   const treeData: DataNode[] = [
     {
@@ -442,17 +545,33 @@ const PageTree: React.FC = () => {
             bandTypeCounters[band.type] = (bandTypeCounters[band.type] ?? 0) + 1;
             const bandIndex = bandTypeCounters[band.type] ?? 1;
             const bandName = getBandDisplayName(band, bandIndex);
+            const visibleComponents = band.components.filter((comp) => {
+              if (!normalizedSearchTerm) {
+                return true;
+              }
+
+              const componentName = comp.name?.trim() || getComponentNamePrefix(comp.type);
+              return componentName.toLowerCase().includes(normalizedSearchTerm);
+            });
+
+            if (normalizedSearchTerm && visibleComponents.length === 0) {
+              return null;
+            }
+
             return {
               key: band.id,
               title: (
-                <div className="rd-report-tree-node rd-report-tree-band-node">
+                <div
+                  className="rd-report-tree-node rd-report-tree-band-node"
+                  data-testid={`report-tree-band-${band.id}`}
+                >
                   <div className="rd-report-tree-node-main">
                     <span className={`rd-report-tree-band-swatch rd-report-tree-band-${band.type}`} />
                     <span>{bandName}</span>
                   </div>
                 </div>
               ),
-              children: band.components.map((comp) => ({
+              children: visibleComponents.map((comp) => ({
                 key: comp.id,
                 title: (
                   <div className="rd-report-tree-node rd-report-tree-component-node" data-testid={`report-tree-component-${comp.id}`}>
@@ -464,7 +583,7 @@ const PageTree: React.FC = () => {
                 ),
               })),
             };
-          }),
+          }).filter(Boolean) as DataNode[],
         };
       }),
     },
@@ -473,10 +592,13 @@ const PageTree: React.FC = () => {
   return (
     <div className="rd-report-tree" data-testid="report-tree">
       <div className="rd-report-tree-header">
-        <div className="rd-report-tree-copy">Pages, bands, and components</div>
-        <Button size="small" icon={<PlusOutlined />} onClick={() => setBandModalOpen(true)}>
-          添加带
-        </Button>
+        <Input
+          size="small"
+          allowClear
+          placeholder="搜索组件"
+          value={searchTerm}
+          onChange={(event) => setSearchTerm(event.target.value)}
+        />
       </div>
       <div className="rd-report-tree-body">
         <Tree
@@ -493,49 +615,20 @@ const PageTree: React.FC = () => {
               const isPage = template.pages.some(p => p.id === key);
               const isBand = template.pages.flatMap(p => p.bands).some(b => b.id === key);
               if (isPage) {
+                selectComponents([]);
+                selectBand(null);
                 useDesignerStore.getState().setCurrentPage(key);
               } else if (isBand) {
+                selectComponents([]);
                 selectBand(key);
               } else {
+                selectBand(null);
                 selectComponents([key]);
               }
             }
           }}
         />
       </div>
-
-      {/* Add Band Modal */}
-      <Modal
-        title="添加带"
-        open={bandModalOpen}
-        onOk={handleAddBand}
-        onCancel={() => setBandModalOpen(false)}
-        okText="添加"
-        cancelText="取消"
-      >
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ width: 60 }}>类型</span>
-            <Select
-              value={newBandType}
-              onChange={(v) => setNewBandType(v)}
-              style={{ width: '100%' }}
-              options={BAND_TYPE_OPTIONS}
-            />
-          </div>
-          <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ width: 60 }}>高度</span>
-            <InputNumber
-              value={formatUnitValue(newBandHeight, reportUnit)}
-              onChange={(v) => setNewBandHeight(parseUnitValue(v, reportUnit, newBandHeight))}
-              style={{ width: '100%' }}
-              min={formatUnitValue(5, reportUnit)}
-              max={formatUnitValue(500, reportUnit)}
-              step={unitStep}
-            />
-          </div>
-        </div>
-      </Modal>
     </div>
   );
 };

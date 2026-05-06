@@ -291,13 +291,15 @@
 .rd-report-tree-header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
   gap: 6px;
 }
 
-.rd-report-tree-copy {
+.rd-report-tree-header .ant-input-affix-wrapper,
+.rd-report-tree-header .ant-input {
   font-size: 11px;
-  color: var(--rd-muted);
+  line-height: 1.1;
+  width: 100%;
+  min-height: 28px;
 }
 
 .rd-report-tree-body {
@@ -306,22 +308,362 @@
   overflow: auto;
 }
 
+.rd-dictionary-panel {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+}
+
+.rd-dictionary-toolbar .ant-input-affix-wrapper,
+.rd-dictionary-toolbar .ant-input {
+  font-size: 11px;
+  line-height: 1.1;
+  width: 100%;
+  min-height: 28px;
+}
+
+.rd-dictionary-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.rd-dictionary-tree .ant-tree-treenode {
+  padding: 0;
+  align-items: center;
+}
+
+.rd-dictionary-tree .ant-tree-node-content-wrapper {
+  width: calc(100% - 24px);
+  padding: 1px 2px !important;
+  border-radius: 4px;
+  min-height: 19px;
+  display: inline-flex !important;
+  align-items: center;
+}
+
+.rd-dictionary-tree .ant-tree-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  min-width: 14px;
+  height: 19px;
+  color: #7a8593;
+  font-size: 10px;
+}
+
+.rd-dictionary-tree .ant-tree-indent-unit {
+  width: 10px !important;
+}
+
+.rd-dictionary-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 19px;
+  color: var(--rd-text);
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.rd-dictionary-node-field {
+  cursor: grab;
+}
+
+.rd-dictionary-empty {
+  color: #9aa3af;
+  font-size: 11px;
+}
+
+.rd-dictionary-glyph {
+  position: relative;
+  width: 11px;
+  height: 11px;
+  flex: none;
+  box-sizing: border-box;
+}
+
+.rd-dictionary-glyph-folder,
+.rd-dictionary-glyph-datasource,
+.rd-dictionary-glyph-resource {
+  border: 1px solid #7f8ea3;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+}
+
+.rd-dictionary-glyph-folder::before,
+.rd-dictionary-glyph-datasource::before,
+.rd-dictionary-glyph-resource::before {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  top: 2px;
+  height: 2px;
+  background: #7aa4d6;
+}
+
+.rd-dictionary-glyph-datasource::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  bottom: 2px;
+  height: 1px;
+  background: #8fa2bb;
+  box-shadow: 0 -2px 0 #8fa2bb;
+}
+
+.rd-dictionary-glyph-field-string,
+.rd-dictionary-glyph-field-number,
+.rd-dictionary-glyph-field-boolean,
+.rd-dictionary-glyph-field-date,
+.rd-dictionary-glyph-variable,
+.rd-dictionary-glyph-system,
+.rd-dictionary-glyph-function,
+.rd-dictionary-glyph-format {
+  border: 1px solid #7f8ea3;
+  border-radius: 1px;
+  background: #fff;
+}
+
+.rd-dictionary-glyph-field-string::before,
+.rd-dictionary-glyph-field-number::before,
+.rd-dictionary-glyph-field-boolean::before,
+.rd-dictionary-glyph-field-date::before,
+.rd-dictionary-glyph-variable::before,
+.rd-dictionary-glyph-system::before,
+.rd-dictionary-glyph-function::before,
+.rd-dictionary-glyph-format::before {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  font-weight: 700;
+  color: #37618f;
+}
+
+.rd-dictionary-glyph-field-string::before { content: "ab"; }
+.rd-dictionary-glyph-field-number::before { content: "1"; }
+.rd-dictionary-glyph-field-boolean::before { content: "T"; }
+.rd-dictionary-glyph-field-date::before { content: "D"; }
+.rd-dictionary-glyph-variable::before { content: "var"; font-size: 5px; }
+.rd-dictionary-glyph-system::before { content: "Σ"; }
+.rd-dictionary-glyph-function::before { content: "fx"; font-size: 6px; }
+.rd-dictionary-glyph-format::before { content: "#"; }
+
+.rd-expression-editor {
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr) 250px;
+  gap: 12px;
+  min-height: 480px;
+}
+
+.rd-expression-rail {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-right: 10px;
+  border-right: 1px solid var(--rd-border);
+}
+
+.rd-expression-rail-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  padding: 8px 10px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: #fff;
+  color: var(--rd-text);
+  cursor: pointer;
+  text-align: left;
+}
+
+.rd-expression-rail-item-active {
+  background: #eef5ff;
+  border-color: #aac7ef;
+}
+
+.rd-expression-rail-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.rd-expression-rail-copy span:first-child {
+  font-size: 12px;
+}
+
+.rd-expression-rail-copy span:last-child {
+  font-size: 10px;
+  color: var(--rd-muted);
+}
+
+.rd-expression-editor-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rd-expression-editor-textarea.ant-input {
+  height: 430px;
+  resize: none;
+  font-family: Consolas, Monaco, monospace;
+  font-size: 13px;
+}
+
+.rd-expression-editor-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 24px;
+  color: #7a8593;
+  font-size: 11px;
+}
+
+.rd-expression-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.rd-expression-browser .ant-input-affix-wrapper,
+.rd-expression-browser .ant-input {
+  min-height: 32px;
+  font-size: 12px;
+}
+
+.rd-expression-browser-tree {
+  flex: 1;
+  min-height: 0;
+  border: 1px solid var(--rd-border);
+  border-radius: 4px;
+  overflow: auto;
+  padding: 6px 4px;
+}
+
+.rd-expression-tree .ant-tree-treenode {
+  padding: 0;
+  align-items: center;
+}
+
+.rd-expression-tree .ant-tree-node-content-wrapper {
+  width: calc(100% - 24px);
+  min-height: 20px;
+  padding: 1px 2px !important;
+  border-radius: 4px;
+  display: inline-flex !important;
+  align-items: center;
+}
+
+.rd-expression-tree .ant-tree-switcher {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  min-width: 14px;
+  height: 20px;
+  color: #7a8593;
+  font-size: 10px;
+}
+
+.rd-expression-tree .ant-tree-indent-unit {
+  width: 10px !important;
+}
+
+.rd-expression-tree-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.rd-expression-tree-glyph {
+  position: relative;
+  width: 12px;
+  height: 12px;
+  flex: none;
+  box-sizing: border-box;
+  border: 1px solid #7f8ea3;
+  border-radius: 1px;
+  background: #fff;
+}
+
+.rd-expression-tree-glyph-folder,
+.rd-expression-tree-glyph-expression,
+.rd-expression-tree-glyph-data,
+.rd-expression-tree-glyph-system,
+.rd-expression-tree-glyph-aggregates,
+.rd-expression-tree-glyph-html,
+.rd-expression-tree-glyph-resource {
+  background: linear-gradient(180deg, #ffffff 0%, #f4f7fb 100%);
+}
+
+.rd-expression-tree-glyph-folder::before,
+.rd-expression-tree-glyph-expression::before,
+.rd-expression-tree-glyph-data::before,
+.rd-expression-tree-glyph-system::before,
+.rd-expression-tree-glyph-aggregates::before,
+.rd-expression-tree-glyph-html::before,
+.rd-expression-tree-glyph-field::before,
+.rd-expression-tree-glyph-function::before,
+.rd-expression-tree-glyph-format::before,
+.rd-expression-tree-glyph-resource::before {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 7px;
+  font-weight: 700;
+  color: #37618f;
+}
+
+.rd-expression-tree-glyph-expression::before { content: "E"; }
+.rd-expression-tree-glyph-data::before,
+.rd-expression-tree-glyph-field::before { content: "ab"; font-size: 6px; }
+.rd-expression-tree-glyph-system::before { content: "Σ"; }
+.rd-expression-tree-glyph-aggregates::before,
+.rd-expression-tree-glyph-function::before { content: "fx"; font-size: 6px; }
+.rd-expression-tree-glyph-html::before { content: "<>"; font-size: 5px; }
+.rd-expression-tree-glyph-format::before { content: "#"; }
+.rd-expression-tree-glyph-resource::before { content: "R"; }
+.rd-expression-tree-glyph-folder::before { content: "+"; }
+
 .rd-report-tree-root {
   display: inline-flex;
   align-items: center;
   gap: 4px;
+  min-height: 18px;
+  line-height: 1.1;
   font-weight: 600;
   color: var(--rd-text);
 }
 
 .rd-report-tree-tree .ant-tree-treenode {
   padding: 0;
+  align-items: center;
 }
 
 .rd-report-tree-tree .ant-tree-node-content-wrapper {
   width: calc(100% - 24px);
   padding: 1px 2px !important;
   border-radius: 4px;
+  min-height: 18px;
+  display: inline-flex !important;
+  align-items: center;
 }
 
 .rd-report-tree-tree .ant-tree-node-content-wrapper.ant-tree-node-selected {
@@ -334,9 +676,10 @@
   justify-content: center;
   width: 14px;
   min-width: 14px;
-  height: 16px;
+  height: 18px;
   color: #7a8593;
   font-size: 10px;
+  align-self: center;
 }
 
 .rd-report-tree-tree .ant-tree-indent-unit {

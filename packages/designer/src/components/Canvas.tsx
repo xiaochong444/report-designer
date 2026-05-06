@@ -1032,14 +1032,30 @@ const BandView: React.FC<{
 }> = ({ band, visualY, labelIndex, isSelected, selectedIds, onUpdateComponent, currentPageId }) => {
   const [editId, setEditId] = useState<string | null>(null);
   const [editText, setEditText] = useState('');
+  const selectBand = useDesignerStore((state) => state.selectBand);
+  const selectComponents = useDesignerStore((state) => state.selectComponents);
   const baseColor = BAND_COLORS[band.type] || '#757575';
   const baseLabel = BAND_LABELS[band.type] ?? band.type;
   const bandLabel = `${baseLabel}${labelIndex}`;
   const headerHeight = mmToPx(BAND_HEADER_MM);
   const bodyHeight = mmToPx(band.height);
 
+  const handleBandMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
+    const target = event.target as HTMLElement;
+    if (
+      target.closest('[data-component-id]') ||
+      target.closest('[data-resize-handle]') ||
+      target.closest('[data-band-resize]')
+    ) {
+      return;
+    }
+    event.stopPropagation();
+    selectComponents([]);
+    selectBand(band.id);
+  };
+
   return (
-    <div data-band-id={band.id} data-testid={`designer-band-frame-${band.type}`} style={{
+    <div data-band-id={band.id} data-testid={`designer-band-frame-${band.type}`} onMouseDown={handleBandMouseDown} style={{
       position: 'absolute', left: 0, top: mmToPx(visualY), width: '100%', height: headerHeight + bodyHeight,
       border: isSelected ? '1px solid #4d90fe' : '1px solid rgba(0,0,0,0.12)',
       boxSizing: 'border-box',

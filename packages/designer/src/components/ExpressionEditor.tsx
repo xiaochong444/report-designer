@@ -1,56 +1,122 @@
-import React, { useState, useRef } from 'react';
-import { Modal, Input, Tree, Tabs, Button, message } from 'antd';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Button, Input, Modal, Tree } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
-import { FieldStringOutlined, FunctionOutlined } from '@ant-design/icons';
 
 const BUILT_IN_FUNCTIONS = [
-  { name: 'SUM', desc: '求和', usage: 'SUM(field)', insert: 'SUM()' },
-  { name: 'AVG', desc: '平均值', usage: 'AVG(field)', insert: 'AVG()' },
-  { name: 'COUNT', desc: '计数', usage: 'COUNT(field)', insert: 'COUNT()' },
-  { name: 'MAX', desc: '最大值', usage: 'MAX(field)', insert: 'MAX()' },
-  { name: 'MIN', desc: '最小值', usage: 'MIN(field)', insert: 'MIN()' },
-  { name: 'PAGESUM', desc: '按页求和', usage: 'PAGESUM("DataBand", "{DataBand.Field}")', insert: 'PAGESUM("", "")' },
-  { name: 'PAGECOUNT', desc: '按页计数', usage: 'PAGECOUNT("DataBand")', insert: 'PAGECOUNT("")' },
-  { name: 'REPORTSUM', desc: '按报表求和', usage: 'REPORTSUM("DataBand", "{DataBand.Field}")', insert: 'REPORTSUM("", "")' },
-  { name: 'REPORTCOUNT', desc: '按报表计数', usage: 'REPORTCOUNT("DataBand")', insert: 'REPORTCOUNT("")' },
-  { name: 'TOTALS.PAGESUM', desc: '按页求和别名', usage: 'TOTALS.PAGESUM("DataBand", "{DataBand.Field}")', insert: 'TOTALS.PAGESUM("", "")' },
-  { name: 'TOTALS.PAGECOUNT', desc: '按页计数别名', usage: 'TOTALS.PAGECOUNT("DataBand")', insert: 'TOTALS.PAGECOUNT("")' },
-  { name: 'TOTALS.REPORTSUM', desc: '按报表求和别名', usage: 'TOTALS.REPORTSUM("DataBand", "{DataBand.Field}")', insert: 'TOTALS.REPORTSUM("", "")' },
-  { name: 'IF', desc: '条件判断', usage: 'IF(condition, trueVal, falseVal)', insert: 'IF(, , )' },
-  { name: 'IIF', desc: '条件判断', usage: 'IIF(condition, trueVal, falseVal)', insert: 'IIF(, , )' },
-  { name: 'TODATE', desc: '转日期', usage: 'TODATE(field, format)', insert: 'TODATE()' },
-  { name: 'TOSTRING', desc: '转字符串', usage: 'TOSTRING(field)', insert: 'TOSTRING()' },
-  { name: 'TONUMBER', desc: '转数字', usage: 'TONUMBER(field)', insert: 'TONUMBER()' },
-  { name: 'SUBSTRING', desc: '子字符串', usage: 'SUBSTRING(field, start, length)', insert: 'SUBSTRING()' },
-  { name: 'LENGTH', desc: '字符串长度', usage: 'LENGTH(field)', insert: 'LENGTH()' },
-  { name: 'UPPER', desc: '大写', usage: 'UPPER(field)', insert: 'UPPER()' },
-  { name: 'LOWER', desc: '小写', usage: 'LOWER(field)', insert: 'LOWER()' },
-  { name: 'TRIM', desc: '去空格', usage: 'TRIM(field)', insert: 'TRIM()' },
-  { name: 'ROUND', desc: '四舍五入', usage: 'ROUND(field, decimals)', insert: 'ROUND()' },
-  { name: 'FORMAT', desc: '格式化', usage: 'FORMAT(field, format)', insert: 'FORMAT()' },
-  { name: 'NOW', desc: '当前日期时间', usage: 'NOW()', insert: 'NOW()' },
-  { name: 'TODAY', desc: '当前日期', usage: 'TODAY()', insert: 'TODAY()' },
-  { name: 'PAGE', desc: '当前页码', usage: 'PAGE()', insert: 'PAGE()' },
-  { name: 'TOTALPAGES', desc: '总页数', usage: 'TOTALPAGES()', insert: 'TOTALPAGES()' },
-  { name: 'ISNULL', desc: '是否为空', usage: 'ISNULL(field)', insert: 'ISNULL()' },
-  { name: 'NEWID', desc: '新 GUID', usage: 'NEWID()', insert: 'NEWID()' },
+  { name: 'SUM', desc: '求和', insert: 'SUM()' },
+  { name: 'AVG', desc: '平均值', insert: 'AVG()' },
+  { name: 'COUNT', desc: '计数', insert: 'COUNT()' },
+  { name: 'MAX', desc: '最大值', insert: 'MAX()' },
+  { name: 'MIN', desc: '最小值', insert: 'MIN()' },
+  { name: 'PAGESUM', desc: '按页求和', insert: 'PAGESUM("", "")' },
+  { name: 'PAGECOUNT', desc: '按页计数', insert: 'PAGECOUNT("")' },
+  { name: 'REPORTSUM', desc: '按报表求和', insert: 'REPORTSUM("", "")' },
+  { name: 'REPORTCOUNT', desc: '按报表计数', insert: 'REPORTCOUNT("")' },
+  { name: 'TOTALS.PAGESUM', desc: '按页求和别名', insert: 'TOTALS.PAGESUM("", "")' },
+  { name: 'TOTALS.PAGECOUNT', desc: '按页计数别名', insert: 'TOTALS.PAGECOUNT("")' },
+  { name: 'TOTALS.REPORTSUM', desc: '按报表求和别名', insert: 'TOTALS.REPORTSUM("", "")' },
+  { name: 'IF', desc: '条件判断', insert: 'IF(, , )' },
+  { name: 'IIF', desc: '条件判断', insert: 'IIF(, , )' },
+  { name: 'ISNULL', desc: '是否为空', insert: 'ISNULL()' },
+  { name: 'FORMAT', desc: '格式化', insert: 'FORMAT()' },
+  { name: 'ROUND', desc: '四舍五入', insert: 'ROUND()' },
+  { name: 'NOW', desc: '当前日期时间', insert: 'NOW()' },
+  { name: 'TODAY', desc: '当前日期', insert: 'TODAY()' },
+  { name: 'PAGE', desc: '当前页码', insert: 'PAGE()' },
+  { name: 'TOTALPAGES', desc: '总页数', insert: 'TOTALPAGES()' },
 ];
 
-const QUICK_FUNCTION_NAMES = [
-  'SUM',
-  'AVG',
-  'COUNT',
-  'MAX',
-  'MIN',
-  'IF',
-  'IIF',
-  'FORMAT',
-  'ROUND',
-  'PAGE',
-  'TOTALPAGES',
-  'ISNULL',
+const SYSTEM_VARIABLES = [
+  { name: '{Today}', insert: '{Today}' },
+  { name: '{PageNumber}', insert: '{PageNumber}' },
+  { name: '{TotalPages}', insert: '{TotalPages}' },
+  { name: '{Line}', insert: '{Line}' },
 ];
+
+const FORMAT_PATTERNS = [
+  { name: '#,##0.00', insert: '#,##0.00' },
+  { name: 'yyyy-MM-dd', insert: 'yyyy-MM-dd' },
+  { name: 'yyyy-MM-dd HH:mm:ss', insert: 'yyyy-MM-dd HH:mm:ss' },
+  { name: '0.00%', insert: '0.00%' },
+];
+
+const HTML_TAGS = [
+  { name: 'Html Tag', insert: '<span></span>' },
+  { name: 'Bold', insert: '<b></b>' },
+  { name: 'Italic', insert: '<i></i>' },
+  { name: 'Line break', insert: '<br />' },
+];
+
+type ExpressionCategory = 'expression' | 'data' | 'system' | 'aggregates' | 'html';
+
+type TreeNodeMeta = DataNode & {
+  searchText?: string;
+  insertValue?: string;
+  children?: TreeNodeMeta[];
+};
+
+const CATEGORY_ITEMS: Array<{ key: ExpressionCategory; label: string; subtitle: string }> = [
+  { key: 'expression', label: '表达式', subtitle: 'Expression' },
+  { key: 'data', label: '数据列', subtitle: 'Data Column' },
+  { key: 'system', label: '系统变量', subtitle: 'System' },
+  { key: 'aggregates', label: '聚合', subtitle: 'Aggregate' },
+  { key: 'html', label: 'HTML', subtitle: 'Html' },
+];
+
+function makeTreeNode(
+  key: string,
+  label: string,
+  kind: 'folder' | 'field' | 'system' | 'function' | 'format' | 'html' | 'resource',
+  options?: { insertValue?: string; searchText?: string; children?: TreeNodeMeta[] },
+): TreeNodeMeta {
+  return {
+    key,
+    searchText: options?.searchText ?? label.toLowerCase(),
+    insertValue: options?.insertValue,
+    title: (
+      <div className="rd-expression-tree-node">
+        <span className={`rd-expression-tree-glyph rd-expression-tree-glyph-${kind}`} aria-hidden />
+        <span>{label}</span>
+      </div>
+    ),
+    children: options?.children,
+  };
+}
+
+function filterTreeNodes(nodes: TreeNodeMeta[], query: string): TreeNodeMeta[] {
+  if (!query) {
+    return nodes;
+  }
+
+  return nodes
+    .map((node) => {
+      const children = node.children ? filterTreeNodes(node.children, query) : [];
+      if ((node.searchText ?? '').includes(query) || children.length > 0) {
+        return {
+          ...node,
+          children,
+        };
+      }
+      return null;
+    })
+    .filter(Boolean) as TreeNodeMeta[];
+}
+
+function validateExpression(expression: string) {
+  const openBraces = (expression.match(/{/g) ?? []).length;
+  const closeBraces = (expression.match(/}/g) ?? []).length;
+  const openParens = (expression.match(/\(/g) ?? []).length;
+  const closeParens = (expression.match(/\)/g) ?? []).length;
+
+  if (openBraces !== closeBraces) {
+    return '大括号数量不匹配';
+  }
+  if (openParens !== closeParens) {
+    return '括号数量不匹配';
+  }
+  return '表达式校验通过';
+}
 
 export const ExpressionEditor: React.FC<{
   open: boolean;
@@ -58,139 +124,162 @@ export const ExpressionEditor: React.FC<{
   onChange: (value: string) => void;
   onClose: () => void;
 }> = ({ open, value, onChange, onClose }) => {
+  const template = useDesignerStore((state) => state.template);
   const [expression, setExpression] = useState(value);
-  const template = useDesignerStore(s => s.template);
-  const currentPageId = useDesignerStore(s => s.currentPageId);
+  const [activeCategory, setActiveCategory] = useState<ExpressionCategory>('expression');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [validationMessage, setValidationMessage] = useState('示例: Text: {Expression}, {DataSource.Field}');
   const inputRef = useRef<any>(null);
 
-  // Collect data sources from current page's bands
-  const pageBandDataSources = currentPageId
-    ? template.pages.find(p => p.id === currentPageId)?.bands
-      .map(b => b.dataSource)
-      .filter(Boolean)
-    : [];
-
-  const currentPage = template.pages.find(p => p.id === currentPageId);
-  const allDsIds = new Set<string>();
-  if (currentPage) {
-    for (const band of currentPage.bands) {
-      if (band.dataSource) allDsIds.add(band.dataSource);
+  useEffect(() => {
+    if (open) {
+      setExpression(value);
+      setSearchTerm('');
+      setValidationMessage('示例: Text: {Expression}, {DataSource.Field}');
     }
-  }
-  // Also include all data sources from the template
-  const dataSources = template.dataSources.filter(ds => ds.schema.length > 0);
-
-  const fieldTree: DataNode[] = dataSources.map(ds => ({
-    key: ds.id,
-    title: <span style={{ fontWeight: 500 }}>{ds.name}</span>,
-    children: ds.schema.map(field => ({
-      key: `${ds.id}.${field.name}`,
-      title: (
-        <span>
-          {field.label || field.name}
-          <span style={{ color: '#999', fontSize: 10, marginLeft: 4 }}>({field.type})</span>
-        </span>
-      ),
-    })),
-  }));
-
-  const functionList: DataNode[] = [
-    {
-      key: 'agg',
-      title: <span style={{ fontWeight: 500 }}>聚合函数</span>,
-      children: BUILT_IN_FUNCTIONS.filter(f => ['SUM', 'AVG', 'COUNT', 'MAX', 'MIN'].includes(f.name)).map(f => ({
-        key: f.name,
-        title: <span>{f.name} <span style={{ color: '#999', fontSize: 10 }}>- {f.desc}</span></span>,
-      })),
-    },
-    {
-      key: 'page-report-totals',
-      title: <span style={{ fontWeight: 500 }}>页/报表合计</span>,
-      children: BUILT_IN_FUNCTIONS.filter(f => [
-        'PAGESUM',
-        'PAGECOUNT',
-        'REPORTSUM',
-        'REPORTCOUNT',
-        'TOTALS.PAGESUM',
-        'TOTALS.PAGECOUNT',
-        'TOTALS.REPORTSUM',
-      ].includes(f.name)).map(f => ({
-        key: f.name,
-        title: <span>{f.name} <span style={{ color: '#999', fontSize: 10 }}>- {f.desc}</span></span>,
-      })),
-    },
-    {
-      key: 'cond',
-      title: <span style={{ fontWeight: 500 }}>条件函数</span>,
-      children: BUILT_IN_FUNCTIONS.filter(f => ['IF', 'IIF', 'ISNULL'].includes(f.name)).map(f => ({
-        key: f.name,
-        title: <span>{f.name} <span style={{ color: '#999', fontSize: 10 }}>- {f.desc}</span></span>,
-      })),
-    },
-    {
-      key: 'str',
-      title: <span style={{ fontWeight: 500 }}>字符串函数</span>,
-      children: BUILT_IN_FUNCTIONS.filter(f => ['SUBSTRING', 'LENGTH', 'UPPER', 'LOWER', 'TRIM', 'TOSTRING'].includes(f.name)).map(f => ({
-        key: f.name,
-        title: <span>{f.name} <span style={{ color: '#999', fontSize: 10 }}>- {f.desc}</span></span>,
-      })),
-    },
-    {
-      key: 'num',
-      title: <span style={{ fontWeight: 500 }}>数值函数</span>,
-      children: BUILT_IN_FUNCTIONS.filter(f => ['ROUND', 'TONUMBER'].includes(f.name)).map(f => ({
-        key: f.name,
-        title: <span>{f.name} <span style={{ color: '#999', fontSize: 10 }}>- {f.desc}</span></span>,
-      })),
-    },
-    {
-      key: 'date',
-      title: <span style={{ fontWeight: 500 }}>日期函数</span>,
-      children: BUILT_IN_FUNCTIONS.filter(f => ['NOW', 'TODAY', 'TODATE'].includes(f.name)).map(f => ({
-        key: f.name,
-        title: <span>{f.name} <span style={{ color: '#999', fontSize: 10 }}>- {f.desc}</span></span>,
-      })),
-    },
-    {
-      key: 'rpt',
-      title: <span style={{ fontWeight: 500 }}>报表函数</span>,
-      children: BUILT_IN_FUNCTIONS.filter(f => ['PAGE', 'TOTALPAGES', 'FORMAT', 'NEWID'].includes(f.name)).map(f => ({
-        key: f.name,
-        title: <span>{f.name} <span style={{ color: '#999', fontSize: 10 }}>- {f.desc}</span></span>,
-      })),
-    },
-  ];
+  }, [open, value]);
 
   const insertAtCursor = (text: string) => {
     const input = inputRef.current?.resizableTextArea?.textArea || inputRef.current;
     if (input) {
       const start = input.selectionStart ?? expression.length;
       const end = input.selectionEnd ?? expression.length;
-      const before = expression.substring(0, start);
-      const after = expression.substring(end);
-      const newExp = before + text + after;
-      setExpression(newExp);
+      const before = expression.slice(0, start);
+      const after = expression.slice(end);
+      const nextValue = `${before}${text}${after}`;
+      setExpression(nextValue);
       setTimeout(() => {
         input.focus();
-        const newPos = start + text.length;
-        input.setSelectionRange(newPos, newPos);
+        const nextCursor = start + text.length;
+        input.setSelectionRange(nextCursor, nextCursor);
       }, 0);
-    } else {
-      setExpression(expression + text);
+      return;
     }
+
+    setExpression((current) => `${current}${text}`);
   };
 
-  const handleFieldSelect = (_: React.Key[], info: any) => {
-    if (!info.node.children) {
-      const fieldKey = info.node.key as string;
-      insertAtCursor(`{${fieldKey}}`);
-    }
-  };
+  const dataSourceNodes = useMemo<TreeNodeMeta[]>(
+    () =>
+      template.dataSources.map((dataSource) =>
+        makeTreeNode(`ds.${dataSource.id}`, dataSource.name, 'folder', {
+          searchText: `${dataSource.name} ${dataSource.id}`.toLowerCase(),
+          children: dataSource.schema.map((field) =>
+            makeTreeNode(
+              `${dataSource.id}.${field.name}`,
+              `${dataSource.id}.${field.name}`,
+              'field',
+              {
+                insertValue: `{${dataSource.id}.${field.name}}`,
+                searchText: `${dataSource.id}.${field.name} ${field.label ?? ''}`.toLowerCase(),
+              },
+            ),
+          ),
+        }),
+      ),
+    [template.dataSources],
+  );
 
-  const handleFunctionSelect = (_: React.Key[], info: any) => {
-    const func = BUILT_IN_FUNCTIONS.find(f => f.name === info.node.key);
-    if (func) {
-      insertAtCursor(func.insert);
+  const functionNodes = useMemo<TreeNodeMeta[]>(
+    () => [
+      makeTreeNode('fn.aggregate', '聚合函数', 'folder', {
+        children: BUILT_IN_FUNCTIONS.filter((item) => ['SUM', 'AVG', 'COUNT', 'MAX', 'MIN'].includes(item.name)).map((item) =>
+          makeTreeNode(`fn.${item.name}`, item.name, 'function', {
+            insertValue: item.insert,
+            searchText: `${item.name} ${item.desc}`.toLowerCase(),
+          }),
+        ),
+      }),
+      makeTreeNode('fn.total', '页/报表合计', 'folder', {
+        children: BUILT_IN_FUNCTIONS.filter((item) =>
+          ['PAGESUM', 'PAGECOUNT', 'REPORTSUM', 'REPORTCOUNT', 'TOTALS.PAGESUM', 'TOTALS.PAGECOUNT', 'TOTALS.REPORTSUM'].includes(item.name),
+        ).map((item) =>
+          makeTreeNode(`fn.${item.name}`, item.name, 'function', {
+            insertValue: item.insert,
+            searchText: `${item.name} ${item.desc}`.toLowerCase(),
+          }),
+        ),
+      }),
+      makeTreeNode('fn.logic', '条件函数', 'folder', {
+        children: BUILT_IN_FUNCTIONS.filter((item) => ['IF', 'IIF', 'ISNULL'].includes(item.name)).map((item) =>
+          makeTreeNode(`fn.${item.name}`, item.name, 'function', {
+            insertValue: item.insert,
+            searchText: `${item.name} ${item.desc}`.toLowerCase(),
+          }),
+        ),
+      }),
+    ],
+    [],
+  );
+
+  const systemNodes = useMemo<TreeNodeMeta[]>(
+    () =>
+      SYSTEM_VARIABLES.map((item) =>
+        makeTreeNode(`sys.${item.name}`, item.name, 'system', {
+          insertValue: item.insert,
+          searchText: item.name.toLowerCase(),
+        }),
+      ),
+    [],
+  );
+
+  const formatNodes = useMemo<TreeNodeMeta[]>(
+    () =>
+      FORMAT_PATTERNS.map((item) =>
+        makeTreeNode(`format.${item.name}`, item.name, 'format', {
+          insertValue: item.insert,
+          searchText: item.name.toLowerCase(),
+        }),
+      ),
+    [],
+  );
+
+  const htmlNodes = useMemo<TreeNodeMeta[]>(
+    () =>
+      HTML_TAGS.map((item) =>
+        makeTreeNode(`html.${item.name}`, item.name, 'html', {
+          insertValue: item.insert,
+          searchText: item.name.toLowerCase(),
+        }),
+      ),
+    [],
+  );
+
+  const treeData = useMemo<TreeNodeMeta[]>(() => {
+    switch (activeCategory) {
+      case 'data':
+        return [makeTreeNode('tree.data', '数据源', 'folder', { children: dataSourceNodes })];
+      case 'system':
+        return [makeTreeNode('tree.system', '系统变量', 'folder', { children: systemNodes })];
+      case 'aggregates':
+        return [makeTreeNode('tree.function', '函数', 'folder', { children: functionNodes })];
+      case 'html':
+        return [makeTreeNode('tree.html', 'Html Tag', 'folder', { children: htmlNodes })];
+      case 'expression':
+      default:
+        return [
+          makeTreeNode('tree.data', '数据源', 'folder', { children: dataSourceNodes }),
+          makeTreeNode('tree.variables', '变量', 'folder', {
+            children: [makeTreeNode('tree.variables.empty', '暂无变量', 'resource')],
+          }),
+          makeTreeNode('tree.system', '系统变量', 'folder', { children: systemNodes }),
+          makeTreeNode('tree.function', '函数', 'folder', { children: functionNodes }),
+          makeTreeNode('tree.format', '格式', 'folder', { children: formatNodes }),
+          makeTreeNode('tree.resources', '资源', 'folder', {
+            children: [makeTreeNode('tree.resources.empty', '暂无资源', 'resource')],
+          }),
+        ];
+    }
+  }, [activeCategory, dataSourceNodes, formatNodes, functionNodes, htmlNodes, systemNodes]);
+
+  const filteredTree = useMemo(
+    () => filterTreeNodes(treeData, searchTerm.trim().toLowerCase()),
+    [searchTerm, treeData],
+  );
+
+  const handleTreeSelect = (_keys: React.Key[], info: { node: TreeNodeMeta }) => {
+    if (info.node.insertValue) {
+      insertAtCursor(info.node.insertValue);
     }
   };
 
@@ -206,97 +295,75 @@ export const ExpressionEditor: React.FC<{
 
   return (
     <Modal
-      title="表达式编辑器"
+      title="文本"
       open={open}
       onOk={handleOk}
       onCancel={handleCancel}
-      width={700}
+      width={960}
       okText="确定"
       cancelText="取消"
+      destroyOnHidden
     >
-      <div style={{ marginBottom: 8 }}>
-        <Input.TextArea
-          ref={inputRef}
-          value={expression}
-          onChange={(e) => setExpression(e.target.value)}
-          placeholder="输入表达式，如 {DataSource.Field} 或 IF(condition, 1, 0)"
-          autoSize={{ minRows: 3, maxRows: 6 }}
-          style={{ fontFamily: 'Consolas, Monaco, monospace', fontSize: 13 }}
-        />
-      </div>
+      <div className="rd-expression-editor">
+        <aside className="rd-expression-rail">
+          {CATEGORY_ITEMS.map((item) => (
+            <button
+              key={item.key}
+              type="button"
+              className={`rd-expression-rail-item ${activeCategory === item.key ? 'rd-expression-rail-item-active' : ''}`}
+              onClick={() => {
+                setActiveCategory(item.key);
+                setSearchTerm('');
+              }}
+            >
+              <span className={`rd-expression-tree-glyph rd-expression-tree-glyph-${item.key}`} aria-hidden />
+              <span className="rd-expression-rail-copy">
+                <span>{item.label}</span>
+                <span>{item.subtitle}</span>
+              </span>
+            </button>
+          ))}
+        </aside>
 
-      <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
-        {/* Left: Fields and Functions tabs */}
-        <div style={{ flex: 1, border: '1px solid #d9d9d9', borderRadius: 4, overflow: 'hidden' }}>
-          <Tabs
-            size="small"
-            defaultActiveKey="fields"
-            tabBarStyle={{ marginBottom: 0, padding: '0 8px' }}
-            items={[
-              {
-                key: 'fields',
-                label: (
-                  <span><FieldStringOutlined /> 字段</span>
-                ),
-                children: (
-                  <div style={{ maxHeight: 250, overflow: 'auto', padding: '4px 8px 8px' }}>
-                    {fieldTree.length > 0 ? (
-                      <Tree
-                        treeData={fieldTree}
-                        showLine
-                        defaultExpandAll
-                        blockNode
-                        onSelect={handleFieldSelect}
-                      />
-                    ) : (
-                      <div style={{ color: '#999', fontSize: 12, padding: 8 }}>
-                        没有可用数据源
-                      </div>
-                    )}
-                  </div>
-                ),
-              },
-              {
-                key: 'functions',
-                label: (
-                  <span><FunctionOutlined /> 函数</span>
-                ),
-                children: (
-                  <div style={{ maxHeight: 250, overflow: 'auto', padding: '4px 8px 8px' }}>
-                    <Tree
-                      treeData={functionList}
-                      showLine
-                      defaultExpandAll
-                      blockNode
-                      onSelect={handleFunctionSelect}
-                    />
-                  </div>
-                ),
-              },
-            ]}
+        <section className="rd-expression-editor-main">
+          <Input.TextArea
+            ref={inputRef}
+            className="rd-expression-editor-textarea"
+            value={expression}
+            onChange={(event) => setExpression(event.target.value)}
+            autoSize={false}
+            placeholder="{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}"
           />
-        </div>
+          <div className="rd-expression-editor-footer">
+            <span>{validationMessage}</span>
+            <Button
+              type="link"
+              size="small"
+              onClick={() => setValidationMessage(validateExpression(expression))}
+            >
+              校验
+            </Button>
+          </div>
+        </section>
 
-        {/* Right: Quick insert buttons */}
-        <div style={{ width: 140 }}>
-          <div style={{ fontSize: 12, color: '#666', marginBottom: 4, padding: '0 4px' }}>快速插入</div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4, padding: '0 4px' }}>
-            {BUILT_IN_FUNCTIONS.filter(f => QUICK_FUNCTION_NAMES.includes(f.name)).map(f => (
-              <Button
-                key={f.name}
-                size="small"
-                onClick={() => insertAtCursor(f.insert)}
-                title={f.desc}
-                style={{ fontSize: 11, padding: '0 6px', height: 24 }}
-              >
-                {f.name}
-              </Button>
-            ))}
+        <aside className="rd-expression-browser">
+          <Input
+            allowClear
+            size="small"
+            placeholder="搜索"
+            value={searchTerm}
+            onChange={(event) => setSearchTerm(event.target.value)}
+          />
+          <div className="rd-expression-browser-tree">
+            <Tree
+              className="rd-expression-tree"
+              treeData={filteredTree}
+              defaultExpandAll
+              blockNode
+              onSelect={handleTreeSelect}
+            />
           </div>
-          <div style={{ fontSize: 11, color: '#999', padding: '8px 4px 0' }}>
-            提示: 点击字段或函数可插入表达式
-          </div>
-        </div>
+        </aside>
       </div>
     </Modal>
   );

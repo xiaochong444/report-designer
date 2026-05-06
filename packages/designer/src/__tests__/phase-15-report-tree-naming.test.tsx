@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { act, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { createDefaultTemplate, type ReportTemplate, type TextComponent, type ImageComponent, type ReportComponent } from '@report-designer/core';
@@ -35,8 +35,8 @@ Object.defineProperty(window, 'ResizeObserver', {
 function makeTreeTemplate(): ReportTemplate {
   const template = createDefaultTemplate('Tree Demo');
   const page = template.pages[0];
-  const pageHeaderBand = page.bands[0];
-  const dataBand = page.bands[1];
+  const pageHeaderBand = page.bands.find((band) => band.type === 'pageHeader')!;
+  const dataBand = page.bands.find((band) => band.type === 'data')!;
 
   const textComponent: TextComponent = {
     id: 'text-alpha',
@@ -81,6 +81,8 @@ describe('Phase 15 report tree naming and icons', () => {
     expect(screen.queryByText(/text - text-alpha/i)).not.toBeInTheDocument();
     expect(screen.getByTestId('report-tree-icon-text')).toBeInTheDocument();
     expect(screen.getByTestId('report-tree-icon-image')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索组件')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '添加带' })).not.toBeInTheDocument();
     expect(document.querySelector('.rd-report-tree-node-sub')).toBeNull();
     expect(document.querySelector('.rd-report-tree-actions')).toBeNull();
     expect(document.querySelector('.rd-report-tree-tree.ant-tree-show-line')).toBeNull();
@@ -93,7 +95,7 @@ describe('Phase 15 report tree naming and icons', () => {
     await screen.findByTestId('report-tree-component-text-alpha');
 
     const page = template.pages[0];
-    const targetBand = page.bands[1];
+    const targetBand = page.bands.find((band) => band.type === 'data')!;
 
     act(() => {
       useDesignerStore.getState().addComponent(page.id, targetBand.id, {
@@ -114,5 +116,39 @@ describe('Phase 15 report tree naming and icons', () => {
     });
 
     expect(within(await screen.findByTestId('report-tree-component-text-beta')).getByText('Text2')).toBeInTheDocument();
+  });
+
+  it('filters visible components by search term', async () => {
+    render(<Designer template={makeTreeTemplate()} />);
+
+    const searchInput = await screen.findByPlaceholderText('搜索组件');
+    fireEvent.change(searchInput, { target: { value: 'Image1' } });
+
+    const reportTree = screen.getByTestId('report-tree');
+    expect(await screen.findByTestId('report-tree-component-image-alpha')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.queryByTestId('report-tree-component-text-alpha')).not.toBeInTheDocument();
+    });
+    expect(within(reportTree).getByText('DataBand1')).toBeInTheDocument();
+  });
+
+  it('selects a band from the report tree and clears component selection', async () => {
+    render(<Designer template={makeTreeTemplate()} />);
+
+    await screen.findByTestId('report-tree-component-text-alpha');
+
+    act(() => {
+      useDesignerStore.getState().selectComponents(['text-alpha']);
+    });
+
+    const page = useDesignerStore.getState().template.pages[0];
+    const dataBand = page.bands.find((band) => band.type === 'data')!;
+    fireEvent.click(screen.getByTestId(`report-tree-band-${dataBand.id}`));
+
+    await waitFor(() => {
+      const state = useDesignerStore.getState();
+      expect(state.selectedComponentIds).toEqual([]);
+      expect(state.selectedBandId).toBe(dataBand.id);
+    });
   });
 });
