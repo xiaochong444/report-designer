@@ -7,5 +7,6 @@ export * from './layout-engine';
 export * from './expression-engine';
 export * from './render-engine';
 export * from './text-format';
+export * from './text-style';
 export * from './pagination';
 export * from './command-engine';

@@ -1,4 +1,4 @@
-import type { ReportTemplate, Page, Band } from './types';
+import type { ReportTemplate, ReportStyle, Page, Band } from './types';
 
 let idCounter = 0;
 function uid(): string {
@@ -15,6 +15,119 @@ const DEFAULT_BAND_HEIGHTS: Record<string, number> = {
   data: 20,
   child: 15,
 };
+
+const DEFAULT_FONT = {
+  family: 'Arial',
+  size: 10,
+  bold: false,
+  italic: false,
+  underline: false,
+  strikethrough: false,
+  color: '#000000',
+} as const;
+
+const DEFAULT_BORDER = {
+  style: 'none',
+  width: 0,
+  color: '#000000',
+  sides: {
+    top: false,
+    right: false,
+    bottom: false,
+    left: false,
+  },
+} as const;
+
+const DEFAULT_PADDING = {
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+} as const;
+
+function createDefaultTextStyles(): ReportStyle[] {
+  return [
+    {
+      id: 'text-normal',
+      name: 'Normal',
+      category: 'text',
+      font: { ...DEFAULT_FONT },
+      border: { ...DEFAULT_BORDER, sides: { ...DEFAULT_BORDER.sides } },
+      backgroundColor: 'transparent',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      padding: { ...DEFAULT_PADDING },
+      canGrow: false,
+      canShrink: false,
+      isDefault: true,
+    },
+    {
+      id: 'text-title',
+      name: 'Title',
+      category: 'text',
+      font: { ...DEFAULT_FONT, size: 18, bold: true },
+      border: { ...DEFAULT_BORDER, sides: { ...DEFAULT_BORDER.sides } },
+      backgroundColor: 'transparent',
+      textAlign: 'left',
+      verticalAlign: 'middle',
+      padding: { ...DEFAULT_PADDING },
+      canGrow: false,
+      canShrink: false,
+    },
+    {
+      id: 'text-header',
+      name: 'Header',
+      category: 'text',
+      font: { ...DEFAULT_FONT, bold: true },
+      border: { ...DEFAULT_BORDER, style: 'solid', sides: { ...DEFAULT_BORDER.sides, bottom: true }, width: 0.2 },
+      backgroundColor: '#f5f5f5',
+      textAlign: 'left',
+      verticalAlign: 'middle',
+      padding: { top: 1, right: 1, bottom: 1, left: 1 },
+      canGrow: false,
+      canShrink: false,
+    },
+    {
+      id: 'text-data',
+      name: 'Data',
+      category: 'text',
+      font: { ...DEFAULT_FONT },
+      border: { ...DEFAULT_BORDER, sides: { ...DEFAULT_BORDER.sides } },
+      backgroundColor: 'transparent',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      padding: { ...DEFAULT_PADDING },
+      canGrow: true,
+      canShrink: false,
+    },
+    {
+      id: 'text-footer',
+      name: 'Footer',
+      category: 'text',
+      font: { ...DEFAULT_FONT, size: 9, italic: true, color: '#444444' },
+      border: { ...DEFAULT_BORDER, style: 'solid', sides: { ...DEFAULT_BORDER.sides, top: true }, width: 0.2 },
+      backgroundColor: 'transparent',
+      textAlign: 'left',
+      verticalAlign: 'middle',
+      padding: { top: 1, right: 0, bottom: 0, left: 0 },
+      canGrow: false,
+      canShrink: false,
+    },
+    {
+      id: 'text-group',
+      name: 'Group',
+      category: 'text',
+      font: { ...DEFAULT_FONT, bold: true, color: '#222222' },
+      border: { ...DEFAULT_BORDER, sides: { ...DEFAULT_BORDER.sides } },
+      backgroundColor: '#eeeeee',
+      textAlign: 'left',
+      verticalAlign: 'middle',
+      padding: { top: 1, right: 1, bottom: 1, left: 1 },
+      canGrow: false,
+      canShrink: false,
+    },
+  ];
+}
 
 export function createDefaultTemplate(name = '未命名报表'): ReportTemplate {
   const pageId = uid();
@@ -40,7 +153,7 @@ export function createDefaultTemplate(name = '未命名报表'): ReportTemplate 
     version: '1.0',
     pages: [page],
     dataSources: [],
-    styles: [],
+    styles: createDefaultTextStyles(),
     conditionalFormats: [],
   };
 }

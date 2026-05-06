@@ -25,10 +25,20 @@ describe('template-model', () => {
       expect(bandTypes).toContain('pageFooter');
     });
 
-    it('should create template with empty dataSources and styles', () => {
+    it('should create template with empty dataSources and default text styles', () => {
       const template = createDefaultTemplate();
       expect(template.dataSources).toEqual([]);
-      expect(template.styles).toEqual([]);
+      expect(template.styles.map(style => style.name)).toEqual([
+        'Normal',
+        'Title',
+        'Header',
+        'Data',
+        'Footer',
+        'Group',
+      ]);
+      expect(template.styles.filter(style => style.isDefault)).toHaveLength(1);
+      expect(template.styles.find(style => style.name === 'Header')?.border.style).toBe('solid');
+      expect(template.styles.find(style => style.name === 'Footer')?.border.style).toBe('solid');
       expect(template.conditionalFormats).toEqual([]);
     });
   });

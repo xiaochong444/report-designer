@@ -33,6 +33,14 @@ export interface BorderConfig {
   };
 }
 
+/** 内边距 */
+export interface Padding {
+  top: number;
+  right: number;
+  bottom: number;
+  left: number;
+}
+
 /** 条件规则 */
 export interface ConditionRule {
   id: string;
@@ -50,13 +58,24 @@ export interface TextFormatConfig {
   falseText?: string;
 }
 
+export type TextAlign = 'left' | 'center' | 'right';
+export type VerticalAlign = 'top' | 'middle' | 'bottom';
+
 /** 报表样式 */
 export interface ReportStyle {
   id: string;
   name: string;
+  category?: 'text';
   font: FontConfig;
   border: BorderConfig;
   backgroundColor: string;
+  textAlign?: TextAlign;
+  verticalAlign?: VerticalAlign;
+  padding?: Padding;
+  format?: TextFormatConfig;
+  canGrow?: boolean;
+  canShrink?: boolean;
+  isDefault?: boolean;
 }
 
 /** 条件格式 */
@@ -97,7 +116,7 @@ export interface ReportComponent {
   height: number;     // mm
   zOrder?: number;    // stacking order
   backgroundColor?: string; // 背景色
-  padding?: { top: number; right: number; bottom: number; left: number }; // mm
+  padding?: Padding; // mm
   style?: string;     // 引用 styles 中的 ID
   conditions?: ConditionRule[];
   anchor?: string;
@@ -109,8 +128,8 @@ export interface TextComponent extends ReportComponent {
   text: Expression;
   format?: TextFormatConfig;
   font: FontConfig;
-  textAlign: 'left' | 'center' | 'right';
-  verticalAlign: 'top' | 'middle' | 'bottom';
+  textAlign: TextAlign;
+  verticalAlign: VerticalAlign;
   border: BorderConfig;
   canGrow: boolean;
   canShrink: boolean;
@@ -224,7 +243,7 @@ export interface PageNumberComponent extends ReportComponent {
   type: 'pagenumber';
   format: '1' | '1/N' | 'Page 1 of N' | 'Page 1';
   font: FontConfig;
-  textAlign: 'left' | 'center' | 'right';
+  textAlign: TextAlign;
 }
 
 /** 日期时间组件 */
@@ -232,7 +251,7 @@ export interface DateTimeComponent extends ReportComponent {
   type: 'datetime';
   format: string; // e.g. 'yyyy-MM-dd HH:mm:ss'
   font: FontConfig;
-  textAlign: 'left' | 'center' | 'right';
+  textAlign: TextAlign;
 }
 
 /** 带类型 */
