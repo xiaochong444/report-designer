@@ -4,6 +4,7 @@ import { EditOutlined } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
 import type { BorderConfig, TableComponent, TextFormatConfig, TextFormatType } from '@report-designer/core';
 import type { CSSProperties } from 'react';
+import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { ExpressionEditor } from './ExpressionEditor';
 import { normalizeTable } from '../table/table-structure';
 
@@ -21,6 +22,7 @@ export const PropertyEditor: React.FC = () => {
   const updateComponent = useDesignerStore(s => s.updateComponent);
   const updateSelectedTable = useDesignerStore(s => s.updateSelectedTable);
   const applySelectedStyle = useDesignerStore(s => s.applySelectedStyle);
+  const reportUnit = useDesignerStore(s => s.reportUnit);
 
   const { component, bandId } = useMemo(() => {
     if (selectedComponentIds.length !== 1) return { component: null, bandId: null };
@@ -34,6 +36,8 @@ export const PropertyEditor: React.FC = () => {
   }, [template, currentPageId, selectedComponentIds]);
 
   const [exprModalOpen, setExprModalOpen] = useState(false);
+  const unitStep = getUnitStep(reportUnit);
+  const fineUnitStep = getUnitStep(reportUnit, 'fine');
 
   if (selectedComponentIds.length === 0) {
     return (
@@ -161,42 +165,42 @@ export const PropertyEditor: React.FC = () => {
             label: '位置与尺寸',
             children: (
               <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-                <Form.Item label="X (mm)">
+                <Form.Item label="X">
                   <InputNumber
-                    value={comp.x}
-                    onChange={(v) => handleChange('x', v)}
+                    value={formatUnitValue(comp.x, reportUnit)}
+                    onChange={(v) => handleChange('x', parseUnitValue(v, reportUnit, comp.x))}
                     size="small"
                     style={{ width: '100%' }}
-                    step={0.5}
+                    step={unitStep}
                   />
                 </Form.Item>
-                <Form.Item label="Y (mm)">
+                <Form.Item label="Y">
                   <InputNumber
-                    value={comp.y}
-                    onChange={(v) => handleChange('y', v)}
+                    value={formatUnitValue(comp.y, reportUnit)}
+                    onChange={(v) => handleChange('y', parseUnitValue(v, reportUnit, comp.y))}
                     size="small"
                     style={{ width: '100%' }}
-                    step={0.5}
+                    step={unitStep}
                   />
                 </Form.Item>
-                <Form.Item label="宽度 (mm)">
+                <Form.Item label="宽度">
                   <InputNumber
-                    value={comp.width}
-                    onChange={(v) => handleChange('width', v)}
+                    value={formatUnitValue(comp.width, reportUnit)}
+                    onChange={(v) => handleChange('width', parseUnitValue(v, reportUnit, comp.width))}
                     size="small"
                     style={{ width: '100%' }}
-                    step={0.5}
-                    min={1}
+                    step={unitStep}
+                    min={formatUnitValue(1, reportUnit)}
                   />
                 </Form.Item>
-                <Form.Item label="高度 (mm)">
+                <Form.Item label="高度">
                   <InputNumber
-                    value={comp.height}
-                    onChange={(v) => handleChange('height', v)}
+                    value={formatUnitValue(comp.height, reportUnit)}
+                    onChange={(v) => handleChange('height', parseUnitValue(v, reportUnit, comp.height))}
                     size="small"
                     style={{ width: '100%' }}
-                    step={0.5}
-                    min={1}
+                    step={unitStep}
+                    min={formatUnitValue(1, reportUnit)}
                   />
                 </Form.Item>
               </Form>
@@ -416,15 +420,15 @@ export const PropertyEditor: React.FC = () => {
                     ]}
                   />
                 </Form.Item>
-                <Form.Item label="宽度 (mm)">
+                <Form.Item label="宽度">
                   <InputNumber
-                    value={border.width}
-                    onChange={(v) => handleBorderField('width', v)}
+                    value={formatUnitValue(border.width, reportUnit)}
+                    onChange={(v) => handleBorderField('width', parseUnitValue(v, reportUnit, border.width))}
                     size="small"
                     style={{ width: '100%' }}
-                    min={0.1}
-                    max={5}
-                    step={0.1}
+                    min={formatUnitValue(0.1, reportUnit)}
+                    max={formatUnitValue(5, reportUnit)}
+                    step={fineUnitStep}
                   />
                 </Form.Item>
                 <Form.Item label="颜色">
@@ -473,45 +477,45 @@ export const PropertyEditor: React.FC = () => {
                   />
                 </Form.Item>
                 <Divider style={{ margin: '4px 0' }} />
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>内边距 (mm)</div>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>内边距</div>
                 <Form.Item label="上">
                   <InputNumber
-                    value={padding.top}
-                    onChange={(v) => handlePaddingField('top', v ?? 0)}
+                    value={formatUnitValue(padding.top, reportUnit)}
+                    onChange={(v) => handlePaddingField('top', parseUnitValue(v, reportUnit, padding.top))}
                     size="small"
                     style={{ width: '100%' }}
                     min={0}
-                    step={0.5}
+                    step={unitStep}
                   />
                 </Form.Item>
                 <Form.Item label="右">
                   <InputNumber
-                    value={padding.right}
-                    onChange={(v) => handlePaddingField('right', v ?? 0)}
+                    value={formatUnitValue(padding.right, reportUnit)}
+                    onChange={(v) => handlePaddingField('right', parseUnitValue(v, reportUnit, padding.right))}
                     size="small"
                     style={{ width: '100%' }}
                     min={0}
-                    step={0.5}
+                    step={unitStep}
                   />
                 </Form.Item>
                 <Form.Item label="下">
                   <InputNumber
-                    value={padding.bottom}
-                    onChange={(v) => handlePaddingField('bottom', v ?? 0)}
+                    value={formatUnitValue(padding.bottom, reportUnit)}
+                    onChange={(v) => handlePaddingField('bottom', parseUnitValue(v, reportUnit, padding.bottom))}
                     size="small"
                     style={{ width: '100%' }}
                     min={0}
-                    step={0.5}
+                    step={unitStep}
                   />
                 </Form.Item>
                 <Form.Item label="左">
                   <InputNumber
-                    value={padding.left}
-                    onChange={(v) => handlePaddingField('left', v ?? 0)}
+                    value={formatUnitValue(padding.left, reportUnit)}
+                    onChange={(v) => handlePaddingField('left', parseUnitValue(v, reportUnit, padding.left))}
                     size="small"
                     style={{ width: '100%' }}
                     min={0}
-                    step={0.5}
+                    step={unitStep}
                   />
                 </Form.Item>
               </Form>
@@ -544,15 +548,15 @@ export const PropertyEditor: React.FC = () => {
                     onChange={(color) => handleChange('lineColor', color.toHexString())}
                   />
                 </Form.Item>
-                <Form.Item label="宽度 (mm)">
+                <Form.Item label="宽度">
                   <InputNumber
-                    value={comp.lineWidth ?? 0.2}
-                    onChange={(v) => handleChange('lineWidth', v ?? 0.2)}
+                    value={formatUnitValue(comp.lineWidth ?? 0.2, reportUnit)}
+                    onChange={(v) => handleChange('lineWidth', parseUnitValue(v, reportUnit, comp.lineWidth ?? 0.2))}
                     size="small"
                     style={{ width: '100%' }}
-                    min={0.1}
-                    max={5}
-                    step={0.1}
+                    min={formatUnitValue(0.1, reportUnit)}
+                    max={formatUnitValue(5, reportUnit)}
+                    step={fineUnitStep}
                   />
                 </Form.Item>
                 <Form.Item label="样式">
@@ -569,18 +573,18 @@ export const PropertyEditor: React.FC = () => {
                   />
                 </Form.Item>
                 <Divider style={{ margin: '4px 0' }} />
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>端点坐标 (mm)</div>
+                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>端点坐标</div>
                 <Form.Item label="起点 X">
-                  <InputNumber value={comp.startX ?? 0} onChange={(v) => handleChange('startX', v ?? 0)} size="small" style={{ width: '100%' }} step={0.5} />
+                  <InputNumber value={formatUnitValue(comp.startX ?? 0, reportUnit)} onChange={(v) => handleChange('startX', parseUnitValue(v, reportUnit, comp.startX ?? 0))} size="small" style={{ width: '100%' }} step={unitStep} />
                 </Form.Item>
                 <Form.Item label="起点 Y">
-                  <InputNumber value={comp.startY ?? 0} onChange={(v) => handleChange('startY', v ?? 0)} size="small" style={{ width: '100%' }} step={0.5} />
+                  <InputNumber value={formatUnitValue(comp.startY ?? 0, reportUnit)} onChange={(v) => handleChange('startY', parseUnitValue(v, reportUnit, comp.startY ?? 0))} size="small" style={{ width: '100%' }} step={unitStep} />
                 </Form.Item>
                 <Form.Item label="终点 X">
-                  <InputNumber value={comp.endX ?? comp.width} onChange={(v) => handleChange('endX', v ?? comp.width)} size="small" style={{ width: '100%' }} step={0.5} />
+                  <InputNumber value={formatUnitValue(comp.endX ?? comp.width, reportUnit)} onChange={(v) => handleChange('endX', parseUnitValue(v, reportUnit, comp.endX ?? comp.width))} size="small" style={{ width: '100%' }} step={unitStep} />
                 </Form.Item>
                 <Form.Item label="终点 Y">
-                  <InputNumber value={comp.endY ?? comp.height} onChange={(v) => handleChange('endY', v ?? comp.height)} size="small" style={{ width: '100%' }} step={0.5} />
+                  <InputNumber value={formatUnitValue(comp.endY ?? comp.height, reportUnit)} onChange={(v) => handleChange('endY', parseUnitValue(v, reportUnit, comp.endY ?? comp.height))} size="small" style={{ width: '100%' }} step={unitStep} />
                 </Form.Item>
               </Form>
             ),
@@ -621,15 +625,15 @@ export const PropertyEditor: React.FC = () => {
                     onChange={(color) => handleChange('borderColor', color.toHexString())}
                   />
                 </Form.Item>
-                <Form.Item label="边框宽 (mm)">
+                <Form.Item label="边框宽">
                   <InputNumber
-                    value={comp.borderWidth ?? 0.2}
-                    onChange={(v) => handleChange('borderWidth', v ?? 0.2)}
+                    value={formatUnitValue(comp.borderWidth ?? 0.2, reportUnit)}
+                    onChange={(v) => handleChange('borderWidth', parseUnitValue(v, reportUnit, comp.borderWidth ?? 0.2))}
                     size="small"
                     style={{ width: '100%' }}
                     min={0}
-                    max={5}
-                    step={0.1}
+                    max={formatUnitValue(5, reportUnit)}
+                    step={fineUnitStep}
                   />
                 </Form.Item>
                 <Form.Item label="边框样式">

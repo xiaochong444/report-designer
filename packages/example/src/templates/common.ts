@@ -32,7 +32,7 @@ export const dataFields = {
   ],
 };
 
-export function template(id: string, name: string, bands: ReportBandV2[], height = 110): ReportTemplateV2 {
+export function template(id: string, name: string, bands: ReportBandV2[], height = 297): ReportTemplateV2 {
   return {
     id,
     name,

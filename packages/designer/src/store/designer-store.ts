@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import type { ReportTemplate, ReportComponent, Band, Page, TableComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { CommandDispatcher } from '@report-designer/core';
+import type { ReportUnit } from '../page-settings';
 import {
   clearTableCell,
   deleteTableColumn,
@@ -24,6 +25,8 @@ export interface DesignerState {
   dataSources: Record<string, any[]>;
   dispatcher: CommandDispatcher;
   clipboard: ReportComponent[];
+  reportUnit: ReportUnit;
+  zoom: number;
 
   // Actions
   loadTemplate: (template: ReportTemplate) => void;
@@ -33,6 +36,8 @@ export interface DesignerState {
   selectComponents: (componentIds: string[]) => void;
   selectBand: (bandId: string | null) => void;
   setDataSources: (data: Record<string, any[]>) => void;
+  setReportUnit: (unit: ReportUnit) => void;
+  setZoom: (zoom: number) => void;
 
   // Command-dispatched actions
   addComponent: (pageId: string, bandId: string, component: ReportComponent) => void;
@@ -119,6 +124,8 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     dataSources: {},
     dispatcher,
     clipboard: [],
+    reportUnit: 'mm',
+    zoom: 1,
 
   loadTemplate: (template) => {
     set({
@@ -127,6 +134,8 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       mode: 'design',
       selectedComponentIds: [],
       selectedBandId: null,
+      reportUnit: 'mm',
+      zoom: 1,
     });
   },
 
@@ -141,6 +150,10 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   selectBand: (bandId) => set({ selectedBandId: bandId }),
 
   setDataSources: (data) => set({ dataSources: data }),
+
+  setReportUnit: (reportUnit) => set({ reportUnit }),
+
+  setZoom: (zoom) => set({ zoom }),
 
   addComponent: (pageId, bandId, component) => {
     const { template, dispatcher } = get();

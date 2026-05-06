@@ -2,6 +2,15 @@ import React from 'react';
 import { Collapse, Form, InputNumber, Select, Typography } from 'antd';
 import type { Margins, Page } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
+import {
+  detectPaperType,
+  formatUnitValue,
+  getPaperPresetSize,
+  getUnitStep,
+  parseUnitValue,
+  PAPER_PRESETS,
+  type PaperType,
+} from '../../page-settings';
 import { PropertyGridV2 } from '../properties/PropertyGridV2';
 import { PropertyEditor } from '../PropertyEditor';
 
@@ -45,6 +54,8 @@ const PageProperties: React.FC = () => {
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const setPageSettings = useDesignerStore(s => s.setPageSettings);
+  const reportUnit = useDesignerStore(s => s.reportUnit);
+  const setReportUnit = useDesignerStore(s => s.setReportUnit);
   const page = template.pages.find(item => item.id === currentPageId) ?? template.pages[0];
 
   if (!page) {
@@ -56,17 +67,38 @@ const PageProperties: React.FC = () => {
   }
 
   const margins = page.margins ?? { top: 0, right: 0, bottom: 0, left: 0 };
+  const paperType = detectPaperType(page.width, page.height);
+  const unitStep = getUnitStep(reportUnit);
+  const sizeMin = formatUnitValue(20, reportUnit);
+  const sizeMax = formatUnitValue(1000, reportUnit);
+  const marginMax = formatUnitValue(100, reportUnit);
   const updatePage = (settings: Partial<Page>) => setPageSettings(page.id, settings);
   const updateMargin = (field: keyof Margins, value?: number | string | null) => {
-    updatePage({ margins: { ...margins, [field]: Number(value ?? margins[field]) } });
+    updatePage({ margins: { ...margins, [field]: parseUnitValue(value, reportUnit, margins[field]) } });
   };
   const updateOrientation = (orientation: Page['orientation']) => {
+    if (paperType !== 'Custom') {
+      updatePage({
+        orientation,
+        ...getPaperPresetSize(paperType, orientation, page.width, page.height),
+      });
+      return;
+    }
+
     const shortSide = Math.min(page.width, page.height);
     const longSide = Math.max(page.width, page.height);
     updatePage({
       orientation,
       width: orientation === 'portrait' ? shortSide : longSide,
       height: orientation === 'portrait' ? longSide : shortSide,
+    });
+  };
+  const updatePaperType = (value: PaperType) => {
+    if (value === 'Custom') {
+      return;
+    }
+    updatePage({
+      ...getPaperPresetSize(value, page.orientation, page.width, page.height),
     });
   };
 
@@ -81,26 +113,52 @@ const PageProperties: React.FC = () => {
             label: 'Page',
             children: (
               <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-                <Form.Item label="Width (mm)">
-                  <InputNumber
-                    aria-label="Page width"
-                    value={page.width}
-                    min={20}
-                    max={1000}
-                    step={1}
-                    style={{ width: '100%' }}
-                    onChange={value => updatePage({ width: Number(value ?? page.width) })}
+                <Form.Item label="Paper type">
+                  <Select
+                    aria-label="Paper type"
+                    value={paperType}
+                    virtual={false}
+                    options={[
+                      ...PAPER_PRESETS.map((item) => ({ value: item.value, label: item.label })),
+                      { value: 'Custom', label: 'Custom' },
+                    ]}
+                    onChange={updatePaperType}
                   />
                 </Form.Item>
-                <Form.Item label="Height (mm)">
+                <Form.Item label="Report unit">
+                  <Select
+                    aria-label="Report unit"
+                    value={reportUnit}
+                    virtual={false}
+                    options={[
+                      { value: 'mm', label: 'Millimeter' },
+                      { value: 'cm', label: 'Centimeter' },
+                    ]}
+                    onChange={setReportUnit}
+                  />
+                </Form.Item>
+                <Form.Item label="Width">
+                  <InputNumber
+                    aria-label="Page width"
+                    value={formatUnitValue(page.width, reportUnit)}
+                    min={sizeMin}
+                    max={sizeMax}
+                    step={unitStep}
+                    disabled={paperType !== 'Custom'}
+                    style={{ width: '100%' }}
+                    onChange={value => updatePage({ width: parseUnitValue(value, reportUnit, page.width) })}
+                  />
+                </Form.Item>
+                <Form.Item label="Height">
                   <InputNumber
                     aria-label="Page height"
-                    value={page.height}
-                    min={20}
-                    max={1000}
-                    step={1}
+                    value={formatUnitValue(page.height, reportUnit)}
+                    min={sizeMin}
+                    max={sizeMax}
+                    step={unitStep}
+                    disabled={paperType !== 'Custom'}
                     style={{ width: '100%' }}
-                    onChange={value => updatePage({ height: Number(value ?? page.height) })}
+                    onChange={value => updatePage({ height: parseUnitValue(value, reportUnit, page.height) })}
                   />
                 </Form.Item>
                 <Form.Item label="Orientation">
@@ -123,17 +181,17 @@ const PageProperties: React.FC = () => {
             label: 'Margins',
             children: (
               <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-                <Form.Item label="Top (mm)">
-                  <InputNumber value={margins.top} min={0} max={100} step={0.5} style={{ width: '100%' }} onChange={value => updateMargin('top', value)} />
+                <Form.Item label="Top">
+                  <InputNumber value={formatUnitValue(margins.top, reportUnit)} min={0} max={marginMax} step={unitStep} style={{ width: '100%' }} onChange={value => updateMargin('top', value)} />
                 </Form.Item>
-                <Form.Item label="Right (mm)">
-                  <InputNumber value={margins.right} min={0} max={100} step={0.5} style={{ width: '100%' }} onChange={value => updateMargin('right', value)} />
+                <Form.Item label="Right">
+                  <InputNumber value={formatUnitValue(margins.right, reportUnit)} min={0} max={marginMax} step={unitStep} style={{ width: '100%' }} onChange={value => updateMargin('right', value)} />
                 </Form.Item>
-                <Form.Item label="Bottom (mm)">
-                  <InputNumber value={margins.bottom} min={0} max={100} step={0.5} style={{ width: '100%' }} onChange={value => updateMargin('bottom', value)} />
+                <Form.Item label="Bottom">
+                  <InputNumber value={formatUnitValue(margins.bottom, reportUnit)} min={0} max={marginMax} step={unitStep} style={{ width: '100%' }} onChange={value => updateMargin('bottom', value)} />
                 </Form.Item>
-                <Form.Item label="Left (mm)">
-                  <InputNumber value={margins.left} min={0} max={100} step={0.5} style={{ width: '100%' }} onChange={value => updateMargin('left', value)} />
+                <Form.Item label="Left">
+                  <InputNumber value={formatUnitValue(margins.left, reportUnit)} min={0} max={marginMax} step={unitStep} style={{ width: '100%' }} onChange={value => updateMargin('left', value)} />
                 </Form.Item>
               </Form>
             ),

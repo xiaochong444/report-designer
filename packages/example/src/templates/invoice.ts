@@ -27,4 +27,4 @@ export const invoiceTemplate = template('invoice', 'Invoice', [
   band('inv-page-footer', 'pageFooter', 8, [
     text('inv-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { textAlign: 'center' }),
   ]),
-], 120);
+]);

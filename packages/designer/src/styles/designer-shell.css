@@ -182,13 +182,20 @@
 }
 
 .rd-left-panel .ant-tabs-nav {
-  margin-bottom: 4px;
-  padding: 0 6px;
+  margin-bottom: 6px;
+  padding: 0 4px;
 }
 
 .rd-left-panel .ant-tabs-tab {
-  padding: 6px 0;
+  padding: 7px 2px;
   font-size: 12px;
+}
+
+.rd-left-panel .ant-tabs-content-holder,
+.rd-left-panel .ant-tabs-content,
+.rd-left-panel .ant-tabs-tabpane {
+  min-height: 0;
+  height: 100%;
 }
 
 .rd-property-grid .ant-collapse-header {
@@ -265,14 +272,6 @@
   min-height: 0;
   overflow: hidden;
   background: #e1e6ee;
-}
-
-.rd-report-tree-strip {
-  max-height: 180px;
-  overflow: auto;
-  padding: 6px 8px;
-  border-bottom: 1px solid var(--rd-border);
-  background: #fbfcfe;
 }
 
 .rd-property-grid-band {

@@ -13,33 +13,35 @@ import {
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
 import type { ReportComponent, BandType } from '@report-designer/core';
+import { formatUnitValue, getReportUnitSymbol, getUnitStep, parseUnitValue } from '../page-settings';
 import { nanoid } from 'nanoid';
 import { useState } from 'react';
 
 export const LeftPanel: React.FC = () => {
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '0 6px 6px' }}>
       <Tabs
         size="small"
+        defaultActiveKey="report"
         items={[
           {
             key: 'palette',
             label: (
-              <span><AppstoreOutlined /> Palette</span>
+              <span><AppstoreOutlined /> Components</span>
             ),
             children: <ComponentPalette />,
           },
           {
             key: 'data',
             label: (
-              <span><DatabaseOutlined /> Data</span>
+              <span><DatabaseOutlined /> Dictionary</span>
             ),
             children: <DataDictionary />,
           },
           {
             key: 'tree',
             label: (
-              <span><FileTextOutlined /> Tree</span>
+              <span><FileTextOutlined /> Report</span>
             ),
             children: <PageTree />,
           },
@@ -70,6 +72,7 @@ const ComponentPalette: React.FC = () => {
   const addComponent = useDesignerStore(s => s.addComponent);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const template = useDesignerStore(s => s.template);
+  const zoom = useDesignerStore(s => s.zoom);
 
   const getDropPosition = (e: React.DragEvent) => {
     const pageEl = document.querySelector('[data-page]') as HTMLElement;
@@ -78,8 +81,8 @@ const ComponentPalette: React.FC = () => {
     const rect = pageEl.getBoundingClientRect();
     const xPx = e.clientX - rect.left;
     const yPx = e.clientY - rect.top;
-    const xMm = xPx / 3.78;
-    const yMm = yPx / 3.78;
+    const xMm = xPx / (3.78 * zoom);
+    const yMm = yPx / (3.78 * zoom);
 
     const bands = pageEl.querySelectorAll('[data-band-id]');
     let targetBandId: string | null = null;
@@ -87,8 +90,8 @@ const ComponentPalette: React.FC = () => {
 
     bands.forEach(el => {
       const bandRect = (el as HTMLElement).getBoundingClientRect();
-      const bandTopMm = (bandRect.top - rect.top) / 3.78;
-      const bandBottomMm = bandTopMm + (bandRect.height / 3.78);
+      const bandTopMm = (bandRect.top - rect.top) / (3.78 * zoom);
+      const bandBottomMm = bandTopMm + (bandRect.height / (3.78 * zoom));
       if (yMm >= bandTopMm && yMm < bandBottomMm) {
         targetBandId = el.getAttribute('data-band-id');
         relativeYMm = yMm - bandTopMm;
@@ -179,10 +182,11 @@ const ComponentPalette: React.FC = () => {
 
   return (
     <div style={{ padding: 8 }} onDrop={handleDropOnCanvas} onDragOver={handleDragOver}>
+      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>Drag common report controls into the selected band.</div>
       <div style={{
         display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: 4,
+        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+        gap: 6,
       }}>
         {COMPONENT_TYPES.map(item => (
           <Tooltip key={item.type} title={item.label}>
@@ -197,17 +201,18 @@ const ComponentPalette: React.FC = () => {
               <Button
                 size="small"
                 style={{
-                  height: 40,
-                  fontSize: 16,
+                  height: 52,
+                  fontSize: 15,
                   display: 'flex',
+                  flexDirection: 'column',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  gap: 4,
+                  gap: 2,
                   width: '100%',
                 }}
               >
                 <span>{item.icon}</span>
-                <span style={{ fontSize: 11 }}>{item.label}</span>
+                <span style={{ fontSize: 10, lineHeight: 1.1 }}>{item.label}</span>
               </Button>
             </div>
           </Tooltip>
@@ -327,10 +332,13 @@ const PageTree: React.FC = () => {
   const selectBand = useDesignerStore(s => s.selectBand);
   const addBand = useDesignerStore(s => s.addBand);
   const deleteBand = useDesignerStore(s => s.deleteBand);
+  const reportUnit = useDesignerStore(s => s.reportUnit);
 
   const [bandModalOpen, setBandModalOpen] = useState(false);
   const [newBandType, setNewBandType] = useState<BandType>('data');
   const [newBandHeight, setNewBandHeight] = useState(30);
+  const unitSymbol = getReportUnitSymbol(reportUnit);
+  const unitStep = getUnitStep(reportUnit);
 
   const currentPage = template.pages.find(p => p.id === currentPageId);
 
@@ -365,7 +373,7 @@ const PageTree: React.FC = () => {
       key: band.id,
       title: (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', width: '100%' }}>
-          <span>{band.type} ({band.height}mm)</span>
+          <span>{band.type} ({formatUnitValue(band.height, reportUnit)} {unitSymbol})</span>
           <Space size={0}>
             <Tooltip title="上移">
               <Button
@@ -409,9 +417,10 @@ const PageTree: React.FC = () => {
   }));
 
   return (
-    <div style={{ padding: 8, height: '100%', display: 'flex', flexDirection: 'column' }}>
-      <div style={{ marginBottom: 8 }}>
-        <Button size="small" icon={<PlusOutlined />} onClick={() => setBandModalOpen(true)} block>
+    <div style={{ padding: 8, height: '100%', display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+        <div style={{ fontSize: 11, color: '#6b7280' }}>Pages, bands, and components</div>
+        <Button size="small" icon={<PlusOutlined />} onClick={() => setBandModalOpen(true)}>
           添加带
         </Button>
       </div>
@@ -459,13 +468,14 @@ const PageTree: React.FC = () => {
             />
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-            <span style={{ width: 60 }}>高度 (mm)</span>
+            <span style={{ width: 60 }}>高度</span>
             <InputNumber
-              value={newBandHeight}
-              onChange={(v) => setNewBandHeight(v ?? 30)}
+              value={formatUnitValue(newBandHeight, reportUnit)}
+              onChange={(v) => setNewBandHeight(parseUnitValue(v, reportUnit, newBandHeight))}
               style={{ width: '100%' }}
-              min={5}
-              max={500}
+              min={formatUnitValue(5, reportUnit)}
+              max={formatUnitValue(500, reportUnit)}
+              step={unitStep}
             />
           </div>
         </div>

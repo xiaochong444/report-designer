@@ -15,7 +15,7 @@ type ResizeHandle = 'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se';
 const RESIZE_HANDLES: ResizeHandle[] = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
 
 function mmToPx(mm: number): number { return Math.round(mm * MM_TO_PX); }
-function pxToMm(px: number): number { return Math.round(px / MM_TO_PX * 10) / 10; }
+function pxToMm(px: number, zoom = 1): number { return Math.round(px / (MM_TO_PX * zoom) * 10) / 10; }
 
 // ---- Interaction Mode (互斥) ----
 
@@ -137,6 +137,8 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const toggleSelectedFontStyle = useDesignerStore(s => s.toggleSelectedFontStyle);
   const setTextAlign = useDesignerStore(s => s.setTextAlign);
   const setDesignerMode = useDesignerStore(s => s.setMode);
+  const zoom = useDesignerStore(s => s.zoom);
+  const setZoom = useDesignerStore(s => s.setZoom);
   const undo = useDesignerStore(s => s.undo);
   const redo = useDesignerStore(s => s.redo);
 
@@ -146,7 +148,6 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const [selBox, setSelBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [guides, setGuides] = useState<GuideLine[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuPos | null>(null);
-  const [zoom, setZoom] = useState(1); // 缩放比例 0.25 ~ 4
 
   const currentPage = useMemo(() => template.pages.find(p => p.id === currentPageId), [template, currentPageId]);
 
@@ -255,7 +256,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       }
       if (pageRef.current) {
         const rect = pageRef.current.getBoundingClientRect();
-        setContextMenu({ x: e.clientX - rect.left, y: e.clientY - rect.top, compId: ch?.compId, tableCell: tableCell ?? undefined });
+        setContextMenu({ x: (e.clientX - rect.left) / zoom, y: (e.clientY - rect.top) / zoom, compId: ch?.compId, tableCell: tableCell ?? undefined });
       }
       return;
     }
@@ -340,13 +341,13 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     const rect = pageRef.current.getBoundingClientRect();
     selectComponents([]);
     selectBand(null);
-    const sx = e.clientX - rect.left;
-    const sy = e.clientY - rect.top;
+    const sx = (e.clientX - rect.left) / zoom;
+    const sy = (e.clientY - rect.top) / zoom;
     const m: Mode = { type: 'select', startX: sx, startY: sy };
     modeRef.current = m;
     setMode(m);
     setSelBox({ x: sx, y: sy, w: 0, h: 0 });
-  }, [flat, bands, selectedComponentIds, selectComponents, selectBand, findComponentAtPoint, findTableCellAtPoint, findResizeHandleAtPoint, findBandResizeAtPoint]);
+  }, [flat, bands, selectedComponentIds, selectComponents, selectBand, findComponentAtPoint, findTableCellAtPoint, findResizeHandleAtPoint, findBandResizeAtPoint, zoom]);
 
   // ---- Global mouse move/up ----
 
@@ -366,8 +367,8 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
           modeRef.current = { ...m, dragStarted: true };
         }
 
-        const dxMm = pxToMm(dxPx);
-        const dyMm = pxToMm(dyPx);
+        const dxMm = pxToMm(dxPx, zoom);
+        const dyMm = pxToMm(dyPx, zoom);
 
         // Move all selected components
         const pageId = currentPageIdRef.current;
@@ -389,8 +390,8 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         }
 
       } else if (m.type === 'resize') {
-        const dx = pxToMm(e.clientX - m.startX);
-        const dy = pxToMm(e.clientY - m.startY);
+        const dx = pxToMm(e.clientX - m.startX, zoom);
+        const dy = pxToMm(e.clientY - m.startY, zoom);
         let nx = m.origX, ny = m.origY, nw = m.origW, nh = m.origH;
         if (m.handle.includes('e')) nw = Math.max(5, m.origW + dx);
         if (m.handle.includes('w')) { nw = Math.max(5, m.origW - dx); nx = m.origX + dx; }
@@ -401,15 +402,15 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         );
 
       } else if (m.type === 'band-resize') {
-        const dy = pxToMm(e.clientY - m.startY);
+        const dy = pxToMm(e.clientY - m.startY, zoom);
         const nh = Math.max(5, Math.round((m.origHeight + dy) * 10) / 10);
         resizeBandSilent(currentPageIdRef.current, m.bandId, nh);
 
       } else if (m.type === 'select') {
         if (!pageRef.current) return;
         const rect = pageRef.current.getBoundingClientRect();
-        const cx = e.clientX - rect.left;
-        const cy = e.clientY - rect.top;
+        const cx = (e.clientX - rect.left) / zoom;
+        const cy = (e.clientY - rect.top) / zoom;
         setSelBox({
           x: Math.min(m.startX, cx), y: Math.min(m.startY, cy),
           w: Math.abs(cx - m.startX), h: Math.abs(cy - m.startY),
@@ -483,7 +484,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [moveComponent, updateComponent, resizeBand, selectComponents]);
+  }, [moveComponent, updateComponent, resizeBand, selectComponents, zoom]);
 
   // ---- Keyboard shortcuts ----
 
@@ -632,16 +633,14 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       if (e.ctrlKey || e.metaKey) {
         e.preventDefault();
         const delta = e.deltaY > 0 ? -0.1 : 0.1;
-        setZoom(prev => {
-          const next = Math.min(4, Math.max(0.25, prev + delta));
-          return Math.round(next * 100) / 100;
-        });
+        const next = Math.min(4, Math.max(0.25, zoom + delta));
+        setZoom(Math.round(next * 100) / 100);
       }
     };
 
     el.addEventListener('wheel', handleWheel, { passive: false });
     return () => el.removeEventListener('wheel', handleWheel);
-  }, []);
+  }, [setZoom, zoom]);
 
   // ---- Click outside to close context menu ----
 
@@ -661,30 +660,34 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   }
 
   const isBusy = mode.type !== 'idle';
-  const gridPx = mmToPx(GRID_MM) * zoom;
-  const pageWidthPx = mmToPx(currentPage.width) * zoom;
-  const pageHeightPx = mmToPx(currentPage.height) * zoom;
+  const gridPx = mmToPx(GRID_MM);
+  const rawPageWidthPx = mmToPx(currentPage.width);
+  const rawPageHeightPx = mmToPx(currentPage.height);
+  const scaledPageWidthPx = Math.round(rawPageWidthPx * zoom);
+  const scaledPageHeightPx = Math.round(rawPageHeightPx * zoom);
   const margins = currentPage.margins ?? { top: 0, right: 0, bottom: 0, left: 0 };
-  const marginLeftPx = mmToPx(margins.left) * zoom;
-  const marginTopPx = mmToPx(margins.top) * zoom;
-  const marginRightPx = mmToPx(margins.right) * zoom;
-  const marginBottomPx = mmToPx(margins.bottom) * zoom;
+  const rawMarginLeftPx = mmToPx(margins.left);
+  const rawMarginTopPx = mmToPx(margins.top);
+  const rawMarginRightPx = mmToPx(margins.right);
+  const rawMarginBottomPx = mmToPx(margins.bottom);
+  const scaledMarginLeftPx = Math.round(rawMarginLeftPx * zoom);
+  const scaledMarginTopPx = Math.round(rawMarginTopPx * zoom);
   const printableWidthMm = Math.max(0, currentPage.width - margins.left - margins.right);
   const printableHeightMm = Math.max(0, currentPage.height - margins.top - margins.bottom);
-  const printableWidthPx = mmToPx(printableWidthMm) * zoom;
-  const printableHeightPx = mmToPx(printableHeightMm) * zoom;
+  const rawPrintableWidthPx = mmToPx(printableWidthMm);
+  const rawPrintableHeightPx = mmToPx(printableHeightMm);
 
   return (
     <div ref={containerRef} className={className}
       style={{ overflowX: 'hidden', overflowY: 'auto', backgroundColor: '#e8e8e8', height: '100%', padding: 24, userSelect: isBusy ? 'none' : 'auto', position: 'relative' }}
     >
-      <div data-testid="designer-canvas-page-stack" style={{ position: 'relative', width: pageWidthPx + RULER_SIZE, margin: 0 }}>
+      <div data-testid="designer-canvas-page-stack" style={{ position: 'relative', width: scaledPageWidthPx + RULER_SIZE, height: scaledPageHeightPx + RULER_SIZE, margin: 0 }}>
         {/* 顶部标尺 */}
         <Ruler
           direction="horizontal"
           lengthMm={printableWidthMm}
-          lengthPx={pageWidthPx}
-          printableOffsetPx={marginLeftPx}
+          lengthPx={scaledPageWidthPx}
+          printableOffsetPx={scaledMarginLeftPx}
           offsetPx={RULER_SIZE}
           crossOffsetPx={0}
           zoom={zoom}
@@ -692,8 +695,8 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         <Ruler
           direction="vertical"
           lengthMm={printableHeightMm}
-          lengthPx={pageHeightPx}
-          printableOffsetPx={marginTopPx}
+          lengthPx={scaledPageHeightPx}
+          printableOffsetPx={scaledMarginTopPx}
           offsetPx={RULER_SIZE}
           crossOffsetPx={0}
           zoom={zoom}
@@ -703,7 +706,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
           onMouseDown={handlePageMouseDown}
           onContextMenu={(e) => e.preventDefault()}
           style={{
-            width: pageWidthPx, height: pageHeightPx,
+            width: rawPageWidthPx, height: rawPageHeightPx,
             backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             position: 'relative', marginLeft: RULER_SIZE, marginTop: RULER_SIZE, overflow: 'hidden',
             transform: `scale(${zoom})`,
@@ -713,10 +716,10 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             data-testid="designer-page-content-area"
             style={{
               position: 'absolute',
-              left: marginLeftPx,
-              top: marginTopPx,
-              width: printableWidthPx,
-              height: printableHeightPx,
+              left: rawMarginLeftPx,
+              top: rawMarginTopPx,
+              width: rawPrintableWidthPx,
+              height: rawPrintableHeightPx,
               backgroundImage: `
                 linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)
@@ -810,8 +813,8 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         </div>
       </div>
 
-      {/* 缩放控制条 - 固定在画布右下角 */}
-      <ZoomBar zoom={zoom} onZoomIn={() => setZoom(z => Math.min(4, Math.round((z + 0.1) * 100) / 100))} onZoomOut={() => setZoom(z => Math.max(0.25, Math.round((z - 0.1) * 100) / 100))} onReset={() => setZoom(1)} onSetZoom={(z) => setZoom(z)} />
+      {/* 缩放控制条 */}
+      <ZoomBar zoom={zoom} onZoomIn={() => setZoom(Math.min(4, Math.round((zoom + 0.1) * 100) / 100))} onZoomOut={() => setZoom(Math.max(0.25, Math.round((zoom - 0.1) * 100) / 100))} onReset={() => setZoom(1)} onSetZoom={(z) => setZoom(z)} />
     </div>
   );
 };
@@ -900,8 +903,8 @@ const ZoomBar: React.FC<{
   onReset: () => void;
   onSetZoom: (z: number) => void;
 }> = ({ zoom, onZoomIn, onZoomOut, onReset, onSetZoom }) => (
-  <div style={{
-    position: 'fixed', right: 40, bottom: 40,
+  <div data-testid="designer-zoom-bar" style={{
+    position: 'absolute', left: 32, bottom: 16,
     backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 4,
     boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 10000,
     display: 'flex', alignItems: 'center', padding: '2px 4px', gap: 2,

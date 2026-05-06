@@ -20,4 +20,4 @@ export const longTextPaginationTemplate = template('long-text-pagination', 'Long
   band('lt-page-footer', 'pageFooter', 8, [
     text('lt-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { textAlign: 'center' }),
   ]),
-], 85);
+]);

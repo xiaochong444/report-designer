@@ -39,6 +39,8 @@ describe('Phase 10 page properties', () => {
     expect(within(propertyGrid).getByText('Page Settings')).toBeInTheDocument();
 
     const pageProperties = screen.getByTestId('designer-page-properties');
+    expect(within(pageProperties).getByLabelText('Paper type')).toBeInTheDocument();
+    expect(within(pageProperties).getByLabelText('Report unit')).toBeInTheDocument();
     expect(pageProperties).toHaveTextContent('Width');
     expect(pageProperties).toHaveTextContent('Height');
     expect(pageProperties).toHaveTextContent('Orientation');
@@ -46,5 +48,8 @@ describe('Phase 10 page properties', () => {
     expect(pageProperties).toHaveTextContent('Right');
     expect(pageProperties).toHaveTextContent('Bottom');
     expect(pageProperties).toHaveTextContent('Left');
+    expect(pageProperties).toHaveTextContent('A4');
+    expect(pageProperties).toHaveTextContent('Millimeter');
+    expect(pageProperties).not.toHaveTextContent('(mm)');
   });
 });

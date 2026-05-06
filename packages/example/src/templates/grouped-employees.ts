@@ -31,4 +31,4 @@ export const groupedEmployeesTemplate = template('grouped-employees', 'Grouped E
   band('ge-page-footer', 'pageFooter', 8, [
     text('ge-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { textAlign: 'center' }),
   ]),
-], 92);
+]);

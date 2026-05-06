@@ -24,4 +24,4 @@ export const masterDetailOrdersTemplate = template('master-detail-orders', 'Mast
   band('mdo-page-footer', 'pageFooter', 8, [
     text('mdo-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { textAlign: 'center' }),
   ]),
-], 95);
+]);
