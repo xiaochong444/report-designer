@@ -14,7 +14,13 @@ type ResizeHandle = 'nw' | 'n' | 'ne' | 'w' | 'e' | 'sw' | 's' | 'se';
 
 const RESIZE_HANDLES: ResizeHandle[] = ['nw', 'n', 'ne', 'w', 'e', 'sw', 's', 'se'];
 
-function mmToPx(mm: number): number { return Math.round(mm * MM_TO_PX); }
+function mmToPx(mm: number): number {
+  const numeric = Number(mm);
+  if (!Number.isFinite(numeric)) {
+    return 0;
+  }
+  return Math.round(numeric * MM_TO_PX);
+}
 function pxToMm(px: number, zoom = 1): number { return Math.round(px / (MM_TO_PX * zoom) * 10) / 10; }
 
 // ---- Interaction Mode (互斥) ----

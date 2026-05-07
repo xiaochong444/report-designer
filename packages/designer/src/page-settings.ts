@@ -69,6 +69,9 @@ export function getReportUnitSymbol(unit: ReportUnit): string {
 }
 
 export function formatUnitValue(valueMm: number, unit: ReportUnit): number {
+  if (!Number.isFinite(valueMm)) {
+    return 0;
+  }
   const converted = unit === 'cm' ? valueMm / 10 : valueMm;
   const digits = unit === 'cm' ? 2 : 1;
   return Number(converted.toFixed(digits));

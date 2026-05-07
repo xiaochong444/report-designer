@@ -30,14 +30,21 @@ Object.defineProperty(globalThis, 'ResizeObserver', {
   value: ResizeObserverMock,
 });
 
+const nativeGetComputedStyle = window.getComputedStyle.bind(window);
 Object.defineProperty(window, 'getComputedStyle', {
   writable: true,
-  value: () => ({
-    getPropertyValue: () => '',
-    width: '0px',
-    height: '0px',
-    overflow: 'visible',
-    overflowX: 'visible',
-    overflowY: 'visible',
-  }),
+  value: (element: Element) => {
+    const style = nativeGetComputedStyle(element);
+    if (style) {
+      return style;
+    }
+    return {
+      getPropertyValue: () => '',
+      width: '0px',
+      height: '0px',
+      overflow: 'visible',
+      overflowX: 'visible',
+      overflowY: 'visible',
+    };
+  },
 });
