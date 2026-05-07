@@ -1,18 +1,37 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Button, Layout, Select, Typography } from 'antd';
 import type { ReportTemplate } from '@report-designer/core';
-import { Designer } from '@report-designer/designer';
+import { Designer, type DesignerLocale } from '@report-designer/designer';
 import { Viewer } from '@report-designer/viewer';
 import { sampleReports } from './templates';
 
 const { Content, Header } = Layout;
 type ViewMode = 'preview' | 'designer';
 
+const exampleMessages: Record<DesignerLocale, {
+  reportSamples: string;
+  openDesigner: string;
+  returnPreview: string;
+}> = {
+  'zh-CN': {
+    reportSamples: '报表示例',
+    openDesigner: '打开设计器',
+    returnPreview: '返回预览',
+  },
+  'en-US': {
+    reportSamples: 'Report Samples',
+    openDesigner: 'Open Designer',
+    returnPreview: 'Return to Preview',
+  },
+};
+
 function App() {
   const [sampleKey, setSampleKey] = useState(sampleReports[0].key);
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
+  const [locale, setLocale] = useState<DesignerLocale>('zh-CN');
   const [designerDrafts, setDesignerDrafts] = useState<Record<string, ReportTemplate>>({});
   const [previewDrafts, setPreviewDrafts] = useState<Record<string, ReportTemplate>>({});
+  const labels = exampleMessages[locale];
   const selected = useMemo(
     () => sampleReports.find(report => report.key === sampleKey) ?? sampleReports[0],
     [sampleKey],
@@ -42,7 +61,7 @@ function App() {
           borderBottom: '1px solid #cfd6df',
         }}
       >
-        <Typography.Text strong style={{ minWidth: 142 }}>Report Samples</Typography.Text>
+        <Typography.Text strong style={{ minWidth: 92 }}>{labels.reportSamples}</Typography.Text>
         <Select
           data-testid="sample-template-picker"
           value={sampleKey}
@@ -52,13 +71,25 @@ function App() {
         />
         <Typography.Text type="secondary">{previewTemplate.name}</Typography.Text>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          <div data-testid="example-locale-picker">
+            <Select
+              value={locale}
+              onChange={(value: DesignerLocale) => setLocale(value)}
+              style={{ width: 126 }}
+              virtual={false}
+              options={[
+                { value: 'zh-CN', label: '中文' },
+                { value: 'en-US', label: 'English' },
+              ]}
+            />
+          </div>
           {viewMode === 'preview' ? (
             <Button size="small" type="primary" onClick={() => setViewMode('designer')}>
-              打开设计器
+              {labels.openDesigner}
             </Button>
           ) : (
             <Button size="small" onClick={() => setViewMode('preview')}>
-              返回预览
+              {labels.returnPreview}
             </Button>
           )}
         </div>
@@ -71,6 +102,7 @@ function App() {
             key={selected.key}
             template={designerTemplate}
             data={selected.data}
+            locale={locale}
             onTemplateChange={handleDesignerTemplateChange}
           />
         )}

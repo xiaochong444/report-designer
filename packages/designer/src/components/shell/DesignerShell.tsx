@@ -14,6 +14,7 @@ import { DesignerLeftPanel } from '../panels/DesignerLeftPanel';
 import { DesignerPropertyPanel } from '../panels/DesignerPropertyPanel';
 import { DesignerRibbon } from '../ribbon/DesignerRibbon';
 import { useDesignerStore } from '../../store/designer-store';
+import { useDesignerI18n } from '../../i18n';
 import { DesignerStatusBar } from './DesignerStatusBar';
 import '../../styles/designer-shell.css';
 
@@ -53,27 +54,31 @@ interface QuickAccessProps {
   canRedo: boolean;
 }
 
-const QuickAccess: React.FC<QuickAccessProps> = ({ template, undo, redo, canUndo, canRedo }) => (
-  <header className="rd-quick-access" data-testid="designer-quick-access">
-    <div className="rd-quick-access-buttons">
-      <Tooltip title="New">
-        <Button size="small" type="text" icon={<FileAddOutlined />} />
-      </Tooltip>
-      <Tooltip title="Open">
-        <Button size="small" type="text" icon={<FolderOpenOutlined />} />
-      </Tooltip>
-      <Tooltip title="Save">
-        <Button size="small" type="text" icon={<SaveOutlined />} />
-      </Tooltip>
-      <span className="rd-quick-access-separator" />
-      <Tooltip title="Undo">
-        <Button size="small" type="text" icon={<UndoOutlined />} disabled={!canUndo} onClick={undo} />
-      </Tooltip>
-      <Tooltip title="Redo">
-        <Button size="small" type="text" icon={<RedoOutlined />} disabled={!canRedo} onClick={redo} />
-      </Tooltip>
-    </div>
-    <div className="rd-quick-access-title">{template.name || 'Untitled Report'}</div>
-    <div className="rd-quick-access-meta">Report Designer</div>
-  </header>
-);
+const QuickAccess: React.FC<QuickAccessProps> = ({ template, undo, redo, canUndo, canRedo }) => {
+  const { t } = useDesignerI18n();
+
+  return (
+    <header className="rd-quick-access" data-testid="designer-quick-access">
+      <div className="rd-quick-access-buttons">
+        <Tooltip title={t('shell.new')}>
+          <Button size="small" type="text" icon={<FileAddOutlined />} />
+        </Tooltip>
+        <Tooltip title={t('shell.open')}>
+          <Button size="small" type="text" icon={<FolderOpenOutlined />} />
+        </Tooltip>
+        <Tooltip title={t('shell.save')}>
+          <Button size="small" type="text" icon={<SaveOutlined />} />
+        </Tooltip>
+        <span className="rd-quick-access-separator" />
+        <Tooltip title={t('shell.undo')}>
+          <Button size="small" type="text" icon={<UndoOutlined />} disabled={!canUndo} onClick={undo} />
+        </Tooltip>
+        <Tooltip title={t('shell.redo')}>
+          <Button size="small" type="text" icon={<RedoOutlined />} disabled={!canRedo} onClick={redo} />
+        </Tooltip>
+      </div>
+      <div className="rd-quick-access-title">{template.name || t('shell.untitledReport')}</div>
+      <div className="rd-quick-access-meta">{t('shell.designerName')}</div>
+    </header>
+  );
+};

@@ -17,3 +17,5 @@ export { Canvas } from './components/Canvas';
 export { LeftPanel } from './components/LeftPanel';
 export { PropertyEditor } from './components/PropertyEditor';
 export { useDesignerStore } from './store/designer-store';
+export { DesignerI18nProvider, useDesignerI18n } from './i18n';
+export type { DesignerLocale, DesignerMessageKey } from './i18n';

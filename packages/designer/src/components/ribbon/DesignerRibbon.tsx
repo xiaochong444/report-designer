@@ -30,9 +30,10 @@ import { BandWizardDialog } from '../dialogs/BandWizardDialog';
 import { GroupWizardDialog } from '../dialogs/GroupWizardDialog';
 import { JsonDataSourceDialog } from '../dialogs/JsonDataSourceDialog';
 import { PageSetupDialog } from '../dialogs/PageSetupDialog';
+import { useDesignerI18n } from '../../i18n';
 
-const TAB_LABELS = ['Home', 'Insert', 'Page Layout', 'Preview'] as const;
-type RibbonTab = typeof TAB_LABELS[number];
+const TAB_KEYS = ['home', 'insert', 'pageLayout', 'preview'] as const;
+type RibbonTab = typeof TAB_KEYS[number];
 
 const DEFAULT_FONT: FontConfig = {
   family: 'Arial',
@@ -52,7 +53,8 @@ const DEFAULT_BORDER: BorderConfig = {
 };
 
 export const DesignerRibbon: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<RibbonTab>('Home');
+  const { t } = useDesignerI18n();
+  const [activeTab, setActiveTab] = useState<RibbonTab>('home');
   const [dataDialogOpen, setDataDialogOpen] = useState(false);
   const [bandDialogOpen, setBandDialogOpen] = useState(false);
   const [groupDialogOpen, setGroupDialogOpen] = useState(false);
@@ -85,9 +87,9 @@ export const DesignerRibbon: React.FC = () => {
 
   useEffect(() => {
     if (mode === 'preview') {
-      setActiveTab('Preview');
-    } else if (activeTab === 'Preview') {
-      setActiveTab('Home');
+      setActiveTab('preview');
+    } else if (activeTab === 'preview') {
+      setActiveTab('home');
     }
   }, [mode, activeTab]);
 
@@ -104,7 +106,7 @@ export const DesignerRibbon: React.FC = () => {
 
   const handleTabClick = (tab: RibbonTab) => {
     setActiveTab(tab);
-    setMode(tab === 'Preview' ? 'preview' : 'design');
+    setMode(tab === 'preview' ? 'preview' : 'design');
   };
 
   const addComponentToCurrentBand = (component: ReportComponent) => {
@@ -235,76 +237,76 @@ export const DesignerRibbon: React.FC = () => {
   const setMargins = (margins: Margins) => updateCurrentPage({ margins });
 
   const renderRibbonGroups = () => {
-    if (activeTab === 'Insert') {
+    if (activeTab === 'insert') {
       return (
         <>
-          <RibbonGroup title="Data">
-            <Tooltip title="JSON data source">
+          <RibbonGroup title={t('ribbon.data')}>
+            <Tooltip title={t('ribbon.jsonDataSource')}>
               <Button size="small" icon={<DatabaseOutlined />} onClick={() => setDataDialogOpen(true)}>
                 JSON
               </Button>
             </Tooltip>
           </RibbonGroup>
 
-          <RibbonGroup title="Bands">
-            <Tooltip title="Band wizard">
+          <RibbonGroup title={t('ribbon.bands')}>
+            <Tooltip title={t('ribbon.bandWizard')}>
               <Button size="small" icon={<ApartmentOutlined />} onClick={() => setBandDialogOpen(true)}>
-                Bands
+                {t('ribbon.bands')}
               </Button>
             </Tooltip>
-            <Tooltip title="Group wizard">
+            <Tooltip title={t('ribbon.groupWizard')}>
               <Button size="small" icon={<GroupOutlined />} onClick={() => setGroupDialogOpen(true)}>
-                Group
+                {t('ribbon.groupWizard')}
               </Button>
             </Tooltip>
           </RibbonGroup>
 
-          <RibbonGroup title="Components">
-            <Button size="small" icon={<FontSizeOutlined />} onClick={addText}>Text</Button>
-            <Button size="small" icon={<TableOutlined />} onClick={addTable}>Table</Button>
-            <Button size="small" icon={<PictureOutlined />} onClick={addImage}>Image</Button>
-            <Button size="small" icon={<CheckSquareOutlined />} onClick={addCheckbox}>Check</Button>
-            <Button size="small" icon={<LineOutlined />} onClick={addLine}>Line</Button>
+          <RibbonGroup title={t('ribbon.components')}>
+            <Button size="small" icon={<FontSizeOutlined />} onClick={addText}>{t('ribbon.text')}</Button>
+            <Button size="small" icon={<TableOutlined />} onClick={addTable}>{t('ribbon.table')}</Button>
+            <Button size="small" icon={<PictureOutlined />} onClick={addImage}>{t('ribbon.image')}</Button>
+            <Button size="small" icon={<CheckSquareOutlined />} onClick={addCheckbox}>{t('ribbon.checkbox')}</Button>
+            <Button size="small" icon={<LineOutlined />} onClick={addLine}>{t('ribbon.line')}</Button>
           </RibbonGroup>
         </>
       );
     }
 
-    if (activeTab === 'Page Layout') {
+    if (activeTab === 'pageLayout') {
       return (
         <>
-          <RibbonGroup title="Page Setup">
-            <Tooltip title="Add page">
+          <RibbonGroup title={t('ribbon.pageSetup')}>
+            <Tooltip title={t('ribbon.addPage')}>
               <Button size="small" icon={<PlusOutlined />} onClick={addPage} />
             </Tooltip>
-            <Tooltip title="Page settings">
+            <Tooltip title={t('ribbon.pageSettings')}>
               <Button size="small" icon={<SettingOutlined />} onClick={() => setPageDialogOpen(true)}>
-                Settings
+                {t('ribbon.settings')}
               </Button>
             </Tooltip>
           </RibbonGroup>
 
-          <RibbonGroup title="Size">
-            <Button size="small" onClick={() => setPagePreset(210, 297, 'portrait')}>A4 Portrait</Button>
-            <Button size="small" onClick={() => setPagePreset(297, 210, 'landscape')}>A4 Landscape</Button>
+          <RibbonGroup title={t('ribbon.size')}>
+            <Button size="small" onClick={() => setPagePreset(210, 297, 'portrait')}>{t('ribbon.a4Portrait')}</Button>
+            <Button size="small" onClick={() => setPagePreset(297, 210, 'landscape')}>{t('ribbon.a4Landscape')}</Button>
           </RibbonGroup>
 
-          <RibbonGroup title="Margins">
-            <Button size="small" onClick={() => setMargins({ top: 10, right: 10, bottom: 10, left: 10 })}>Normal</Button>
-            <Button size="small" onClick={() => setMargins({ top: 5, right: 5, bottom: 5, left: 5 })}>Narrow</Button>
-            <Button size="small" onClick={() => setMargins({ top: 20, right: 20, bottom: 20, left: 20 })}>Wide</Button>
+          <RibbonGroup title={t('ribbon.margins')}>
+            <Button size="small" onClick={() => setMargins({ top: 10, right: 10, bottom: 10, left: 10 })}>{t('ribbon.normalMargins')}</Button>
+            <Button size="small" onClick={() => setMargins({ top: 5, right: 5, bottom: 5, left: 5 })}>{t('ribbon.narrowMargins')}</Button>
+            <Button size="small" onClick={() => setMargins({ top: 20, right: 20, bottom: 20, left: 20 })}>{t('ribbon.wideMargins')}</Button>
           </RibbonGroup>
         </>
       );
     }
 
-    if (activeTab === 'Preview') {
+    if (activeTab === 'preview') {
       return (
         <>
-          <RibbonGroup title="Print Preview">
-            <Tooltip title="Print preview">
+          <RibbonGroup title={t('ribbon.printPreview')}>
+            <Tooltip title={t('ribbon.printPreview')}>
               <Button size="small" icon={<PrinterOutlined />} type="primary" onClick={() => setMode('preview')}>
-                Preview
+                {t('ribbon.preview')}
               </Button>
             </Tooltip>
           </RibbonGroup>
@@ -314,36 +316,36 @@ export const DesignerRibbon: React.FC = () => {
 
     return (
       <>
-        <RibbonGroup title="File">
-          <Tooltip title="New report">
+        <RibbonGroup title={t('ribbon.file')}>
+          <Tooltip title={t('ribbon.newReport')}>
             <Button size="small" icon={<FileAddOutlined />} />
           </Tooltip>
-          <Tooltip title="Open JSON template">
+          <Tooltip title={t('ribbon.openTemplate')}>
             <Button size="small" icon={<FolderOpenOutlined />} />
           </Tooltip>
-          <Tooltip title="Save JSON template">
+          <Tooltip title={t('ribbon.saveTemplate')}>
             <Button size="small" icon={<SaveOutlined />} onClick={saveTemplate} />
           </Tooltip>
         </RibbonGroup>
 
-        <RibbonGroup title="History">
-          <Tooltip title="Undo">
+        <RibbonGroup title={t('ribbon.history')}>
+          <Tooltip title={t('shell.undo')}>
             <Button size="small" icon={<UndoOutlined />} disabled={!canUndo()} onClick={undo} />
           </Tooltip>
-          <Tooltip title="Redo">
+          <Tooltip title={t('shell.redo')}>
             <Button size="small" icon={<RedoOutlined />} disabled={!canRedo()} onClick={redo} />
           </Tooltip>
         </RibbonGroup>
 
-        <RibbonGroup title="Clipboard">
-          <Button size="small" onClick={copySelected} disabled={selectedCount === 0}>Copy</Button>
-          <Button size="small" onClick={pasteClipboard} disabled={getClipboard().length === 0}>Paste</Button>
-          <Tooltip title="Delete selected objects">
+        <RibbonGroup title={t('ribbon.clipboard')}>
+          <Button size="small" onClick={copySelected} disabled={selectedCount === 0}>{t('ribbon.copy')}</Button>
+          <Button size="small" onClick={pasteClipboard} disabled={getClipboard().length === 0}>{t('ribbon.paste')}</Button>
+          <Tooltip title={t('ribbon.deleteSelected')}>
             <Button size="small" danger icon={<DeleteOutlined />} onClick={deleteSelected} disabled={selectedCount === 0} />
           </Tooltip>
         </RibbonGroup>
 
-        <RibbonGroup title="Font">
+        <RibbonGroup title={t('ribbon.font')}>
           <Select
             size="small"
             value={fontInfo?.size || 12}
@@ -358,16 +360,18 @@ export const DesignerRibbon: React.FC = () => {
           </Button>
         </RibbonGroup>
 
-        <RibbonGroup title="Alignment">
+        <RibbonGroup title={t('ribbon.align')}>
           <Button size="small" icon={<AlignLeftOutlined />} disabled={textAlign === null} type={textAlign === 'left' ? 'primary' : 'default'} onClick={() => setTextAlign('left')} />
           <Button size="small" icon={<AlignCenterOutlined />} disabled={textAlign === null} type={textAlign === 'center' ? 'primary' : 'default'} onClick={() => setTextAlign('center')} />
           <Button size="small" icon={<AlignRightOutlined />} disabled={textAlign === null} type={textAlign === 'right' ? 'primary' : 'default'} onClick={() => setTextAlign('right')} />
-          <Button size="small" icon={<BorderOuterOutlined />} disabled={selectedCount === 0} onClick={() => setBorderAll(true)} />
+          <Tooltip title={t('ribbon.allBorders')}>
+            <Button size="small" icon={<BorderOuterOutlined />} disabled={selectedCount === 0} onClick={() => setBorderAll(true)} />
+          </Tooltip>
         </RibbonGroup>
 
-        <RibbonGroup title="Styles">
+        <RibbonGroup title={t('ribbon.styles')}>
           <Button size="small" icon={<AppstoreOutlined />} onClick={openTextStyleLibrary}>
-            Style Designer
+            {t('ribbon.styleDesigner')}
           </Button>
         </RibbonGroup>
       </>
@@ -377,14 +381,14 @@ export const DesignerRibbon: React.FC = () => {
   return (
     <div className="rd-ribbon" data-testid="designer-ribbon">
       <div className="rd-ribbon-tabs">
-        {TAB_LABELS.map((tab) => (
+        {TAB_KEYS.map((tab) => (
           <button
             key={tab}
             className={activeTab === tab ? 'rd-ribbon-tab rd-ribbon-tab-active' : 'rd-ribbon-tab'}
             type="button"
             onClick={() => handleTabClick(tab)}
           >
-            {tab}
+            {t(tab === 'home' ? 'ribbon.home' : tab === 'insert' ? 'ribbon.insert' : tab === 'pageLayout' ? 'ribbon.pageLayout' : 'ribbon.preview')}
           </button>
         ))}
       </div>

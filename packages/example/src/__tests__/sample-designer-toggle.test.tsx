@@ -42,6 +42,29 @@ function findTextComponent(componentId: string) {
     .find(component => component.id === componentId && component.type === 'text');
 }
 
+async function chooseLocale(container: HTMLElement, optionText: string) {
+  const picker = container.querySelector('[data-testid="example-locale-picker"]') as HTMLElement | null;
+  expect(picker).toBeTruthy();
+  const trigger = (
+    picker!.querySelector('.ant-select-selector')
+    ?? picker!.querySelector('[role="combobox"]')
+    ?? picker!.querySelector('.ant-select')
+  ) as HTMLElement | null;
+  expect(trigger).toBeTruthy();
+
+  await act(async () => {
+    trigger!.dispatchEvent(new MouseEvent('mousedown', { bubbles: true }));
+  });
+
+  const option = Array.from(document.body.querySelectorAll('.ant-select-item-option-content'))
+    .find(item => item.textContent?.trim() === optionText) as HTMLElement | undefined;
+  expect(option).toBeTruthy();
+
+  await act(async () => {
+    option!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+  });
+}
+
 describe('example sample designer toggle', () => {
   it('opens the designer for the selected sample template', async () => {
     const container = document.createElement('div');
@@ -142,5 +165,29 @@ describe('example sample designer toggle', () => {
 
     expect(container.querySelector('[data-testid="designer-quick-access"]')).toBeNull();
     expect(container.textContent).toContain('Designer Draft Title');
+  });
+
+  it('passes the selected language to the designer shell', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<App />);
+    });
+
+    await chooseLocale(container, 'English');
+
+    const openDesigner = Array.from(container.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('Open Designer'));
+    expect(openDesigner).toBeTruthy();
+
+    await act(async () => {
+      openDesigner!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(container.textContent).toContain('Style Designer');
+    expect(container.textContent).toContain('Report Designer');
+    expect(container.textContent).not.toContain('样式设计器');
   });
 });

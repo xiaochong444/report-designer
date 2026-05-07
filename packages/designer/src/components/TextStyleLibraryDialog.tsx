@@ -30,6 +30,7 @@ import {
 } from 'antd';
 import type { BorderConfig, FontConfig, ReportStyle, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
+import { useDesignerI18n } from '../i18n';
 
 interface TextStyleLibraryDialogProps {
   open: boolean;
@@ -98,6 +99,7 @@ function filterStyles(styles: ReportStyle[], search: string) {
 }
 
 export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ open, onClose }) => {
+  const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
   const createTextStyle = useDesignerStore(s => s.createTextStyle);
@@ -162,7 +164,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
   };
 
   const handleCreate = () => {
-    const createdId = createTextStyle({ name: 'New Style' });
+    const createdId = createTextStyle({ name: t('styleLibrary.newStyleName') });
     setSearch('');
     setSelectedStyleId(createdId);
   };
@@ -200,13 +202,13 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
     const deletingId = selectedStyle.id;
     const usageCount = getTextStyleUsageCount(deletingId);
     Modal.confirm({
-      title: `Delete "${selectedStyle.name}"?`,
+      title: t('styleLibrary.deleteTitle', { name: selectedStyle.name }),
       content: usageCount > 0
-        ? `该样式当前被 ${usageCount} 个文本组件引用。删除后会清除引用组件的样式关联。`
-        : '删除后无法恢复。',
-      okText: 'Delete',
+        ? t('styleLibrary.deleteInUse', { count: usageCount })
+        : t('styleLibrary.deleteUnused'),
+      okText: t('common.delete'),
       okButtonProps: { danger: true },
-      cancelText: 'Cancel',
+      cancelText: t('common.cancel'),
       onOk: () => {
         const latestTemplate = useDesignerStore.getState().template;
         const latestSearch = searchRef.current;
@@ -261,12 +263,12 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
   return (
     <Modal
       open={open}
-      title="Text Style Library"
+      title={t('styleLibrary.title')}
       onCancel={onClose}
       onOk={onClose}
       width={1120}
       style={{ top: 16 }}
-      okText="Done"
+      okText={t('common.done')}
       destroyOnHidden
       styles={{ body: { paddingTop: 10, overflow: 'hidden' } }}
     >
@@ -295,13 +297,13 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
             aria-label="样式搜索"
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search styles"
+            placeholder={t('styleLibrary.searchPlaceholder')}
             allowClear
           />
           <Space size={8}>
-            <ToolbarIconButton ariaLabel="New" icon={<PlusOutlined />} onClick={handleCreate} tooltip="New" />
-            <ToolbarIconButton ariaLabel="Duplicate" icon={<CopyOutlined />} onClick={handleDuplicate} disabled={!selectedStyle} tooltip="Duplicate" />
-            <ToolbarIconButton ariaLabel="Delete" icon={<DeleteOutlined />} danger onClick={handleDelete} disabled={!selectedStyle} tooltip="Delete" />
+            <ToolbarIconButton ariaLabel={t('common.new')} icon={<PlusOutlined />} onClick={handleCreate} tooltip={t('common.new')} />
+            <ToolbarIconButton ariaLabel={t('common.duplicate')} icon={<CopyOutlined />} onClick={handleDuplicate} disabled={!selectedStyle} tooltip={t('common.duplicate')} />
+            <ToolbarIconButton ariaLabel={t('common.delete')} icon={<DeleteOutlined />} danger onClick={handleDelete} disabled={!selectedStyle} tooltip={t('common.delete')} />
           </Space>
           <div style={{ border: '1px solid #e7e9ee', borderRadius: 8, overflow: 'hidden', minHeight: 0, flex: '1 1 0px', background: '#fff' }}>
             <div
@@ -345,7 +347,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                         {style.name}
                       </span>
                       <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
-                        {style.isDefault ? <Tag color="blue" style={{ marginInlineEnd: 0 }}>Default</Tag> : null}
+                        {style.isDefault ? <Tag color="blue" style={{ marginInlineEnd: 0 }}>{t('common.default')}</Tag> : null}
                         <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                           {getTextStyleUsageCount(style.id)}
                         </Typography.Text>
@@ -355,7 +357,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                 })
               ) : (
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '1 1 auto' }}>
-                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No styles" />
+                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('styleLibrary.noStyles')} />
                 </div>
               )}
             </div>
@@ -375,8 +377,8 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
           }}
         >
           <div>
-            <Typography.Title level={5} style={{ margin: 0 }}>Preview</Typography.Title>
-            <Typography.Text type="secondary">Simple text preview for the selected style.</Typography.Text>
+            <Typography.Title level={5} style={{ margin: 0 }}>{t('styleLibrary.preview')}</Typography.Title>
+            <Typography.Text type="secondary">{t('styleLibrary.previewDescription')}</Typography.Text>
           </div>
           <div
             style={{
@@ -401,11 +403,11 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
               boxShadow: 'inset 0 0 0 1px rgba(15, 23, 42, 0.03)',
             }}
           >
-            The quick brown fox jumps over 123,456.78
+            {t('styleLibrary.previewSample')}
           </div>
-          <PanelCard title={selectedStyle?.name ?? 'No style selected'}>
+          <PanelCard title={selectedStyle?.name ?? t('styleLibrary.selectStyle')}>
             <Typography.Text type="secondary">
-              Used by {selectedStyle ? getTextStyleUsageCount(selectedStyle.id) : 0} text component(s).
+              {t('styleLibrary.usedBy', { count: selectedStyle ? getTextStyleUsageCount(selectedStyle.id) : 0 })}
             </Typography.Text>
           </PanelCard>
         </section>
@@ -425,23 +427,23 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
         >
           <PanelCard padded={false}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px' }}>
-              <Typography.Text strong>Properties</Typography.Text>
+              <Typography.Text strong>{t('styleLibrary.properties')}</Typography.Text>
               <Space size={8}>
                 <ToolbarIconButton
-                  ariaLabel="Set Default"
+                  ariaLabel={t('styleLibrary.setDefault')}
                   icon={<CheckOutlined />}
                   onClick={() => selectedStyle && setDefaultTextStyle(selectedStyle.id)}
                   disabled={!selectedStyle}
-                  tooltip="Set Default"
+                  tooltip={t('styleLibrary.setDefault')}
                 />
                 <Button
                   type="primary"
                   size="small"
-                  aria-label="Apply to Selected"
+                  aria-label={t('styleLibrary.applyToSelected')}
                   disabled={!selectedStyle || selectedComponentIds.length === 0}
                   onClick={() => selectedStyle && applySelectedStyle(selectedStyle.id)}
                 >
-                  Apply
+                  {t('styleLibrary.apply')}
                 </Button>
               </Space>
             </div>
@@ -463,9 +465,9 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                 minHeight: 0,
               }}
             >
-              <PanelCard title="General">
+              <PanelCard title={t('styleLibrary.general')}>
                 <div style={{ display: 'grid', gap: 10 }}>
-                  <CompactField label="Name">
+                  <CompactField label={t('styleLibrary.name')}>
                     <Input
                       aria-label="样式名称"
                       value={draftName}
@@ -477,7 +479,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                 </div>
               </PanelCard>
 
-              <PanelCard title="Typography">
+              <PanelCard title={t('styleLibrary.typography')}>
                 <div style={{ display: 'grid', gap: 8 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px', gap: 8 }}>
                     <Select
@@ -501,7 +503,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                   </div>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8 }}>
                     <Space.Compact block>
-                      <Tooltip title="Text Color">
+                      <Tooltip title={t('styleLibrary.textColor')}>
                         <Button icon={<FontColorsOutlined />} aria-label="文本颜色图标" />
                       </Tooltip>
                       <ColorPicker
@@ -512,7 +514,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                       />
                     </Space.Compact>
                     <Space.Compact block>
-                      <Tooltip title="Background">
+                      <Tooltip title={t('styleLibrary.background')}>
                         <Button icon={<BgColorsOutlined />} aria-label="背景色图标" />
                       </Tooltip>
                       <ColorPicker
@@ -523,81 +525,81 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                       />
                     </Space.Compact>
                   </div>
-                  <IconRow label="Style">
+                  <IconRow label={t('styleLibrary.style')}>
                     <IconToggleGroup
                       items={[
-                        { label: 'Bold', active: font.bold, icon: <BoldOutlined />, onClick: () => setFontFlag('bold', !font.bold) },
-                        { label: 'Italic', active: font.italic, icon: <ItalicOutlined />, onClick: () => setFontFlag('italic', !font.italic) },
-                        { label: 'Underline', active: font.underline, icon: <UnderlineOutlined />, onClick: () => setFontFlag('underline', !font.underline) },
-                        { label: 'Strike', active: font.strikethrough, icon: <StrikethroughOutlined />, onClick: () => setFontFlag('strikethrough', !font.strikethrough) },
+                        { label: t('styleLibrary.bold'), active: font.bold, icon: <BoldOutlined />, onClick: () => setFontFlag('bold', !font.bold) },
+                        { label: t('styleLibrary.italic'), active: font.italic, icon: <ItalicOutlined />, onClick: () => setFontFlag('italic', !font.italic) },
+                        { label: t('styleLibrary.underline'), active: font.underline, icon: <UnderlineOutlined />, onClick: () => setFontFlag('underline', !font.underline) },
+                        { label: t('styleLibrary.strike'), active: font.strikethrough, icon: <StrikethroughOutlined />, onClick: () => setFontFlag('strikethrough', !font.strikethrough) },
                       ]}
                     />
                   </IconRow>
                 </div>
               </PanelCard>
 
-              <PanelCard title="Layout">
+              <PanelCard title={t('styleLibrary.layout')}>
                 <div style={{ display: 'grid', gap: 8 }}>
-                  <IconRow label="Align">
+                  <IconRow label={t('styleLibrary.align')}>
                     <IconToggleGroup
                       items={[
-                        { label: 'Left', active: (selectedStyle.textAlign ?? 'left') === 'left', icon: <AlignLeftOutlined />, onClick: () => updateSelectedStyle({ textAlign: 'left' }) },
-                        { label: 'Center', active: selectedStyle.textAlign === 'center', icon: <AlignCenterOutlined />, onClick: () => updateSelectedStyle({ textAlign: 'center' }) },
-                        { label: 'Right', active: selectedStyle.textAlign === 'right', icon: <AlignRightOutlined />, onClick: () => updateSelectedStyle({ textAlign: 'right' }) },
+                        { label: t('styleLibrary.left'), active: (selectedStyle.textAlign ?? 'left') === 'left', icon: <AlignLeftOutlined />, onClick: () => updateSelectedStyle({ textAlign: 'left' }) },
+                        { label: t('styleLibrary.center'), active: selectedStyle.textAlign === 'center', icon: <AlignCenterOutlined />, onClick: () => updateSelectedStyle({ textAlign: 'center' }) },
+                        { label: t('styleLibrary.right'), active: selectedStyle.textAlign === 'right', icon: <AlignRightOutlined />, onClick: () => updateSelectedStyle({ textAlign: 'right' }) },
                       ]}
                     />
                   </IconRow>
-                  <IconRow label="Vertical">
+                  <IconRow label={t('styleLibrary.vertical')}>
                     <IconToggleGroup
                       items={[
-                        { label: 'Vertical Top', active: (selectedStyle.verticalAlign ?? 'top') === 'top', icon: <VerticalAlignGlyph position="top" />, onClick: () => updateSelectedStyle({ verticalAlign: 'top' }) },
-                        { label: 'Vertical Middle', active: selectedStyle.verticalAlign === 'middle', icon: <VerticalAlignGlyph position="middle" />, onClick: () => updateSelectedStyle({ verticalAlign: 'middle' }) },
-                        { label: 'Vertical Bottom', active: selectedStyle.verticalAlign === 'bottom', icon: <VerticalAlignGlyph position="bottom" />, onClick: () => updateSelectedStyle({ verticalAlign: 'bottom' }) },
+                        { label: t('styleLibrary.verticalTop'), active: (selectedStyle.verticalAlign ?? 'top') === 'top', icon: <VerticalAlignGlyph position="top" />, onClick: () => updateSelectedStyle({ verticalAlign: 'top' }) },
+                        { label: t('styleLibrary.verticalMiddle'), active: selectedStyle.verticalAlign === 'middle', icon: <VerticalAlignGlyph position="middle" />, onClick: () => updateSelectedStyle({ verticalAlign: 'middle' }) },
+                        { label: t('styleLibrary.verticalBottom'), active: selectedStyle.verticalAlign === 'bottom', icon: <VerticalAlignGlyph position="bottom" />, onClick: () => updateSelectedStyle({ verticalAlign: 'bottom' }) },
                       ]}
                     />
                   </IconRow>
-                  <IconRow label="Auto">
+                  <IconRow label={t('styleLibrary.auto')}>
                     <Space size={8}>
                       <ToggleChip
-                        ariaLabel="Can Grow"
+                        ariaLabel={t('styleLibrary.canGrow')}
                         active={selectedStyle.canGrow ?? false}
                         onClick={() => updateSelectedStyle({ canGrow: !(selectedStyle.canGrow ?? false) })}
                       >
-                        Grow
+                        {t('styleLibrary.canGrow')}
                       </ToggleChip>
                       <ToggleChip
-                        ariaLabel="Can Shrink"
+                        ariaLabel={t('styleLibrary.canShrink')}
                         active={selectedStyle.canShrink ?? false}
                         onClick={() => updateSelectedStyle({ canShrink: !(selectedStyle.canShrink ?? false) })}
                       >
-                        Shrink
+                        {t('styleLibrary.canShrink')}
                       </ToggleChip>
                     </Space>
                   </IconRow>
                 </div>
               </PanelCard>
 
-              <PanelCard title="Format">
+              <PanelCard title={t('styleLibrary.format')}>
                 <div style={{ display: 'grid', gap: 10 }}>
-                  <CompactField label="Type">
+                  <CompactField label={t('styleLibrary.type')}>
                     <Select
                       aria-label="样式格式类型"
                       value={format.type}
                       virtual={false}
                       onChange={(value) => updateSelectedStyle({ format: value === 'none' ? { type: 'none' } : { ...(selectedStyle.format ?? EMPTY_FORMAT), type: value } })}
                       options={[
-                        { value: 'none', label: 'None' },
-                        { value: 'number', label: 'Number' },
-                        { value: 'currency', label: 'Currency' },
-                        { value: 'date', label: 'Date' },
-                        { value: 'time', label: 'Time' },
-                        { value: 'percent', label: 'Percent' },
-                        { value: 'boolean', label: 'Boolean' },
-                        { value: 'custom', label: 'Custom' },
+                        { value: 'none', label: t('styleLibrary.formatNone') },
+                        { value: 'number', label: t('styleLibrary.formatNumber') },
+                        { value: 'currency', label: t('styleLibrary.formatCurrency') },
+                        { value: 'date', label: t('styleLibrary.formatDate') },
+                        { value: 'time', label: t('styleLibrary.formatTime') },
+                        { value: 'percent', label: t('styleLibrary.formatPercent') },
+                        { value: 'boolean', label: t('styleLibrary.formatBoolean') },
+                        { value: 'custom', label: t('styleLibrary.formatCustom') },
                       ]}
                     />
                   </CompactField>
-                  <CompactField label="Pattern">
+                  <CompactField label={t('styleLibrary.pattern')}>
                     <Input
                       aria-label="样式格式模式"
                       value={format.pattern ?? ''}
@@ -605,34 +607,34 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                       placeholder="#,##0.00 / yyyy-MM-dd"
                     />
                   </CompactField>
-                  <CompactField label="Null">
+                  <CompactField label={t('styleLibrary.null')}>
                     <Input
                       aria-label="样式格式空值文本"
                       value={format.nullValue ?? ''}
                       onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), nullValue: event.target.value } })}
-                      placeholder="No value"
+                      placeholder={t('styleLibrary.noValuePlaceholder')}
                     />
                   </CompactField>
-                  <CompactField label="True">
+                  <CompactField label={t('styleLibrary.true')}>
                     <Input
                       aria-label="样式格式真值文本"
                       value={format.trueText ?? ''}
                       onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), trueText: event.target.value } })}
-                      placeholder="True"
+                      placeholder={t('styleLibrary.true')}
                     />
                   </CompactField>
-                  <CompactField label="False">
+                  <CompactField label={t('styleLibrary.false')}>
                     <Input
                       aria-label="样式格式假值文本"
                       value={format.falseText ?? ''}
                       onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), falseText: event.target.value } })}
-                      placeholder="False"
+                      placeholder={t('styleLibrary.false')}
                     />
                   </CompactField>
                 </div>
               </PanelCard>
 
-              <PanelCard title="Border">
+              <PanelCard title={t('styleLibrary.border')}>
                 <BorderEditor
                   border={border}
                   onChange={(nextBorder) => updateSelectedStyle({ border: nextBorder })}
@@ -640,7 +642,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                 />
               </PanelCard>
 
-              <PanelCard title="Padding">
+              <PanelCard title={t('styleLibrary.padding')}>
                 <PaddingEditor
                   padding={padding}
                   onChange={(nextPadding) => updateSelectedStyle({ padding: nextPadding })}
@@ -649,7 +651,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
             </div>
           ) : (
             <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Select a style to edit" />
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('styleLibrary.selectStyle')} />
             </div>
           )}
         </section>
@@ -776,6 +778,7 @@ const BorderEditor: React.FC<{
   onChange: (border: BorderConfig) => void;
   onSideChange: (side: 'top' | 'right' | 'bottom' | 'left', enabled: boolean) => void;
 }> = ({ border, onChange, onSideChange }) => {
+  const { t } = useDesignerI18n();
   const previewBorder = (enabled: boolean) => (
     enabled && border.style !== 'none'
       ? `${Math.max(border.width ?? 0, 0.2)}px ${border.style} ${border.color}`
@@ -784,22 +787,22 @@ const BorderEditor: React.FC<{
 
   return (
     <div style={{ display: 'grid', gap: 8 }}>
-      <CompactField label="样式">
+      <CompactField label={t('styleLibrary.borderStyle')}>
         <Select
           aria-label="样式边框样式"
           value={border.style}
           virtual={false}
           onChange={(value) => onChange({ ...border, style: value })}
           options={[
-            { value: 'none', label: '无' },
-            { value: 'solid', label: '实线' },
-            { value: 'dashed', label: '虚线' },
-            { value: 'dotted', label: '点线' },
-            { value: 'double', label: '双线' },
+            { value: 'none', label: t('styleLibrary.borderNone') },
+            { value: 'solid', label: t('styleLibrary.borderSolid') },
+            { value: 'dashed', label: t('styleLibrary.borderDashed') },
+            { value: 'dotted', label: t('styleLibrary.borderDotted') },
+            { value: 'double', label: t('styleLibrary.borderDouble') },
           ]}
         />
       </CompactField>
-      <CompactField label="宽度">
+      <CompactField label={t('styleLibrary.borderWidth')}>
         <InputNumber
           aria-label="样式边框宽度"
           value={border.width}
@@ -810,7 +813,7 @@ const BorderEditor: React.FC<{
           onChange={(value) => onChange({ ...border, width: Number(value ?? border.width) })}
         />
       </CompactField>
-      <CompactField label="颜色">
+      <CompactField label={t('styleLibrary.borderColor')}>
         <ColorPicker
           aria-label="样式边框颜色"
           value={border.color}
@@ -820,15 +823,15 @@ const BorderEditor: React.FC<{
       </CompactField>
       <div style={{ height: 1, background: '#edf0f4', margin: '2px 0 0' }} />
       <div style={{ display: 'grid', gap: 8 }}>
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>应用边</Typography.Text>
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>{t('styleLibrary.applySides')}</Typography.Text>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <Checkbox checked={border.sides.top} onChange={(event) => onSideChange('top', event.target.checked)}>上</Checkbox>
-          <Checkbox checked={border.sides.right} onChange={(event) => onSideChange('right', event.target.checked)}>右</Checkbox>
-          <Checkbox checked={border.sides.bottom} onChange={(event) => onSideChange('bottom', event.target.checked)}>下</Checkbox>
-          <Checkbox checked={border.sides.left} onChange={(event) => onSideChange('left', event.target.checked)}>左</Checkbox>
+          <Checkbox checked={border.sides.top} onChange={(event) => onSideChange('top', event.target.checked)}>{t('styleLibrary.sideTop')}</Checkbox>
+          <Checkbox checked={border.sides.right} onChange={(event) => onSideChange('right', event.target.checked)}>{t('styleLibrary.sideRight')}</Checkbox>
+          <Checkbox checked={border.sides.bottom} onChange={(event) => onSideChange('bottom', event.target.checked)}>{t('styleLibrary.sideBottom')}</Checkbox>
+          <Checkbox checked={border.sides.left} onChange={(event) => onSideChange('left', event.target.checked)}>{t('styleLibrary.sideLeft')}</Checkbox>
         </div>
         <div
-          aria-label="边框应用边预览"
+          aria-label={t('styleLibrary.borderPreview')}
           style={{
             justifySelf: 'center',
             width: 60,
@@ -849,6 +852,7 @@ const PaddingEditor: React.FC<{
   padding: { top: number; right: number; bottom: number; left: number };
   onChange: (padding: { top: number; right: number; bottom: number; left: number }) => void;
 }> = ({ padding, onChange }) => {
+  const { t } = useDesignerI18n();
   const updateField = (field: 'top' | 'right' | 'bottom' | 'left', value: number | null) => {
     onChange({ ...padding, [field]: Number(value ?? padding[field]) });
   };
@@ -856,16 +860,16 @@ const PaddingEditor: React.FC<{
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-        <PaddingField label="上">
+        <PaddingField label={t('styleLibrary.sideTop')}>
           <InputNumber aria-label="样式内边距上" value={padding.top} min={0} style={{ width: '100%' }} onChange={(value) => updateField('top', value)} />
         </PaddingField>
-        <PaddingField label="右">
+        <PaddingField label={t('styleLibrary.sideRight')}>
           <InputNumber aria-label="样式内边距右" value={padding.right} min={0} style={{ width: '100%' }} onChange={(value) => updateField('right', value)} />
         </PaddingField>
-        <PaddingField label="下">
+        <PaddingField label={t('styleLibrary.sideBottom')}>
           <InputNumber aria-label="样式内边距下" value={padding.bottom} min={0} style={{ width: '100%' }} onChange={(value) => updateField('bottom', value)} />
         </PaddingField>
-        <PaddingField label="左">
+        <PaddingField label={t('styleLibrary.sideLeft')}>
           <InputNumber aria-label="样式内边距左" value={padding.left} min={0} style={{ width: '100%' }} onChange={(value) => updateField('left', value)} />
         </PaddingField>
       </div>

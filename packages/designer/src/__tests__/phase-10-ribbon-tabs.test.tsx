@@ -33,7 +33,7 @@ Object.defineProperty(window, 'ResizeObserver', {
 
 describe('Phase 10 ribbon tabs', () => {
   it('switches Home, Insert, Page Layout, and Preview tab groups', () => {
-    render(<Designer template={createDefaultTemplate('Ribbon Tabs')} />);
+    render(<Designer template={createDefaultTemplate('Ribbon Tabs')} locale="en-US" />);
 
     const ribbonContent = screen.getByTestId('designer-ribbon-content');
     expect(screen.getByRole('button', { name: 'Home' })).toHaveClass('rd-ribbon-tab-active');

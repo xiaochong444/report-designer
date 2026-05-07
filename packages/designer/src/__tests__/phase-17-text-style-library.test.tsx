@@ -6,6 +6,7 @@ import '@testing-library/jest-dom/vitest';
 import type { ReportStyle, TextComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { Designer } from '../components/Designer';
+import type { DesignerLocale } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 import { Modal } from 'antd';
 
@@ -76,8 +77,8 @@ function selectedText(id = 'text-1') {
   return page.bands.flatMap(band => band.components).find(component => component.id === id) as TextComponent | undefined;
 }
 
-async function renderDesignerWithSelection(template: ReturnType<typeof createDefaultTemplate>, componentId?: string) {
-  render(<Designer template={template} />);
+async function renderDesignerWithSelection(template: ReturnType<typeof createDefaultTemplate>, componentId?: string, locale: DesignerLocale = 'en-US') {
+  render(<Designer template={template} locale={locale} />);
   await waitFor(() => expect(useDesignerStore.getState().template.id).toBe(template.id));
   await act(async () => {
     useDesignerStore.getState().selectComponents(componentId ? [componentId] : []);
@@ -100,7 +101,7 @@ function expectAntdControlDisabled(element: HTMLElement) {
 }
 
 async function findTextStyleLibraryDialog() {
-  const title = await screen.findByText('Text Style Library');
+  const title = await screen.findByText(/Text Style Library|文本样式库/);
   const dialog = title.closest('.ant-modal') as HTMLElement | null;
   if (!dialog) {
     throw new Error('Unable to locate Text Style Library modal container');
@@ -417,6 +418,30 @@ describe('Phase 17 text style library store behavior', () => {
     expect(dialog).toBeInTheDocument();
   });
 
+  it('renders the text style library in Chinese by default', async () => {
+    const template = createDefaultTemplate('Style Designer Chinese');
+
+    render(<Designer template={template} />);
+
+    fireEvent.click(await screen.findByText('样式设计器'));
+    const dialog = await findTextStyleLibraryDialog();
+
+    expect(within(dialog).getByText('文本样式库')).toBeInTheDocument();
+    expect(within(dialog).queryByText('Text Style Library')).not.toBeInTheDocument();
+  });
+
+  it('renders the text style library in English when requested', async () => {
+    const template = createDefaultTemplate('Style Designer English');
+
+    render(<Designer template={template} locale="en-US" />);
+
+    fireEvent.click(await screen.findByText('Style Designer'));
+    const dialog = await findTextStyleLibraryDialog();
+
+    expect(within(dialog).getByText('Text Style Library')).toBeInTheDocument();
+    expect(within(dialog).queryByText('文本样式库')).not.toBeInTheDocument();
+  });
+
   it('opens the same Style Designer dialog from the property panel Manage button', async () => {
     const style: ReportStyle = {
       id: 'style-a',
@@ -608,10 +633,10 @@ describe('Phase 17 text style library store behavior', () => {
 
     const dialog = await openTextStyleLibraryFromRibbon();
 
-    expect(within(dialog).getByLabelText('样式内边距上').closest('label')).toHaveTextContent('上');
-    expect(within(dialog).getByLabelText('样式内边距右').closest('label')).toHaveTextContent('右');
-    expect(within(dialog).getByLabelText('样式内边距下').closest('label')).toHaveTextContent('下');
-    expect(within(dialog).getByLabelText('样式内边距左').closest('label')).toHaveTextContent('左');
+    expect(within(dialog).getByLabelText('样式内边距上').closest('label')).toHaveTextContent('Top');
+    expect(within(dialog).getByLabelText('样式内边距右').closest('label')).toHaveTextContent('Right');
+    expect(within(dialog).getByLabelText('样式内边距下').closest('label')).toHaveTextContent('Bottom');
+    expect(within(dialog).getByLabelText('样式内边距左').closest('label')).toHaveTextContent('Left');
   });
 
   it('creates a new style from the dialog even when search is filtering and allows inline renaming', async () => {
@@ -685,7 +710,7 @@ describe('Phase 17 text style library store behavior', () => {
     expect(Modal.confirm).toHaveBeenCalledTimes(1);
     const config = capturedConfig;
     expect(String(config?.title)).toContain('Delete');
-    expect(String(config?.content)).toContain('清除引用组件的样式关联');
+    expect(String(config?.content)).toContain('clears the style reference');
     await act(async () => {
       await config?.onCancel?.();
     });
@@ -805,10 +830,10 @@ describe('Phase 17 text style library store behavior', () => {
     fireEvent.change(within(dialog).getByLabelText('样式格式真值文本'), { target: { value: 'TRUE' } });
     fireEvent.change(within(dialog).getByLabelText('样式格式假值文本'), { target: { value: 'FALSE' } });
     expect(within(dialog).getByLabelText('样式边框样式')).toBeInTheDocument();
-    expect(within(dialog).getByText('应用边')).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('边框应用边预览')).toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: '右' }));
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: '下' }));
+    expect(within(dialog).getByText('Apply sides')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Border side preview')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Right' }));
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Bottom' }));
 
     await waitFor(() => {
       const updatedStyle = useDesignerStore.getState().template.styles.find(item => item.id === 'style-a');
