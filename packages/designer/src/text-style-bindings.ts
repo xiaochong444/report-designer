@@ -3,7 +3,10 @@ import {
   getTextStyleById,
 } from '@report-designer/core';
 import type {
+  BorderConfig,
+  FontConfig,
   ReportStyle,
+  TextFormatConfig,
   TextComponent,
 } from '@report-designer/core';
 
@@ -75,35 +78,94 @@ const FORMAT_BINDING_PATHS = [
   'format.falseText',
 ] as const;
 
+const DEFAULT_STYLE_FONT: FontConfig = {
+  family: 'Arial',
+  size: 10,
+  bold: false,
+  italic: false,
+  underline: false,
+  strikethrough: false,
+  color: '#000000',
+};
+
+const DEFAULT_STYLE_BORDER: BorderConfig = {
+  style: 'none',
+  width: 0,
+  color: '#000000',
+  sides: { top: false, right: false, bottom: false, left: false },
+};
+
+const DEFAULT_STYLE_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
+
+const DEFAULT_STYLE_FORMAT: Required<TextFormatConfig> = {
+  type: 'none',
+  pattern: '',
+  nullValue: '',
+  trueText: '',
+  falseText: '',
+};
+
+function styleFont(style: ReportStyle): FontConfig {
+  return {
+    ...DEFAULT_STYLE_FONT,
+    ...style.font,
+  };
+}
+
+function styleBorder(style: ReportStyle): BorderConfig {
+  return {
+    ...DEFAULT_STYLE_BORDER,
+    ...style.border,
+    sides: {
+      ...DEFAULT_STYLE_BORDER.sides,
+      ...style.border?.sides,
+    },
+  };
+}
+
+function stylePadding(style: ReportStyle) {
+  return {
+    ...DEFAULT_STYLE_PADDING,
+    ...style.padding,
+  };
+}
+
+function styleFormat(style: ReportStyle): Required<TextFormatConfig> {
+  return {
+    ...DEFAULT_STYLE_FORMAT,
+    ...style.format,
+  };
+}
+
 const STYLE_VALUE_READERS: Record<TextStyleBindingPath, (style: ReportStyle) => unknown> = {
-  'font.family': style => style.font?.family,
-  'font.size': style => style.font?.size,
-  'font.bold': style => style.font?.bold,
-  'font.italic': style => style.font?.italic,
-  'font.underline': style => style.font?.underline,
-  'font.strikethrough': style => style.font?.strikethrough,
-  'font.color': style => style.font?.color,
-  backgroundColor: style => style.backgroundColor,
-  textAlign: style => style.textAlign,
-  verticalAlign: style => style.verticalAlign,
-  'border.style': style => style.border?.style,
-  'border.width': style => style.border?.width,
-  'border.color': style => style.border?.color,
-  'border.sides.top': style => style.border?.sides?.top,
-  'border.sides.right': style => style.border?.sides?.right,
-  'border.sides.bottom': style => style.border?.sides?.bottom,
-  'border.sides.left': style => style.border?.sides?.left,
-  'padding.top': style => style.padding?.top,
-  'padding.right': style => style.padding?.right,
-  'padding.bottom': style => style.padding?.bottom,
-  'padding.left': style => style.padding?.left,
-  'format.type': style => style.format?.type,
-  'format.pattern': style => style.format?.pattern,
-  'format.nullValue': style => style.format?.nullValue,
-  'format.trueText': style => style.format?.trueText,
-  'format.falseText': style => style.format?.falseText,
-  canGrow: style => style.canGrow,
-  canShrink: style => style.canShrink,
+  'font.family': style => styleFont(style).family,
+  'font.size': style => styleFont(style).size,
+  'font.bold': style => styleFont(style).bold,
+  'font.italic': style => styleFont(style).italic,
+  'font.underline': style => styleFont(style).underline,
+  'font.strikethrough': style => styleFont(style).strikethrough,
+  'font.color': style => styleFont(style).color,
+  backgroundColor: style => style.backgroundColor ?? 'transparent',
+  textAlign: style => style.textAlign ?? 'left',
+  verticalAlign: style => style.verticalAlign ?? 'top',
+  'border.style': style => styleBorder(style).style,
+  'border.width': style => styleBorder(style).width,
+  'border.color': style => styleBorder(style).color,
+  'border.sides.top': style => styleBorder(style).sides.top,
+  'border.sides.right': style => styleBorder(style).sides.right,
+  'border.sides.bottom': style => styleBorder(style).sides.bottom,
+  'border.sides.left': style => styleBorder(style).sides.left,
+  'padding.top': style => stylePadding(style).top,
+  'padding.right': style => stylePadding(style).right,
+  'padding.bottom': style => stylePadding(style).bottom,
+  'padding.left': style => stylePadding(style).left,
+  'format.type': style => styleFormat(style).type,
+  'format.pattern': style => styleFormat(style).pattern,
+  'format.nullValue': style => styleFormat(style).nullValue,
+  'format.trueText': style => styleFormat(style).trueText,
+  'format.falseText': style => styleFormat(style).falseText,
+  canGrow: style => style.canGrow ?? false,
+  canShrink: style => style.canShrink ?? false,
 };
 
 function isTextStyleBindingPath(path: string): path is TextStyleBindingPath {
@@ -139,11 +201,19 @@ function mergeTextComponentUpdates(component: TextComponent, updates: Record<str
   }
 
   if (hasOwn(updates, 'border') && updates.border && typeof updates.border === 'object') {
-    next.border = {
+    const currentBorder = {
+      ...DEFAULT_STYLE_BORDER,
       ...component.border,
+      sides: {
+        ...DEFAULT_STYLE_BORDER.sides,
+        ...component.border?.sides,
+      },
+    };
+    next.border = {
+      ...currentBorder,
       ...updates.border,
       sides: {
-        ...component.border.sides,
+        ...currentBorder.sides,
         ...updates.border.sides,
       },
     };
@@ -165,7 +235,7 @@ function mergeTextComponentUpdates(component: TextComponent, updates: Record<str
 }
 
 export function getTextStyleBindings(style: ReportStyle): TextStyleBindingPath[] {
-  return TEXT_STYLE_BINDING_PATHS.filter(path => STYLE_VALUE_READERS[path](style) !== undefined);
+  return [...TEXT_STYLE_BINDING_PATHS];
 }
 
 export function hasTextStyleBinding(

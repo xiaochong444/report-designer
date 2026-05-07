@@ -9,6 +9,7 @@ import { Designer } from '../components/Designer';
 import type { DesignerLocale } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 import { Modal } from 'antd';
+import { TEXT_STYLE_BINDING_PATHS } from '../text-style-bindings';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -375,6 +376,54 @@ describe('Phase 17 text style library store behavior', () => {
     });
   });
 
+  it('locks every style-managed text property after selecting a style with missing optional metadata', () => {
+    const legacyStyle = {
+      id: 'minimal-style',
+      name: 'Minimal Style',
+      category: 'text',
+      font: { family: 'Arial', size: 18, bold: true, italic: false, underline: false, strikethrough: false, color: '#123456' },
+      textAlign: 'center',
+    } as ReportStyle;
+    loadTemplate([legacyStyle], [createText('text-1')]);
+    useDesignerStore.getState().selectComponents(['text-1']);
+
+    useDesignerStore.getState().applySelectedStyle('minimal-style');
+
+    expect(selectedText()?.styleBindings).toEqual(TEXT_STYLE_BINDING_PATHS);
+    expect(selectedText()).toMatchObject({
+      style: 'minimal-style',
+      textAlign: 'center',
+      verticalAlign: 'top',
+      backgroundColor: 'transparent',
+      canGrow: false,
+      canShrink: false,
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      format: { type: 'none', pattern: '', nullValue: '', trueText: '', falseText: '' },
+    });
+
+    useDesignerStore.getState().updateComponent(
+      useDesignerStore.getState().template.pages[0].id,
+      useDesignerStore.getState().template.pages[0].bands.find(band => band.type === 'data')!.id,
+      'text-1',
+      {
+        textAlign: 'right',
+        verticalAlign: 'bottom',
+        padding: { top: 9, right: 9, bottom: 9, left: 9 },
+        border: { style: 'solid', width: 1, color: '#ff0000', sides: { top: true, right: true, bottom: true, left: true } },
+        format: { type: 'number', pattern: '#,##0.00', nullValue: '-', trueText: 'Y', falseText: 'N' },
+      },
+    );
+
+    expect(selectedText()).toMatchObject({
+      textAlign: 'center',
+      verticalAlign: 'top',
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      format: { type: 'none', pattern: '', nullValue: '', trueText: '', falseText: '' },
+    });
+  });
+
   it('manages text style CRUD, default style selection, usage counts, and delete cleanup', () => {
     const baseStyle: ReportStyle = {
       id: 'style-base',
@@ -564,8 +613,12 @@ describe('Phase 17 text style library store behavior', () => {
 
     expectAntdControlDisabled(await screen.findByLabelText('格式类型'));
     expect(screen.getByLabelText('格式模式')).toBeEnabled();
-    expectAntdControlDisabled(screen.getByLabelText('水平对齐'));
-    expect(screen.getByLabelText('垂直对齐')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('button', { name: '左对齐' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '水平居中' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '右对齐' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '顶部对齐' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '垂直居中' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: '底部对齐' })).toBeEnabled();
     expect(screen.getByRole('switch', { name: '自动增大' })).toBeDisabled();
     expect(screen.getByRole('switch', { name: '自动缩小' })).toBeEnabled();
     expect(screen.getByLabelText('字体系列')).not.toHaveAttribute('aria-disabled', 'true');
@@ -577,6 +630,51 @@ describe('Phase 17 text style library store behavior', () => {
     expect(screen.getByLabelText('内边距右')).toBeEnabled();
     expect(screen.getByRole('checkbox', { name: '上' })).toBeDisabled();
     expect(screen.getByRole('checkbox', { name: '右' })).toBeEnabled();
+  });
+
+  it('disables every style-managed property control in the component property panel after selecting a style', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'center',
+    } as ReportStyle;
+    const template = createDefaultTemplate('Style Binding Complete Disable');
+    template.styles = [style];
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1')];
+
+    await renderDesignerWithSelection(template, 'text-1');
+
+    fireEvent.mouseDown(await screen.findByLabelText('文本样式'));
+    fireEvent.click(await screen.findByText('Style A'));
+
+    await waitFor(() => expect(selectedText()?.styleBindings).toEqual(TEXT_STYLE_BINDING_PATHS));
+
+    expect(screen.getByRole('button', { name: '左对齐' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '水平居中' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '右对齐' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '顶部对齐' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '垂直居中' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '底部对齐' })).toBeDisabled();
+    expectAntdControlDisabled(screen.getByLabelText('内边距上'));
+    expectAntdControlDisabled(screen.getByLabelText('内边距右'));
+    expectAntdControlDisabled(screen.getByLabelText('内边距下'));
+    expectAntdControlDisabled(screen.getByLabelText('内边距左'));
+    expectAntdControlDisabled(screen.getByLabelText('边框样式'));
+    expectAntdControlDisabled(screen.getByLabelText('边框宽度'));
+    expectAntdControlDisabled(screen.getByLabelText('边框颜色'));
+    expect(screen.getByRole('checkbox', { name: '上' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: '右' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: '下' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: '左' })).toBeDisabled();
+    expectAntdControlDisabled(screen.getByLabelText('格式类型'));
+    expect(screen.getByLabelText('格式模式')).toBeDisabled();
+    expect(screen.getByRole('switch', { name: '自动增大' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: '自动缩小' })).toBeDisabled();
+    expectAntdControlDisabled(screen.getByLabelText('字号'));
+    expectAntdControlDisabled(screen.getByLabelText('字体颜色'));
+    expectAntdControlDisabled(screen.getByLabelText('背景色'));
   });
 
   it('updates referenced text components when a style is edited in the dialog', async () => {

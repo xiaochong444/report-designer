@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Checkbox } from 'antd';
-import { EditOutlined } from '@ant-design/icons';
+import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, EditOutlined } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
 import type { BorderConfig, TableComponent, TextFormatConfig, TextFormatType } from '@report-designer/core';
 import type { CSSProperties } from 'react';
@@ -299,33 +299,17 @@ export const PropertyEditor: React.FC = () => {
                   />
                 </Form.Item>
                 <Form.Item label="水平对齐">
-                  <Select
-                    aria-label="水平对齐"
+                  <HorizontalAlignButtons
                     value={comp.textAlign || 'left'}
-                    onChange={(v) => handleChange('textAlign', v)}
-                    size="small"
+                    onChange={(value) => handleChange('textAlign', value)}
                     disabled={isTextStyleLocked('textAlign')}
-                    style={{ width: '100%' }}
-                    options={[
-                      { value: 'left', label: '左对齐' },
-                      { value: 'center', label: '居中' },
-                      { value: 'right', label: '右对齐' },
-                    ]}
                   />
                 </Form.Item>
                 <Form.Item label="垂直对齐">
-                  <Select
-                    aria-label="垂直对齐"
+                  <VerticalAlignButtons
                     value={comp.verticalAlign || 'top'}
-                    onChange={(v) => handleChange('verticalAlign', v)}
-                    size="small"
+                    onChange={(value) => handleChange('verticalAlign', value)}
                     disabled={isTextStyleLocked('verticalAlign')}
-                    style={{ width: '100%' }}
-                    options={[
-                      { value: 'top', label: '顶部' },
-                      { value: 'middle', label: '居中' },
-                      { value: 'bottom', label: '底部' },
-                    ]}
                   />
                 </Form.Item>
                 <Form.Item label="自动增大">
@@ -722,16 +706,9 @@ export const PropertyEditor: React.FC = () => {
                   />
                 </Form.Item>
                 <Form.Item label="水平对齐">
-                  <Select
+                  <HorizontalAlignButtons
                     value={comp.textAlign || 'center'}
-                    onChange={(v) => handleChange('textAlign', v)}
-                    size="small"
-                    style={{ width: '100%' }}
-                    options={[
-                      { value: 'left', label: '左对齐' },
-                      { value: 'center', label: '居中' },
-                      { value: 'right', label: '右对齐' },
-                    ]}
+                    onChange={(value) => handleChange('textAlign', value)}
                   />
                 </Form.Item>
               </Form>
@@ -753,16 +730,9 @@ export const PropertyEditor: React.FC = () => {
                   />
                 </Form.Item>
                 <Form.Item label="水平对齐">
-                  <Select
+                  <HorizontalAlignButtons
                     value={comp.textAlign || 'left'}
-                    onChange={(v) => handleChange('textAlign', v)}
-                    size="small"
-                    style={{ width: '100%' }}
-                    options={[
-                      { value: 'left', label: '左对齐' },
-                      { value: 'center', label: '居中' },
-                      { value: 'right', label: '右对齐' },
-                    ]}
+                    onChange={(value) => handleChange('textAlign', value)}
                   />
                 </Form.Item>
               </Form>
@@ -806,6 +776,91 @@ export const PropertyEditor: React.FC = () => {
         onClose={() => setExprModalOpen(false)}
       />
     </div>
+  );
+};
+
+type HorizontalAlignment = 'left' | 'center' | 'right';
+type VerticalAlignment = 'top' | 'middle' | 'bottom';
+
+const HorizontalAlignButtons: React.FC<{
+  value: HorizontalAlignment;
+  onChange: (value: HorizontalAlignment) => void;
+  disabled?: boolean;
+}> = ({ disabled = false, onChange, value }) => (
+  <IconButtonGroup
+    items={[
+      { value: 'left', label: '左对齐', icon: <AlignLeftOutlined /> },
+      { value: 'center', label: '水平居中', icon: <AlignCenterOutlined /> },
+      { value: 'right', label: '右对齐', icon: <AlignRightOutlined /> },
+    ]}
+    value={value}
+    onChange={onChange}
+    disabled={disabled}
+  />
+);
+
+const VerticalAlignButtons: React.FC<{
+  value: VerticalAlignment;
+  onChange: (value: VerticalAlignment) => void;
+  disabled?: boolean;
+}> = ({ disabled = false, onChange, value }) => (
+  <IconButtonGroup
+    items={[
+      { value: 'top', label: '顶部对齐', icon: <VerticalAlignGlyph position="top" /> },
+      { value: 'middle', label: '垂直居中', icon: <VerticalAlignGlyph position="middle" /> },
+      { value: 'bottom', label: '底部对齐', icon: <VerticalAlignGlyph position="bottom" /> },
+    ]}
+    value={value}
+    onChange={onChange}
+    disabled={disabled}
+  />
+);
+
+const IconButtonGroup = <T extends string,>({
+  disabled,
+  items,
+  onChange,
+  value,
+}: {
+  disabled: boolean;
+  items: Array<{ value: T; label: string; icon: React.ReactNode }>;
+  onChange: (value: T) => void;
+  value: T;
+}) => (
+  <Space size={4} wrap>
+    {items.map(item => (
+      <Button
+        key={item.value}
+        aria-label={item.label}
+        title={item.label}
+        size="small"
+        type={value === item.value ? 'primary' : 'default'}
+        icon={item.icon}
+        disabled={disabled}
+        onClick={() => onChange(item.value)}
+        style={{ width: 28, paddingInline: 0 }}
+      />
+    ))}
+  </Space>
+);
+
+const VerticalAlignGlyph: React.FC<{ position: VerticalAlignment }> = ({ position }) => {
+  const blockTop = position === 'top' ? 2 : position === 'middle' ? 8 : 14;
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        position: 'relative',
+        display: 'inline-block',
+        width: 14,
+        height: 18,
+      }}
+    >
+      <span style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 1.5, background: 'currentColor', opacity: 0.45, borderRadius: 999 }} />
+      <span style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 1.5, background: 'currentColor', opacity: 0.45, borderRadius: 999 }} />
+      <span style={{ position: 'absolute', left: 0, right: 0, top: 16, height: 1.5, background: 'currentColor', opacity: 0.45, borderRadius: 999 }} />
+      <span style={{ position: 'absolute', left: 2, right: 2, top: blockTop, height: 3.5, background: 'currentColor', borderRadius: 999 }} />
+    </span>
   );
 };
 
