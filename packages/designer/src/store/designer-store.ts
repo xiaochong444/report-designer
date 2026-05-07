@@ -1041,21 +1041,45 @@ function createTextStyleId() {
   return `text-style_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
 }
 
+const FALLBACK_TEXT_STYLE_FONT = {
+  family: 'Arial',
+  size: 10,
+  bold: false,
+  italic: false,
+  underline: false,
+  strikethrough: false,
+  color: '#000000',
+};
+
+const FALLBACK_TEXT_STYLE_BORDER = {
+  style: 'none' as const,
+  width: 0,
+  color: '#000000',
+  sides: { top: false, right: false, bottom: false, left: false },
+};
+
+const FALLBACK_TEXT_STYLE_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
+
 function cloneTextStyle(style: ReportStyle, overrides?: Partial<ReportStyle>): ReportStyle {
+  const baseFont = style.font ?? FALLBACK_TEXT_STYLE_FONT;
+  const baseBorder = style.border ?? FALLBACK_TEXT_STYLE_BORDER;
+  const overrideBorder = overrides?.border;
+
   return {
     ...style,
     ...overrides,
-    font: { ...style.font, ...overrides?.font },
+    font: { ...baseFont, ...overrides?.font },
     border: {
-      ...style.border,
-      ...overrides?.border,
+      ...baseBorder,
+      ...overrideBorder,
       sides: {
-        ...((style.border.sides ?? { top: false, right: false, bottom: false, left: false })),
-        ...overrides?.border?.sides,
+        ...FALLBACK_TEXT_STYLE_BORDER.sides,
+        ...baseBorder.sides,
+        ...overrideBorder?.sides,
       },
     },
     padding: overrides && 'padding' in overrides
-      ? (overrides.padding ? { ...(style.padding ?? { top: 0, right: 0, bottom: 0, left: 0 }), ...overrides.padding } : undefined)
+      ? (overrides.padding ? { ...(style.padding ?? FALLBACK_TEXT_STYLE_PADDING), ...overrides.padding } : undefined)
       : (style.padding ? { ...style.padding } : undefined),
     format: overrides && 'format' in overrides
       ? (overrides.format ? { ...(style.format ?? { type: 'none' }), ...overrides.format } : undefined)
