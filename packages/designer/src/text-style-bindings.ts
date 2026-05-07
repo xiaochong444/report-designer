@@ -168,6 +168,19 @@ export function getTextStyleBindings(style: ReportStyle): TextStyleBindingPath[]
   return TEXT_STYLE_BINDING_PATHS.filter(path => STYLE_VALUE_READERS[path](style) !== undefined);
 }
 
+export function hasTextStyleBinding(
+  component: { styleBindings?: string[] } | null | undefined,
+  pathOrPrefix: string,
+): boolean {
+  if (!component?.styleBindings?.length) {
+    return false;
+  }
+
+  return component.styleBindings.some(binding => (
+    binding === pathOrPrefix || binding.startsWith(`${pathOrPrefix}.`)
+  ));
+}
+
 export function applyTextStyleToComponent(component: TextComponent, style: ReportStyle): TextComponent {
   const bindings = getTextStyleBindings(style);
   const next: TextComponent = { ...component, style: style.id };

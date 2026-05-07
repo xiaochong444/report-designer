@@ -7,6 +7,7 @@ import type { CSSProperties } from 'react';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { ExpressionEditor } from './ExpressionEditor';
 import { normalizeTable } from '../table/table-structure';
+import { hasTextStyleBinding } from '../text-style-bindings';
 
 const DEFAULT_BORDER: BorderConfig = {
   style: 'none',
@@ -22,6 +23,7 @@ export const PropertyEditor: React.FC = () => {
   const updateComponent = useDesignerStore(s => s.updateComponent);
   const updateSelectedTable = useDesignerStore(s => s.updateSelectedTable);
   const applySelectedStyle = useDesignerStore(s => s.applySelectedStyle);
+  const openTextStyleLibrary = useDesignerStore(s => s.openTextStyleLibrary);
   const reportUnit = useDesignerStore(s => s.reportUnit);
 
   const { component, bandId } = useMemo(() => {
@@ -131,6 +133,12 @@ export const PropertyEditor: React.FC = () => {
   const handlePaddingField = (field: string, value: number) => {
     handleChange('padding', { ...padding, [field]: value });
   };
+
+  const isTextComponent = component.type === 'text';
+  const isTextStyleLocked = (pathOrPrefix: string) => (
+    isTextComponent ? hasTextStyleBinding(component as { styleBindings?: string[] }, pathOrPrefix) : false
+  );
+  const backgroundLocked = isTextStyleLocked('backgroundColor');
 
   return (
     <div style={{ padding: 8 }}>
@@ -243,17 +251,20 @@ export const PropertyEditor: React.FC = () => {
                   />
                 </Form.Item>
                 <Form.Item label="文本样式">
-                  <Select
-                    aria-label="文本样式"
-                    value={comp.style}
-                    onChange={(value) => applySelectedStyle(value)}
-                    size="small"
-                    style={{ width: '100%' }}
-                    allowClear
-                    virtual={false}
-                    placeholder="选择样式集"
-                    options={template.styles.map(style => ({ value: style.id, label: style.name }))}
-                  />
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Select
+                      aria-label="文本样式"
+                      value={comp.style}
+                      onChange={(value) => applySelectedStyle(value)}
+                      size="small"
+                      style={{ width: '100%' }}
+                      allowClear
+                      virtual={false}
+                      placeholder="选择样式集"
+                      options={template.styles.map(style => ({ value: style.id, label: style.name }))}
+                    />
+                    <Button onClick={openTextStyleLibrary}>Manage</Button>
+                  </Space.Compact>
                 </Form.Item>
                 <Form.Item label="格式类型">
                   <Select
@@ -261,6 +272,7 @@ export const PropertyEditor: React.FC = () => {
                     value={format.type}
                     onChange={(value: TextFormatType) => handleFormatField('type', value)}
                     size="small"
+                    disabled={isTextStyleLocked('format.type')}
                     style={{ width: '100%' }}
                     virtual={false}
                     options={[
@@ -281,14 +293,17 @@ export const PropertyEditor: React.FC = () => {
                     value={format.pattern || ''}
                     onChange={(e) => handleFormatField('pattern', e.target.value)}
                     size="small"
+                    disabled={isTextStyleLocked('format.pattern')}
                     placeholder="#,##0.00 / yyyy-MM-dd"
                   />
                 </Form.Item>
                 <Form.Item label="水平对齐">
                   <Select
+                    aria-label="水平对齐"
                     value={comp.textAlign || 'left'}
                     onChange={(v) => handleChange('textAlign', v)}
                     size="small"
+                    disabled={isTextStyleLocked('textAlign')}
                     style={{ width: '100%' }}
                     options={[
                       { value: 'left', label: '左对齐' },
@@ -299,9 +314,11 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="垂直对齐">
                   <Select
+                    aria-label="垂直对齐"
                     value={comp.verticalAlign || 'top'}
                     onChange={(v) => handleChange('verticalAlign', v)}
                     size="small"
+                    disabled={isTextStyleLocked('verticalAlign')}
                     style={{ width: '100%' }}
                     options={[
                       { value: 'top', label: '顶部' },
@@ -312,16 +329,20 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="自动增大">
                   <Switch
+                    aria-label="自动增大"
                     size="small"
                     checked={comp.canGrow || false}
                     onChange={(v) => handleChange('canGrow', v)}
+                    disabled={isTextStyleLocked('canGrow')}
                   />
                 </Form.Item>
                 <Form.Item label="自动缩小">
                   <Switch
+                    aria-label="自动缩小"
                     size="small"
                     checked={comp.canShrink || false}
                     onChange={(v) => handleChange('canShrink', v)}
+                    disabled={isTextStyleLocked('canShrink')}
                   />
                 </Form.Item>
               </Form>
@@ -338,9 +359,11 @@ export const PropertyEditor: React.FC = () => {
               <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
                 <Form.Item label="字体系列">
                   <Select
+                    aria-label="字体系列"
                     value={font.family || ''}
                     onChange={(v) => handleFontField('family', v)}
                     size="small"
+                    disabled={isTextStyleLocked('font.family')}
                     style={{ width: '100%' }}
                     showSearch
                     allowClear
@@ -352,9 +375,11 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="字号">
                   <InputNumber
+                    aria-label="字号"
                     value={font.size}
                     onChange={(v) => handleFontField('size', v)}
                     size="small"
+                    disabled={isTextStyleLocked('font.size')}
                     style={{ width: '100%' }}
                     min={6}
                     max={72}
@@ -362,9 +387,11 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="颜色">
                   <ColorPicker
+                    aria-label="字体颜色"
                     size="small"
                     value={font.color || '#000000'}
                     onChange={(color) => handleFontField('color', color.toHexString())}
+                    disabled={isTextStyleLocked('font.color')}
                   />
                 </Form.Item>
                 <Form.Item>
@@ -374,24 +401,28 @@ export const PropertyEditor: React.FC = () => {
                       type={font.bold ? 'primary' : 'default'}
                       style={{ fontWeight: 'bold', minWidth: 32 }}
                       onClick={() => handleFontField('bold', !font.bold)}
+                      disabled={isTextStyleLocked('font.bold')}
                     >B</Button>
                     <Button
                       size="small"
                       type={font.italic ? 'primary' : 'default'}
                       style={{ fontStyle: 'italic', minWidth: 32 }}
                       onClick={() => handleFontField('italic', !font.italic)}
+                      disabled={isTextStyleLocked('font.italic')}
                     >I</Button>
                     <Button
                       size="small"
                       type={font.underline ? 'primary' : 'default'}
                       style={{ textDecoration: 'underline', minWidth: 32 }}
                       onClick={() => handleFontField('underline', !font.underline)}
+                      disabled={isTextStyleLocked('font.underline')}
                     >U</Button>
                     <Button
                       size="small"
                       type={font.strikethrough ? 'primary' : 'default'}
                       style={{ textDecoration: 'line-through', minWidth: 32 }}
                       onClick={() => handleFontField('strikethrough', !font.strikethrough)}
+                      disabled={isTextStyleLocked('font.strikethrough')}
                     >S</Button>
                   </Space>
                 </Form.Item>
@@ -407,9 +438,11 @@ export const PropertyEditor: React.FC = () => {
               <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
                 <Form.Item label="样式">
                   <Select
+                    aria-label="边框样式"
                     value={border.style}
                     onChange={(v) => handleBorderField('style', v)}
                     size="small"
+                    disabled={isTextStyleLocked('border.style')}
                     style={{ width: '100%' }}
                     options={[
                       { value: 'none', label: '无边框' },
@@ -422,9 +455,11 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="宽度">
                   <InputNumber
+                    aria-label="边框宽度"
                     value={formatUnitValue(border.width, reportUnit)}
                     onChange={(v) => handleBorderField('width', parseUnitValue(v, reportUnit, border.width))}
                     size="small"
+                    disabled={isTextStyleLocked('border.width')}
                     style={{ width: '100%' }}
                     min={formatUnitValue(0.1, reportUnit)}
                     max={formatUnitValue(5, reportUnit)}
@@ -433,9 +468,11 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="颜色">
                   <ColorPicker
+                    aria-label="边框颜色"
                     size="small"
                     value={border.color}
                     onChange={(color) => handleBorderField('color', color.toHexString())}
+                    disabled={isTextStyleLocked('border.color')}
                   />
                 </Form.Item>
                 <Divider style={{ margin: '4px 0' }} />
@@ -452,10 +489,10 @@ export const PropertyEditor: React.FC = () => {
                   }}
                   style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
                 >
-                  <Checkbox value="top">上</Checkbox>
-                  <Checkbox value="right">右</Checkbox>
-                  <Checkbox value="bottom">下</Checkbox>
-                  <Checkbox value="left">左</Checkbox>
+                  <Checkbox value="top" disabled={isTextStyleLocked('border.sides.top')}>上</Checkbox>
+                  <Checkbox value="right" disabled={isTextStyleLocked('border.sides.right')}>右</Checkbox>
+                  <Checkbox value="bottom" disabled={isTextStyleLocked('border.sides.bottom')}>下</Checkbox>
+                  <Checkbox value="left" disabled={isTextStyleLocked('border.sides.left')}>左</Checkbox>
                 </Checkbox.Group>
                 <div style={{ ...borderSideStyle(), width: 60, height: 40, margin: '8px auto 0' }} />
               </Form>
@@ -470,19 +507,23 @@ export const PropertyEditor: React.FC = () => {
               <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
                 <Form.Item label="背景色">
                   <ColorPicker
+                    aria-label="背景色"
                     size="small"
                     value={comp.backgroundColor || '#ffffff'}
                     onChange={(color) => handleChange('backgroundColor', color.toHexString())}
                     allowClear
+                    disabled={backgroundLocked}
                   />
                 </Form.Item>
                 <Divider style={{ margin: '4px 0' }} />
                 <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>内边距</div>
                 <Form.Item label="上">
                   <InputNumber
+                    aria-label="内边距上"
                     value={formatUnitValue(padding.top, reportUnit)}
                     onChange={(v) => handlePaddingField('top', parseUnitValue(v, reportUnit, padding.top))}
                     size="small"
+                    disabled={isTextStyleLocked('padding.top')}
                     style={{ width: '100%' }}
                     min={0}
                     step={unitStep}
@@ -490,9 +531,11 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="右">
                   <InputNumber
+                    aria-label="内边距右"
                     value={formatUnitValue(padding.right, reportUnit)}
                     onChange={(v) => handlePaddingField('right', parseUnitValue(v, reportUnit, padding.right))}
                     size="small"
+                    disabled={isTextStyleLocked('padding.right')}
                     style={{ width: '100%' }}
                     min={0}
                     step={unitStep}
@@ -500,9 +543,11 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="下">
                   <InputNumber
+                    aria-label="内边距下"
                     value={formatUnitValue(padding.bottom, reportUnit)}
                     onChange={(v) => handlePaddingField('bottom', parseUnitValue(v, reportUnit, padding.bottom))}
                     size="small"
+                    disabled={isTextStyleLocked('padding.bottom')}
                     style={{ width: '100%' }}
                     min={0}
                     step={unitStep}
@@ -510,9 +555,11 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="左">
                   <InputNumber
+                    aria-label="内边距左"
                     value={formatUnitValue(padding.left, reportUnit)}
                     onChange={(v) => handlePaddingField('left', parseUnitValue(v, reportUnit, padding.left))}
                     size="small"
+                    disabled={isTextStyleLocked('padding.left')}
                     style={{ width: '100%' }}
                     min={0}
                     step={unitStep}

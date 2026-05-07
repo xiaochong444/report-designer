@@ -39,6 +39,8 @@ describe('Phase 10 ribbon tabs', () => {
     expect(screen.getByRole('button', { name: 'Home' })).toHaveClass('rd-ribbon-tab-active');
     expect(ribbonContent).toHaveTextContent('Clipboard');
     expect(ribbonContent).toHaveTextContent('Font');
+    expect(ribbonContent).toHaveTextContent('Styles');
+    expect(screen.getByText('Style Designer')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Insert' }));
     expect(screen.getByRole('button', { name: 'Insert' })).toHaveClass('rd-ribbon-tab-active');

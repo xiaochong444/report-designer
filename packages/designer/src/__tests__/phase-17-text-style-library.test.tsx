@@ -1,8 +1,38 @@
 /* @vitest-environment jsdom */
-import { beforeEach, describe, expect, it } from 'vitest';
+import React from 'react';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
 import type { ReportStyle, TextComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
+import { Designer } from '../components/Designer';
 import { useDesignerStore } from '../store/designer-store';
+import { Modal } from 'antd';
+
+Object.defineProperty(window, 'matchMedia', {
+  writable: true,
+  value: ((query: string) => ({
+    matches: false,
+    media: query,
+    onchange: null,
+    addListener: () => {},
+    removeListener: () => {},
+    addEventListener: () => {},
+    removeEventListener: () => {},
+    dispatchEvent: () => false,
+  })),
+});
+
+class ResizeObserverMock {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+}
+
+Object.defineProperty(window, 'ResizeObserver', {
+  writable: true,
+  value: ResizeObserverMock,
+});
 
 function createText(id: string, overrides: Partial<TextComponent> = {}): TextComponent {
   return {
@@ -46,12 +76,81 @@ function selectedText(id = 'text-1') {
   return page.bands.flatMap(band => band.components).find(component => component.id === id) as TextComponent | undefined;
 }
 
+async function renderDesignerWithSelection(template: ReturnType<typeof createDefaultTemplate>, componentId?: string) {
+  render(<Designer template={template} />);
+  await waitFor(() => expect(useDesignerStore.getState().template.id).toBe(template.id));
+  await act(async () => {
+    useDesignerStore.getState().selectComponents(componentId ? [componentId] : []);
+  });
+}
+
+function expectAntdControlDisabled(element: HTMLElement) {
+  const disabledContainer = element.closest('.ant-select-disabled, .ant-input-number-disabled, .ant-picker-disabled, .ant-color-picker-trigger-disabled');
+  if (disabledContainer) {
+    expect(disabledContainer).toBeTruthy();
+    return;
+  }
+
+  if ('disabled' in element) {
+    expect(element).toBeDisabled();
+    return;
+  }
+
+  expect(element).toHaveAttribute('aria-disabled', 'true');
+}
+
+async function findTextStyleLibraryDialog() {
+  const title = await screen.findByText('Text Style Library');
+  const dialog = title.closest('.ant-modal') as HTMLElement | null;
+  if (!dialog) {
+    throw new Error('Unable to locate Text Style Library modal container');
+  }
+  return dialog;
+}
+
+async function openTextStyleLibraryFromManage() {
+  const styleSelect = await screen.findByLabelText('文本样式');
+  const compact = styleSelect.closest('.ant-space-compact') as HTMLElement | null;
+  if (!compact) {
+    throw new Error('Unable to locate text style property editor controls');
+  }
+  fireEvent.click(within(compact).getByRole('button', { name: 'Manage' }));
+  return await findTextStyleLibraryDialog();
+}
+
+async function openTextStyleLibraryFromRibbon() {
+  fireEvent.click(await screen.findByText('Style Designer'));
+  return await findTextStyleLibraryDialog();
+}
+
+async function openSelect(label: string, scope: HTMLElement | Document = document) {
+  const target = within(scope as HTMLElement).getByLabelText(label);
+  const trigger = (
+    target.closest('.ant-select-selector')
+    ?? target.closest('.ant-select')?.querySelector('.ant-select-selector')
+  ) as HTMLElement | null;
+  if (!trigger) {
+    throw new Error(`Unable to find select trigger for ${label}`);
+  }
+  fireEvent.mouseDown(trigger);
+}
+
+async function chooseSelectOption(label: string, optionText: string, scope: HTMLElement | Document = document) {
+  await openSelect(label, scope);
+  const option = await screen.findByText(optionText);
+  fireEvent.click(option);
+}
+
 describe('Phase 17 text style library store behavior', () => {
   beforeEach(() => {
     const store = useDesignerStore.getState();
     store.loadTemplate(createDefaultTemplate('Phase 17 Reset'));
     store.selectComponents([]);
     store.selectBand(null);
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
   });
 
   it('copies selected style values into text components and records style bindings', () => {
@@ -293,5 +392,306 @@ describe('Phase 17 text style library store behavior', () => {
       'canGrow',
       'canShrink',
     ]));
+  });
+
+  it('opens the Style Designer dialog from the ribbon Home tab', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffffff',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    };
+    const template = createDefaultTemplate('Style Designer Ribbon');
+    template.styles = [style];
+
+    await renderDesignerWithSelection(template);
+
+    const dialog = await openTextStyleLibraryFromRibbon();
+
+    expect(dialog).toBeInTheDocument();
+  });
+
+  it('opens the same Style Designer dialog from the property panel Manage button', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffffff',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    };
+    const template = createDefaultTemplate('Style Designer Property');
+    template.styles = [style];
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', { style: 'style-a' })];
+
+    await renderDesignerWithSelection(template, 'text-1');
+
+    const dialog = await openTextStyleLibraryFromManage();
+
+    expect(dialog).toBeInTheDocument();
+  });
+
+  it('disables only the property fields that are controlled by style bindings', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: true, italic: false, underline: false, strikethrough: false, color: '#111111' },
+      backgroundColor: '#f5f5f5',
+      textAlign: 'center',
+      verticalAlign: 'middle',
+      border: { style: 'solid', width: 0.2, color: '#333333', sides: { top: true, right: true, bottom: true, left: true } },
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      format: { type: 'number', pattern: '#,##0.00' },
+      canGrow: true,
+      canShrink: false,
+    };
+    const template = createDefaultTemplate('Style Binding Disable');
+    template.styles = [style];
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
+      style: 'style-a',
+      styleBindings: [
+        'format.type',
+        'textAlign',
+        'canGrow',
+        'font.size',
+        'border.width',
+        'border.sides.top',
+        'backgroundColor',
+        'padding.top',
+      ],
+    })];
+
+    await renderDesignerWithSelection(template, 'text-1');
+
+    expectAntdControlDisabled(await screen.findByLabelText('格式类型'));
+    expect(screen.getByLabelText('格式模式')).toBeEnabled();
+    expectAntdControlDisabled(screen.getByLabelText('水平对齐'));
+    expect(screen.getByLabelText('垂直对齐')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('switch', { name: '自动增大' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: '自动缩小' })).toBeEnabled();
+    expect(screen.getByLabelText('字体系列')).not.toHaveAttribute('aria-disabled', 'true');
+    expectAntdControlDisabled(screen.getByLabelText('字号'));
+    expect(screen.getByLabelText('边框样式')).not.toHaveAttribute('aria-disabled', 'true');
+    expectAntdControlDisabled(screen.getByLabelText('边框宽度'));
+    expectAntdControlDisabled(screen.getByLabelText('背景色'));
+    expectAntdControlDisabled(screen.getByLabelText('内边距上'));
+    expect(screen.getByLabelText('内边距右')).toBeEnabled();
+    expect(screen.getByRole('checkbox', { name: '上' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: '右' })).toBeEnabled();
+  });
+
+  it('updates referenced text components when a style is edited in the dialog', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffffff',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    };
+    const template = createDefaultTemplate('Style Designer Sync');
+    template.styles = [style];
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
+      style: 'style-a',
+      styleBindings: ['font.size'],
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+    })];
+
+    await renderDesignerWithSelection(template, 'text-1');
+
+    const dialog = await openTextStyleLibraryFromRibbon();
+    fireEvent.click(within(dialog).getByRole('button', { name: /Style A/ }));
+    fireEvent.change(within(dialog).getByLabelText('样式字号'), { target: { value: '22' } });
+
+    await waitFor(() => expect(selectedText()?.font.size).toBe(22));
+  });
+
+  it('shows a delete confirmation and keeps the style when cancelled', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffffff',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    };
+    const template = createDefaultTemplate('Style Designer Delete Confirm');
+    template.styles = [style];
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
+      style: 'style-a',
+      styleBindings: ['font.family'],
+    })];
+
+    let capturedConfig: Parameters<typeof Modal.confirm>[0] | undefined;
+    vi.spyOn(Modal, 'confirm').mockImplementation((config) => {
+      capturedConfig = config;
+      return {
+        destroy: () => {},
+        update: () => {},
+      };
+    });
+
+    await renderDesignerWithSelection(template, 'text-1');
+
+    const dialog = await openTextStyleLibraryFromRibbon();
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+
+    expect(Modal.confirm).toHaveBeenCalledTimes(1);
+    const config = capturedConfig;
+    expect(String(config?.title)).toContain('Delete');
+    expect(String(config?.content)).toContain('清除引用组件的样式关联');
+    await act(async () => {
+      await config?.onCancel?.();
+    });
+
+    expect(useDesignerStore.getState().template.styles.some(item => item.id === 'style-a')).toBe(true);
+    expect(selectedText()?.style).toBe('style-a');
+
+    await act(async () => {
+      await config?.onOk?.();
+    });
+
+    expect(useDesignerStore.getState().template.styles.some(item => item.id === 'style-a')).toBe(false);
+    expect(selectedText()?.style).toBeUndefined();
+  });
+
+  it('tracks the current visible selection when deleting a previously confirmed style', async () => {
+    const styles: ReportStyle[] = [
+      {
+        id: 'style-a',
+        name: 'Style A',
+        category: 'text',
+        font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+        backgroundColor: '#ffffff',
+        textAlign: 'left',
+        verticalAlign: 'top',
+        border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+        canGrow: false,
+        canShrink: false,
+      },
+      {
+        id: 'style-b',
+        name: 'Style B',
+        category: 'text',
+        font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+        backgroundColor: '#ffffff',
+        textAlign: 'left',
+        verticalAlign: 'top',
+        border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+        canGrow: false,
+        canShrink: false,
+      },
+      {
+        id: 'style-c',
+        name: 'Style C',
+        category: 'text',
+        font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+        backgroundColor: '#ffffff',
+        textAlign: 'left',
+        verticalAlign: 'top',
+        border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+        canGrow: false,
+        canShrink: false,
+      },
+    ];
+    const template = createDefaultTemplate('Style Designer Delete Selection');
+    template.styles = styles;
+
+    let capturedConfig: Parameters<typeof Modal.confirm>[0] | undefined;
+    vi.spyOn(Modal, 'confirm').mockImplementation((config) => {
+      capturedConfig = config;
+      return {
+        destroy: () => {},
+        update: () => {},
+      };
+    });
+
+    await renderDesignerWithSelection(template);
+
+    const dialog = await openTextStyleLibraryFromRibbon();
+    fireEvent.click(within(dialog).getByRole('button', { name: /Style A/ }));
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
+    fireEvent.change(within(dialog).getByLabelText('样式搜索'), { target: { value: 'Style C' } });
+
+    await waitFor(() => expect(within(dialog).getByLabelText('样式名称')).toHaveValue('Style C'));
+
+    await act(async () => {
+      await capturedConfig?.onOk?.();
+    });
+
+    expect(useDesignerStore.getState().template.styles.map(style => style.id)).toEqual(['style-b', 'style-c']);
+    await waitFor(() => expect(within(dialog).getByLabelText('样式名称')).toHaveValue('Style C'));
+  });
+
+  it('edits extended format fields and border sides in the style dialog', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffffff',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'solid', width: 0.2, color: '#222222', sides: { top: true, right: false, bottom: false, left: false } },
+      format: { type: 'number', pattern: '#,##0.00', nullValue: '-', trueText: 'Yes', falseText: 'No' },
+      canGrow: false,
+      canShrink: false,
+    };
+    const template = createDefaultTemplate('Style Designer Extended Fields');
+    template.styles = [style];
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
+      style: 'style-a',
+      styleBindings: ['format.nullValue', 'border.sides.right'],
+      format: { type: style.format!.type, ...style.format },
+      border: { ...style.border, sides: { ...style.border.sides } },
+    })];
+
+    await renderDesignerWithSelection(template, 'text-1');
+
+    const dialog = await openTextStyleLibraryFromManage();
+
+    fireEvent.change(within(dialog).getByLabelText('样式格式空值文本'), { target: { value: '(empty)' } });
+    fireEvent.change(within(dialog).getByLabelText('样式格式真值文本'), { target: { value: 'TRUE' } });
+    fireEvent.change(within(dialog).getByLabelText('样式格式假值文本'), { target: { value: 'FALSE' } });
+    expect(within(dialog).getByLabelText('样式边框样式')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: '右' }));
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: '下' }));
+
+    await waitFor(() => {
+      const updatedStyle = useDesignerStore.getState().template.styles.find(item => item.id === 'style-a');
+      expect(updatedStyle?.format).toMatchObject({
+        nullValue: '(empty)',
+        trueText: 'TRUE',
+        falseText: 'FALSE',
+      });
+      expect(updatedStyle?.border).toMatchObject({
+        style: 'solid',
+        sides: { top: true, right: true, bottom: true, left: false },
+      });
+    });
+
+    expect(selectedText()?.format).toMatchObject({
+      nullValue: '(empty)',
+    });
+    expect(selectedText()?.border.sides.right).toBe(true);
   });
 });

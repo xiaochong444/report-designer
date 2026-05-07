@@ -29,6 +29,7 @@ export interface DesignerState {
   template: ReportTemplate;
   currentPageId: string;
   mode: 'design' | 'preview';
+  textStyleLibraryOpen: boolean;
   selectedComponentIds: string[];
   selectedBandId: string | null;
   dataSources: Record<string, any[]>;
@@ -42,6 +43,8 @@ export interface DesignerState {
   updateTemplate: (updater: (template: ReportTemplate) => ReportTemplate) => void;
   setCurrentPage: (pageId: string) => void;
   setMode: (mode: 'design' | 'preview') => void;
+  openTextStyleLibrary: () => void;
+  closeTextStyleLibrary: () => void;
   selectComponents: (componentIds: string[]) => void;
   selectBand: (bandId: string | null) => void;
   setDataSources: (data: Record<string, any[]>) => void;
@@ -136,6 +139,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     template: createDefaultTemplate(),
     currentPageId: '',
     mode: 'design',
+    textStyleLibraryOpen: false,
     selectedComponentIds: [],
     selectedBandId: null,
     dataSources: {},
@@ -150,6 +154,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       template: normalizedTemplate,
       currentPageId: normalizedTemplate.pages[0]?.id || '',
       mode: 'design',
+      textStyleLibraryOpen: false,
       selectedComponentIds: [],
       selectedBandId: null,
       reportUnit: 'mm',
@@ -162,6 +167,10 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   setCurrentPage: (pageId) => set({ currentPageId: pageId }),
 
   setMode: (mode) => set({ mode }),
+
+  openTextStyleLibrary: () => set({ textStyleLibraryOpen: true }),
+
+  closeTextStyleLibrary: () => set({ textStyleLibraryOpen: false }),
 
   selectComponents: (componentIds) => set({ selectedComponentIds: componentIds }),
 

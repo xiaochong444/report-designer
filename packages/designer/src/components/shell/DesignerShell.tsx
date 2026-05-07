@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import { Button, Tooltip } from 'antd';
 import { DesignerCanvasFrame } from '../canvas/DesignerCanvasFrame';
+import { TextStyleLibraryDialog } from '../TextStyleLibraryDialog';
 import { StimulsoftLeftPanel } from '../panels/StimulsoftLeftPanel';
 import { StimulsoftPropertyGrid } from '../panels/StimulsoftPropertyGrid';
 import { StimulsoftRibbon } from '../ribbon/StimulsoftRibbon';
@@ -26,6 +27,8 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className }) => {
   const redo = useDesignerStore(s => s.redo);
   const canUndo = useDesignerStore(s => s.canUndo);
   const canRedo = useDesignerStore(s => s.canRedo);
+  const textStyleLibraryOpen = useDesignerStore(s => s.textStyleLibraryOpen);
+  const closeTextStyleLibrary = useDesignerStore(s => s.closeTextStyleLibrary);
 
   return (
     <div className={className ? `rd-designer-shell ${className}` : 'rd-designer-shell'}>
@@ -37,6 +40,7 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className }) => {
         <StimulsoftPropertyGrid />
       </div>
       <DesignerStatusBar />
+      <TextStyleLibraryDialog open={textStyleLibraryOpen} onClose={closeTextStyleLibrary} />
     </div>
   );
 };

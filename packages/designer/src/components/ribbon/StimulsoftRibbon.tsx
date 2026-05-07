@@ -4,6 +4,7 @@ import {
   AlignCenterOutlined,
   AlignLeftOutlined,
   AlignRightOutlined,
+  AppstoreOutlined,
   BorderOuterOutlined,
   CheckSquareOutlined,
   DeleteOutlined,
@@ -72,6 +73,7 @@ export const StimulsoftRibbon: React.FC = () => {
     addPage,
     getSelectedFont,
     getSelectedTextAlign,
+    openTextStyleLibrary,
     setMode,
   } = useDesignerStore();
 
@@ -360,6 +362,12 @@ export const StimulsoftRibbon: React.FC = () => {
           <Button size="small" icon={<AlignCenterOutlined />} disabled={textAlign === null} type={textAlign === 'center' ? 'primary' : 'default'} onClick={() => setTextAlign('center')} />
           <Button size="small" icon={<AlignRightOutlined />} disabled={textAlign === null} type={textAlign === 'right' ? 'primary' : 'default'} onClick={() => setTextAlign('right')} />
           <Button size="small" icon={<BorderOuterOutlined />} disabled={selectedCount === 0} onClick={() => setBorderAll(true)} />
+        </RibbonGroup>
+
+        <RibbonGroup title="Styles">
+          <Button size="small" icon={<AppstoreOutlined />} onClick={openTextStyleLibrary}>
+            Style Designer
+          </Button>
         </RibbonGroup>
       </>
     );
