@@ -74,6 +74,12 @@ describe('Phase 15 report tree naming and icons', () => {
   it('shows clean auto-generated component names and per-type icons in report tree', async () => {
     render(<Designer template={makeTreeTemplate()} />);
 
+    expect(await screen.findByText('报表树')).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /组件/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /字典/ })).toBeInTheDocument();
+    expect(screen.getByRole('tab', { name: /报表/ })).toBeInTheDocument();
+    expect(screen.queryByText('Report Explorer')).not.toBeInTheDocument();
+    expect(screen.queryByRole('tab', { name: /Components/ })).not.toBeInTheDocument();
     expect(await screen.findByTestId('report-tree-root')).toHaveTextContent('Tree Demo');
     expect(await screen.findByText('Page1')).toBeInTheDocument();
     expect(within(await screen.findByTestId('report-tree-component-text-alpha')).getByText('Text1')).toBeInTheDocument();

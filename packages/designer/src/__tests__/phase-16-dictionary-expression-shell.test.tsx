@@ -55,7 +55,7 @@ describe('Phase 16 dictionary tree and expression shell', () => {
   it('shows a larger searchable dictionary tree and filters fields by name', async () => {
     render(<Designer template={makeDictionaryTemplate()} />);
 
-    fireEvent.click(screen.getByText('Dictionary'));
+    fireEvent.click(screen.getByRole('tab', { name: /字典/ }));
 
     const searchInput = await screen.findByPlaceholderText('搜索数据源和字段');
     expect(searchInput).toBeInTheDocument();

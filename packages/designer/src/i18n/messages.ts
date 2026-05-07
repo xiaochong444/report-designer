@@ -6,6 +6,7 @@ export type DesignerMessageKey =
   | 'common.done'
   | 'common.duplicate'
   | 'common.new'
+  | 'common.apply'
   | 'common.save'
   | 'common.search'
   | 'common.default'
@@ -128,7 +129,54 @@ export type DesignerMessageKey =
   | 'styleLibrary.borderDashed'
   | 'styleLibrary.borderDotted'
   | 'styleLibrary.borderDouble'
-  | 'styleLibrary.noValuePlaceholder';
+  | 'styleLibrary.noValuePlaceholder'
+  | 'leftPanel.reportExplorer'
+  | 'leftPanel.components'
+  | 'leftPanel.dictionary'
+  | 'leftPanel.report'
+  | 'leftPanel.componentsHint'
+  | 'leftPanel.componentText'
+  | 'leftPanel.componentImage'
+  | 'leftPanel.componentBarcode'
+  | 'leftPanel.componentTable'
+  | 'leftPanel.componentCheckbox'
+  | 'leftPanel.componentRichText'
+  | 'leftPanel.componentSubreport'
+  | 'leftPanel.componentPanel'
+  | 'leftPanel.componentLine'
+  | 'leftPanel.componentShape'
+  | 'leftPanel.componentPageNumber'
+  | 'leftPanel.componentDateTime'
+  | 'leftPanel.searchComponents'
+  | 'leftPanel.searchDictionary'
+  | 'leftPanel.dataSources'
+  | 'leftPanel.variables'
+  | 'leftPanel.noVariables'
+  | 'leftPanel.systemVariables'
+  | 'leftPanel.functions'
+  | 'leftPanel.resources'
+  | 'leftPanel.noResources'
+  | 'selection.component'
+  | 'selection.components'
+  | 'selection.band'
+  | 'pageSettings.title'
+  | 'pageSettings.noPage'
+  | 'pageSettings.page'
+  | 'pageSettings.paperType'
+  | 'pageSettings.reportUnit'
+  | 'pageSettings.custom'
+  | 'pageSettings.millimeter'
+  | 'pageSettings.centimeter'
+  | 'pageSettings.width'
+  | 'pageSettings.height'
+  | 'pageSettings.orientation'
+  | 'pageSettings.portrait'
+  | 'pageSettings.landscape'
+  | 'pageSettings.margins'
+  | 'pageSettings.top'
+  | 'pageSettings.right'
+  | 'pageSettings.bottom'
+  | 'pageSettings.left';
 
 export type DesignerMessages = Record<DesignerMessageKey, string>;
 
@@ -139,6 +187,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'common.done': '完成',
     'common.duplicate': '复制',
     'common.new': '新建',
+    'common.apply': '应用',
     'common.save': '保存',
     'common.search': '搜索',
     'common.default': '默认',
@@ -262,6 +311,53 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.borderDotted': '点线',
     'styleLibrary.borderDouble': '双线',
     'styleLibrary.noValuePlaceholder': '无值',
+    'leftPanel.reportExplorer': '报表树',
+    'leftPanel.components': '组件',
+    'leftPanel.dictionary': '字典',
+    'leftPanel.report': '报表',
+    'leftPanel.componentsHint': '将常用报表组件拖入选中的带区。',
+    'leftPanel.componentText': '文本',
+    'leftPanel.componentImage': '图片',
+    'leftPanel.componentBarcode': '条码',
+    'leftPanel.componentTable': '表格',
+    'leftPanel.componentCheckbox': '复选框',
+    'leftPanel.componentRichText': '富文本',
+    'leftPanel.componentSubreport': '子报表',
+    'leftPanel.componentPanel': '面板',
+    'leftPanel.componentLine': '线条',
+    'leftPanel.componentShape': '形状',
+    'leftPanel.componentPageNumber': '页码',
+    'leftPanel.componentDateTime': '日期时间',
+    'leftPanel.searchComponents': '搜索组件',
+    'leftPanel.searchDictionary': '搜索数据源和字段',
+    'leftPanel.dataSources': '数据源',
+    'leftPanel.variables': '变量',
+    'leftPanel.noVariables': '暂无变量',
+    'leftPanel.systemVariables': '系统变量',
+    'leftPanel.functions': '函数',
+    'leftPanel.resources': '资源',
+    'leftPanel.noResources': '暂无资源',
+    'selection.component': '组件',
+    'selection.components': '{count} 个组件',
+    'selection.band': '带区',
+    'pageSettings.title': '页面设置',
+    'pageSettings.noPage': '未选择页面',
+    'pageSettings.page': '页面',
+    'pageSettings.paperType': '纸张类型',
+    'pageSettings.reportUnit': '报表单位',
+    'pageSettings.custom': '自定义',
+    'pageSettings.millimeter': '毫米',
+    'pageSettings.centimeter': '厘米',
+    'pageSettings.width': '宽度',
+    'pageSettings.height': '高度',
+    'pageSettings.orientation': '方向',
+    'pageSettings.portrait': '纵向',
+    'pageSettings.landscape': '横向',
+    'pageSettings.margins': '页边距',
+    'pageSettings.top': '上',
+    'pageSettings.right': '右',
+    'pageSettings.bottom': '下',
+    'pageSettings.left': '左',
   },
   'en-US': {
     'common.cancel': 'Cancel',
@@ -269,6 +365,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'common.done': 'Done',
     'common.duplicate': 'Duplicate',
     'common.new': 'New',
+    'common.apply': 'Apply',
     'common.save': 'Save',
     'common.search': 'Search',
     'common.default': 'Default',
@@ -392,5 +489,52 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.borderDotted': 'Dotted',
     'styleLibrary.borderDouble': 'Double',
     'styleLibrary.noValuePlaceholder': 'No value',
+    'leftPanel.reportExplorer': 'Report Explorer',
+    'leftPanel.components': 'Components',
+    'leftPanel.dictionary': 'Dictionary',
+    'leftPanel.report': 'Report',
+    'leftPanel.componentsHint': 'Drag common report controls into the selected band.',
+    'leftPanel.componentText': 'Text',
+    'leftPanel.componentImage': 'Image',
+    'leftPanel.componentBarcode': 'Barcode',
+    'leftPanel.componentTable': 'Table',
+    'leftPanel.componentCheckbox': 'Checkbox',
+    'leftPanel.componentRichText': 'Rich Text',
+    'leftPanel.componentSubreport': 'Subreport',
+    'leftPanel.componentPanel': 'Panel',
+    'leftPanel.componentLine': 'Line',
+    'leftPanel.componentShape': 'Shape',
+    'leftPanel.componentPageNumber': 'Page #',
+    'leftPanel.componentDateTime': 'Date/Time',
+    'leftPanel.searchComponents': 'Search components',
+    'leftPanel.searchDictionary': 'Search data sources and fields',
+    'leftPanel.dataSources': 'Data sources',
+    'leftPanel.variables': 'Variables',
+    'leftPanel.noVariables': 'No variables',
+    'leftPanel.systemVariables': 'System variables',
+    'leftPanel.functions': 'Functions',
+    'leftPanel.resources': 'Resources',
+    'leftPanel.noResources': 'No resources',
+    'selection.component': 'Component',
+    'selection.components': '{count} components',
+    'selection.band': 'Band',
+    'pageSettings.title': 'Page Settings',
+    'pageSettings.noPage': 'No page selected',
+    'pageSettings.page': 'Page',
+    'pageSettings.paperType': 'Paper type',
+    'pageSettings.reportUnit': 'Report unit',
+    'pageSettings.custom': 'Custom',
+    'pageSettings.millimeter': 'Millimeter',
+    'pageSettings.centimeter': 'Centimeter',
+    'pageSettings.width': 'Width',
+    'pageSettings.height': 'Height',
+    'pageSettings.orientation': 'Orientation',
+    'pageSettings.portrait': 'Portrait',
+    'pageSettings.landscape': 'Landscape',
+    'pageSettings.margins': 'Margins',
+    'pageSettings.top': 'Top',
+    'pageSettings.right': 'Right',
+    'pageSettings.bottom': 'Bottom',
+    'pageSettings.left': 'Left',
   },
 };

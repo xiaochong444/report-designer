@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Button, InputNumber, Modal, Radio, Select, Space } from 'antd';
 import type { Margins, PageOrientation } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
+import { useDesignerI18n } from '../../i18n';
 import {
   detectPaperType,
   formatUnitValue,
@@ -18,6 +19,7 @@ interface PageSetupDialogProps {
 }
 
 export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose }) => {
+  const { t } = useDesignerI18n();
   const page = useDesignerStore(s => s.template.pages.find(item => item.id === s.currentPageId) ?? s.template.pages[0]);
   const setPageSettings = useDesignerStore(s => s.setPageSettings);
   const reportUnit = useDesignerStore(s => s.reportUnit);
@@ -85,44 +87,44 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
   return (
     <Modal
       open={open}
-      title="Page Setup"
+      title={t('pageSettings.title')}
       onCancel={onClose}
       footer={[
-        <Button key="cancel" onClick={onClose}>Cancel</Button>,
-        <Button key="apply" type="primary" onClick={apply}>Apply</Button>,
+        <Button key="cancel" onClick={onClose}>{t('common.cancel')}</Button>,
+        <Button key="apply" type="primary" onClick={apply}>{t('common.apply')}</Button>,
       ]}
     >
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         <DialogSelectField
-          label="Paper type"
-          ariaLabel="Paper type"
+          label={t('pageSettings.paperType')}
+          ariaLabel={t('pageSettings.paperType')}
           value={paperType}
           options={[
             ...PAPER_PRESETS.map((item) => ({ value: item.value, label: item.label })),
-            { value: 'Custom', label: 'Custom' },
+            { value: 'Custom', label: t('pageSettings.custom') },
           ]}
           onChange={handlePaperTypeChange}
         />
         <DialogSelectField
-          label="Report unit"
-          ariaLabel="Report unit"
+          label={t('pageSettings.reportUnit')}
+          ariaLabel={t('pageSettings.reportUnit')}
           value={reportUnit}
           options={[
-            { value: 'mm', label: 'Millimeter' },
-            { value: 'cm', label: 'Centimeter' },
+            { value: 'mm', label: t('pageSettings.millimeter') },
+            { value: 'cm', label: t('pageSettings.centimeter') },
           ]}
           onChange={setReportUnit}
         />
         <Radio.Group value={orientation} onChange={event => handleOrientationChange(event.target.value)}>
-          <Radio.Button value="portrait">Portrait</Radio.Button>
-          <Radio.Button value="landscape">Landscape</Radio.Button>
+          <Radio.Button value="portrait">{t('pageSettings.portrait')}</Radio.Button>
+          <Radio.Button value="landscape">{t('pageSettings.landscape')}</Radio.Button>
         </Radio.Group>
-        <DialogNumberField label="Width" value={formatUnitValue(width, reportUnit)} min={sizeMin} max={sizeMax} step={unitStep} disabled={paperType !== 'Custom'} onChange={value => setWidth(parseUnitValue(value, reportUnit, width))} />
-        <DialogNumberField label="Height" value={formatUnitValue(height, reportUnit)} min={sizeMin} max={sizeMax} step={unitStep} disabled={paperType !== 'Custom'} onChange={value => setHeight(parseUnitValue(value, reportUnit, height))} />
-        <DialogNumberField label="Top" value={formatUnitValue(margins.top, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('top', value)} />
-        <DialogNumberField label="Right" value={formatUnitValue(margins.right, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('right', value)} />
-        <DialogNumberField label="Bottom" value={formatUnitValue(margins.bottom, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('bottom', value)} />
-        <DialogNumberField label="Left" value={formatUnitValue(margins.left, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('left', value)} />
+        <DialogNumberField label={t('pageSettings.width')} value={formatUnitValue(width, reportUnit)} min={sizeMin} max={sizeMax} step={unitStep} disabled={paperType !== 'Custom'} onChange={value => setWidth(parseUnitValue(value, reportUnit, width))} />
+        <DialogNumberField label={t('pageSettings.height')} value={formatUnitValue(height, reportUnit)} min={sizeMin} max={sizeMax} step={unitStep} disabled={paperType !== 'Custom'} onChange={value => setHeight(parseUnitValue(value, reportUnit, height))} />
+        <DialogNumberField label={t('pageSettings.top')} value={formatUnitValue(margins.top, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('top', value)} />
+        <DialogNumberField label={t('pageSettings.right')} value={formatUnitValue(margins.right, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('right', value)} />
+        <DialogNumberField label={t('pageSettings.bottom')} value={formatUnitValue(margins.bottom, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('bottom', value)} />
+        <DialogNumberField label={t('pageSettings.left')} value={formatUnitValue(margins.left, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('left', value)} />
       </Space>
     </Modal>
   );

@@ -175,10 +175,10 @@ describe('Phase 9 text binding and style UI', () => {
     const cleanupSurface = setupDropSurface();
     render(<LeftPanel />);
     await act(async () => {
-      fireEvent.click(screen.getByText('Components'));
+      fireEvent.click(screen.getByRole('tab', { name: /组件/ }));
     });
 
-    const dropTarget = screen.getByText('Drag common report controls into the selected band.').parentElement as HTMLElement;
+    const dropTarget = screen.getByText('将常用报表组件拖入选中的带区。').parentElement as HTMLElement;
     const makeTransfer = (fieldName: string, fieldType: string) => ({
       getData: (key: string) => key === 'fieldBinding' ? JSON.stringify({ dataSourceId: 'employees', fieldName, fieldType }) : '',
       effectAllowed: 'copy',

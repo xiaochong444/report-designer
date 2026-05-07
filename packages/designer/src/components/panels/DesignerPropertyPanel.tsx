@@ -11,10 +11,12 @@ import {
   PAPER_PRESETS,
   type PaperType,
 } from '../../page-settings';
+import { useDesignerI18n } from '../../i18n';
 import { BandPropertyGrid } from '../properties/BandPropertyGrid';
 import { PropertyEditor } from '../PropertyEditor';
 
 export const DesignerPropertyPanel: React.FC = () => {
+  const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
@@ -24,12 +26,12 @@ export const DesignerPropertyPanel: React.FC = () => {
     if (selectedComponentIds.length === 1) {
       const page = template.pages.find(p => p.id === currentPageId);
       const component = page?.bands.flatMap(b => b.components).find(c => c.id === selectedComponentIds[0]);
-      return component ? `${component.type} component` : 'Component';
+      return component ? t('selection.component') : t('selection.component');
     }
-    if (selectedComponentIds.length > 1) return `${selectedComponentIds.length} components`;
-    if (selectedBandId) return 'Band';
-    return 'Page Settings';
-  }, [currentPageId, selectedBandId, selectedComponentIds, template]);
+    if (selectedComponentIds.length > 1) return t('selection.components', { count: selectedComponentIds.length });
+    if (selectedBandId) return t('selection.band');
+    return t('pageSettings.title');
+  }, [currentPageId, selectedBandId, selectedComponentIds, t, template]);
 
   const showBandProperties = selectedBandId && selectedComponentIds.length === 0;
   const showPageProperties = selectedComponentIds.length === 0 && !selectedBandId;
@@ -51,6 +53,7 @@ export const DesignerPropertyPanel: React.FC = () => {
 };
 
 const PageProperties: React.FC = () => {
+  const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const setPageSettings = useDesignerStore(s => s.setPageSettings);
@@ -61,7 +64,7 @@ const PageProperties: React.FC = () => {
   if (!page) {
     return (
       <div className="rd-property-grid-band" data-testid="designer-page-properties">
-        <Typography.Text type="secondary">No page selected</Typography.Text>
+        <Typography.Text type="secondary">{t('pageSettings.noPage')}</Typography.Text>
       </div>
     );
   }
@@ -110,36 +113,36 @@ const PageProperties: React.FC = () => {
         items={[
           {
             key: 'page',
-            label: 'Page',
+            label: t('pageSettings.page'),
             children: (
               <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-                <Form.Item label="Paper type">
+                <Form.Item label={t('pageSettings.paperType')}>
                   <Select
-                    aria-label="Paper type"
+                    aria-label={t('pageSettings.paperType')}
                     value={paperType}
                     virtual={false}
                     options={[
                       ...PAPER_PRESETS.map((item) => ({ value: item.value, label: item.label })),
-                      { value: 'Custom', label: 'Custom' },
+                      { value: 'Custom', label: t('pageSettings.custom') },
                     ]}
                     onChange={updatePaperType}
                   />
                 </Form.Item>
-                <Form.Item label="Report unit">
+                <Form.Item label={t('pageSettings.reportUnit')}>
                   <Select
-                    aria-label="Report unit"
+                    aria-label={t('pageSettings.reportUnit')}
                     value={reportUnit}
                     virtual={false}
                     options={[
-                      { value: 'mm', label: 'Millimeter' },
-                      { value: 'cm', label: 'Centimeter' },
+                      { value: 'mm', label: t('pageSettings.millimeter') },
+                      { value: 'cm', label: t('pageSettings.centimeter') },
                     ]}
                     onChange={setReportUnit}
                   />
                 </Form.Item>
-                <Form.Item label="Width">
+                <Form.Item label={t('pageSettings.width')}>
                   <InputNumber
-                    aria-label="Page width"
+                    aria-label={t('pageSettings.width')}
                     value={formatUnitValue(page.width, reportUnit)}
                     min={sizeMin}
                     max={sizeMax}
@@ -149,9 +152,9 @@ const PageProperties: React.FC = () => {
                     onChange={value => updatePage({ width: parseUnitValue(value, reportUnit, page.width) })}
                   />
                 </Form.Item>
-                <Form.Item label="Height">
+                <Form.Item label={t('pageSettings.height')}>
                   <InputNumber
-                    aria-label="Page height"
+                    aria-label={t('pageSettings.height')}
                     value={formatUnitValue(page.height, reportUnit)}
                     min={sizeMin}
                     max={sizeMax}
@@ -161,14 +164,14 @@ const PageProperties: React.FC = () => {
                     onChange={value => updatePage({ height: parseUnitValue(value, reportUnit, page.height) })}
                   />
                 </Form.Item>
-                <Form.Item label="Orientation">
+                <Form.Item label={t('pageSettings.orientation')}>
                   <Select
-                    aria-label="Page orientation"
+                    aria-label={t('pageSettings.orientation')}
                     value={page.orientation}
                     virtual={false}
                     options={[
-                      { value: 'portrait', label: 'Portrait' },
-                      { value: 'landscape', label: 'Landscape' },
+                      { value: 'portrait', label: t('pageSettings.portrait') },
+                      { value: 'landscape', label: t('pageSettings.landscape') },
                     ]}
                     onChange={updateOrientation}
                   />
@@ -178,19 +181,19 @@ const PageProperties: React.FC = () => {
           },
           {
             key: 'margins',
-            label: 'Margins',
+            label: t('pageSettings.margins'),
             children: (
               <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-                <Form.Item label="Top">
+                <Form.Item label={t('pageSettings.top')}>
                   <InputNumber value={formatUnitValue(margins.top, reportUnit)} min={0} max={marginMax} step={unitStep} style={{ width: '100%' }} onChange={value => updateMargin('top', value)} />
                 </Form.Item>
-                <Form.Item label="Right">
+                <Form.Item label={t('pageSettings.right')}>
                   <InputNumber value={formatUnitValue(margins.right, reportUnit)} min={0} max={marginMax} step={unitStep} style={{ width: '100%' }} onChange={value => updateMargin('right', value)} />
                 </Form.Item>
-                <Form.Item label="Bottom">
+                <Form.Item label={t('pageSettings.bottom')}>
                   <InputNumber value={formatUnitValue(margins.bottom, reportUnit)} min={0} max={marginMax} step={unitStep} style={{ width: '100%' }} onChange={value => updateMargin('bottom', value)} />
                 </Form.Item>
-                <Form.Item label="Left">
+                <Form.Item label={t('pageSettings.left')}>
                   <InputNumber value={formatUnitValue(margins.left, reportUnit)} min={0} max={marginMax} step={unitStep} style={{ width: '100%' }} onChange={value => updateMargin('left', value)} />
                 </Form.Item>
               </Form>

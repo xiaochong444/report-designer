@@ -11,8 +11,11 @@ import type { ReportComponent, BandType } from '@report-designer/core';
 import { getBandDisplayName, getComponentNamePrefix } from '../report-structure';
 import { nanoid } from 'nanoid';
 import { useEffect, useMemo, useState } from 'react';
+import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
 
 export const LeftPanel: React.FC = () => {
+  const { t } = useDesignerI18n();
+
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '0 6px 6px' }}>
       <Tabs
@@ -22,21 +25,21 @@ export const LeftPanel: React.FC = () => {
           {
             key: 'palette',
             label: (
-              <span><AppstoreOutlined /> Components</span>
+              <span><AppstoreOutlined /> {t('leftPanel.components')}</span>
             ),
             children: <ComponentPalette />,
           },
           {
             key: 'data',
             label: (
-              <span><DatabaseOutlined /> Dictionary</span>
+              <span><DatabaseOutlined /> {t('leftPanel.dictionary')}</span>
             ),
             children: <DataDictionary />,
           },
           {
             key: 'tree',
             label: (
-              <span><FileTextOutlined /> Report</span>
+              <span><FileTextOutlined /> {t('leftPanel.report')}</span>
             ),
             children: <PageTree />,
           },
@@ -49,21 +52,22 @@ export const LeftPanel: React.FC = () => {
 // ---- Component Palette ----
 
 const COMPONENT_TYPES = [
-  { type: 'text', label: 'Text', icon: 'T' },
-  { type: 'image', label: 'Image', icon: 'I' },
-  { type: 'barcode', label: 'Barcode', icon: 'B' },
-  { type: 'table', label: 'Table', icon: '▦' },
-  { type: 'checkbox', label: 'Checkbox', icon: '☑' },
-  { type: 'richtext', label: 'Rich Text', icon: 'R' },
-  { type: 'subreport', label: 'Subreport', icon: 'S' },
-  { type: 'panel', label: 'Panel', icon: 'P' },
-  { type: 'line', label: 'Line', icon: '╱' },
-  { type: 'shape', label: 'Shape', icon: '▭' },
-  { type: 'pagenumber', label: 'Page #', icon: '#' },
-  { type: 'datetime', label: 'Date/Time', icon: '📅' },
+  { type: 'text', labelKey: 'leftPanel.componentText', icon: 'T' },
+  { type: 'image', labelKey: 'leftPanel.componentImage', icon: 'I' },
+  { type: 'barcode', labelKey: 'leftPanel.componentBarcode', icon: 'B' },
+  { type: 'table', labelKey: 'leftPanel.componentTable', icon: '▦' },
+  { type: 'checkbox', labelKey: 'leftPanel.componentCheckbox', icon: '☑' },
+  { type: 'richtext', labelKey: 'leftPanel.componentRichText', icon: 'R' },
+  { type: 'subreport', labelKey: 'leftPanel.componentSubreport', icon: 'S' },
+  { type: 'panel', labelKey: 'leftPanel.componentPanel', icon: 'P' },
+  { type: 'line', labelKey: 'leftPanel.componentLine', icon: '╱' },
+  { type: 'shape', labelKey: 'leftPanel.componentShape', icon: '▭' },
+  { type: 'pagenumber', labelKey: 'leftPanel.componentPageNumber', icon: '#' },
+  { type: 'datetime', labelKey: 'leftPanel.componentDateTime', icon: 'D' },
 ];
 
 const ComponentPalette: React.FC = () => {
+  const { t } = useDesignerI18n();
   const addComponent = useDesignerStore(s => s.addComponent);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const template = useDesignerStore(s => s.template);
@@ -188,14 +192,16 @@ const ComponentPalette: React.FC = () => {
 
   return (
     <div style={{ padding: 8 }} onDrop={handleDropOnCanvas} onDragOver={handleDragOver}>
-      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>Drag common report controls into the selected band.</div>
+      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>{t('leftPanel.componentsHint')}</div>
       <div style={{
         display: 'grid',
         gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
         gap: 6,
       }}>
-        {COMPONENT_TYPES.map(item => (
-          <Tooltip key={item.type} title={item.label}>
+        {COMPONENT_TYPES.map(item => {
+          const label = t(item.labelKey as DesignerMessageKey);
+          return (
+          <Tooltip key={item.type} title={label}>
             <div
               draggable
               onDragStart={(e) => {
@@ -218,11 +224,12 @@ const ComponentPalette: React.FC = () => {
                 }}
               >
                 <span>{item.icon}</span>
-                <span style={{ fontSize: 10, lineHeight: 1.1 }}>{item.label}</span>
+                <span style={{ fontSize: 10, lineHeight: 1.1 }}>{label}</span>
               </Button>
             </div>
           </Tooltip>
-        ))}
+          );
+        })}
       </div>
     </div>
   );
@@ -320,6 +327,7 @@ function filterTreeNodes(nodes: DataNode[], query: string): DataNode[] {
 }
 
 const DataDictionary: React.FC = () => {
+  const { t } = useDesignerI18n();
   const dataSources = useDesignerStore(s => s.template.dataSources);
   const [searchTerm, setSearchTerm] = useState('');
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
@@ -335,7 +343,7 @@ const DataDictionary: React.FC = () => {
       title: (
         <div className="rd-dictionary-node">
           {renderDictionaryGlyph('folder')}
-          <span>数据源</span>
+          <span>{t('leftPanel.dataSources')}</span>
         </div>
       ),
       children: dataSources.map((ds) => ({
@@ -366,14 +374,14 @@ const DataDictionary: React.FC = () => {
       title: (
         <div className="rd-dictionary-node">
           {renderDictionaryGlyph('variable')}
-          <span>变量</span>
+          <span>{t('leftPanel.variables')}</span>
         </div>
       ),
       children: [
         {
           key: 'dictionary-variable-empty',
           selectable: false,
-          title: <span className="rd-dictionary-empty">暂无变量</span>,
+          title: <span className="rd-dictionary-empty">{t('leftPanel.noVariables')}</span>,
         },
       ],
     },
@@ -382,7 +390,7 @@ const DataDictionary: React.FC = () => {
       title: (
         <div className="rd-dictionary-node">
           {renderDictionaryGlyph('system')}
-          <span>系统变量</span>
+          <span>{t('leftPanel.systemVariables')}</span>
         </div>
       ),
       children: [
@@ -396,7 +404,7 @@ const DataDictionary: React.FC = () => {
       title: (
         <div className="rd-dictionary-node">
           {renderDictionaryGlyph('function')}
-          <span>函数</span>
+          <span>{t('leftPanel.functions')}</span>
         </div>
       ),
       children: [
@@ -409,14 +417,14 @@ const DataDictionary: React.FC = () => {
       title: (
         <div className="rd-dictionary-node">
           {renderDictionaryGlyph('resource')}
-          <span>资源</span>
+          <span>{t('leftPanel.resources')}</span>
         </div>
       ),
       children: [
         {
           key: 'dictionary-resource-empty',
           selectable: false,
-          title: <span className="rd-dictionary-empty">暂无资源</span>,
+          title: <span className="rd-dictionary-empty">{t('leftPanel.noResources')}</span>,
         },
       ],
     },
@@ -430,7 +438,7 @@ const DataDictionary: React.FC = () => {
         <Input
           allowClear
           size="small"
-          placeholder="搜索数据源和字段"
+          placeholder={t('leftPanel.searchDictionary')}
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
         />
@@ -494,6 +502,7 @@ function renderTreeDocGlyph(kind: 'report' | 'page') {
 }
 
 const PageTree: React.FC = () => {
+  const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
@@ -537,7 +546,7 @@ const PageTree: React.FC = () => {
       title: (
         <div className="rd-report-tree-root" data-testid="report-tree-root">
           {renderTreeDocGlyph('report')}
-          <span>{template.name || 'Untitled Report'}</span>
+          <span>{template.name || t('shell.untitledReport')}</span>
         </div>
       ),
       children: template.pages.map((page, pageIndex) => {
@@ -606,7 +615,7 @@ const PageTree: React.FC = () => {
         <Input
           size="small"
           allowClear
-          placeholder="搜索组件"
+          placeholder={t('leftPanel.searchComponents')}
           value={searchTerm}
           onChange={(event) => setSearchTerm(event.target.value)}
         />

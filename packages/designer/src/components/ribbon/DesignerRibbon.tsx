@@ -281,7 +281,7 @@ export const DesignerRibbon: React.FC = () => {
             </Tooltip>
             <Tooltip title={t('ribbon.pageSettings')}>
               <Button size="small" icon={<SettingOutlined />} onClick={() => setPageDialogOpen(true)}>
-                {t('ribbon.settings')}
+                {t('ribbon.pageSettings')}
               </Button>
             </Tooltip>
           </RibbonGroup>
