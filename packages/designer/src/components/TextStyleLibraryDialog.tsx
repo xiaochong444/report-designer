@@ -1,5 +1,36 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Checkbox, ColorPicker, Empty, Input, InputNumber, Modal, Select, Space, Switch, Tag, Typography } from 'antd';
+import {
+  AlignCenterOutlined,
+  AlignLeftOutlined,
+  AlignRightOutlined,
+  ArrowDownOutlined,
+  ArrowLeftOutlined,
+  ArrowRightOutlined,
+  ArrowUpOutlined,
+  BgColorsOutlined,
+  BoldOutlined,
+  CheckOutlined,
+  CopyOutlined,
+  DeleteOutlined,
+  FontColorsOutlined,
+  ItalicOutlined,
+  PlusOutlined,
+  StrikethroughOutlined,
+  UnderlineOutlined,
+} from '@ant-design/icons';
+import {
+  Button,
+  ColorPicker,
+  Empty,
+  Input,
+  InputNumber,
+  Modal,
+  Select,
+  Space,
+  Tag,
+  Tooltip,
+  Typography,
+} from 'antd';
 import type { BorderConfig, FontConfig, ReportStyle, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 
@@ -30,6 +61,9 @@ const EMPTY_FORMAT: TextFormatConfig = {
 };
 
 const EMPTY_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
+
+const STYLE_LIST_COLUMN_WIDTH = 248;
+const PROPERTY_COLUMN_WIDTH = 388;
 
 function mergeBorder(border?: Partial<BorderConfig>): BorderConfig {
   return {
@@ -89,20 +123,25 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
   }, [search, template.styles]);
 
   const selectedStyle = useMemo(() => {
-    return filteredStyles.find(style => style.id === selectedStyleId) ?? filteredStyles[0];
-  }, [filteredStyles, selectedStyleId]);
+    return (
+      filteredStyles.find(style => style.id === selectedStyleId)
+      ?? filteredStyles[0]
+      ?? template.styles.find(style => style.id === selectedStyleId)
+      ?? template.styles[0]
+    );
+  }, [filteredStyles, selectedStyleId, template.styles]);
 
   useEffect(() => {
     if (!open) {
       return;
     }
     setSelectedStyleId(current => {
-      if (current && filteredStyles.some(style => style.id === current)) {
+      if (current && template.styles.some(style => style.id === current)) {
         return current;
       }
-      return filteredStyles[0]?.id;
+      return filteredStyles[0]?.id ?? template.styles[0]?.id;
     });
-  }, [filteredStyles, open]);
+  }, [filteredStyles, open, template.styles]);
 
   useEffect(() => {
     setDraftName(selectedStyle?.name ?? '');
@@ -113,8 +152,10 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
   }, [search]);
 
   useEffect(() => {
-    visibleSelectedStyleIdRef.current = selectedStyle?.id;
-  }, [selectedStyle?.id]);
+    visibleSelectedStyleIdRef.current = filteredStyles.some(style => style.id === selectedStyle?.id)
+      ? selectedStyle?.id
+      : filteredStyles[0]?.id;
+  }, [filteredStyles, selectedStyle?.id]);
 
   const updateSelectedStyle = (updates: Partial<ReportStyle>) => {
     if (!selectedStyle) {
@@ -125,6 +166,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
 
   const handleCreate = () => {
     const createdId = createTextStyle({ name: 'New Style' });
+    setSearch('');
     setSelectedStyleId(createdId);
   };
 
@@ -134,20 +176,24 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
     }
     const duplicateId = duplicateTextStyle(selectedStyle.id);
     if (duplicateId) {
+      setSearch('');
       setSelectedStyleId(duplicateId);
     }
   };
 
-  const handleRename = () => {
+  const commitDraftName = (nextName = draftName) => {
     if (!selectedStyle) {
       return;
     }
-    const nextName = draftName.trim();
-    if (!nextName) {
+    const trimmedName = nextName.trim();
+    if (!trimmedName) {
       setDraftName(selectedStyle.name);
       return;
     }
-    renameTextStyle(selectedStyle.id, nextName);
+    if (trimmedName === selectedStyle.name) {
+      return;
+    }
+    renameTextStyle(selectedStyle.id, trimmedName);
   };
 
   const handleDelete = () => {
@@ -188,7 +234,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
           deletingVisibleIndex >= 0
             ? visibleStylesAfterDelete[deletingVisibleIndex] ?? visibleStylesAfterDelete[deletingVisibleIndex - 1]
             : undefined
-        ) ?? visibleStylesAfterDelete[0];
+        ) ?? visibleStylesAfterDelete[0] ?? stylesAfterDelete[0];
         setSelectedStyleId(fallbackStyle?.id);
       },
     });
@@ -199,18 +245,55 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
   const padding = mergePadding(selectedStyle?.padding);
   const format = selectedStyle?.format ?? EMPTY_FORMAT;
 
+  const setFontFlag = (field: 'bold' | 'italic' | 'underline' | 'strikethrough', nextValue: boolean) => {
+    updateSelectedStyle({ font: { ...font, [field]: nextValue } });
+  };
+
+  const setBorderSide = (field: 'top' | 'right' | 'bottom' | 'left', nextValue: boolean) => {
+    updateSelectedStyle({
+      border: {
+        ...border,
+        sides: {
+          ...border.sides,
+          [field]: nextValue,
+        },
+      },
+    });
+  };
+
   return (
     <Modal
       open={open}
       title="Text Style Library"
       onCancel={onClose}
       onOk={onClose}
-      width={1080}
+      width={1120}
+      style={{ top: 16 }}
       okText="Done"
       destroyOnHidden
+      styles={{ body: { paddingTop: 10, overflow: 'hidden' } }}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '260px minmax(0, 1fr) 360px', gap: 16, minHeight: 520 }}>
-        <section style={{ display: 'grid', gridTemplateRows: 'auto auto minmax(0, 1fr)', gap: 12, minWidth: 0 }}>
+      <div
+        data-testid="style-library-shell"
+        style={{
+          display: 'flex',
+          gap: 16,
+          height: 620,
+          maxHeight: 'calc(100vh - 170px)',
+          minHeight: 0,
+          overflow: 'hidden',
+        }}
+      >
+        <section
+          style={{
+            display: 'flex',
+            flex: `0 0 ${STYLE_LIST_COLUMN_WIDTH}px`,
+            flexDirection: 'column',
+            gap: 10,
+            minWidth: 0,
+            minHeight: 0,
+          }}
+        >
           <Input.Search
             aria-label="样式搜索"
             value={search}
@@ -218,50 +301,89 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
             placeholder="Search styles"
             allowClear
           />
-          <Space wrap>
-            <Button onClick={handleCreate}>New</Button>
-            <Button onClick={handleDuplicate} disabled={!selectedStyle}>Duplicate</Button>
-            <Button danger onClick={handleDelete} disabled={!selectedStyle}>Delete</Button>
+          <Space size={8}>
+            <ToolbarIconButton ariaLabel="New" icon={<PlusOutlined />} onClick={handleCreate} tooltip="New" />
+            <ToolbarIconButton ariaLabel="Duplicate" icon={<CopyOutlined />} onClick={handleDuplicate} disabled={!selectedStyle} tooltip="Duplicate" />
+            <ToolbarIconButton ariaLabel="Delete" icon={<DeleteOutlined />} danger onClick={handleDelete} disabled={!selectedStyle} tooltip="Delete" />
           </Space>
-          <div style={{ border: '1px solid #f0f0f0', borderRadius: 6, overflow: 'hidden', minHeight: 0 }}>
-            {filteredStyles.length ? (
-              <div style={{ display: 'grid', gap: 4, padding: 8 }}>
-                {filteredStyles.map((style) => {
+          <div style={{ border: '1px solid #e7e9ee', borderRadius: 8, overflow: 'hidden', minHeight: 0, flex: '1 1 0px', background: '#fff' }}>
+            <div
+              data-testid="style-library-style-list-scroll"
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: 2,
+                height: '100%',
+                minHeight: 0,
+                overflowX: 'hidden',
+                overflowY: 'auto',
+                padding: 6,
+              }}
+            >
+              {filteredStyles.length ? (
+                filteredStyles.map((style) => {
                   const active = style.id === selectedStyle?.id;
                   return (
-                    <Button
+                    <button
                       key={style.id}
-                      block
-                      type={active ? 'primary' : 'text'}
+                      type="button"
                       onClick={() => setSelectedStyleId(style.id)}
-                      style={{ height: 'auto', justifyContent: 'space-between', textAlign: 'left', whiteSpace: 'normal' }}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: 'minmax(0, 1fr) auto',
+                        alignItems: 'center',
+                        gap: 8,
+                        width: '100%',
+                        minHeight: 34,
+                        padding: '6px 10px',
+                        border: 'none',
+                        borderRadius: 8,
+                        background: active ? '#e6f4ff' : 'transparent',
+                        color: '#1f1f1f',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                      }}
                     >
-                      <span>{style.name}</span>
-                      <span style={{ display: 'inline-flex', gap: 8, alignItems: 'center' }}>
+                      <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', fontWeight: active ? 600 : 400 }}>
+                        {style.name}
+                      </span>
+                      <span style={{ display: 'inline-flex', gap: 6, alignItems: 'center' }}>
                         {style.isDefault ? <Tag color="blue" style={{ marginInlineEnd: 0 }}>Default</Tag> : null}
-                        <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                        <Typography.Text type="secondary" style={{ fontSize: 11 }}>
                           {getTextStyleUsageCount(style.id)}
                         </Typography.Text>
                       </span>
-                    </Button>
+                    </button>
                   );
-                })}
-              </div>
-            ) : (
-              <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
-                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No styles" />
-              </div>
-            )}
+                })
+              ) : (
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', flex: '1 1 auto' }}>
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="No styles" />
+                </div>
+              )}
+            </div>
           </div>
         </section>
 
-        <section style={{ display: 'grid', gridTemplateRows: 'auto auto 1fr', gap: 12, minWidth: 0 }}>
+        <section
+          data-testid="style-library-preview-column"
+          style={{
+            display: 'flex',
+            flex: '1 1 0px',
+            flexDirection: 'column',
+            gap: 12,
+            minWidth: 0,
+            minHeight: 0,
+            alignSelf: 'start',
+          }}
+        >
           <div>
             <Typography.Title level={5} style={{ margin: 0 }}>Preview</Typography.Title>
             <Typography.Text type="secondary">Simple text preview for the selected style.</Typography.Text>
           </div>
           <div
             style={{
+              borderRadius: 10,
               border: `${Math.max(border.width ?? 0, 0.2)}px ${border.style === 'none' ? 'solid' : border.style} ${border.color}`,
               background: selectedStyle?.backgroundColor === 'transparent' ? '#ffffff' : selectedStyle?.backgroundColor,
               color: font.color,
@@ -275,223 +397,304 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
               ].filter(Boolean).join(' ') || 'none',
               textAlign: selectedStyle?.textAlign ?? 'left',
               padding: `${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px`,
-              minHeight: 160,
+              minHeight: 180,
               display: 'flex',
               alignItems: selectedStyle?.verticalAlign === 'bottom' ? 'flex-end' : selectedStyle?.verticalAlign === 'middle' ? 'center' : 'flex-start',
               justifyContent: selectedStyle?.textAlign === 'center' ? 'center' : selectedStyle?.textAlign === 'right' ? 'flex-end' : 'flex-start',
+              boxShadow: 'inset 0 0 0 1px rgba(15, 23, 42, 0.03)',
             }}
           >
             The quick brown fox jumps over 123,456.78
           </div>
-          <div style={{ border: '1px solid #f0f0f0', borderRadius: 6, padding: 16 }}>
-            <Typography.Paragraph style={{ marginBottom: 8 }}>
-              <strong>{selectedStyle?.name ?? 'No style selected'}</strong>
-            </Typography.Paragraph>
+          <PanelCard title={selectedStyle?.name ?? 'No style selected'}>
             <Typography.Text type="secondary">
               Used by {selectedStyle ? getTextStyleUsageCount(selectedStyle.id) : 0} text component(s).
             </Typography.Text>
-          </div>
+          </PanelCard>
         </section>
 
-        <section style={{ display: 'grid', gridTemplateRows: 'auto minmax(0, 1fr)', gap: 12, minWidth: 0 }}>
-          <Space wrap>
-            <Button onClick={handleRename} disabled={!selectedStyle}>Rename</Button>
-            <Button onClick={() => selectedStyle && setDefaultTextStyle(selectedStyle.id)} disabled={!selectedStyle}>Set Default</Button>
-            <Button type="primary" onClick={() => selectedStyle && applySelectedStyle(selectedStyle.id)} disabled={!selectedStyle || selectedComponentIds.length === 0}>
-              Apply to Selected
-            </Button>
-          </Space>
+        <section
+          data-testid="style-library-property-section"
+          style={{
+            display: 'flex',
+            flex: `0 0 ${PROPERTY_COLUMN_WIDTH}px`,
+            flexDirection: 'column',
+            gap: 10,
+            height: '100%',
+            minWidth: 0,
+            minHeight: 0,
+            overflow: 'hidden',
+          }}
+        >
+          <PanelCard padded={false}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px' }}>
+              <Typography.Text strong>Properties</Typography.Text>
+              <Space size={8}>
+                <ToolbarIconButton
+                  ariaLabel="Set Default"
+                  icon={<CheckOutlined />}
+                  onClick={() => selectedStyle && setDefaultTextStyle(selectedStyle.id)}
+                  disabled={!selectedStyle}
+                  tooltip="Set Default"
+                />
+                <Button
+                  type="primary"
+                  size="small"
+                  aria-label="Apply to Selected"
+                  disabled={!selectedStyle || selectedComponentIds.length === 0}
+                  onClick={() => selectedStyle && applySelectedStyle(selectedStyle.id)}
+                >
+                  Apply
+                </Button>
+              </Space>
+            </div>
+          </PanelCard>
 
           {selectedStyle ? (
-            <div style={{ display: 'grid', gap: 10, alignContent: 'start', overflow: 'auto', paddingRight: 4 }}>
-              <Field label="Name">
-                <Input aria-label="样式名称" value={draftName} onChange={(event) => setDraftName(event.target.value)} />
-              </Field>
-              <Field label="Font">
-                <Select
-                  aria-label="样式字体系列"
-                  value={font.family}
-                  virtual={false}
-                  onChange={(value) => updateSelectedStyle({ font: { ...font, family: value } })}
-                  options={[
-                    'Arial', 'Times New Roman', 'Courier New', 'Verdana', 'Tahoma', 'Georgia',
-                    'Microsoft YaHei', 'SimSun', 'SimHei', 'KaiTi',
-                  ].map(value => ({ value, label: value }))}
+            <div
+              data-testid="style-library-property-scroll"
+              style={{
+                display: 'flex',
+                flex: '1 1 0px',
+                flexDirection: 'column',
+                gap: 8,
+                overflowX: 'hidden',
+                overflowY: 'scroll',
+                scrollbarGutter: 'stable',
+                paddingRight: 4,
+                paddingBottom: 8,
+                minHeight: 0,
+              }}
+            >
+              <PanelCard title="General">
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <CompactField label="Name">
+                    <Input
+                      aria-label="样式名称"
+                      value={draftName}
+                      onChange={(event) => setDraftName(event.target.value)}
+                      onBlur={() => commitDraftName()}
+                      onPressEnter={() => commitDraftName()}
+                    />
+                  </CompactField>
+                </div>
+              </PanelCard>
+
+              <PanelCard title="Typography">
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px', gap: 8 }}>
+                    <Select
+                      aria-label="样式字体系列"
+                      value={font.family}
+                      virtual={false}
+                      onChange={(value) => updateSelectedStyle({ font: { ...font, family: value } })}
+                      options={[
+                        'Arial', 'Times New Roman', 'Courier New', 'Verdana', 'Tahoma', 'Georgia',
+                        'Microsoft YaHei', 'SimSun', 'SimHei', 'KaiTi',
+                      ].map(value => ({ value, label: value }))}
+                    />
+                    <InputNumber
+                      aria-label="样式字号"
+                      value={font.size}
+                      min={6}
+                      max={72}
+                      style={{ width: '100%' }}
+                      onChange={(value) => updateSelectedStyle({ font: { ...font, size: Number(value ?? font.size) } })}
+                    />
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8 }}>
+                    <Space.Compact block>
+                      <Tooltip title="Text Color">
+                        <Button icon={<FontColorsOutlined />} aria-label="文本颜色图标" />
+                      </Tooltip>
+                      <ColorPicker
+                        aria-label="样式文本颜色"
+                        value={font.color}
+                        onChange={(value) => updateSelectedStyle({ font: { ...font, color: value.toHexString() } })}
+                        style={{ width: '100%', justifyContent: 'space-between' }}
+                      />
+                    </Space.Compact>
+                    <Space.Compact block>
+                      <Tooltip title="Background">
+                        <Button icon={<BgColorsOutlined />} aria-label="背景色图标" />
+                      </Tooltip>
+                      <ColorPicker
+                        aria-label="样式背景色"
+                        value={selectedStyle.backgroundColor}
+                        onChange={(value) => updateSelectedStyle({ backgroundColor: value.toHexString() })}
+                        style={{ width: '100%', justifyContent: 'space-between' }}
+                      />
+                    </Space.Compact>
+                  </div>
+                  <IconRow label="Style">
+                    <IconToggleGroup
+                      items={[
+                        { label: 'Bold', active: font.bold, icon: <BoldOutlined />, onClick: () => setFontFlag('bold', !font.bold) },
+                        { label: 'Italic', active: font.italic, icon: <ItalicOutlined />, onClick: () => setFontFlag('italic', !font.italic) },
+                        { label: 'Underline', active: font.underline, icon: <UnderlineOutlined />, onClick: () => setFontFlag('underline', !font.underline) },
+                        { label: 'Strike', active: font.strikethrough, icon: <StrikethroughOutlined />, onClick: () => setFontFlag('strikethrough', !font.strikethrough) },
+                      ]}
+                    />
+                  </IconRow>
+                </div>
+              </PanelCard>
+
+              <PanelCard title="Layout">
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <IconRow label="Align">
+                    <IconToggleGroup
+                      items={[
+                        { label: 'Left', active: (selectedStyle.textAlign ?? 'left') === 'left', icon: <AlignLeftOutlined />, onClick: () => updateSelectedStyle({ textAlign: 'left' }) },
+                        { label: 'Center', active: selectedStyle.textAlign === 'center', icon: <AlignCenterOutlined />, onClick: () => updateSelectedStyle({ textAlign: 'center' }) },
+                        { label: 'Right', active: selectedStyle.textAlign === 'right', icon: <AlignRightOutlined />, onClick: () => updateSelectedStyle({ textAlign: 'right' }) },
+                      ]}
+                    />
+                  </IconRow>
+                  <IconRow label="Vertical">
+                    <IconToggleGroup
+                      items={[
+                        { label: 'Vertical Top', active: (selectedStyle.verticalAlign ?? 'top') === 'top', icon: <VerticalAlignGlyph position="top" />, onClick: () => updateSelectedStyle({ verticalAlign: 'top' }) },
+                        { label: 'Vertical Middle', active: selectedStyle.verticalAlign === 'middle', icon: <VerticalAlignGlyph position="middle" />, onClick: () => updateSelectedStyle({ verticalAlign: 'middle' }) },
+                        { label: 'Vertical Bottom', active: selectedStyle.verticalAlign === 'bottom', icon: <VerticalAlignGlyph position="bottom" />, onClick: () => updateSelectedStyle({ verticalAlign: 'bottom' }) },
+                      ]}
+                    />
+                  </IconRow>
+                  <IconRow label="Auto">
+                    <Space size={8}>
+                      <ToggleChip
+                        ariaLabel="Can Grow"
+                        active={selectedStyle.canGrow ?? false}
+                        onClick={() => updateSelectedStyle({ canGrow: !(selectedStyle.canGrow ?? false) })}
+                      >
+                        Grow
+                      </ToggleChip>
+                      <ToggleChip
+                        ariaLabel="Can Shrink"
+                        active={selectedStyle.canShrink ?? false}
+                        onClick={() => updateSelectedStyle({ canShrink: !(selectedStyle.canShrink ?? false) })}
+                      >
+                        Shrink
+                      </ToggleChip>
+                    </Space>
+                  </IconRow>
+                </div>
+              </PanelCard>
+
+              <PanelCard title="Format">
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <CompactField label="Type">
+                    <Select
+                      aria-label="样式格式类型"
+                      value={format.type}
+                      virtual={false}
+                      onChange={(value) => updateSelectedStyle({ format: value === 'none' ? { type: 'none' } : { ...(selectedStyle.format ?? EMPTY_FORMAT), type: value } })}
+                      options={[
+                        { value: 'none', label: 'None' },
+                        { value: 'number', label: 'Number' },
+                        { value: 'currency', label: 'Currency' },
+                        { value: 'date', label: 'Date' },
+                        { value: 'time', label: 'Time' },
+                        { value: 'percent', label: 'Percent' },
+                        { value: 'boolean', label: 'Boolean' },
+                        { value: 'custom', label: 'Custom' },
+                      ]}
+                    />
+                  </CompactField>
+                  <CompactField label="Pattern">
+                    <Input
+                      aria-label="样式格式模式"
+                      value={format.pattern ?? ''}
+                      onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), pattern: event.target.value } })}
+                      placeholder="#,##0.00 / yyyy-MM-dd"
+                    />
+                  </CompactField>
+                  <CompactField label="Null">
+                    <Input
+                      aria-label="样式格式空值文本"
+                      value={format.nullValue ?? ''}
+                      onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), nullValue: event.target.value } })}
+                      placeholder="No value"
+                    />
+                  </CompactField>
+                  <CompactField label="True">
+                    <Input
+                      aria-label="样式格式真值文本"
+                      value={format.trueText ?? ''}
+                      onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), trueText: event.target.value } })}
+                      placeholder="True"
+                    />
+                  </CompactField>
+                  <CompactField label="False">
+                    <Input
+                      aria-label="样式格式假值文本"
+                      value={format.falseText ?? ''}
+                      onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), falseText: event.target.value } })}
+                      placeholder="False"
+                    />
+                  </CompactField>
+                </div>
+              </PanelCard>
+
+              <PanelCard title="Border">
+                <div style={{ display: 'grid', gap: 10 }}>
+                  <CompactField label="Style">
+                    <Select
+                      aria-label="样式边框样式"
+                      value={border.style}
+                      virtual={false}
+                      onChange={(value) => updateSelectedStyle({ border: { ...border, style: value } })}
+                      options={[
+                        { value: 'none', label: 'None' },
+                        { value: 'solid', label: 'Solid' },
+                        { value: 'dashed', label: 'Dashed' },
+                        { value: 'dotted', label: 'Dotted' },
+                        { value: 'double', label: 'Double' },
+                      ]}
+                    />
+                  </CompactField>
+                  <CompactField label="Width">
+                    <InputNumber
+                      aria-label="样式边框宽度"
+                      value={border.width}
+                      min={0}
+                      max={5}
+                      step={0.1}
+                      style={{ width: '100%' }}
+                      onChange={(value) => updateSelectedStyle({ border: { ...border, width: Number(value ?? border.width) } })}
+                    />
+                  </CompactField>
+                  <CompactField label="Color">
+                    <Space.Compact block>
+                      <Tooltip title="Border Color">
+                        <Button icon={<FontColorsOutlined />} aria-label="边框颜色图标" />
+                      </Tooltip>
+                      <ColorPicker
+                        aria-label="样式边框颜色"
+                        value={border.color}
+                        onChange={(value) => updateSelectedStyle({ border: { ...border, color: value.toHexString() } })}
+                        style={{ width: '100%', justifyContent: 'space-between' }}
+                      />
+                    </Space.Compact>
+                  </CompactField>
+                  <CompactField label="Sides">
+                    <IconToggleGroup
+                      items={[
+                        { label: '上', active: border.sides.top, icon: <ArrowUpOutlined />, onClick: () => setBorderSide('top', !border.sides.top) },
+                        { label: '右', active: border.sides.right, icon: <ArrowRightOutlined />, onClick: () => setBorderSide('right', !border.sides.right) },
+                        { label: '下', active: border.sides.bottom, icon: <ArrowDownOutlined />, onClick: () => setBorderSide('bottom', !border.sides.bottom) },
+                        { label: '左', active: border.sides.left, icon: <ArrowLeftOutlined />, onClick: () => setBorderSide('left', !border.sides.left) },
+                      ]}
+                    />
+                  </CompactField>
+                </div>
+              </PanelCard>
+
+              <PanelCard title="Padding">
+                <PaddingEditor
+                  padding={padding}
+                  onChange={(nextPadding) => updateSelectedStyle({ padding: nextPadding })}
                 />
-              </Field>
-              <Field label="Size">
-                <InputNumber
-                  aria-label="样式字号"
-                  value={font.size}
-                  min={6}
-                  max={72}
-                  style={{ width: '100%' }}
-                  onChange={(value) => updateSelectedStyle({ font: { ...font, size: Number(value ?? font.size) } })}
-                />
-              </Field>
-              <Field label="Text Color">
-                <ColorPicker
-                  aria-label="样式文本颜色"
-                  value={font.color}
-                  onChange={(value) => updateSelectedStyle({ font: { ...font, color: value.toHexString() } })}
-                />
-              </Field>
-              <Field label="Background">
-                <ColorPicker
-                  aria-label="样式背景色"
-                  value={selectedStyle.backgroundColor}
-                  onChange={(value) => updateSelectedStyle({ backgroundColor: value.toHexString() })}
-                />
-              </Field>
-              <InlineSwitches
-                values={[
-                  { label: 'Bold', checked: font.bold, onChange: (checked) => updateSelectedStyle({ font: { ...font, bold: checked } }) },
-                  { label: 'Italic', checked: font.italic, onChange: (checked) => updateSelectedStyle({ font: { ...font, italic: checked } }) },
-                  { label: 'Underline', checked: font.underline, onChange: (checked) => updateSelectedStyle({ font: { ...font, underline: checked } }) },
-                  { label: 'Strike', checked: font.strikethrough, onChange: (checked) => updateSelectedStyle({ font: { ...font, strikethrough: checked } }) },
-                ]}
-              />
-              <Field label="Horizontal">
-                <Select
-                  aria-label="样式水平对齐"
-                  value={selectedStyle.textAlign ?? 'left'}
-                  virtual={false}
-                  onChange={(value) => updateSelectedStyle({ textAlign: value })}
-                  options={[
-                    { value: 'left', label: 'Left' },
-                    { value: 'center', label: 'Center' },
-                    { value: 'right', label: 'Right' },
-                  ]}
-                />
-              </Field>
-              <Field label="Vertical">
-                <Select
-                  aria-label="样式垂直对齐"
-                  value={selectedStyle.verticalAlign ?? 'top'}
-                  virtual={false}
-                  onChange={(value) => updateSelectedStyle({ verticalAlign: value })}
-                  options={[
-                    { value: 'top', label: 'Top' },
-                    { value: 'middle', label: 'Middle' },
-                    { value: 'bottom', label: 'Bottom' },
-                  ]}
-                />
-              </Field>
-              <Field label="Format">
-                <Select
-                  aria-label="样式格式类型"
-                  value={format.type}
-                  virtual={false}
-                  onChange={(value) => updateSelectedStyle({ format: value === 'none' ? { type: 'none' } : { ...(selectedStyle.format ?? EMPTY_FORMAT), type: value } })}
-                  options={[
-                    { value: 'none', label: 'None' },
-                    { value: 'number', label: 'Number' },
-                    { value: 'currency', label: 'Currency' },
-                    { value: 'date', label: 'Date' },
-                    { value: 'time', label: 'Time' },
-                    { value: 'percent', label: 'Percent' },
-                    { value: 'boolean', label: 'Boolean' },
-                    { value: 'custom', label: 'Custom' },
-                  ]}
-                />
-              </Field>
-              <Field label="Pattern">
-                <Input
-                  aria-label="样式格式模式"
-                  value={format.pattern ?? ''}
-                  onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), pattern: event.target.value } })}
-                  placeholder="#,##0.00 / yyyy-MM-dd"
-                />
-              </Field>
-              <Field label="Null">
-                <Input
-                  aria-label="样式格式空值文本"
-                  value={format.nullValue ?? ''}
-                  onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), nullValue: event.target.value } })}
-                  placeholder="No value"
-                />
-              </Field>
-              <Field label="True Text">
-                <Input
-                  aria-label="样式格式真值文本"
-                  value={format.trueText ?? ''}
-                  onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), trueText: event.target.value } })}
-                  placeholder="True"
-                />
-              </Field>
-              <Field label="False Text">
-                <Input
-                  aria-label="样式格式假值文本"
-                  value={format.falseText ?? ''}
-                  onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), falseText: event.target.value } })}
-                  placeholder="False"
-                />
-              </Field>
-              <Field label="Border">
-                <Select
-                  aria-label="样式边框样式"
-                  value={border.style}
-                  virtual={false}
-                  onChange={(value) => updateSelectedStyle({ border: { ...border, style: value } })}
-                  options={[
-                    { value: 'none', label: 'None' },
-                    { value: 'solid', label: 'Solid' },
-                    { value: 'dashed', label: 'Dashed' },
-                    { value: 'dotted', label: 'Dotted' },
-                    { value: 'double', label: 'Double' },
-                  ]}
-                />
-              </Field>
-              <Field label="Border Width">
-                <InputNumber
-                  aria-label="样式边框宽度"
-                  value={border.width}
-                  min={0}
-                  max={5}
-                  step={0.1}
-                  style={{ width: '100%' }}
-                  onChange={(value) => updateSelectedStyle({ border: { ...border, width: Number(value ?? border.width) } })}
-                />
-              </Field>
-              <Field label="Border Color">
-                <ColorPicker
-                  aria-label="样式边框颜色"
-                  value={border.color}
-                  onChange={(value) => updateSelectedStyle({ border: { ...border, color: value.toHexString() } })}
-                />
-              </Field>
-              <Field label="Border Sides">
-                <Checkbox.Group
-                  value={Object.entries(border.sides ?? EMPTY_BORDER.sides).filter(([, enabled]) => enabled).map(([side]) => side)}
-                  onChange={(checkedValues) => updateSelectedStyle({
-                    border: {
-                      ...border,
-                      sides: {
-                        top: checkedValues.includes('top'),
-                        right: checkedValues.includes('right'),
-                        bottom: checkedValues.includes('bottom'),
-                        left: checkedValues.includes('left'),
-                      },
-                    },
-                  })}
-                  style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}
-                >
-                  <Checkbox value="top">上</Checkbox>
-                  <Checkbox value="right">右</Checkbox>
-                  <Checkbox value="bottom">下</Checkbox>
-                  <Checkbox value="left">左</Checkbox>
-                </Checkbox.Group>
-              </Field>
-              <PaddingEditor
-                padding={padding}
-                onChange={(nextPadding) => updateSelectedStyle({ padding: nextPadding })}
-              />
-              <InlineSwitches
-                values={[
-                  { label: 'Can Grow', checked: selectedStyle.canGrow ?? false, onChange: (checked) => updateSelectedStyle({ canGrow: checked }) },
-                  { label: 'Can Shrink', checked: selectedStyle.canShrink ?? false, onChange: (checked) => updateSelectedStyle({ canShrink: checked }) },
-                ]}
-              />
+              </PanelCard>
             </div>
           ) : (
             <div style={{ display: 'grid', placeItems: 'center', height: '100%' }}>
@@ -504,29 +707,118 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
   );
 };
 
-const Field: React.FC<React.PropsWithChildren<{ label: string }>> = ({ label, children }) => (
-  <label style={{ display: 'grid', gridTemplateColumns: '96px minmax(0, 1fr)', gap: 8, alignItems: 'center' }}>
-    <span>{label}</span>
+const PanelCard: React.FC<React.PropsWithChildren<{ title?: string; padded?: boolean }>> = ({ children, title, padded = true }) => (
+  <div
+    style={{
+      border: '1px solid #e7e9ee',
+      borderRadius: 8,
+      background: '#fff',
+      flexShrink: 0,
+      overflow: 'hidden',
+    }}
+  >
+    {title ? (
+      <div style={{ padding: '10px 12px 0', display: 'grid', gap: 2 }}>
+        <Typography.Text strong>{title}</Typography.Text>
+      </div>
+    ) : null}
+    <div style={{ padding: padded ? '10px 12px 12px' : 0 }}>
+      {children}
+    </div>
+  </div>
+);
+
+const CompactField: React.FC<React.PropsWithChildren<{ label: string }>> = ({ label, children }) => (
+  <label style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', gap: 10, alignItems: 'center' }}>
+    <span style={{ fontSize: 12, color: '#595959' }}>{label}</span>
     {children}
   </label>
 );
 
-const InlineSwitches: React.FC<{
-  values: Array<{
-    label: string;
-    checked: boolean;
-    onChange: (checked: boolean) => void;
-  }>;
-}> = ({ values }) => (
-  <div style={{ display: 'grid', gap: 8 }}>
-    {values.map(item => (
-      <label key={item.label} style={{ display: 'grid', gridTemplateColumns: '96px minmax(0, 1fr)', gap: 8, alignItems: 'center' }}>
-        <span>{item.label}</span>
-        <Switch aria-label={item.label} checked={item.checked} onChange={item.onChange} />
-      </label>
-    ))}
+const IconRow: React.FC<React.PropsWithChildren<{ label: string }>> = ({ label, children }) => (
+  <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', gap: 10, alignItems: 'center' }}>
+    <span style={{ fontSize: 12, color: '#595959' }}>{label}</span>
+    {children}
   </div>
 );
+
+const ToolbarIconButton: React.FC<{
+  ariaLabel: string;
+  icon: React.ReactNode;
+  tooltip: string;
+  onClick?: () => void;
+  disabled?: boolean;
+  danger?: boolean;
+}> = ({ ariaLabel, danger, disabled, icon, onClick, tooltip }) => (
+  <Tooltip title={tooltip}>
+    <Button
+      aria-label={ariaLabel}
+      icon={icon}
+      size="small"
+      onClick={onClick}
+      disabled={disabled}
+      danger={danger}
+    />
+  </Tooltip>
+);
+
+const IconToggleGroup: React.FC<{
+  items: Array<{
+    label: string;
+    active: boolean;
+    icon: React.ReactNode;
+    onClick: () => void;
+  }>;
+}> = ({ items }) => (
+  <Space size={6} wrap>
+    {items.map(item => (
+      <Tooltip key={item.label} title={item.label}>
+        <Button
+          size="small"
+          type={item.active ? 'primary' : 'default'}
+          icon={item.icon}
+          aria-label={item.label}
+          onClick={item.onClick}
+        />
+      </Tooltip>
+    ))}
+  </Space>
+);
+
+const ToggleChip: React.FC<React.PropsWithChildren<{
+  ariaLabel: string;
+  active: boolean;
+  onClick: () => void;
+}>> = ({ active, ariaLabel, children, onClick }) => (
+  <Button
+    size="small"
+    type={active ? 'primary' : 'default'}
+    aria-label={ariaLabel}
+    onClick={onClick}
+  >
+    {children}
+  </Button>
+);
+
+const VerticalAlignGlyph: React.FC<{ position: 'top' | 'middle' | 'bottom' }> = ({ position }) => {
+  const top = position === 'top' ? 2 : position === 'middle' ? 8 : 14;
+  return (
+    <span
+      aria-hidden="true"
+      style={{
+        position: 'relative',
+        display: 'inline-block',
+        width: 14,
+        height: 18,
+      }}
+    >
+      <span style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 1.5, background: 'currentColor', opacity: 0.5, borderRadius: 999 }} />
+      <span style={{ position: 'absolute', left: 0, right: 0, top: 8, height: 1.5, background: 'currentColor', opacity: 0.5, borderRadius: 999 }} />
+      <span style={{ position: 'absolute', left: 0, right: 0, top: 16, height: 1.5, background: 'currentColor', opacity: 0.5, borderRadius: 999 }} />
+      <span style={{ position: 'absolute', left: 2, right: 2, top, height: 3.5, background: 'currentColor', borderRadius: 999 }} />
+    </span>
+  );
+};
 
 const PaddingEditor: React.FC<{
   padding: { top: number; right: number; bottom: number; left: number };
@@ -538,7 +830,6 @@ const PaddingEditor: React.FC<{
 
   return (
     <div style={{ display: 'grid', gap: 8 }}>
-      <Typography.Text>Padding</Typography.Text>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
         <InputNumber aria-label="样式内边距上" value={padding.top} min={0} style={{ width: '100%' }} onChange={(value) => updateField('top', value)} />
         <InputNumber aria-label="样式内边距右" value={padding.right} min={0} style={{ width: '100%' }} onChange={(value) => updateField('right', value)} />

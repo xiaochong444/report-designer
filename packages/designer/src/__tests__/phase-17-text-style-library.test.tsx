@@ -521,6 +521,106 @@ describe('Phase 17 text style library store behavior', () => {
     await waitFor(() => expect(selectedText()?.font.size).toBe(22));
   });
 
+  it('shows icon-based controls for text style and vertical alignment in the visible property area', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: true, italic: true, underline: true, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffffff',
+      textAlign: 'center',
+      verticalAlign: 'middle',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    };
+    const template = createDefaultTemplate('Style Designer Visible Controls');
+    template.styles = [style];
+
+    await renderDesignerWithSelection(template);
+
+    const dialog = await openTextStyleLibraryFromRibbon();
+
+    expect(within(dialog).getByRole('button', { name: 'Bold' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Italic' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Underline' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Vertical Top' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Vertical Middle' })).toBeInTheDocument();
+    expect(within(dialog).getByRole('button', { name: 'Vertical Bottom' })).toBeInTheDocument();
+  });
+
+  it('constrains the right property pane and exposes an internal scroll region', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffffff',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'solid', width: 0.2, color: '#222222', sides: { top: true, right: true, bottom: true, left: true } },
+      format: { type: 'number', pattern: '#,##0.00', nullValue: '-', trueText: 'Yes', falseText: 'No' },
+      padding: { top: 2, right: 2, bottom: 2, left: 2 },
+      canGrow: true,
+      canShrink: true,
+    };
+    const template = createDefaultTemplate('Style Designer Scroll Pane');
+    template.styles = [style];
+
+    await renderDesignerWithSelection(template);
+
+    const dialog = await openTextStyleLibraryFromRibbon();
+    const shell = within(dialog).getByTestId('style-library-shell');
+    const styleListScroll = within(dialog).getByTestId('style-library-style-list-scroll');
+    const scrollPane = within(dialog).getByTestId('style-library-property-scroll');
+    const propertySection = within(dialog).getByTestId('style-library-property-section');
+    const generalPanel = within(dialog).getByText('General').closest('div')?.parentElement;
+
+    expect(shell).toHaveStyle({ display: 'flex' });
+    expect(shell.getAttribute('style')).toContain('height');
+    expect(styleListScroll).toHaveStyle({ overflowY: 'auto' });
+    expect(propertySection).toHaveStyle({ display: 'flex' });
+    expect(propertySection).toHaveStyle({ overflow: 'hidden' });
+    expect(scrollPane).toHaveStyle({ overflowY: 'scroll' });
+    expect(scrollPane).toHaveStyle({ overflowX: 'hidden' });
+    expect(scrollPane.getAttribute('style')).toContain('flex: 1 1 0px');
+    expect(generalPanel).toHaveStyle({ flexShrink: '0' });
+  });
+
+  it('creates a new style from the dialog even when search is filtering and allows inline renaming', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Header',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffffff',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    };
+    const template = createDefaultTemplate('Style Designer Create');
+    template.styles = [style];
+
+    await renderDesignerWithSelection(template);
+
+    const dialog = await openTextStyleLibraryFromRibbon();
+    fireEvent.change(within(dialog).getByLabelText('样式搜索'), { target: { value: 'missing-style' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'New' }));
+
+    await waitFor(() => expect(within(dialog).getByLabelText('样式名称')).toHaveValue('New Style'));
+    expect(within(dialog).getAllByText('New Style').length).toBeGreaterThan(0);
+
+    fireEvent.change(within(dialog).getByLabelText('样式名称'), { target: { value: 'Summary Text' } });
+    fireEvent.blur(within(dialog).getByLabelText('样式名称'));
+
+    await waitFor(() => {
+      const currentStyles = useDesignerStore.getState().template.styles.map(item => item.name);
+      expect(currentStyles).toContain('Summary Text');
+    });
+  });
+
   it('shows a delete confirmation and keeps the style when cancelled', async () => {
     const style: ReportStyle = {
       id: 'style-a',
@@ -678,8 +778,8 @@ describe('Phase 17 text style library store behavior', () => {
     fireEvent.change(within(dialog).getByLabelText('样式格式真值文本'), { target: { value: 'TRUE' } });
     fireEvent.change(within(dialog).getByLabelText('样式格式假值文本'), { target: { value: 'FALSE' } });
     expect(within(dialog).getByLabelText('样式边框样式')).toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: '右' }));
-    fireEvent.click(within(dialog).getByRole('checkbox', { name: '下' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: '右' }));
+    fireEvent.click(within(dialog).getByRole('button', { name: '下' }));
 
     await waitFor(() => {
       const updatedStyle = useDesignerStore.getState().template.styles.find(item => item.id === 'style-a');
