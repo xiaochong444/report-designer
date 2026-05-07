@@ -587,6 +587,33 @@ describe('Phase 17 text style library store behavior', () => {
     expect(generalPanel).toHaveStyle({ flexShrink: '0' });
   });
 
+  it('shows visible direction labels for padding inputs', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffffff',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      canGrow: false,
+      canShrink: false,
+    };
+    const template = createDefaultTemplate('Style Designer Padding Labels');
+    template.styles = [style];
+
+    await renderDesignerWithSelection(template);
+
+    const dialog = await openTextStyleLibraryFromRibbon();
+
+    expect(within(dialog).getByLabelText('样式内边距上').closest('label')).toHaveTextContent('上');
+    expect(within(dialog).getByLabelText('样式内边距右').closest('label')).toHaveTextContent('右');
+    expect(within(dialog).getByLabelText('样式内边距下').closest('label')).toHaveTextContent('下');
+    expect(within(dialog).getByLabelText('样式内边距左').closest('label')).toHaveTextContent('左');
+  });
+
   it('creates a new style from the dialog even when search is filtering and allows inline renaming', async () => {
     const style: ReportStyle = {
       id: 'style-a',

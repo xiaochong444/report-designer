@@ -856,11 +856,26 @@ const PaddingEditor: React.FC<{
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
-        <InputNumber aria-label="样式内边距上" value={padding.top} min={0} style={{ width: '100%' }} onChange={(value) => updateField('top', value)} />
-        <InputNumber aria-label="样式内边距右" value={padding.right} min={0} style={{ width: '100%' }} onChange={(value) => updateField('right', value)} />
-        <InputNumber aria-label="样式内边距下" value={padding.bottom} min={0} style={{ width: '100%' }} onChange={(value) => updateField('bottom', value)} />
-        <InputNumber aria-label="样式内边距左" value={padding.left} min={0} style={{ width: '100%' }} onChange={(value) => updateField('left', value)} />
+        <PaddingField label="上">
+          <InputNumber aria-label="样式内边距上" value={padding.top} min={0} style={{ width: '100%' }} onChange={(value) => updateField('top', value)} />
+        </PaddingField>
+        <PaddingField label="右">
+          <InputNumber aria-label="样式内边距右" value={padding.right} min={0} style={{ width: '100%' }} onChange={(value) => updateField('right', value)} />
+        </PaddingField>
+        <PaddingField label="下">
+          <InputNumber aria-label="样式内边距下" value={padding.bottom} min={0} style={{ width: '100%' }} onChange={(value) => updateField('bottom', value)} />
+        </PaddingField>
+        <PaddingField label="左">
+          <InputNumber aria-label="样式内边距左" value={padding.left} min={0} style={{ width: '100%' }} onChange={(value) => updateField('left', value)} />
+        </PaddingField>
       </div>
     </div>
   );
 };
+
+const PaddingField: React.FC<React.PropsWithChildren<{ label: string }>> = ({ children, label }) => (
+  <label style={{ display: 'grid', gridTemplateColumns: '18px minmax(0, 1fr)', gap: 6, alignItems: 'center' }}>
+    <span style={{ fontSize: 12, color: '#595959', textAlign: 'center' }}>{label}</span>
+    {children}
+  </label>
+);
