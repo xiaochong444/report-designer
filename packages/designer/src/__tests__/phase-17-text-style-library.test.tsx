@@ -6,6 +6,8 @@ import '@testing-library/jest-dom/vitest';
 import type { ReportStyle, TextComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { Designer } from '../components/Designer';
+import { PropertyEditor } from '../components/PropertyEditor';
+import { RibbonToolbar } from '../components/RibbonToolbar';
 import type { DesignerLocale } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 import { Modal } from 'antd';
@@ -673,8 +675,69 @@ describe('Phase 17 text style library store behavior', () => {
     expect(screen.getByRole('switch', { name: '自动增大' })).toBeDisabled();
     expect(screen.getByRole('switch', { name: '自动缩小' })).toBeDisabled();
     expectAntdControlDisabled(screen.getByLabelText('字号'));
+    expectAntdControlDisabled(screen.getByLabelText('字体系列'));
+    expect(screen.getByRole('button', { name: '加粗' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '斜体' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '下划线' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '删除线' })).toBeDisabled();
     expectAntdControlDisabled(screen.getByLabelText('字体颜色'));
     expectAntdControlDisabled(screen.getByLabelText('背景色'));
+    expect(screen.getByLabelText('格式化')).toBeDisabled();
+  });
+
+  it('disables style-managed property controls in the standalone property panel', () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'center',
+    } as ReportStyle;
+    loadTemplate([style], [createText('text-1')]);
+    useDesignerStore.getState().selectComponents(['text-1']);
+    useDesignerStore.getState().applySelectedStyle('style-a');
+
+    render(<PropertyEditor />);
+
+    expectAntdControlDisabled(screen.getByLabelText('字体系列'));
+    expectAntdControlDisabled(screen.getByLabelText('字号'));
+    expect(screen.getByRole('button', { name: '加粗' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '斜体' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '下划线' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '删除线' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '左对齐' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '水平居中' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '右对齐' })).toBeDisabled();
+    expectAntdControlDisabled(screen.getByLabelText('边框样式'));
+    expectAntdControlDisabled(screen.getByLabelText('内边距上'));
+    expectAntdControlDisabled(screen.getByLabelText('格式类型'));
+    expect(screen.getByLabelText('格式模式')).toBeDisabled();
+    expect(screen.getByLabelText('格式化')).toBeDisabled();
+  });
+
+  it('disables toolbar entries for style-managed text properties', () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      textAlign: 'center',
+    } as ReportStyle;
+    loadTemplate([style], [createText('text-1')]);
+    useDesignerStore.getState().selectComponents(['text-1']);
+    useDesignerStore.getState().applySelectedStyle('style-a');
+
+    render(<RibbonToolbar />);
+
+    expectAntdControlDisabled(screen.getByLabelText('工具栏字号'));
+    expect(screen.getByRole('button', { name: '工具栏加粗' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '工具栏斜体' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '工具栏下划线' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '工具栏左对齐' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '工具栏水平居中' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '工具栏右对齐' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: '工具栏边框' })).toBeDisabled();
   });
 
   it('updates referenced text components when a style is edited in the dialog', async () => {

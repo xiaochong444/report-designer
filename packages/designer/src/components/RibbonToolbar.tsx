@@ -30,10 +30,12 @@ import {
 import { useDesignerStore } from '../store/designer-store';
 import type { Margins } from '@report-designer/core';
 import { ConditionalFormatManager } from './ConditionalFormatManager';
+import { hasTextStyleBinding } from '../text-style-bindings';
 
 export const RibbonToolbar: React.FC = () => {
   const { undo, redo, canUndo, canRedo, alignComponents, sizeComponents, bringToFront, sendToBack, deleteSelected, copySelected, pasteClipboard, getClipboard, setFontBold, setFontSize, setTextAlign, setBorderAll, addPage, deletePage, getSelectedFont, getSelectedTextAlign } = useDesignerStore();
-  const selectedCount = useDesignerStore(s => s.selectedComponentIds.length);
+  const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
+  const selectedCount = selectedComponentIds.length;
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const currentPage = template.pages.find(p => p.id === currentPageId);
@@ -47,6 +49,18 @@ export const RibbonToolbar: React.FC = () => {
   const layerDisabled = selectedCount === 0;
   const fontInfo = getSelectedFont();
   const textAlign = getSelectedTextAlign();
+  const selectedComponent = selectedComponentIds.length === 1
+    ? currentPage?.bands.flatMap(band => band.components).find(component => component.id === selectedComponentIds[0])
+    : undefined;
+  const isTextStyleLocked = (pathOrPrefix: string) => (
+    selectedComponent?.type === 'text' ? hasTextStyleBinding(selectedComponent as { styleBindings?: string[] }, pathOrPrefix) : false
+  );
+  const fontSizeDisabled = !fontInfo || isTextStyleLocked('font.size');
+  const fontBoldDisabled = !fontInfo || isTextStyleLocked('font.bold');
+  const fontItalicDisabled = !fontInfo || isTextStyleLocked('font.italic');
+  const fontUnderlineDisabled = !fontInfo || isTextStyleLocked('font.underline');
+  const textAlignDisabled = textAlign === null || isTextStyleLocked('textAlign');
+  const borderDisabled = selectedCount === 0 || isTextStyleLocked('border');
 
   // ---- File operations ----
 
@@ -244,30 +258,34 @@ export const RibbonToolbar: React.FC = () => {
       {/* Font controls */}
       <Space>
         <Select
+          aria-label="工具栏字号"
           size="small"
           value={fontInfo?.size || 12}
           style={{ width: 60 }}
           onChange={(v) => setFontSize(v)}
           options={[8, 9, 10, 11, 12, 14, 16, 18, 20, 24].map(s => ({ value: s, label: `${s}` }))}
           suffixIcon={<FontSizeOutlined />}
-          disabled={!fontInfo}
+          disabled={fontSizeDisabled}
         />
         <Button
+          aria-label="工具栏加粗"
           icon={<BoldOutlined />}
           size="small"
           type={fontInfo?.bold ? 'primary' : 'default'}
           onClick={() => setFontBold(!fontInfo?.bold)}
-          disabled={!fontInfo}
+          disabled={fontBoldDisabled}
         />
         <Button
+          aria-label="工具栏斜体"
           icon={<ItalicOutlined />}
           size="small"
-          disabled={!fontInfo}
+          disabled={fontItalicDisabled}
         />
         <Button
+          aria-label="工具栏下划线"
           icon={<UnderlineOutlined />}
           size="small"
-          disabled={!fontInfo}
+          disabled={fontUnderlineDisabled}
         />
       </Space>
 
@@ -276,25 +294,28 @@ export const RibbonToolbar: React.FC = () => {
       {/* Text Alignment */}
       <Space>
         <Button
+          aria-label="工具栏左对齐"
           icon={<AlignLeftOutlined />}
           size="small"
           type={textAlign === 'left' ? 'primary' : 'default'}
           onClick={() => setTextAlign('left')}
-          disabled={textAlign === null}
+          disabled={textAlignDisabled}
         />
         <Button
+          aria-label="工具栏水平居中"
           icon={<AlignCenterOutlined />}
           size="small"
           type={textAlign === 'center' ? 'primary' : 'default'}
           onClick={() => setTextAlign('center')}
-          disabled={textAlign === null}
+          disabled={textAlignDisabled}
         />
         <Button
+          aria-label="工具栏右对齐"
           icon={<AlignRightOutlined />}
           size="small"
           type={textAlign === 'right' ? 'primary' : 'default'}
           onClick={() => setTextAlign('right')}
-          disabled={textAlign === null}
+          disabled={textAlignDisabled}
         />
       </Space>
 
@@ -302,7 +323,7 @@ export const RibbonToolbar: React.FC = () => {
 
       {/* Border toggle */}
       <Tooltip title="切换边框">
-        <Button icon={<BorderOuterOutlined />} size="small" onClick={() => setBorderAll(true)} disabled={selectedCount === 0} />
+        <Button aria-label="工具栏边框" icon={<BorderOuterOutlined />} size="small" onClick={() => setBorderAll(true)} disabled={borderDisabled} />
       </Tooltip>
 
       <ToolbarDivider />

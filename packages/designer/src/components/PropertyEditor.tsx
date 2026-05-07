@@ -1,6 +1,15 @@
 import React, { useMemo, useState } from 'react';
 import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Checkbox } from 'antd';
-import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, EditOutlined } from '@ant-design/icons';
+import {
+  AlignCenterOutlined,
+  AlignLeftOutlined,
+  AlignRightOutlined,
+  BoldOutlined,
+  EditOutlined,
+  ItalicOutlined,
+  StrikethroughOutlined,
+  UnderlineOutlined,
+} from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
 import type { BorderConfig, TableComponent, TextFormatConfig, TextFormatType } from '@report-designer/core';
 import type { CSSProperties } from 'react';
@@ -140,6 +149,16 @@ export const PropertyEditor: React.FC = () => {
     isTextComponent ? hasTextStyleBinding(component as { styleBindings?: string[] }, pathOrPrefix) : false
   );
   const backgroundLocked = isTextStyleLocked('backgroundColor');
+  const dataBindingFormatValue = isTextComponent
+    ? (typeof comp.format === 'object' ? comp.format?.pattern ?? '' : comp.format ?? '')
+    : comp.format || '';
+  const handleDataBindingFormatChange = (value: string) => {
+    if (isTextComponent) {
+      handleFormatField('pattern', value);
+      return;
+    }
+    handleChange('format', value);
+  };
 
   return (
     <div style={{ padding: 8 }}>
@@ -382,33 +401,45 @@ export const PropertyEditor: React.FC = () => {
                 <Form.Item>
                   <Space>
                     <Button
+                      aria-label="加粗"
+                      title="加粗"
+                      icon={<BoldOutlined />}
                       size="small"
                       type={font.bold ? 'primary' : 'default'}
-                      style={{ fontWeight: 'bold', minWidth: 32 }}
+                      style={{ minWidth: 32 }}
                       onClick={() => handleFontField('bold', !font.bold)}
                       disabled={isTextStyleLocked('font.bold')}
-                    >B</Button>
+                    />
                     <Button
+                      aria-label="斜体"
+                      title="斜体"
+                      icon={<ItalicOutlined />}
                       size="small"
                       type={font.italic ? 'primary' : 'default'}
-                      style={{ fontStyle: 'italic', minWidth: 32 }}
+                      style={{ minWidth: 32 }}
                       onClick={() => handleFontField('italic', !font.italic)}
                       disabled={isTextStyleLocked('font.italic')}
-                    >I</Button>
+                    />
                     <Button
+                      aria-label="下划线"
+                      title="下划线"
+                      icon={<UnderlineOutlined />}
                       size="small"
                       type={font.underline ? 'primary' : 'default'}
-                      style={{ textDecoration: 'underline', minWidth: 32 }}
+                      style={{ minWidth: 32 }}
                       onClick={() => handleFontField('underline', !font.underline)}
                       disabled={isTextStyleLocked('font.underline')}
-                    >U</Button>
+                    />
                     <Button
+                      aria-label="删除线"
+                      title="删除线"
+                      icon={<StrikethroughOutlined />}
                       size="small"
                       type={font.strikethrough ? 'primary' : 'default'}
-                      style={{ textDecoration: 'line-through', minWidth: 32 }}
+                      style={{ minWidth: 32 }}
                       onClick={() => handleFontField('strikethrough', !font.strikethrough)}
                       disabled={isTextStyleLocked('font.strikethrough')}
-                    >S</Button>
+                    />
                   </Space>
                 </Form.Item>
               </Form>
@@ -758,9 +789,11 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
                 <Form.Item label="格式化">
                   <Input
-                    value={comp.format || ''}
-                    onChange={(e) => handleChange('format', e.target.value)}
+                    aria-label="格式化"
+                    value={dataBindingFormatValue}
+                    onChange={(e) => handleDataBindingFormatChange(e.target.value)}
                     size="small"
+                    disabled={isTextStyleLocked('format')}
                     placeholder="如 #,##0.00 或 yyyy-MM-dd"
                   />
                 </Form.Item>
