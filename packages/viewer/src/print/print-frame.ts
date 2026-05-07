@@ -1,5 +1,9 @@
 import type { RenderComponentBox, RenderDocument } from '@report-designer/core';
 
+type RenderTextStyle = NonNullable<Extract<RenderComponentBox, { type: 'text' }>['style']> & {
+  padding?: { top: number; right: number; bottom: number; left: number };
+};
+
 export function buildPrintHtml(document: RenderDocument): string {
   const firstPage = document.pages[0];
   const pageCss = firstPage ? `${firstPage.width}mm ${firstPage.height}mm` : '210mm 297mm';
@@ -64,7 +68,6 @@ function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY
 
 function buildComponentStyle(component: RenderComponentBox, bandX: number, bandY: number): string {
   const border = component.style?.border;
-  const font = component.style?.font;
   const declarations = [
     `left:${roundCss(component.x - bandX)}mm`,
     `top:${roundCss(component.y - bandY)}mm`,
@@ -81,16 +84,19 @@ function buildComponentStyle(component: RenderComponentBox, bandX: number, bandY
   if (border?.sides.left) declarations.push(`border-left:${border.width}mm ${border.style} ${border.color}`);
 
   if (component.type === 'text') {
+    const textStyle = component.style as RenderTextStyle | undefined;
+    const font = textStyle?.font;
     declarations.push('display:flex');
-    declarations.push(`align-items:${verticalAlignToFlex(component.style?.verticalAlign)}`);
-    declarations.push(`padding:${roundCss(2 / (96 / 25.4))}mm`);
+    declarations.push(`align-items:${verticalAlignToFlex(textStyle?.verticalAlign)}`);
+    declarations.push(`padding:${paddingCssValue(textStyle?.padding)}`);
     declarations.push('white-space:pre-wrap');
     if (font?.color) declarations.push(`color:${font.color}`);
     if (font?.family) declarations.push(`font-family:${font.family}`);
     declarations.push(`font-size:${roundCss((font?.size ?? 10) * 1.333)}px`);
     declarations.push(`font-weight:${font?.bold ? 700 : 400}`);
     if (font?.italic) declarations.push('font-style:italic');
-    if (font?.underline) declarations.push('text-decoration:underline');
+    const textDecoration = textDecorationValue(font);
+    if (textDecoration) declarations.push(`text-decoration:${textDecoration}`);
   }
 
   return `${declarations.join(';')};`;
@@ -108,6 +114,19 @@ function verticalAlignToFlex(value?: 'top' | 'middle' | 'bottom'): string {
   if (value === 'middle') return 'center';
   if (value === 'bottom') return 'flex-end';
   return 'flex-start';
+}
+
+function textDecorationValue(font?: RenderTextStyle['font']): string | undefined {
+  const values = [font?.underline ? 'underline' : null, font?.strikethrough ? 'line-through' : null].filter(Boolean);
+  return values.length > 0 ? values.join(' ') : undefined;
+}
+
+function paddingCssValue(padding?: RenderTextStyle['padding']): string {
+  const top = roundCss(padding?.top ?? 0);
+  const right = roundCss(padding?.right ?? 0);
+  const bottom = roundCss(padding?.bottom ?? 0);
+  const left = roundCss(padding?.left ?? 0);
+  return `${top}mm ${right}mm ${bottom}mm ${left}mm`;
 }
 
 function roundCss(value: number): string {

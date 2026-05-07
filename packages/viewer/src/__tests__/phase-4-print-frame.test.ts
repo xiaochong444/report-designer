@@ -21,7 +21,7 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('border-top:0.2mm solid #000000');
     expect(html).toContain('text-align:left');
     expect(html).toContain('white-space:pre-wrap');
-    expect(html).toContain('padding:0.529mm');
+    expect(html).toContain('padding:0mm 0mm 0mm 0mm');
   });
 
   it('renders component coordinates relative to their containing band', () => {

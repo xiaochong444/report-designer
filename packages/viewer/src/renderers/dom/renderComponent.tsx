@@ -3,6 +3,9 @@ import JsBarcode from 'jsbarcode';
 import type { RenderBarcode, RenderCheckbox, RenderComponentBox, RenderImage, RenderLine, RenderShape, RenderText } from '@report-designer/core';
 
 export const MM_TO_PX = 96 / 25.4;
+type RenderTextStyle = NonNullable<RenderText['style']> & {
+  padding?: { top: number; right: number; bottom: number; left: number };
+};
 
 interface RenderComponentProps {
   component: RenderComponentBox;
@@ -56,17 +59,21 @@ export function toAbsoluteStyle(component: RenderComponentBox, scale: number): R
 }
 
 function textBoxStyle(component: RenderText, scale: number): React.CSSProperties {
-  const font = component.style?.font;
+  const style = component.style as RenderTextStyle | undefined;
+  const font = style?.font;
   return {
     color: font?.color,
     fontFamily: font?.family,
     fontSize: (font?.size ?? 10) * 1.333 * scale,
     fontWeight: font?.bold ? 700 : 400,
     fontStyle: font?.italic ? 'italic' : undefined,
-    textDecoration: font?.underline ? 'underline' : undefined,
+    textDecoration: textDecorationValue(font),
     display: 'flex',
-    alignItems: verticalAlignToFlex(component.style?.verticalAlign),
-    padding: 2 * scale,
+    alignItems: verticalAlignToFlex(style?.verticalAlign),
+    paddingTop: toPaddingPx(style?.padding?.top, scale),
+    paddingRight: toPaddingPx(style?.padding?.right, scale),
+    paddingBottom: toPaddingPx(style?.padding?.bottom, scale),
+    paddingLeft: toPaddingPx(style?.padding?.left, scale),
     whiteSpace: 'pre-wrap',
   };
 }
@@ -83,6 +90,15 @@ function verticalAlignToFlex(value?: 'top' | 'middle' | 'bottom'): React.CSSProp
   if (value === 'middle') return 'center';
   if (value === 'bottom') return 'flex-end';
   return 'flex-start';
+}
+
+function textDecorationValue(font?: RenderTextStyle['font']): React.CSSProperties['textDecoration'] {
+  const values = [font?.underline ? 'underline' : null, font?.strikethrough ? 'line-through' : null].filter(Boolean);
+  return values.length > 0 ? values.join(' ') : undefined;
+}
+
+function toPaddingPx(value = 0, scale: number): number {
+  return value * MM_TO_PX * scale;
 }
 
 const LineComponent: React.FC<{ component: RenderLine; style: React.CSSProperties }> = ({ component, style }) => (
