@@ -1,4 +1,4 @@
-import type { ReportTemplate, ReportStyle, Page, Band } from './types';
+import type { Band, ReportStyle, ReportTemplate, Page } from './types';
 
 let idCounter = 0;
 function uid(): string {
@@ -129,13 +129,25 @@ function createDefaultTextStyles(): ReportStyle[] {
   ];
 }
 
+function createBandBehavior(type: Band['type']): Band['behavior'] {
+  return {
+    enabled: true,
+    printOn: 'allPages',
+    printIfEmpty: true,
+    printOnAllPages: type === 'pageHeader' || type === 'pageFooter' || type === 'groupHeader',
+    keepTogether: false,
+    canBreak: type === 'data' || type === 'child',
+    printAtBottom: type === 'pageFooter',
+  };
+}
+
 export function createDefaultTemplate(name = '未命名报表'): ReportTemplate {
   const pageId = uid();
   const bands: Band[] = [
-    { id: uid(), type: 'reportTitle', height: DEFAULT_BAND_HEIGHTS.reportTitle, components: [] },
-    { id: uid(), type: 'pageHeader', height: DEFAULT_BAND_HEIGHTS.pageHeader, components: [] },
-    { id: uid(), type: 'data', height: DEFAULT_BAND_HEIGHTS.data, components: [] },
-    { id: uid(), type: 'pageFooter', height: DEFAULT_BAND_HEIGHTS.pageFooter, components: [] },
+    { id: uid(), type: 'reportTitle', height: DEFAULT_BAND_HEIGHTS.reportTitle, components: [], behavior: createBandBehavior('reportTitle') },
+    { id: uid(), type: 'pageHeader', height: DEFAULT_BAND_HEIGHTS.pageHeader, components: [], behavior: createBandBehavior('pageHeader') },
+    { id: uid(), type: 'data', height: DEFAULT_BAND_HEIGHTS.data, components: [], behavior: createBandBehavior('data'), dataBand: {} },
+    { id: uid(), type: 'pageFooter', height: DEFAULT_BAND_HEIGHTS.pageFooter, components: [], behavior: createBandBehavior('pageFooter') },
   ];
 
   const page: Page = {
@@ -150,10 +162,11 @@ export function createDefaultTemplate(name = '未命名报表'): ReportTemplate 
   return {
     id: uid(),
     name,
-    version: '1.0',
+    version: '2.0',
     pages: [page],
     dataSources: [],
     styles: createDefaultTextStyles(),
     conditionalFormats: [],
+    parameters: [],
   };
 }

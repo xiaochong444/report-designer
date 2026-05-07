@@ -13,7 +13,7 @@ export interface EvalContext {
   rowIndex?: number;
   /** Optional variables map */
   variables?: Record<string, any>;
-  /** Optional report runtime for Stimulsoft-style aggregate and page functions */
+  /** Optional report runtime for aggregate and page functions */
   reportRuntime?: ReportFunctionRuntime;
 }
 

@@ -29,6 +29,33 @@ const EMPTY_FORMAT: TextFormatConfig = {
   type: 'none',
 };
 
+const EMPTY_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
+
+function mergeBorder(border?: Partial<BorderConfig>): BorderConfig {
+  return {
+    ...EMPTY_BORDER,
+    ...border,
+    sides: {
+      ...EMPTY_BORDER.sides,
+      ...border?.sides,
+    },
+  };
+}
+
+function mergePadding(padding?: ReportStyle['padding']) {
+  return {
+    ...EMPTY_PADDING,
+    ...padding,
+  };
+}
+
+function mergeFont(font?: ReportStyle['font']): FontConfig {
+  return {
+    ...EMPTY_FONT,
+    ...font,
+  };
+}
+
 function filterStyles(styles: ReportStyle[], search: string) {
   const keyword = search.trim().toLowerCase();
   if (!keyword) {
@@ -167,9 +194,9 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
     });
   };
 
-  const font = selectedStyle?.font ?? EMPTY_FONT;
-  const border = selectedStyle?.border ?? EMPTY_BORDER;
-  const padding = selectedStyle?.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
+  const font = mergeFont(selectedStyle?.font);
+  const border = mergeBorder(selectedStyle?.border);
+  const padding = mergePadding(selectedStyle?.padding);
   const format = selectedStyle?.format ?? EMPTY_FORMAT;
 
   return (
@@ -235,7 +262,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
           </div>
           <div
             style={{
-              border: `${Math.max(border.width, 0.2)}px ${border.style === 'none' ? 'solid' : border.style} ${border.color}`,
+              border: `${Math.max(border.width ?? 0, 0.2)}px ${border.style === 'none' ? 'solid' : border.style} ${border.color}`,
               background: selectedStyle?.backgroundColor === 'transparent' ? '#ffffff' : selectedStyle?.backgroundColor,
               color: font.color,
               fontFamily: font.family,
@@ -435,7 +462,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
               </Field>
               <Field label="Border Sides">
                 <Checkbox.Group
-                  value={Object.entries(border.sides).filter(([, enabled]) => enabled).map(([side]) => side)}
+                  value={Object.entries(border.sides ?? EMPTY_BORDER.sides).filter(([, enabled]) => enabled).map(([side]) => side)}
                   onChange={(checkedValues) => updateSelectedStyle({
                     border: {
                       ...border,

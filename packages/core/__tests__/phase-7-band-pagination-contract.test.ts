@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderReportV2 } from '../src';
+import { renderReport } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
 const repeatBehavior = {
@@ -12,7 +12,7 @@ const repeatBehavior = {
   printAtBottom: false,
 };
 
-describe('Phase 7 Stimulsoft band pagination contract', () => {
+describe('Phase 7 band pagination contract', () => {
   it('repeats PageHeader and PageFooter on every page without duplicating ReportTitle or ReportSummary', () => {
     const template = makeTemplate([
       band('page-header', 'pageHeader', { height: 8 }),
@@ -24,7 +24,7 @@ describe('Phase 7 Stimulsoft band pagination contract', () => {
     template.pages[0].height = 70;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReport(template, {
       employees: Array.from({ length: 5 }, (_, index) => ({ Name: `N${index}` })),
     });
 
@@ -46,7 +46,7 @@ describe('Phase 7 Stimulsoft band pagination contract', () => {
     template.pages[0].height = 64;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReport(template, {
       employees: Array.from({ length: 5 }, (_, index) => ({ Name: `N${index}` })),
     });
 

@@ -1,6 +1,6 @@
 import { evalExpression } from '../expression-engine/evaluator';
-import type { ReportBandV2 } from '../template-model/v2-types';
-import type { BandPlan, DataSectionPlan, LogicalBandItem, RenderContextV2 } from './band-plan';
+import type { Band } from '../template-model/types';
+import type { BandPlan, DataSectionPlan, LogicalBandItem, RenderContext } from './band-plan';
 
 type BandLogicalItem = Extract<LogicalBandItem, { kind: 'band' }>;
 
@@ -57,7 +57,7 @@ function executeGroupedRows(
   rows: Record<string, unknown>[],
   dataSourceId: string | undefined,
   items: LogicalBandItem[],
-  repeatOnPageBreakBefore: ReportBandV2[],
+  repeatOnPageBreakBefore: Band[],
 ): void {
   executeGroupDepth(section, rows.map((row, rowIndex) => ({ row, rowIndex })), dataSourceId, items, 0, {}, repeatOnPageBreakBefore);
 }
@@ -69,7 +69,7 @@ function executeGroupDepth(
   items: LogicalBandItem[],
   depth: number,
   parentGroupValues: Record<string, unknown>,
-  repeatOnPageBreakBefore: ReportBandV2[],
+  repeatOnPageBreakBefore: Band[],
 ): void {
   const pair = section.groupPairs[depth];
   if (!pair) {
@@ -113,8 +113,8 @@ function executeGroupDepth(
   flush();
 }
 
-function repeatableSectionBands(section: DataSectionPlan): ReportBandV2[] {
-  return [...section.headers, ...section.columnHeaders].filter((band) => band.behavior.printOnAllPages);
+function repeatableSectionBands(section: DataSectionPlan): Band[] {
+  return [...section.headers, ...section.columnHeaders].filter((band) => getBandBehavior(band).printOnAllPages);
 }
 
 function prepareRows(
@@ -182,8 +182,8 @@ function resolveRowField(row: Record<string, unknown>, source: string | undefine
 }
 
 function createBandItem(
-  band: ReportBandV2,
-  overrides: Partial<RenderContextV2> = {},
+  band: Band,
+  overrides: Partial<RenderContext> = {},
 ): BandLogicalItem {
   return {
     kind: 'band',
@@ -197,12 +197,24 @@ function createBandItem(
 }
 
 function createSectionBandItem(
-  band: ReportBandV2,
-  overrides: Partial<RenderContextV2>,
-  repeatOnPageBreakBefore: ReportBandV2[],
+  band: Band,
+  overrides: Partial<RenderContext>,
+  repeatOnPageBreakBefore: Band[],
 ): BandLogicalItem {
   return {
     ...createBandItem(band, overrides),
     repeatOnPageBreakBefore,
+  };
+}
+
+function getBandBehavior(band: Band): NonNullable<Band['behavior']> {
+  return band.behavior ?? {
+    enabled: true,
+    printOn: 'allPages',
+    printIfEmpty: true,
+    printOnAllPages: band.type === 'pageHeader' || band.type === 'pageFooter' || band.type === 'groupHeader',
+    keepTogether: false,
+    canBreak: band.type === 'data' || band.type === 'child',
+    printAtBottom: band.type === 'pageFooter',
   };
 }

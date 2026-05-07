@@ -1,6 +1,6 @@
 import { create } from 'zustand';
 import type { ReportTemplate, ReportComponent, Band, Page, TableComponent, ReportStyle, TextComponent } from '@report-designer/core';
-import { createDefaultTemplate, getDefaultTextStyle } from '@report-designer/core';
+import { createDefaultTemplate, getDefaultTextStyle, normalizeTemplate } from '@report-designer/core';
 import { CommandDispatcher } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
 import { ensureTemplateComponentNames, prepareComponentForInsert } from '../report-structure';
@@ -149,7 +149,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     zoom: 1,
 
   loadTemplate: (template) => {
-    const normalizedTemplate = ensureTemplateComponentNames(template);
+    const normalizedTemplate = ensureTemplateComponentNames(normalizeTemplate(template));
     set({
       template: normalizedTemplate,
       currentPageId: normalizedTemplate.pages[0]?.id || '',
@@ -1050,7 +1050,7 @@ function cloneTextStyle(style: ReportStyle, overrides?: Partial<ReportStyle>): R
       ...style.border,
       ...overrides?.border,
       sides: {
-        ...style.border.sides,
+        ...((style.border.sides ?? { top: false, right: false, bottom: false, left: false })),
         ...overrides?.border?.sides,
       },
     },

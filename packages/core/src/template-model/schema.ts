@@ -1,93 +1,189 @@
-import type { ReportTemplate, ValidationResult, ReportComponent, Band, Page } from './types';
+import type { Band, Page, ReportComponent, ReportTemplate, ValidationResult } from './types';
+import { normalizeTemplate } from './normalize-template';
 
-export function validateTemplate(template: ReportTemplate): ValidationResult {
-  const errors: string[] = [];
+export interface TemplateValidationError {
+  path: string;
+  message: string;
+}
 
-  if (!template.pages || template.pages.length === 0) {
-    errors.push('Template must have at least one pages entry');
+export interface TemplateValidationOptions {
+  strictPrintableArea?: boolean;
+}
+
+export function validateTemplate(
+  template: ReportTemplate,
+  options: TemplateValidationOptions = {},
+): ValidationResult<TemplateValidationError> {
+  const normalizedTemplate = normalizeTemplate(template);
+  const errors: TemplateValidationError[] = [];
+  const dataSourceIds = new Set(normalizedTemplate.dataSources.map(source => source.id));
+
+  if (normalizedTemplate.pages.length === 0) {
+    errors.push({ path: 'pages', message: 'Template must contain at least one page' });
+    return { valid: false, errors };
   }
 
-  template.pages?.forEach((page, pi) => {
-    validatePage(page, pi, errors);
+  collectUniqueIds(normalizedTemplate, errors);
+  normalizedTemplate.pages.forEach((page, pageIndex) => {
+    validatePage(page, pageIndex, dataSourceIds, normalizedTemplate.dataSources.length > 0, options, errors);
   });
-
-  // 检查全局 ID 唯一性
-  const allIds = new Set<string>();
-  collectIds(template, allIds, errors);
 
   return { valid: errors.length === 0, errors };
 }
 
-function validatePage(page: Page, pageIndex: number, errors: string[]): void {
-  const prefix = `Page[${pageIndex}]`;
-
+function validatePage(
+  page: Page,
+  pageIndex: number,
+  dataSourceIds: Set<string>,
+  hasAnyDataSources: boolean,
+  options: TemplateValidationOptions,
+  errors: TemplateValidationError[],
+) {
   if (page.width <= 0) {
-    errors.push(`${prefix}.width must be positive, got ${page.width}`);
+    errors.push({ path: `pages[${pageIndex}].width`, message: `Page width must be greater than 0, got ${page.width}` });
   }
+
   if (page.height <= 0) {
-    errors.push(`${prefix}.height must be positive, got ${page.height}`);
-  }
-  if (page.margins.top < 0 || page.margins.right < 0 || page.margins.bottom < 0 || page.margins.left < 0) {
-    errors.push(`${prefix}.margins must be non-negative`);
+    errors.push({ path: `pages[${pageIndex}].height`, message: `Page height must be greater than 0, got ${page.height}` });
   }
 
-  page.bands.forEach((band, bi) => {
-    validateBand(band, `${prefix}.bands[${bi}]`, errors);
-  });
-}
+  const groupHeaders: Band[] = [];
+  const pendingSectionBands: Array<{ band: Band; path: string }> = [];
 
-function validateBand(band: Band, prefix: string, errors: string[]): void {
-  if (band.height < 0) {
-    errors.push(`${prefix}.height must be non-negative, got ${band.height}`);
-  }
+  page.bands.forEach((band, bandIndex) => {
+    const path = `pages[${pageIndex}].bands[${bandIndex}]`;
 
-  band.components.forEach((comp, ci) => {
-    validateComponent(comp, `${prefix}.components[${ci}]`, errors);
-  });
-}
-
-function validateComponent(comp: ReportComponent, prefix: string, errors: string[]): void {
-  if (comp.width < 0) {
-    errors.push(`${prefix}.width must be non-negative, got ${comp.width}`);
-  }
-  if (comp.height < 0) {
-    errors.push(`${prefix}.height must be non-negative, got ${comp.height}`);
-  }
-  if (comp.x < 0) {
-    errors.push(`${prefix}.x must be non-negative, got ${comp.x}`);
-  }
-  if (comp.y < 0) {
-    errors.push(`${prefix}.y must be non-negative, got ${comp.y}`);
-  }
-}
-
-function collectIds(template: ReportTemplate, ids: Set<string>, errors: string[]): void {
-  const checkId = (id: string, label: string) => {
-    if (ids.has(id)) {
-      errors.push(`Duplicate id: ${id} (${label})`);
+    if (band.height < 0) {
+      errors.push({ path: `${path}.height`, message: `Band height must be non-negative, got ${band.height}` });
     }
-    ids.add(id);
+
+    if (band.dataBand?.dataSourceId && !dataSourceIds.has(band.dataBand.dataSourceId)) {
+      errors.push({ path: `${path}.dataBand.dataSourceId`, message: `Data band references missing data source "${band.dataBand.dataSourceId}"` });
+    }
+
+    if (hasAnyDataSources && (band.type === 'data' || band.type === 'hierarchicalData') && !band.dataBand?.dataSourceId) {
+      errors.push({ path: `${path}.dataBand.dataSourceId`, message: 'Data band requires dataBand.dataSourceId' });
+    }
+
+    if (band.type === 'header' || band.type === 'columnHeader' || band.type === 'groupHeader') {
+      pendingSectionBands.push({ band, path });
+    }
+
+    if (band.type === 'data' || band.type === 'hierarchicalData') {
+      pendingSectionBands.length = 0;
+    }
+
+    if (band.type === 'groupHeader') {
+      if (!band.group?.conditionExpression) {
+        errors.push({ path: `${path}.group.conditionExpression`, message: 'Group header requires a condition expression' });
+      }
+      groupHeaders.push(band);
+    }
+
+    if (band.type === 'groupFooter' && !hasMatchingGroupHeader(band, groupHeaders)) {
+      errors.push({ path: `${path}.group`, message: 'Group footer requires a preceding matching group header' });
+    }
+
+    if (options.strictPrintableArea) {
+      band.components.forEach((component, componentIndex) => {
+        if (component.width < 0 || component.height < 0) {
+          errors.push({
+            path: `${path}.components[${componentIndex}]`,
+            message: `Component "${component.id}" dimensions must be non-negative`,
+          });
+        }
+        validatePrintableArea(component, page, band, `${path}.components[${componentIndex}]`, errors);
+      });
+    } else {
+      band.components.forEach((component, componentIndex) => {
+        if (component.width < 0 || component.height < 0) {
+          errors.push({
+            path: `${path}.components[${componentIndex}]`,
+            message: `Component "${component.id}" dimensions must be non-negative`,
+          });
+        }
+      });
+    }
+  });
+
+  pendingSectionBands.forEach(({ band, path }) => {
+    errors.push({ path, message: `${getBandDisplayName(band)} requires a following data band` });
+  });
+}
+
+function getBandDisplayName(band: Band): string {
+  if (band.type === 'header') return 'HeaderBand';
+  if (band.type === 'columnHeader') return 'ColumnHeaderBand';
+  if (band.type === 'groupHeader') return 'GroupHeaderBand';
+  return band.type;
+}
+
+function hasMatchingGroupHeader(footer: Band, headers: Band[]): boolean {
+  const groupName = footer.group?.name;
+  const groupHeaderId = footer.group?.groupHeaderId;
+
+  if (groupHeaderId) {
+    return headers.some(header => header.id === groupHeaderId);
+  }
+
+  if (groupName) {
+    return headers.some(header => header.group?.name === groupName);
+  }
+
+  return false;
+}
+
+function validatePrintableArea(
+  component: ReportComponent,
+  page: Page,
+  band: Band,
+  path: string,
+  errors: TemplateValidationError[],
+) {
+  const left = page.margins.left;
+  const right = page.width - page.margins.right;
+  const componentRight = component.x + component.width;
+  const componentBottom = component.y + component.height;
+
+  if (component.x < left || componentRight > right || component.y < 0 || componentBottom > band.height) {
+    errors.push({ path, message: `Component "${component.id}" is outside printable area` });
+  }
+}
+
+function collectUniqueIds(template: ReportTemplate, errors: TemplateValidationError[]) {
+  const ids = new Map<string, string>();
+
+  const check = (id: string, path: string) => {
+    const firstPath = ids.get(id);
+    if (firstPath) {
+      errors.push({ path, message: `Duplicate id "${id}" also used at ${firstPath}` });
+      return;
+    }
+    ids.set(id, path);
   };
 
-  template.pages.forEach(page => {
-    checkId(page.id, 'page');
-    page.bands.forEach(band => {
-      checkId(band.id, 'band');
-      band.components.forEach(comp => {
-        checkId(comp.id, 'component');
+  check(template.id, 'id');
+  template.pages.forEach((page, pageIndex) => {
+    check(page.id, `pages[${pageIndex}].id`);
+    page.bands.forEach((band, bandIndex) => {
+      check(band.id, `pages[${pageIndex}].bands[${bandIndex}].id`);
+      band.components.forEach((component, componentIndex) => {
+        collectComponentIds(component, `pages[${pageIndex}].bands[${bandIndex}].components[${componentIndex}]`, check);
       });
     });
   });
-
-  template.dataSources.forEach(ds => {
-    checkId(ds.id, 'dataSource');
+  template.dataSources.forEach((source, sourceIndex) => {
+    check(source.id, `dataSources[${sourceIndex}].id`);
+    (source.fields ?? []).forEach((field, fieldIndex) => check(field.id ?? `${source.id}.${field.name}`, `dataSources[${sourceIndex}].fields[${fieldIndex}].id`));
   });
+  template.styles.forEach((style, styleIndex) => check(style.id, `styles[${styleIndex}].id`));
+  template.conditionalFormats.forEach((format, formatIndex) => check(format.id, `conditionalFormats[${formatIndex}].id`));
+  template.parameters.forEach((parameter, parameterIndex) => check(parameter.id, `parameters[${parameterIndex}].id`));
+}
 
-  template.styles.forEach(s => {
-    checkId(s.id, 'style');
-  });
-
-  template.conditionalFormats.forEach(cf => {
-    checkId(cf.id, 'conditionalFormat');
-  });
+function collectComponentIds(component: ReportComponent, path: string, check: (id: string, path: string) => void) {
+  check(component.id, `${path}.id`);
+  if (component.type === 'panel' && Array.isArray((component as any).components)) {
+    (component as any).components.forEach((child: ReportComponent, index: number) => collectComponentIds(child, `${path}.components[${index}]`, check));
+  }
 }

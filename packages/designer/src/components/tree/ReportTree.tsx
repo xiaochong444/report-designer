@@ -3,7 +3,7 @@ import { Tree } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../../store/designer-store';
 
-export const ReportTreeV2: React.FC = () => {
+export const ReportTree: React.FC = () => {
   const template = useDesignerStore(s => s.template);
   const selectBand = useDesignerStore(s => s.selectBand);
 
@@ -12,7 +12,7 @@ export const ReportTreeV2: React.FC = () => {
     title: page.id,
     children: page.bands.map(band => ({
       key: band.id,
-      title: `${band.type}${band.dataSource ? ` (${band.dataSource})` : ''}`,
+      title: `${band.type}${band.dataBand?.dataSourceId ?? band.dataSource ? ` (${band.dataBand?.dataSourceId ?? band.dataSource})` : ''}`,
     })),
   }));
 

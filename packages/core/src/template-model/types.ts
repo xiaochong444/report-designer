@@ -1,7 +1,5 @@
-/** 表达式类型 — 简化字符串表达式 */
 export type Expression = string;
 
-/** 页边距 */
 export interface Margins {
   top: number;
   right: number;
@@ -9,22 +7,20 @@ export interface Margins {
   left: number;
 }
 
-/** 字体配置 */
 export interface FontConfig {
   family: string;
-  size: number;        // pt
+  size: number;
   bold: boolean;
   italic: boolean;
   underline: boolean;
   strikethrough: boolean;
-  color: string;       // CSS 颜色
+  color: string;
 }
 
-/** 边框配置 */
 export interface BorderConfig {
   style: 'none' | 'solid' | 'dashed' | 'dotted' | 'double';
-  width: number;       // mm
-  color: string;       // CSS 颜色
+  width: number;
+  color: string;
   sides: {
     top: boolean;
     right: boolean;
@@ -33,7 +29,6 @@ export interface BorderConfig {
   };
 }
 
-/** 内边距 */
 export interface Padding {
   top: number;
   right: number;
@@ -41,7 +36,6 @@ export interface Padding {
   left: number;
 }
 
-/** 条件规则 */
 export interface ConditionRule {
   id: string;
   expression: Expression;
@@ -61,24 +55,22 @@ export interface TextFormatConfig {
 export type TextAlign = 'left' | 'center' | 'right';
 export type VerticalAlign = 'top' | 'middle' | 'bottom';
 
-/** 报表样式 */
 export interface ReportStyle {
   id: string;
   name: string;
   category?: 'text';
-  font: FontConfig;
-  border: BorderConfig;
+  font: Partial<FontConfig>;
+  border: Partial<BorderConfig>;
   backgroundColor: string;
   textAlign?: TextAlign;
   verticalAlign?: VerticalAlign;
-  padding?: Padding;
+  padding?: Partial<Padding>;
   format?: TextFormatConfig;
   canGrow?: boolean;
   canShrink?: boolean;
   isDefault?: boolean;
 }
 
-/** 条件格式 */
 export interface ConditionalFormat {
   id: string;
   name: string;
@@ -86,43 +78,59 @@ export interface ConditionalFormat {
   applyTo: string[];
 }
 
-/** 数据字段 */
+export type JsonFieldType = 'null' | 'boolean' | 'number' | 'date' | 'string';
+
 export interface DataField {
+  id?: string;
   name: string;
-  type: 'string' | 'number' | 'boolean' | 'date';
+  path?: string;
+  type: JsonFieldType;
   label?: string;
+  nullable?: boolean;
 }
 
-/** 数据源 */
 export interface DataSource {
   id: string;
   name: string;
-  type: 'json' | 'static';
-  schema: DataField[];
+  type: 'json';
+  path?: string;
+  fields?: DataField[];
+  schema?: DataField[];
   data?: Record<string, any>[];
+  parentSourceId?: string;
+  parentPath?: string;
 }
 
-/** 组件类型枚举 */
-export type ComponentType = 'text' | 'image' | 'table' | 'barcode' | 'checkbox' | 'richtext' | 'subreport' | 'panel' | 'line' | 'shape' | 'pagenumber' | 'datetime';
+export type ComponentType =
+  | 'text'
+  | 'image'
+  | 'table'
+  | 'barcode'
+  | 'checkbox'
+  | 'richtext'
+  | 'subreport'
+  | 'panel'
+  | 'line'
+  | 'shape'
+  | 'pagenumber'
+  | 'datetime';
 
-/** 组件基类 */
 export interface ReportComponent {
   id: string;
-  name?: string;     // 组件名称
+  name?: string;
   type: ComponentType;
-  x: number;          // mm
-  y: number;          // mm
-  width: number;      // mm
-  height: number;     // mm
-  zOrder?: number;    // stacking order
-  backgroundColor?: string; // 背景色
-  padding?: Padding; // mm
-  style?: string;     // 引用 styles 中的 ID
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  zOrder?: number;
+  backgroundColor?: string;
+  padding?: Padding;
+  style?: string;
   conditions?: ConditionRule[];
   anchor?: string;
 }
 
-/** 文本组件 */
 export interface TextComponent extends ReportComponent {
   type: 'text';
   text: Expression;
@@ -136,23 +144,20 @@ export interface TextComponent extends ReportComponent {
   styleBindings?: string[];
 }
 
-/** 图片组件 */
 export interface ImageComponent extends ReportComponent {
   type: 'image';
   src: Expression;
   fitMode: 'fill' | 'contain' | 'cover' | 'stretch';
 }
 
-/** 表格列 */
 export interface TableColumn {
   id: string;
   header: string;
   field: string;
-  width: number;          // mm
+  width: number;
   cellType: 'text' | 'image' | 'barcode' | 'checkbox';
 }
 
-/** 表格单元格（设计时网格结构） */
 export interface TableCell {
   row: number;
   column: number;
@@ -161,7 +166,6 @@ export interface TableCell {
   colSpan?: number;
 }
 
-/** 表格组件 */
 export interface TableComponent extends ReportComponent {
   type: 'table';
   dataSource: string;
@@ -178,10 +182,8 @@ export interface TableComponent extends ReportComponent {
   showBorder: boolean;
 }
 
-/** 条码类型 */
 export type BarcodeFormat = 'QR_CODE' | 'CODE128' | 'EAN13' | 'EAN8' | 'UPC' | 'CODE39' | 'ITF14';
 
-/** 条码组件 */
 export interface BarcodeComponent extends ReportComponent {
   type: 'barcode';
   value: Expression;
@@ -189,27 +191,23 @@ export interface BarcodeComponent extends ReportComponent {
   showText: boolean;
 }
 
-/** 复选框组件 */
 export interface CheckboxComponent extends ReportComponent {
   type: 'checkbox';
   checked: Expression;
   label?: Expression;
 }
 
-/** 富文本组件 */
 export interface RichtextComponent extends ReportComponent {
   type: 'richtext';
   html: Expression;
 }
 
-/** 子报表组件 */
 export interface SubreportComponent extends ReportComponent {
   type: 'subreport';
   templateUrl: string;
   parameters: Record<string, Expression>;
 }
 
-/** 面板组件 */
 export interface PanelComponent extends ReportComponent {
   type: 'panel';
   components: ReportComponent[];
@@ -217,29 +215,26 @@ export interface PanelComponent extends ReportComponent {
   border: BorderConfig;
 }
 
-/** 线条组件 */
 export interface LineComponent extends ReportComponent {
   type: 'line';
-  startX: number;  // mm, relative to component position
+  startX: number;
   startY: number;
   endX: number;
   endY: number;
   lineColor: string;
-  lineWidth: number; // mm
+  lineWidth: number;
   lineStyle: 'solid' | 'dashed' | 'dotted';
 }
 
-/** 形状组件 */
 export interface ShapeComponent extends ReportComponent {
   type: 'shape';
   shapeType: 'rectangle' | 'ellipse' | 'roundRect' | 'triangle';
   fillColor: string;
   borderColor: string;
-  borderWidth: number; // mm
+  borderWidth: number;
   borderStyle: 'solid' | 'dashed' | 'dotted';
 }
 
-/** 页码组件 */
 export interface PageNumberComponent extends ReportComponent {
   type: 'pagenumber';
   format: '1' | '1/N' | 'Page 1 of N' | 'Page 1';
@@ -247,66 +242,13 @@ export interface PageNumberComponent extends ReportComponent {
   textAlign: TextAlign;
 }
 
-/** 日期时间组件 */
 export interface DateTimeComponent extends ReportComponent {
   type: 'datetime';
-  format: string; // e.g. 'yyyy-MM-dd HH:mm:ss'
+  format: string;
   font: FontConfig;
   textAlign: TextAlign;
 }
 
-/** 带类型 */
-export type BandType =
-  | 'reportTitle'
-  | 'reportSummary'
-  | 'pageHeader'
-  | 'pageFooter'
-  | 'header'
-  | 'footer'
-  | 'columnHeader'
-  | 'columnFooter'
-  | 'groupHeader'
-  | 'groupFooter'
-  | 'data'
-  | 'child';
-
-/** 带 */
-export interface Band {
-  id: string;
-  type: BandType;
-  height: number;
-  components: ReportComponent[];
-  dataSource?: string;
-  groupField?: string;
-  sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
-  visible?: Expression;
-}
-
-/** 页面方向 */
-export type PageOrientation = 'portrait' | 'landscape';
-
-/** 页面 */
-export interface Page {
-  id: string;
-  width: number;         // mm
-  height: number;        // mm
-  margins: Margins;
-  orientation: PageOrientation;
-  bands: Band[];
-}
-
-/** 报表模板根 */
-export interface ReportTemplate {
-  id: string;
-  name: string;
-  version: '1.0';
-  pages: Page[];
-  dataSources: DataSource[];
-  styles: ReportStyle[];
-  conditionalFormats: ConditionalFormat[];
-}
-
-/** 所有组件类型联合 */
 export type ReportComponentUnion =
   | TextComponent
   | ImageComponent
@@ -321,11 +263,115 @@ export type ReportComponentUnion =
   | PageNumberComponent
   | DateTimeComponent;
 
-/** 数据上下文 */
+export const STANDARD_BAND_TYPES = [
+  'reportTitle',
+  'reportSummary',
+  'pageHeader',
+  'pageFooter',
+  'header',
+  'footer',
+  'groupHeader',
+  'groupFooter',
+  'columnHeader',
+  'columnFooter',
+  'data',
+  'hierarchicalData',
+  'child',
+  'emptyData',
+  'overlay',
+] as const;
+
+export type StandardBandType = typeof STANDARD_BAND_TYPES[number];
+export type BandType = StandardBandType;
+export type BandPrintOn = 'allPages' | 'firstPage' | 'exceptFirstPage' | 'lastPage' | 'oddPages' | 'evenPages';
+
+export interface BandBehavior {
+  enabled: boolean;
+  visibleExpression?: string;
+  printOn: BandPrintOn;
+  printIfEmpty: boolean;
+  printOnAllPages: boolean;
+  keepTogether: boolean;
+  canBreak: boolean;
+  breakIfLessThan?: number;
+  printAtBottom: boolean;
+}
+
+export interface DataBandOptions {
+  dataSourceId?: string;
+  filterExpression?: string;
+  sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
+  columns?: { count: number; gap: number; direction: 'downThenAcross' | 'acrossThenDown' };
+}
+
+export interface GroupBandOptions {
+  name?: string;
+  conditionExpression?: string;
+  groupHeaderId?: string;
+}
+
+export interface Band {
+  id: string;
+  type: StandardBandType;
+  name?: string;
+  height: number;
+  components: ReportComponent[];
+  behavior?: BandBehavior;
+  dataBand?: DataBandOptions;
+  group?: GroupBandOptions;
+  dataSource?: string;
+  groupField?: string;
+  sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
+  visible?: Expression;
+}
+
+export type PageOrientation = 'portrait' | 'landscape';
+
+export interface Page {
+  id: string;
+  width: number;
+  height: number;
+  margins: Margins;
+  orientation: PageOrientation;
+  bands: Band[];
+}
+
+export interface ReportParameter {
+  id: string;
+  name: string;
+  type: JsonFieldType;
+  defaultValue?: unknown;
+}
+
+export interface ReportTemplate {
+  id: string;
+  name: string;
+  version: '2.0';
+  pages: Page[];
+  dataSources: DataSource[];
+  styles: ReportStyle[];
+  conditionalFormats: ConditionalFormat[];
+  parameters: ReportParameter[];
+}
+
+export interface JsonDictionary {
+  dataSources: DataSource[];
+}
+
+export interface ValidationResult<TError = string> {
+  valid: boolean;
+  errors: TError[];
+}
+
 export type DataContext = Record<string, Record<string, any>[] | Record<string, any>>;
 
-/** 校验结果 */
-export interface ValidationResult {
-  valid: boolean;
-  errors: string[];
+export function mapDataField(source: Pick<DataSource, 'id'>, field: Pick<DataField, 'name' | 'type' | 'label'>): DataField {
+  return {
+    id: `${source.id}.${field.name}`,
+    name: field.name,
+    path: `${source.id}.${field.name}`,
+    type: field.type,
+    label: field.label,
+    nullable: false,
+  };
 }

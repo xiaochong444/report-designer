@@ -22,6 +22,6 @@ describe('Phase 5 band wizard', () => {
 
     const bands = useDesignerStore.getState().template.pages[0].bands;
     expect(bands.map((band) => band.type)).toEqual(expect.arrayContaining(['header', 'data', 'footer']));
-    expect(bands.find((band) => band.type === 'data')?.dataSource).toBe('employees');
+    expect(bands.find((band) => band.type === 'data')?.dataBand?.dataSourceId).toBe('employees');
   });
 });

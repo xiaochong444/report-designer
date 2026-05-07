@@ -1,7 +1,7 @@
-import type { ReportStyleV2 } from '@report-designer/core';
+import type { ReportStyle } from '@report-designer/core';
 import { band, commonTextStyleIds, moneyExpression, template, text } from './common';
 
-const invoiceStyles: ReportStyleV2[] = [
+const invoiceStyles: ReportStyle[] = [
   {
     id: 'invoice-title',
     name: 'Invoice Title',

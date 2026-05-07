@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderReportV2 } from '../src';
+import { renderReport } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
 describe('Phase 3 pagination', () => {
@@ -12,7 +12,7 @@ describe('Phase 3 pagination', () => {
     template.pages[0].height = 70;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReport(template, {
       employees: Array.from({ length: 4 }, (_, index) => ({ Name: `N${index}` })),
     });
 
@@ -33,7 +33,7 @@ describe('Phase 3 pagination', () => {
     template.pages[0].height = 70;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReport(template, {
       employees: Array.from({ length: 4 }, (_, index) => ({ Name: `N${index}` })),
     });
 
@@ -63,7 +63,7 @@ describe('Phase 3 pagination', () => {
     template.pages[0].height = 70;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReport(template, {
       employees: [
         { Name: 'A', Department: 'Engineering' },
         { Name: 'B', Department: 'Engineering' },

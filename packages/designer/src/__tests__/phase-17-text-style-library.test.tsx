@@ -662,7 +662,12 @@ describe('Phase 17 text style library store behavior', () => {
       style: 'style-a',
       styleBindings: ['format.nullValue', 'border.sides.right'],
       format: { type: style.format!.type, ...style.format },
-      border: { ...style.border, sides: { ...style.border.sides } },
+      border: {
+        style: style.border.style ?? 'none',
+        width: style.border.width ?? 0,
+        color: style.border.color ?? '#000000',
+        sides: { top: false, right: false, bottom: false, left: false, ...(style.border.sides ?? {}) },
+      },
     })];
 
     await renderDesignerWithSelection(template, 'text-1');

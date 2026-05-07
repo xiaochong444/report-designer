@@ -1,7 +1,7 @@
-import type { DataFieldV2, DataSourceV2, JsonDictionaryV2, JsonFieldTypeV2 } from '../template-model/v2-types';
+import type { DataField, DataSource, JsonDictionary, JsonFieldType } from '../template-model/types';
 
-export function inferJsonDictionary(data: unknown): JsonDictionaryV2 {
-  const dataSources: DataSourceV2[] = [];
+export function inferJsonDictionary(data: unknown): JsonDictionary {
+  const dataSources: DataSource[] = [];
   if (!isPlainObject(data)) {
     return { dataSources };
   }
@@ -19,10 +19,10 @@ function visitArraySource(
   id: string,
   path: string,
   rows: unknown[],
-  dataSources: DataSourceV2[],
+  dataSources: DataSource[],
   parentSourceId?: string,
 ): void {
-  const source: DataSourceV2 = {
+  const source: DataSource = {
     id,
     name: id.split('.').at(-1) ?? id,
     type: 'json',
@@ -78,7 +78,7 @@ function collectFieldsAndArrays(
   }
 }
 
-function createDataField(source: DataSourceV2, fieldName: string, samples: unknown[]): DataFieldV2 {
+function createDataField(source: DataSource, fieldName: string, samples: unknown[]): DataField {
   return {
     id: `${source.id}.${fieldName}`,
     name: fieldName,
@@ -88,7 +88,7 @@ function createDataField(source: DataSourceV2, fieldName: string, samples: unkno
   };
 }
 
-function inferFieldType(samples: unknown[]): JsonFieldTypeV2 {
+function inferFieldType(samples: unknown[]): JsonFieldType {
   const meaningful = samples.filter((sample) => sample !== null && sample !== undefined && sample !== '');
   if (meaningful.length === 0) {
     return 'null';

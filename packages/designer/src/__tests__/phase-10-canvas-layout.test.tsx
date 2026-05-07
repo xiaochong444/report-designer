@@ -31,7 +31,7 @@ Object.defineProperty(window, 'ResizeObserver', {
   value: ResizeObserverMock,
 });
 
-describe('Phase 10 Stimulsoft canvas layout', () => {
+describe('Phase 10 canvas layout', () => {
   it('shows screenshot-like ruler labels and horizontal band title strips', () => {
     render(<Designer template={createDefaultTemplate('Canvas Layout')} />);
 

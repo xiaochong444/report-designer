@@ -23,30 +23,37 @@ export const GroupWizardDialog: React.FC<GroupWizardDialogProps> = ({ open, onCl
       ...current,
       pages: current.pages.map((page, pageIndex) => {
         if (pageIndex !== 0) return page;
-        const dataIndex = Math.max(0, page.bands.findIndex(band => band.type === 'data' && (!band.dataSource || band.dataSource === field.dataSourceId)));
+        const dataIndex = Math.max(0, page.bands.findIndex(band => (
+          band.type === 'data' && (!(band.dataBand?.dataSourceId ?? band.dataSource) || (band.dataBand?.dataSourceId ?? band.dataSource) === field.dataSourceId)
+        )));
         const dataBand = page.bands[dataIndex];
         const groupHeader: Band = {
           id: uid('band_group_header'),
           type: 'groupHeader',
           height: 14,
-          dataSource: field.dataSourceId,
-          groupField: field.fieldName,
+          group: { name: field.fieldName, conditionExpression: `{${field.dataSourceId}.${field.fieldName}}` },
           components: [createTextComponent(`{${field.dataSourceId}.${field.fieldName}}`, 10, 3, 80, 8, 'Group Header')],
         };
-        const sumField = field.source.schema.find(item => item.type === 'number')?.name;
+        const sumField = (field.source.schema ?? field.source.fields ?? []).find(item => item.type === 'number')?.name;
         const groupFooter: Band = {
           id: uid('band_group_footer'),
           type: 'groupFooter',
           height: 14,
-          dataSource: field.dataSourceId,
-          groupField: field.fieldName,
+          group: { name: field.fieldName, conditionExpression: `{${field.dataSourceId}.${field.fieldName}}` },
           components: [
             createTextComponent(`COUNT("${field.dataSourceId}")`, 10, 3, 42, 8, 'Group Count'),
             createTextComponent(sumField ? `SUM("${field.dataSourceId}", "{${field.dataSourceId}.${sumField}}")` : `SUM("${field.dataSourceId}")`, 58, 3, 70, 8, 'Group Sum'),
           ],
         };
         const bands = [...page.bands];
-        bands[dataIndex] = { ...dataBand, dataSource: dataBand.dataSource || field.dataSourceId, sort: [{ field: field.fieldName, direction: 'asc' }] };
+        bands[dataIndex] = {
+          ...dataBand,
+          dataBand: {
+            ...dataBand.dataBand,
+            dataSourceId: dataBand.dataBand?.dataSourceId ?? dataBand.dataSource ?? field.dataSourceId,
+            sort: [{ field: field.fieldName, direction: 'asc' }],
+          },
+        };
         bands.splice(dataIndex, 0, groupHeader);
         bands.splice(dataIndex + 2, 0, groupFooter);
         return { ...page, bands };
@@ -86,7 +93,7 @@ export const GroupWizardDialog: React.FC<GroupWizardDialogProps> = ({ open, onCl
 
 function getGroupFields(dataSources: DataSource[]) {
   return dataSources.flatMap(source =>
-    source.schema.map(field => ({
+    (source.schema ?? source.fields ?? []).map(field => ({
       value: `${source.id}.${field.name}`,
       label: `${source.id}.${field.name}`,
       dataSourceId: source.id,

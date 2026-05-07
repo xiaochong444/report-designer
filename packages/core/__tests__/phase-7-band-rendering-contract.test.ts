@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { buildBandPlan, executeBandPlan, validateTemplateV2 } from '../src';
-import type { ReportBandV2 } from '../src';
+import { buildBandPlan, executeBandPlan, validateTemplate } from '../src';
+import type { Band } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
-function bandTypesForData(templateBands: ReportBandV2[], employees: Record<string, unknown>[]) {
+function bandTypesForData(templateBands: Band[], employees: Record<string, unknown>[]) {
   const template = makeTemplate(templateBands);
   const plan = buildBandPlan(template);
   return executeBandPlan(plan, { employees })
@@ -11,7 +11,7 @@ function bandTypesForData(templateBands: ReportBandV2[], employees: Record<strin
     .map(item => item.band.type);
 }
 
-describe('Phase 7 Stimulsoft band rendering contract', () => {
+describe('Phase 7 band rendering contract', () => {
   it('renders a data section in Header, ColumnHeader, GroupHeader, Data, Child, GroupFooter, ColumnFooter, Footer order', () => {
     const sequence = bandTypesForData([
       band('report-title', 'reportTitle'),
@@ -95,10 +95,10 @@ describe('Phase 7 Stimulsoft band rendering contract', () => {
       band('page-footer', 'pageFooter'),
     ]);
 
-    const result = validateTemplateV2(template);
+    const result = validateTemplate(template);
 
     expect(result.valid).toBe(false);
-    expect(result.errors.some(error => error.message.includes('HeaderBand requires a following DataBand'))).toBe(true);
+    expect(result.errors.some(error => error.message.includes('HeaderBand requires a following data band'))).toBe(true);
   });
 
   it('rejects DataBand without a data source id', () => {
@@ -106,9 +106,9 @@ describe('Phase 7 Stimulsoft band rendering contract', () => {
       band('data', 'data'),
     ]);
 
-    const result = validateTemplateV2(template);
+    const result = validateTemplate(template);
 
     expect(result.valid).toBe(false);
-    expect(result.errors.some(error => error.message.includes('DataBand requires dataBand.dataSourceId'))).toBe(true);
+    expect(result.errors.some(error => error.message.includes('Data band requires dataBand.dataSourceId'))).toBe(true);
   });
 });

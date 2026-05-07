@@ -19,7 +19,7 @@ describe('Phase 5 group wizard', () => {
         { name: 'salary', type: 'number' },
       ],
     }];
-    template.pages[0].bands.find((band) => band.type === 'data')!.dataSource = 'employees';
+    template.pages[0].bands.find((band) => band.type === 'data')!.dataBand = { dataSourceId: 'employees' };
     useDesignerStore.getState().loadTemplate(template);
   });
 
@@ -30,8 +30,8 @@ describe('Phase 5 group wizard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create group' }));
 
     const bands = useDesignerStore.getState().template.pages[0].bands;
-    expect(bands.find((band) => band.type === 'groupHeader')?.groupField).toBe('department');
+    expect(bands.find((band) => band.type === 'groupHeader')?.group?.name).toBe('department');
     expect(bands.find((band) => band.type === 'groupFooter')?.components.map((component: any) => component.text).join(' ')).toContain('SUM("employees"');
-    expect((bands.find((band) => band.type === 'data') as any).sort?.[0]).toMatchObject({ field: 'department', direction: 'asc' });
+    expect(bands.find((band) => band.type === 'data')?.dataBand?.sort?.[0]).toMatchObject({ field: 'department', direction: 'asc' });
   });
 });

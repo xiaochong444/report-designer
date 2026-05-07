@@ -2,14 +2,14 @@ import { describe, expect, it } from 'vitest';
 import { createDefaultTemplate } from '../src/template-model';
 import {
   STANDARD_BAND_TYPES,
-  migrateV1ToV2,
-  validateTemplateV2,
-  type ReportTemplateV2,
-  type TextComponentV2,
+  normalizeTemplate,
+  validateTemplate,
+  type ReportTemplate,
+  type TextComponent,
 } from '../src';
 
-describe('Phase 1 template v2', () => {
-  it('exports Stimulsoft-style standard band types', () => {
+describe('Phase 1 template model', () => {
+  it('exports standard band types', () => {
     expect(STANDARD_BAND_TYPES).toEqual([
       'reportTitle',
       'reportSummary',
@@ -29,7 +29,7 @@ describe('Phase 1 template v2', () => {
     ]);
   });
 
-  it('migrates v1 templates into v2 without losing pages, bands, or json data sources', () => {
+  it('normalizes templates without losing pages, bands, or json data sources', () => {
     const template = createDefaultTemplate('Employees');
     template.dataSources = [
       {
@@ -45,7 +45,7 @@ describe('Phase 1 template v2', () => {
     const dataBand = template.pages[0].bands.find((band) => band.type === 'data')!;
     dataBand.dataSource = 'employees';
 
-    const migrated = migrateV1ToV2(template);
+    const migrated = normalizeTemplate(template);
 
     expect(migrated.version).toBe('2.0');
     expect(migrated.pages).toHaveLength(template.pages.length);
@@ -60,34 +60,34 @@ describe('Phase 1 template v2', () => {
       ['employees.Name', 'string'],
       ['employees.Salary', 'number'],
     ]);
-    expect(migrated.pages[0].bands.find((band) => band.type === 'pageHeader')?.behavior.printOnAllPages).toBe(true);
-    expect(migrated.pages[0].bands.find((band) => band.type === 'pageFooter')?.behavior.printAtBottom).toBe(true);
-    expect(migrated.pages[0].bands.find((band) => band.type === 'data')?.behavior.canBreak).toBe(true);
+    expect(migrated.pages[0].bands.find((band) => band.type === 'pageHeader')?.behavior?.printOnAllPages).toBe(true);
+    expect(migrated.pages[0].bands.find((band) => band.type === 'pageFooter')?.behavior?.printAtBottom).toBe(true);
+    expect(migrated.pages[0].bands.find((band) => band.type === 'data')?.behavior?.canBreak).toBe(true);
     expect(migrated.pages[0].bands.find((band) => band.type === 'data')?.dataBand?.dataSourceId).toBe('employees');
   });
 
   it('validates duplicate ids', () => {
-    const template = migrateV1ToV2(createDefaultTemplate());
+    const template = normalizeTemplate(createDefaultTemplate());
     template.pages[0].bands[1].id = template.pages[0].bands[0].id;
 
-    const result = validateTemplateV2(template);
+    const result = validateTemplate(template);
 
     expect(result.valid).toBe(false);
     expect(result.errors[0].message).toContain('Duplicate id');
   });
 
   it('validates data bands referencing missing data sources', () => {
-    const template = migrateV1ToV2(createDefaultTemplate());
+    const template = normalizeTemplate(createDefaultTemplate());
     template.pages[0].bands.find((band) => band.type === 'data')!.dataBand = { dataSourceId: 'missing' };
 
-    const result = validateTemplateV2(template);
+    const result = validateTemplate(template);
 
     expect(result.valid).toBe(false);
     expect(result.errors.some((error) => error.message.includes('missing data source'))).toBe(true);
   });
 
   it('validates group headers and matching group footers', () => {
-    const template = migrateV1ToV2(createDefaultTemplate());
+    const template = normalizeTemplate(createDefaultTemplate());
     template.pages[0].bands.splice(2, 0, {
       id: 'group-header-1',
       type: 'groupHeader',
@@ -104,16 +104,16 @@ describe('Phase 1 template v2', () => {
       group: { name: 'Department' },
     });
 
-    const result = validateTemplateV2(template);
+    const result = validateTemplate(template);
 
     expect(result.valid).toBe(false);
-    expect(result.errors.some((error) => error.message.includes('GroupHeader requires a condition'))).toBe(true);
-    expect(result.errors.some((error) => error.message.includes('GroupFooter requires a preceding matching GroupHeader'))).toBe(true);
+    expect(result.errors.some((error) => error.message.includes('Group header requires a condition expression'))).toBe(true);
+    expect(result.errors.some((error) => error.message.includes('Group footer requires a preceding matching group header'))).toBe(true);
   });
 
   it('validates components outside the printable page area in strict mode', () => {
-    const template = migrateV1ToV2(createDefaultTemplate());
-    const component: TextComponentV2 = {
+    const template = normalizeTemplate(createDefaultTemplate());
+    const component: TextComponent = {
       id: 'outside',
       type: 'text',
       x: 190,
@@ -143,14 +143,14 @@ describe('Phase 1 template v2', () => {
     };
     template.pages[0].bands[0].components.push(component);
 
-    const result = validateTemplateV2(template, { strictPrintableArea: true });
+    const result = validateTemplate(template, { strictPrintableArea: true });
 
     expect(result.valid).toBe(false);
     expect(result.errors.some((error) => error.message.includes('outside printable area'))).toBe(true);
   });
 });
 
-function defaultTestBehavior(): ReportTemplateV2['pages'][number]['bands'][number]['behavior'] {
+function defaultTestBehavior(): ReportTemplate['pages'][number]['bands'][number]['behavior'] {
   return {
     enabled: true,
     printOn: 'allPages',

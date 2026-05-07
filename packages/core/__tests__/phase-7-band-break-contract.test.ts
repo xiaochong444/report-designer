@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
-import { renderReportV2 } from '../src';
-import type { ReportBandV2 } from '../src';
+import { renderReport } from '../src';
+import type { Band } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
-function behavior(overrides: Partial<ReportBandV2['behavior']>) {
+function behavior(overrides: Partial<Band['behavior']>) {
   return {
     enabled: true,
     printOn: 'allPages' as const,
@@ -26,7 +26,7 @@ describe('Phase 7 band break behavior contract', () => {
     template.pages[0].height = 60;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReport(template, {
       employees: [
         { Name: 'A', Department: 'Engineering' },
         { Name: 'B', Department: 'Engineering' },
@@ -44,7 +44,7 @@ describe('Phase 7 band break behavior contract', () => {
     template.pages[0].height = 65;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReport(template, {
       employees: Array.from({ length: 3 }, (_, index) => ({ Name: `N${index}` })),
     });
 
@@ -60,7 +60,7 @@ describe('Phase 7 band break behavior contract', () => {
     template.pages[0].height = 80;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, { employees: [{ Name: 'A' }] });
+    const document = renderReport(template, { employees: [{ Name: 'A' }] });
     const footer = document.pages[0].items.find(item => item.bandId === 'footer');
 
     expect(footer?.y).toBe(65);

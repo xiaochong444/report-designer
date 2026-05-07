@@ -11,10 +11,10 @@ import {
   PAPER_PRESETS,
   type PaperType,
 } from '../../page-settings';
-import { PropertyGridV2 } from '../properties/PropertyGridV2';
+import { BandPropertyGrid } from '../properties/BandPropertyGrid';
 import { PropertyEditor } from '../PropertyEditor';
 
-export const StimulsoftPropertyGrid: React.FC = () => {
+export const DesignerPropertyPanel: React.FC = () => {
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
@@ -40,7 +40,7 @@ export const StimulsoftPropertyGrid: React.FC = () => {
       <div className="rd-property-grid-body">
         {showBandProperties ? (
           <div className="rd-property-grid-band">
-            <PropertyGridV2 />
+            <BandPropertyGrid />
           </div>
         ) : null}
         {showPageProperties ? <PageProperties /> : null}

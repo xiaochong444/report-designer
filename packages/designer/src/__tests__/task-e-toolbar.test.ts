@@ -7,7 +7,7 @@ function resetStore() {
     template: {
       id: 'tpl_test',
       name: 'Test Template',
-      version: '1.0',
+      version: '2.0',
       pages: [{
         id: 'page_test',
         width: 210, height: 297,
@@ -22,6 +22,7 @@ function resetStore() {
       dataSources: [],
       styles: [],
       conditionalFormats: [],
+      parameters: [],
     },
     currentPageId: 'page_test',
     selectedComponentIds: [],

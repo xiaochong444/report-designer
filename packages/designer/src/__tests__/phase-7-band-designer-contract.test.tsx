@@ -9,7 +9,7 @@ import { BandWizardDialog } from '../components/dialogs/BandWizardDialog';
 import { useDesignerStore } from '../store/designer-store';
 
 describe('Phase 7 designer band contract', () => {
-  it('creates a Stimulsoft-style HeaderBand + DataBand + FooterBand section from the wizard', () => {
+  it('creates a HeaderBand + DataBand + FooterBand section from the wizard', () => {
     const template = createDefaultTemplate('Band Contract');
     template.dataSources = [{ id: 'employees', name: 'employees', type: 'json', schema: [{ name: 'name', type: 'string' }] }];
     useDesignerStore.getState().loadTemplate(template);
@@ -22,7 +22,7 @@ describe('Phase 7 designer band contract', () => {
     expect(bandTypes).toEqual(expect.arrayContaining(['header', 'data', 'footer']));
   });
 
-  it('shows Stimulsoft-style band names on the canvas', () => {
+  it('shows band names on the canvas', () => {
     const template = createDefaultTemplate('Band Labels');
     useDesignerStore.getState().loadTemplate(template);
 

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderReportV2 } from '../src';
+import { renderReport } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
 const textBase = {
@@ -31,7 +31,7 @@ describe('Phase 9 text rendering', () => {
       }),
     ]);
 
-    const document = renderReportV2(template, { employees: [{ Salary: 1234.5 }] });
+    const document = renderReport(template, { employees: [{ Salary: 1234.5 }] });
 
     expect(document.pages[0].items[0].components[0].content).toBe('1,234.50');
   });
@@ -61,7 +61,7 @@ describe('Phase 9 text rendering', () => {
       backgroundColor: '#fff7e6',
     }];
 
-    const box = renderReportV2(template, { employees: [{ Name: 'Alice' }] }).pages[0].items[0].components[0];
+    const box = renderReport(template, { employees: [{ Name: 'Alice' }] }).pages[0].items[0].components[0];
 
     expect(box.style?.font?.bold).toBe(true);
     expect(box.style?.font?.color).toBe('#ff0000');

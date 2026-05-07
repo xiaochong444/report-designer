@@ -58,7 +58,7 @@ export const RibbonToolbar: React.FC = () => {
         useDesignerStore.getState().loadTemplate({
           id: `tpl_${Date.now()}`,
           name: 'New Template',
-          version: '1.0',
+          version: '2.0',
           pages: [{
             id: `page_${Date.now()}`,
             width: 210, height: 297,
@@ -73,6 +73,7 @@ export const RibbonToolbar: React.FC = () => {
           dataSources: [],
           styles: [],
           conditionalFormats: [],
+          parameters: [],
         });
         message.success('已创建新模板');
       },

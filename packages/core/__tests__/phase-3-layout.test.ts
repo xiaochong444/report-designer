@@ -1,13 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { measureTextBox, renderReportV2 } from '../src';
+import { measureTextBox, renderReport } from '../src';
 import { makeTemplate } from './phase-2-helpers';
-import { textComponent } from './render-v2-helpers';
+import { textComponent } from './render-helpers';
 
 describe('Phase 3 layout', () => {
   it('returns a RenderDocument with page metadata and millimeter coordinates', () => {
     const template = makeTemplate([]);
 
-    const document = renderReportV2(template, {});
+    const document = renderReport(template, {});
 
     expect(document.pages).toEqual([
       {

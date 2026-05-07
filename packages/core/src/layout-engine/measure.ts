@@ -1,4 +1,4 @@
-import type { TextComponentV2 } from '../template-model/v2-types';
+import type { TextComponent } from '../template-model/types';
 
 export interface MeasuredBox {
   width: number;
@@ -7,7 +7,7 @@ export interface MeasuredBox {
   overflow: boolean;
 }
 
-export function measureTextBox(component: TextComponentV2, content: string): MeasuredBox {
+export function measureTextBox(component: TextComponent, content: string): MeasuredBox {
   const fontSizePt = component.font?.size ?? 10;
   const averageCharWidthMm = fontSizePt * 0.3528 * 0.52;
   const lineHeightMm = fontSizePt * 0.3528 * 1.2;

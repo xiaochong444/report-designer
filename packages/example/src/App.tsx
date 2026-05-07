@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Button, Layout, Select, Typography } from 'antd';
-import { migrateV1ToV2, type ReportTemplate, type ReportTemplateV2 } from '@report-designer/core';
+import type { ReportTemplate } from '@report-designer/core';
 import { Designer } from '@report-designer/designer';
 import { Viewer } from '@report-designer/viewer';
 import { sampleReports } from './templates';
@@ -12,25 +12,22 @@ function App() {
   const [sampleKey, setSampleKey] = useState(sampleReports[0].key);
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const [designerDrafts, setDesignerDrafts] = useState<Record<string, ReportTemplate>>({});
-  const [previewDrafts, setPreviewDrafts] = useState<Record<string, ReportTemplateV2>>({});
+  const [previewDrafts, setPreviewDrafts] = useState<Record<string, ReportTemplate>>({});
   const selected = useMemo(
     () => sampleReports.find(report => report.key === sampleKey) ?? sampleReports[0],
     [sampleKey],
   );
   const previewTemplate = previewDrafts[selected.key] ?? selected.template;
-  const designerTemplate = useMemo(
-    () => designerDrafts[selected.key] ?? toDesignerTemplate(previewTemplate),
-    [designerDrafts, previewTemplate, selected.key],
-  );
+  const designerTemplate = useMemo(() => designerDrafts[selected.key] ?? previewTemplate, [designerDrafts, previewTemplate, selected.key]);
   const handleDesignerTemplateChange = useCallback((next: ReportTemplate) => {
     setDesignerDrafts(current => (
       current[selected.key] === next ? current : { ...current, [selected.key]: next }
     ));
     setPreviewDrafts(current => ({
       ...current,
-      [selected.key]: toPreviewTemplate(selected.template, next),
+      [selected.key]: next,
     }));
-  }, [selected.key, selected.template]);
+  }, [selected.key]);
 
   return (
     <Layout style={{ height: '100vh', minWidth: 900, background: '#eef1f5' }}>
@@ -83,108 +80,3 @@ function App() {
 }
 
 export default App;
-
-function toPreviewTemplate(baseTemplate: ReportTemplateV2, designerTemplate: ReportTemplate): ReportTemplateV2 {
-  const migrated = migrateV1ToV2(designerTemplate);
-
-  return {
-    ...migrated,
-    dataSources: baseTemplate.dataSources,
-    parameters: baseTemplate.parameters ?? [],
-    pages: migrated.pages.map((page, pageIndex) => {
-      const basePage = baseTemplate.pages.find(item => item.id === page.id) ?? baseTemplate.pages[pageIndex];
-      return {
-        ...page,
-        bands: page.bands.map((band, bandIndex) => {
-          const baseBand = basePage?.bands.find(item => item.id === band.id) ?? basePage?.bands[bandIndex];
-          return {
-            ...band,
-            behavior: baseBand?.behavior ?? band.behavior,
-            dataBand: band.dataBand ?? baseBand?.dataBand,
-            group: band.group ?? baseBand?.group,
-          };
-        }),
-      };
-    }),
-  };
-}
-
-function toDesignerTemplate(template: ReportTemplateV2): ReportTemplate {
-  return {
-    id: template.id,
-    name: template.name,
-    version: '1.0',
-    pages: template.pages.map(page => ({
-      id: page.id,
-      width: page.width,
-      height: page.height,
-      margins: page.margins,
-      orientation: page.orientation,
-      bands: page.bands.map(band => ({
-        id: band.id,
-        type: toDesignerBandType(band.type),
-        height: band.height,
-        components: band.components,
-        dataSource: band.dataBand?.dataSourceId,
-        groupField: band.group?.conditionExpression,
-        sort: band.dataBand?.sort,
-      })),
-    })),
-    dataSources: template.dataSources.map(source => ({
-      id: source.id,
-      name: source.name,
-      type: 'json',
-      schema: source.fields.map(field => ({
-        name: field.name,
-        type: field.type === 'null' ? 'string' : field.type,
-        label: field.label,
-      })),
-    })),
-    styles: template.styles.map(style => ({
-      id: style.id,
-      name: style.name,
-      font: {
-        family: 'Arial',
-        size: 9,
-        bold: false,
-        italic: false,
-        underline: false,
-        strikethrough: false,
-        color: '#1f2937',
-        ...style.font,
-      },
-      border: {
-        style: style.border?.style ?? 'none',
-        width: style.border?.width ?? 0,
-        color: style.border?.color ?? '#cfd6df',
-        sides: {
-          top: false,
-          right: false,
-          bottom: false,
-          left: false,
-          ...style.border?.sides,
-        },
-      },
-      backgroundColor: style.backgroundColor,
-    })),
-    conditionalFormats: template.conditionalFormats,
-  } as ReportTemplate;
-}
-
-function toDesignerBandType(type: ReportTemplateV2['pages'][number]['bands'][number]['type']): ReportTemplate['pages'][number]['bands'][number]['type'] {
-  const supported = new Set([
-    'reportTitle',
-    'reportSummary',
-    'pageHeader',
-    'pageFooter',
-    'header',
-    'footer',
-    'columnHeader',
-    'columnFooter',
-    'groupHeader',
-    'groupFooter',
-    'data',
-    'child',
-  ]);
-  return supported.has(type) ? type as ReportTemplate['pages'][number]['bands'][number]['type'] : 'data';
-}

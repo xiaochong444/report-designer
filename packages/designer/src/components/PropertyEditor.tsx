@@ -62,7 +62,8 @@ export const PropertyEditor: React.FC = () => {
   const comp = component as any;
   const currentPage = template.pages.find(p => p.id === currentPageId);
   const dataSources = currentPage?.bands.reduce<string[]>((acc, b) => {
-    if (b.dataSource && !acc.includes(b.dataSource)) acc.push(b.dataSource);
+    const dataSourceId = b.dataBand?.dataSourceId ?? b.dataSource;
+    if (dataSourceId && !acc.includes(dataSourceId)) acc.push(dataSourceId);
     return acc;
   }, []) ?? [];
   for (const source of template.dataSources) {
@@ -74,7 +75,7 @@ export const PropertyEditor: React.FC = () => {
     updateComponent(currentPageId, bandId, component.id, { [field]: value }, { [field]: (component as any)[field] });
   };
 
-  const textFieldOptions = template.dataSources.flatMap(source => source.schema.map(field => ({
+  const textFieldOptions = template.dataSources.flatMap(source => (source.schema ?? source.fields ?? []).map(field => ({
     value: `${source.id}.${field.name}`,
     label: field.label || field.name,
     sourceId: source.id,

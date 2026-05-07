@@ -1,10 +1,10 @@
-import type { RenderDocument, ReportBandV2, ReportTemplateV2, TextComponentV2 } from '@report-designer/core';
+import type { RenderDocument, Band, ReportTemplate, TextComponent } from '@report-designer/core';
 
-export function makeViewerTemplate(rowCount = 2): { template: ReportTemplateV2; data: Record<string, Record<string, unknown>[]> } {
+export function makeViewerTemplate(rowCount = 2): { template: ReportTemplate; data: Record<string, Record<string, unknown>[]> } {
   const data = {
     employees: Array.from({ length: rowCount }, (_, index) => ({ name: `Employee ${index + 1}` })),
   };
-  const template: ReportTemplateV2 = {
+  const template: ReportTemplate = {
     id: 'template',
     name: 'Viewer Template',
     version: '2.0',
@@ -74,11 +74,11 @@ export function makeRenderDocument(): RenderDocument {
 
 function band(
   id: string,
-  type: ReportBandV2['type'],
+  type: Band['type'],
   height: number,
-  components: TextComponentV2[],
-  overrides: Partial<ReportBandV2> = {},
-): ReportBandV2 {
+  components: TextComponent[],
+  overrides: Partial<Band> = {},
+): Band {
   return {
     id,
     type,
@@ -97,7 +97,7 @@ function band(
   };
 }
 
-function text(id: string, content: string): TextComponentV2 {
+function text(id: string, content: string): TextComponent {
   return {
     id,
     type: 'text',

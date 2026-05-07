@@ -51,7 +51,7 @@ const DEFAULT_BORDER: BorderConfig = {
   sides: { top: false, right: false, bottom: false, left: false },
 };
 
-export const StimulsoftRibbon: React.FC = () => {
+export const DesignerRibbon: React.FC = () => {
   const [activeTab, setActiveTab] = useState<RibbonTab>('Home');
   const [dataDialogOpen, setDataDialogOpen] = useState(false);
   const [bandDialogOpen, setBandDialogOpen] = useState(false);
@@ -189,7 +189,8 @@ export const StimulsoftRibbon: React.FC = () => {
   const addTable = () => {
     const state = useDesignerStore.getState();
     const dataSource = state.template.dataSources[0];
-    const columns = (dataSource?.schema.length ? dataSource.schema.slice(0, 3) : [
+    const sourceFields = dataSource?.schema ?? dataSource?.fields ?? [];
+    const columns = (sourceFields.length ? sourceFields.slice(0, 3) : [
       { name: 'field1', type: 'string' as const, label: 'Field 1' },
       { name: 'field2', type: 'string' as const, label: 'Field 2' },
       { name: 'field3', type: 'string' as const, label: 'Field 3' },

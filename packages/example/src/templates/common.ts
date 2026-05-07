@@ -1,6 +1,6 @@
-import type { BorderConfig, FontConfig, ReportBandV2, ReportStyleV2, ReportTemplateV2, TextComponentV2 } from '@report-designer/core';
+import type { BorderConfig, FontConfig, Band, ReportStyle, ReportTemplate, TextComponent } from '@report-designer/core';
 
-type TextOptions = Omit<Partial<TextComponentV2>, 'font' | 'border'> & {
+type TextOptions = Omit<Partial<TextComponent>, 'font' | 'border'> & {
   font?: Partial<FontConfig>;
   border?: BorderConfig;
 };
@@ -41,7 +41,7 @@ export const commonTextStyleIds = {
   group: 'text-group',
 } as const;
 
-export const commonTextStyles: ReportStyleV2[] = [
+export const commonTextStyles: ReportStyle[] = [
   {
     id: commonTextStyleIds.title,
     name: 'Title',
@@ -96,10 +96,10 @@ export const commonTextStyles: ReportStyleV2[] = [
 export function template(
   id: string,
   name: string,
-  bands: ReportBandV2[],
+  bands: Band[],
   height = 297,
-  extraStyles: ReportStyleV2[] = [],
-): ReportTemplateV2 {
+  extraStyles: ReportStyle[] = [],
+): ReportTemplate {
   const styles = cloneStyles([...commonTextStyles, ...extraStyles]);
 
   return {
@@ -127,7 +127,7 @@ export function template(
   };
 }
 
-export function band(id: string, type: ReportBandV2['type'], height: number, components: TextComponentV2[] = [], overrides: Partial<ReportBandV2> = {}): ReportBandV2 {
+export function band(id: string, type: Band['type'], height: number, components: TextComponent[] = [], overrides: Partial<Band> = {}): Band {
   return {
     id,
     type,
@@ -146,7 +146,7 @@ export function band(id: string, type: ReportBandV2['type'], height: number, com
   };
 }
 
-export function text(id: string, content: string, x: number, y: number, width: number, height: number, options: TextOptions = {}): TextComponentV2 {
+export function text(id: string, content: string, x: number, y: number, width: number, height: number, options: TextOptions = {}): TextComponent {
   return {
     id,
     type: 'text',
@@ -187,7 +187,7 @@ function field(id: string, name: string, type: 'string' | 'number' | 'date' | 'b
   return { id, name, path: id, type, nullable: false };
 }
 
-function cloneStyles(styles: ReportStyleV2[]): ReportStyleV2[] {
+function cloneStyles(styles: ReportStyle[]): ReportStyle[] {
   return styles.map(style => ({
     ...style,
     font: style.font ? { ...style.font } : undefined,
@@ -199,7 +199,7 @@ function cloneStyles(styles: ReportStyleV2[]): ReportStyleV2[] {
   }));
 }
 
-function syncBandsWithTextStyles(bands: ReportBandV2[], styles: ReportStyleV2[]): ReportBandV2[] {
+function syncBandsWithTextStyles(bands: Band[], styles: ReportStyle[]): Band[] {
   return bands.map(bandDefinition => ({
     ...bandDefinition,
     components: bandDefinition.components.map(component => (
@@ -210,7 +210,7 @@ function syncBandsWithTextStyles(bands: ReportBandV2[], styles: ReportStyleV2[])
   }));
 }
 
-function applyTextStyleSnapshot(component: TextComponentV2, styles: ReportStyleV2[]): TextComponentV2 {
+function applyTextStyleSnapshot(component: TextComponent, styles: ReportStyle[]): TextComponent {
   if (!component.style) {
     return component;
   }
@@ -224,7 +224,7 @@ function applyTextStyleSnapshot(component: TextComponentV2, styles: ReportStyleV
     return component;
   }
 
-  const next: TextComponentV2 = {
+  const next: TextComponent = {
     ...component,
     font: { ...component.font },
     border: {

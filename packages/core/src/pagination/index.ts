@@ -5,7 +5,7 @@ import type {
   RenderTree, RenderedBand, RenderedComponent,
 } from '../render-engine';
 import { renderTemplate } from '../render-engine';
-export * from './paginate-v2';
+export * from './paginate';
 export * from './page-number-pass';
 
 /** A page after pagination */

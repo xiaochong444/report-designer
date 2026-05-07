@@ -6,7 +6,7 @@ describe('template-model', () => {
   describe('createDefaultTemplate', () => {
     it('should create a template with default A4 page', () => {
       const template = createDefaultTemplate();
-      expect(template.version).toBe('1.0');
+      expect(template.version).toBe('2.0');
       expect(template.pages).toHaveLength(1);
       expect(template.pages[0].width).toBe(210);
       expect(template.pages[0].height).toBe(297);
@@ -56,7 +56,7 @@ describe('template-model', () => {
       template.pages = [];
       const result = validateTemplate(template);
       expect(result.valid).toBe(false);
-      expect(result.errors[0]).toContain('pages');
+      expect(result.errors[0]?.path).toContain('pages');
     });
 
     it('should fail for page with zero dimensions', () => {
@@ -74,7 +74,7 @@ describe('template-model', () => {
         x: 10, y: 10,
         width: -5, height: 10,
         text: 'Hello',
-        font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, color: '#000000' },
+        font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
         textAlign: 'left',
         verticalAlign: 'top',
         border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },

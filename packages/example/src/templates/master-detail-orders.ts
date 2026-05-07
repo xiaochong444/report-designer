@@ -1,7 +1,7 @@
-import type { ReportStyleV2 } from '@report-designer/core';
+import type { ReportStyle } from '@report-designer/core';
 import { band, commonTextStyleIds, moneyExpression, template, text } from './common';
 
-const masterDetailOrderStyles: ReportStyleV2[] = [
+const masterDetailOrderStyles: ReportStyle[] = [
   {
     id: 'mdo-group-customer',
     name: 'Master Detail Customer',

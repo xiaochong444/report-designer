@@ -346,7 +346,7 @@ const DataDictionary: React.FC = () => {
             <span>{`${ds.name} [${ds.name}]`}</span>
           </div>
         ),
-        children: ds.schema.map((field) => ({
+        children: (ds.schema ?? ds.fields ?? []).map((field) => ({
           key: `${ds.id}.${field.name}`,
           title: (
             <div

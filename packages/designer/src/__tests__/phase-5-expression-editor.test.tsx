@@ -3,13 +3,13 @@ import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import { ExpressionEditorV2 } from '../components/expression/ExpressionEditorV2';
+import { InlineExpressionEditor } from '../components/expression/InlineExpressionEditor';
 
-describe('Phase 5 ExpressionEditorV2', () => {
+describe('Phase 5 inline expression editor', () => {
   it('inserts fields, aggregate functions, and page variables', () => {
     let value = '';
     render(
-      <ExpressionEditorV2
+      <InlineExpressionEditor
         value=""
         dataSources={[{ id: 'employees', name: 'employees', type: 'json', schema: [{ name: 'salary', type: 'number' }] }]}
         onChange={(next) => { value = next; }}

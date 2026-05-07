@@ -70,7 +70,7 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     });
   });
 
-  it('renders the stimulsoft-style expression shell with category rail and searchable insert tree', async () => {
+  it('renders the expression shell with category rail and searchable insert tree', async () => {
     useDesignerStore.getState().loadTemplate(makeDictionaryTemplate());
 
     let nextValue = '';

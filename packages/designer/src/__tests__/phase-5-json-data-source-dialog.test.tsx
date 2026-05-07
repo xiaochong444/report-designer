@@ -24,6 +24,6 @@ describe('Phase 5 JSON data source dialog', () => {
 
     const template = useDesignerStore.getState().template;
     expect(template.dataSources[0]).toMatchObject({ id: 'employees', type: 'json' });
-    expect(template.dataSources[0].schema.map((field) => field.name)).toEqual(['name', 'department', 'salary']);
+    expect((template.dataSources[0].schema ?? []).map((field) => field.name)).toEqual(['name', 'department', 'salary']);
   });
 });

@@ -30,17 +30,26 @@ export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open
 
   const addDataSources = () => {
     if (!parsed) return;
-    const nextSources: DataSource[] = inferred.dataSources.map(source => ({
-      id: source.id,
-      name: source.name,
-      type: 'json',
-      schema: source.fields.map<DataField>(field => ({
-        name: field.name,
-        type: field.type === 'null' ? 'string' : field.type,
-        label: field.name,
-      })),
-      data: getRowsByPath(parsed, source.path),
-    }));
+    const nextSources: DataSource[] = inferred.dataSources.map(source => {
+      const fields = source.fields ?? [];
+      return {
+        id: source.id,
+        name: source.name,
+        type: 'json',
+        path: source.path,
+        fields: fields.map<DataField>(field => ({
+          name: field.name,
+          type: field.type === 'null' ? 'string' : field.type,
+          label: field.name,
+        })),
+        schema: fields.map<DataField>(field => ({
+          name: field.name,
+          type: field.type === 'null' ? 'string' : field.type,
+          label: field.name,
+        })),
+        data: getRowsByPath(parsed, source.path ?? source.id),
+      };
+    });
 
     updateTemplate(template => ({
       ...template,
@@ -85,7 +94,7 @@ export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open
               title: 'Fields',
               key: 'fields',
               render: (_, source) => (
-                <Typography.Text>{source.fields.map(field => field.name).join(', ')}</Typography.Text>
+                <Typography.Text>{(source.fields ?? []).map(field => field.name).join(', ')}</Typography.Text>
               ),
             },
           ]}

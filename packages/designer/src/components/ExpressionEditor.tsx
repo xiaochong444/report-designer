@@ -164,7 +164,7 @@ export const ExpressionEditor: React.FC<{
       template.dataSources.map((dataSource) =>
         makeTreeNode(`ds.${dataSource.id}`, dataSource.name, 'folder', {
           searchText: `${dataSource.name} ${dataSource.id}`.toLowerCase(),
-          children: dataSource.schema.map((field) =>
+          children: (dataSource.schema ?? dataSource.fields ?? []).map((field) =>
             makeTreeNode(
               `${dataSource.id}.${field.name}`,
               `${dataSource.id}.${field.name}`,

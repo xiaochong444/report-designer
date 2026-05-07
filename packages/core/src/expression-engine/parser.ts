@@ -207,7 +207,7 @@ class Parser {
     if (t.type === TokenType.IDENTIFIER) {
       this.pos++;
       // For now, treat bare identifiers as function calls with no args.
-      // This matches Stimulsoft's behavior where field refs in expressions
+      // Field references inside expressions resolve without requiring braces
       // are typically wrapped in {}, but bare names can resolve to variables.
       return this.makeFunctionCall(t.value, []);
     }

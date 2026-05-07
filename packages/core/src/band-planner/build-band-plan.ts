@@ -1,14 +1,14 @@
-import type { ReportBandV2, ReportTemplateV2 } from '../template-model/v2-types';
+import type { Band, ReportTemplate } from '../template-model/types';
 import type { BandPlan, DataSectionPlan } from './band-plan';
 
 interface PendingBands {
-  headers: ReportBandV2[];
-  groupHeaders: ReportBandV2[];
-  columnHeaders: ReportBandV2[];
-  emptyDataBands: ReportBandV2[];
+  headers: Band[];
+  groupHeaders: Band[];
+  columnHeaders: Band[];
+  emptyDataBands: Band[];
 }
 
-export function buildBandPlan(template: ReportTemplateV2): BandPlan {
+export function buildBandPlan(template: ReportTemplate): BandPlan {
   const plan: BandPlan = {
     pageBands: { pageHeader: [], pageFooter: [], overlay: [] },
     reportBands: { reportTitle: [], reportSummary: [] },
@@ -79,7 +79,7 @@ export function buildBandPlan(template: ReportTemplateV2): BandPlan {
   return plan;
 }
 
-function createDataSection(dataBand: ReportBandV2, pending: PendingBands): DataSectionPlan {
+function createDataSection(dataBand: Band, pending: PendingBands): DataSectionPlan {
   return {
     dataBand,
     headers: [...pending.headers],
@@ -92,7 +92,7 @@ function createDataSection(dataBand: ReportBandV2, pending: PendingBands): DataS
   };
 }
 
-function attachGroupFooter(section: DataSectionPlan, footer: ReportBandV2): void {
+function attachGroupFooter(section: DataSectionPlan, footer: Band): void {
   const groupName = footer.group?.name;
   const pair = [...section.groupPairs]
     .reverse()

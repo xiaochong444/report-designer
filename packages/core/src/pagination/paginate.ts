@@ -1,36 +1,38 @@
 import { buildBandPlan, executeBandPlan } from '../band-planner';
-import type { LogicalBandItem, RenderContextV2 } from '../band-planner';
+import type { LogicalBandItem, RenderContext } from '../band-planner';
 import { layoutBand } from '../layout-engine/layout-band';
 import type { RenderBandBox, RenderDocument, RenderPage } from '../render-document/types';
-import type { ReportBandV2, ReportPageV2, ReportTemplateV2 } from '../template-model/v2-types';
+import type { Band, Page, ReportTemplate } from '../template-model/types';
+import { normalizeTemplate } from '../template-model';
 import { applyPageNumberPass } from './page-number-pass';
 
-export function renderReportV2(
-  template: ReportTemplateV2,
+export function renderReport(
+  template: ReportTemplate,
   data: Record<string, Record<string, unknown>[]>,
 ): RenderDocument {
-  const templatePage = template.pages[0];
-  const plan = buildBandPlan(template);
+  const normalizedTemplate = normalizeTemplate(template);
+  const templatePage = normalizedTemplate.pages[0];
+  const plan = buildBandPlan(normalizedTemplate);
   const logicalItems = executeBandPlan(plan, data);
-  const pages = paginateV2(templatePage, plan.pageBands, logicalItems, data, template.styles);
+  const pages = paginate(templatePage, plan.pageBands, logicalItems, data, normalizedTemplate.styles);
   return applyPageNumberPass({ pages });
 }
 
-export function paginateV2(
-  templatePage: ReportPageV2,
+export function paginate(
+  templatePage: Page,
   pageBands: ReturnType<typeof buildBandPlan>['pageBands'],
   logicalItems: LogicalBandItem[],
   rowsByBand: Record<string, Record<string, unknown>[]> = {},
-  styles: ReportTemplateV2['styles'] = [],
+  styles: ReportTemplate['styles'] = [],
 ): RenderPage[] {
   const pages: RenderPage[] = [];
   const printableX = templatePage.margins.left;
   const printableWidth = templatePage.width - templatePage.margins.left - templatePage.margins.right;
   const footerHeight = pageBands.pageFooter.reduce((sum, band) => sum + band.height, 0);
   const pageBottomY = templatePage.height - templatePage.margins.bottom - footerHeight;
-  const repeatedGroups: ReportBandV2[] = [];
+  const repeatedGroups: Band[] = [];
   const pageRows = new WeakMap<RenderPage, Record<string, Record<string, unknown>[]>>();
-  let activeSectionRepeatBands: ReportBandV2[] = [];
+  let activeSectionRepeatBands: Band[] = [];
   let currentPage: RenderPage | undefined;
   let cursorY = 0;
 
@@ -63,11 +65,12 @@ export function paginateV2(
     }
   };
 
-  const placeBand = (band: ReportBandV2, context: RenderContextV2, force = false): RenderBandBox => {
+  const placeBand = (band: Band, context: RenderContext, force = false): RenderBandBox => {
     ensurePage();
+    const behavior = getBandBehavior(band);
     const currentPageRows = currentPage ? pageRows.get(currentPage) ?? {} : {};
     let preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand, pageRowsByBand: currentPageRows, styles });
-    const breakIfLessThan = band.behavior.breakIfLessThan ?? 0;
+    const breakIfLessThan = behavior.breakIfLessThan ?? 0;
     if (!force && breakIfLessThan > 0 && pageBottomY - cursorY < breakIfLessThan && currentPage!.items.length > 0) {
       newPage();
       preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles });
@@ -78,11 +81,11 @@ export function paginateV2(
       preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles });
     }
 
-    const targetY = band.behavior.printAtBottom ? pageBottomY - preview.height : cursorY;
+    const targetY = behavior.printAtBottom ? pageBottomY - preview.height : cursorY;
     const box = layoutBand(band, { x: printableX, y: targetY, width: printableWidth, context, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles });
     currentPage!.items.push(box);
     collectPageRow(pageRows.get(currentPage!)!, band, context);
-    cursorY = band.behavior.printAtBottom ? pageBottomY : cursorY + box.height;
+    cursorY = behavior.printAtBottom ? pageBottomY : cursorY + box.height;
     return box;
   };
 
@@ -92,7 +95,7 @@ export function paginateV2(
       continue;
     }
 
-    if (item.band.type === 'groupHeader' && item.band.behavior.printOnAllPages) {
+    if (item.band.type === 'groupHeader' && getBandBehavior(item.band).printOnAllPages) {
       if (!repeatedGroups.some((band) => band.id === item.band.id)) {
         repeatedGroups.push(item.band);
       }
@@ -147,7 +150,7 @@ export function paginateV2(
   return pages;
 }
 
-function collectPageRow(pageRows: Record<string, Record<string, unknown>[]>, band: ReportBandV2, context: RenderContextV2): void {
+function collectPageRow(pageRows: Record<string, Record<string, unknown>[]>, band: Band, context: RenderContext): void {
   if (band.type !== 'data' && band.type !== 'hierarchicalData') return;
   if (!context.dataSourceId || !context.row) return;
   if (!pageRows[context.dataSourceId]) {
@@ -156,9 +159,21 @@ function collectPageRow(pageRows: Record<string, Record<string, unknown>[]>, ban
   pageRows[context.dataSourceId].push(context.row);
 }
 
-function createEmptyContext(): RenderContextV2 {
+function createEmptyContext(): RenderContext {
   return {
     rowIndex: 0,
     groupValues: {},
+  };
+}
+
+function getBandBehavior(band: Band): NonNullable<Band['behavior']> {
+  return band.behavior ?? {
+    enabled: true,
+    printOn: 'allPages',
+    printIfEmpty: true,
+    printOnAllPages: band.type === 'pageHeader' || band.type === 'pageFooter' || band.type === 'groupHeader',
+    keepTogether: false,
+    canBreak: band.type === 'data' || band.type === 'child',
+    printAtBottom: band.type === 'pageFooter',
   };
 }

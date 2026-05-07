@@ -27,7 +27,10 @@ const BAND_BASE_NAME: Record<BandType, string> = {
   groupHeader: 'GroupHeaderBand',
   groupFooter: 'GroupFooterBand',
   data: 'DataBand',
+  hierarchicalData: 'HierarchicalDataBand',
   child: 'ChildBand',
+  emptyData: 'EmptyDataBand',
+  overlay: 'OverlayBand',
 };
 
 function createNameRegistry(template: ReportTemplate) {

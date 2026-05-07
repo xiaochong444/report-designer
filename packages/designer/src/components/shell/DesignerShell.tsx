@@ -10,9 +10,9 @@ import {
 import { Button, Tooltip } from 'antd';
 import { DesignerCanvasFrame } from '../canvas/DesignerCanvasFrame';
 import { TextStyleLibraryDialog } from '../TextStyleLibraryDialog';
-import { StimulsoftLeftPanel } from '../panels/StimulsoftLeftPanel';
-import { StimulsoftPropertyGrid } from '../panels/StimulsoftPropertyGrid';
-import { StimulsoftRibbon } from '../ribbon/StimulsoftRibbon';
+import { DesignerLeftPanel } from '../panels/DesignerLeftPanel';
+import { DesignerPropertyPanel } from '../panels/DesignerPropertyPanel';
+import { DesignerRibbon } from '../ribbon/DesignerRibbon';
 import { useDesignerStore } from '../../store/designer-store';
 import { DesignerStatusBar } from './DesignerStatusBar';
 import '../../styles/designer-shell.css';
@@ -33,11 +33,11 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className }) => {
   return (
     <div className={className ? `rd-designer-shell ${className}` : 'rd-designer-shell'}>
       <QuickAccess template={template} undo={undo} redo={redo} canUndo={canUndo()} canRedo={canRedo()} />
-      <StimulsoftRibbon />
+      <DesignerRibbon />
       <div className="rd-designer-body">
-        <StimulsoftLeftPanel />
+        <DesignerLeftPanel />
         <DesignerCanvasFrame />
-        <StimulsoftPropertyGrid />
+        <DesignerPropertyPanel />
       </div>
       <DesignerStatusBar />
       <TextStyleLibraryDialog open={textStyleLibraryOpen} onClose={closeTextStyleLibrary} />
@@ -74,6 +74,6 @@ const QuickAccess: React.FC<QuickAccessProps> = ({ template, undo, redo, canUndo
       </Tooltip>
     </div>
     <div className="rd-quick-access-title">{template.name || 'Untitled Report'}</div>
-    <div className="rd-quick-access-meta">Stimulsoft-style Designer</div>
+    <div className="rd-quick-access-meta">Report Designer</div>
   </header>
 );

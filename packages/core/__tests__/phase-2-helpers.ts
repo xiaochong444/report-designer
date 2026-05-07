@@ -1,6 +1,6 @@
-import type { ReportBandV2, ReportTemplateV2 } from '../src';
+import type { Band, ReportTemplate } from '../src';
 
-export function makeTemplate(bands: ReportBandV2[]): ReportTemplateV2 {
+export function makeTemplate(bands: Band[]): ReportTemplate {
   return {
     id: 'template',
     name: 'Template',
@@ -32,9 +32,9 @@ export function makeTemplate(bands: ReportBandV2[]): ReportTemplateV2 {
 
 export function band(
   id: string,
-  type: ReportBandV2['type'],
-  overrides: Partial<ReportBandV2> = {},
-): ReportBandV2 {
+  type: Band['type'],
+  overrides: Partial<Band> = {},
+): Band {
   return {
     id,
     type,

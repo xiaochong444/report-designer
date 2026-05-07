@@ -44,7 +44,7 @@ describe('Phase 1 JSON dictionary', () => {
     expect(fields['employees.score']).toBe('string');
   });
 
-  it('formats and parses Stimulsoft-style json field expressions', () => {
+  it('formats and parses json field expressions', () => {
     expect(formatJsonFieldExpression('orders', 'customer')).toBe('{orders.customer}');
     expect(formatJsonFieldExpression('orders.lines', 'qty')).toBe('{orders.lines.qty}');
     expect(parseJsonFieldExpression('{orders.lines.qty}')).toEqual({

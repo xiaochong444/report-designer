@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { AggregateRuntime, evalExpression, renderReportV2 } from '../src';
+import { AggregateRuntime, evalExpression, renderReport } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
 const rows = [
@@ -78,7 +78,7 @@ describe('Phase 9 page and report totals', () => {
     template.pages[0].height = 55;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, { employees: rows });
+    const document = renderReport(template, { employees: rows });
     const pageFooterTotals = document.pages.map(page => page.items.find(item => item.bandType === 'pageFooter')!.components[0].content);
     const reportSummary = document.pages.flatMap(page => page.items).find(item => item.bandType === 'reportSummary')!.components[0].content;
 

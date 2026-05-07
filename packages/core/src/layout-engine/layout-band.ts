@@ -1,8 +1,8 @@
 import { evalExpression } from '../expression-engine/evaluator';
 import { AggregateRuntime } from '../aggregate-engine';
-import type { RenderContextV2 } from '../band-planner/band-plan';
+import type { RenderContext } from '../band-planner/band-plan';
 import type { RenderBandBox, RenderComponentBox } from '../render-document/types';
-import type { ReportBandV2, ReportComponentV2, ReportStyleV2, TextComponentV2 } from '../template-model/v2-types';
+import type { Band, ReportComponent, ReportStyle, TextComponent } from '../template-model/types';
 import { formatValue } from '../text-format';
 import { measureTextBox } from './measure';
 
@@ -10,13 +10,13 @@ export interface LayoutBandOptions {
   x: number;
   y: number;
   width: number;
-  context: RenderContextV2;
+  context: RenderContext;
   rowsByBand?: Record<string, Record<string, unknown>[]>;
   pageRowsByBand?: Record<string, Record<string, unknown>[]>;
-  styles?: ReportStyleV2[];
+  styles?: ReportStyle[];
 }
 
-export function layoutBand(band: ReportBandV2, options: LayoutBandOptions): RenderBandBox {
+export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBox {
   const components = band.components.map((component) => layoutComponent(component, band, options));
   const contentHeight = components.reduce((height, component) => Math.max(height, component.y - options.y + component.height), band.height);
 
@@ -33,10 +33,11 @@ export function layoutBand(band: ReportBandV2, options: LayoutBandOptions): Rend
   };
 }
 
-function layoutComponent(component: ReportComponentV2, band: ReportBandV2, options: LayoutBandOptions): RenderComponentBox {
-  if (component.type === 'text' && 'text' in component) {
-    const effective = resolveTextComponentStyle(component as TextComponentV2, options.styles ?? []);
-    const text = resolveText(component, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {});
+function layoutComponent(component: ReportComponent, band: Band, options: LayoutBandOptions): RenderComponentBox {
+  if (component.type === 'text') {
+    const textComponent = component as TextComponent;
+    const effective = resolveTextComponentStyle(textComponent, options.styles ?? []);
+    const text = resolveText(textComponent, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {});
     const measured = measureTextBox(effective, text);
     return {
       id: component.id,
@@ -68,8 +69,8 @@ function layoutComponent(component: ReportComponentV2, band: ReportBandV2, optio
 }
 
 function resolveText(
-  component: TextComponentV2,
-  context: RenderContextV2,
+  component: TextComponent,
+  context: RenderContext,
   rowsByBand: Record<string, Record<string, unknown>[]>,
   pageRowsByBand: Record<string, Record<string, unknown>[]>,
 ): string {
@@ -95,7 +96,7 @@ function resolveText(
   }
 }
 
-function resolveTextComponentStyle(component: TextComponentV2, styles: ReportStyleV2[]): TextComponentV2 {
+function resolveTextComponentStyle(component: TextComponent, styles: ReportStyle[]): TextComponent {
   const style = component.style ? styles.find(item => item.id === component.style) : undefined;
   if (!style) return component;
 
@@ -117,7 +118,7 @@ function resolveTextComponentStyle(component: TextComponentV2, styles: ReportSty
   };
 }
 
-function resolveField(context: RenderContextV2, source: string, field: string): unknown {
+function resolveField(context: RenderContext, source: string, field: string): unknown {
   if (source === 'Group' || source === 'Groups') {
     return context.groupValues[field];
   }

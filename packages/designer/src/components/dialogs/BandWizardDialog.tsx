@@ -25,26 +25,33 @@ export const BandWizardDialog: React.FC<BandWizardDialogProps> = ({ open, onClos
   const createBands = () => {
     const source = template.dataSources.find(item => item.id === dataSourceId) ?? template.dataSources[0];
     if (!source) return;
+    const sourceFields = source.schema ?? source.fields ?? [];
 
     updateTemplate(current => ({
       ...current,
       pages: current.pages.map((page, index) => {
         if (index !== 0) return page;
-        const fieldComponents = source.schema.slice(0, 5).map((field, fieldIndex) =>
+        const fieldComponents = sourceFields.slice(0, 5).map((field, fieldIndex) =>
           createTextComponent(`{${source.id}.${field.name}}`, 10 + fieldIndex * 36, 2, 34, 8, field.name),
         );
         const nextBands: Band[] = preset === 'data-only'
-          ? [{ id: uid('band_data'), type: 'data', height: 14, dataSource: source.id, components: fieldComponents }]
+          ? [{ id: uid('band_data'), type: 'data', height: 14, dataBand: { dataSourceId: source.id }, components: fieldComponents }]
           : [
-              { id: uid('band_header'), type: 'header', height: 12, components: source.schema.slice(0, 5).map((field, fieldIndex) => createTextComponent(field.label || field.name, 10 + fieldIndex * 36, 2, 34, 8, `${field.name} Header`)) },
-              { id: uid('band_data'), type: 'data', height: 14, dataSource: source.id, components: fieldComponents },
+              { id: uid('band_header'), type: 'header', height: 12, components: sourceFields.slice(0, 5).map((field, fieldIndex) => createTextComponent(field.label || field.name, 10 + fieldIndex * 36, 2, 34, 8, `${field.name} Header`)) },
+              { id: uid('band_data'), type: 'data', height: 14, dataBand: { dataSourceId: source.id }, components: fieldComponents },
               { id: uid('band_footer'), type: 'footer', height: 12, components: [createTextComponent(`COUNT("${source.id}")`, 10, 2, 50, 8, 'Count')] },
             ];
 
         return {
           ...page,
           bands: [
-            ...page.bands.map(band => band.type === 'data' && !band.dataSource ? { ...band, dataSource: source.id } : band),
+            ...page.bands.map(band => band.type === 'data' && !(band.dataBand?.dataSourceId ?? band.dataSource) ? {
+              ...band,
+              dataBand: {
+                ...band.dataBand,
+                dataSourceId: source.id,
+              },
+            } : band),
             ...nextBands,
           ],
         };

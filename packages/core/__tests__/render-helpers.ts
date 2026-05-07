@@ -1,6 +1,6 @@
-import type { TextComponentV2 } from '../src';
+import type { TextComponent } from '../src';
 
-export function textComponent(overrides: Partial<TextComponentV2> = {}): TextComponentV2 {
+export function textComponent(overrides: Partial<TextComponent> = {}): TextComponent {
   return {
     id: overrides.id ?? 'text-1',
     type: 'text',

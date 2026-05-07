@@ -28,8 +28,8 @@ Object.defineProperty(window, 'ResizeObserver', {
   value: ResizeObserverMock,
 });
 
-describe('Phase 0 Stimulsoft designer shell', () => {
-  it('renders Stimulsoft-style shell regions', () => {
+describe('Phase 0 designer shell', () => {
+  it('renders shell regions', () => {
     render(React.createElement(Designer));
 
     expect(screen.getByTestId('designer-quick-access')).toBeTruthy();

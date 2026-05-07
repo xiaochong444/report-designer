@@ -3,7 +3,7 @@ import { Input, InputNumber, Select, Space, Typography } from 'antd';
 import { useDesignerStore } from '../../store/designer-store';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../../page-settings';
 
-export const PropertyGridV2: React.FC = () => {
+export const BandPropertyGrid: React.FC = () => {
   const template = useDesignerStore(s => s.template);
   const selectedBandId = useDesignerStore(s => s.selectedBandId);
   const currentPageId = useDesignerStore(s => s.currentPageId);
@@ -25,7 +25,7 @@ export const PropertyGridV2: React.FC = () => {
       <Typography.Text type="secondary">Name</Typography.Text>
       <Input value={band.id} readOnly />
       <Select
-        value={band.dataSource}
+        value={band.dataBand?.dataSourceId ?? band.dataSource}
         placeholder="Data source"
         allowClear
         options={template.dataSources.map(source => ({ value: source.id, label: source.name || source.id }))}
@@ -33,7 +33,13 @@ export const PropertyGridV2: React.FC = () => {
           ...current,
           pages: current.pages.map(item => item.id === page.id ? {
             ...item,
-            bands: item.bands.map(nextBand => nextBand.id === band.id ? { ...nextBand, dataSource: value } : nextBand),
+            bands: item.bands.map(nextBand => nextBand.id === band.id ? {
+              ...nextBand,
+              dataBand: {
+                ...nextBand.dataBand,
+                dataSourceId: value,
+              },
+            } : nextBand),
           } : item),
         }))}
       />

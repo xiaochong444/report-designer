@@ -1,30 +1,30 @@
-import type { ReportBandV2 } from '../template-model/v2-types';
+import type { Band } from '../template-model/types';
 
 export interface BandPlan {
   pageBands: {
-    pageHeader: ReportBandV2[];
-    pageFooter: ReportBandV2[];
-    overlay: ReportBandV2[];
+    pageHeader: Band[];
+    pageFooter: Band[];
+    overlay: Band[];
   };
   reportBands: {
-    reportTitle: ReportBandV2[];
-    reportSummary: ReportBandV2[];
+    reportTitle: Band[];
+    reportSummary: Band[];
   };
   dataSections: DataSectionPlan[];
 }
 
 export interface DataSectionPlan {
-  dataBand: ReportBandV2;
-  headers: ReportBandV2[];
-  groupPairs: Array<{ header: ReportBandV2; footer?: ReportBandV2 }>;
-  columnHeaders: ReportBandV2[];
-  columnFooters: ReportBandV2[];
-  childBands: ReportBandV2[];
-  footers: ReportBandV2[];
-  emptyDataBands: ReportBandV2[];
+  dataBand: Band;
+  headers: Band[];
+  groupPairs: Array<{ header: Band; footer?: Band }>;
+  columnHeaders: Band[];
+  columnFooters: Band[];
+  childBands: Band[];
+  footers: Band[];
+  emptyDataBands: Band[];
 }
 
-export interface RenderContextV2 {
+export interface RenderContext {
   row?: Record<string, unknown>;
   rowIndex: number;
   dataSourceId?: string;
@@ -36,8 +36,8 @@ export interface RenderContextV2 {
 export type LogicalBandItem =
   | {
       kind: 'band';
-      band: ReportBandV2;
-      context: RenderContextV2;
-      repeatOnPageBreakBefore?: ReportBandV2[];
+      band: Band;
+      context: RenderContext;
+      repeatOnPageBreakBefore?: Band[];
     }
   | { kind: 'pageBreak'; reason: string };

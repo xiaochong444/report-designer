@@ -3,7 +3,7 @@ import { buildBandPlan } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
 describe('Phase 2 band plan', () => {
-  it('associates Stimulsoft-style bands with page, report, and nearest data sections', () => {
+  it('associates bands with page, report, and nearest data sections', () => {
     const template = makeTemplate([
       band('page-header', 'pageHeader'),
       band('report-title', 'reportTitle'),

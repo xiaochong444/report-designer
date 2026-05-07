@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { renderReportV2 } from '../src';
+import { renderReport } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
-import { textComponent } from './render-v2-helpers';
+import { textComponent } from './render-helpers';
 
 describe('Phase 3 page numbers', () => {
   it('resolves page number expressions after pagination', () => {
@@ -19,7 +19,7 @@ describe('Phase 3 page numbers', () => {
     template.pages[0].height = 70;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReport(template, {
       employees: Array.from({ length: 5 }, (_, index) => ({ Name: `N${index}` })),
     });
 

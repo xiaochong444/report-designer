@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { renderReportV2 } from '../src';
+import { renderReport } from '../src';
 import {
   employeesData,
   groupedEmployeesTemplate,
@@ -11,7 +11,7 @@ import {
 
 describe('Phase 6 RenderDocument regression suite', () => {
   it('renders grouped employees across pages with repeated page chrome and group totals', () => {
-    const document = renderReportV2(groupedEmployeesTemplate, sampleReportData);
+    const document = renderReport(groupedEmployeesTemplate, sampleReportData);
     const engineeringTotal = employeesData
       .filter(row => row.department === 'Engineering')
       .reduce((sum, row) => sum + row.salary, 0);
@@ -27,7 +27,7 @@ describe('Phase 6 RenderDocument regression suite', () => {
   });
 
   it('renders invoice totals from JSON line data', () => {
-    const document = renderReportV2(invoiceTemplate, sampleReportData);
+    const document = renderReport(invoiceTemplate, sampleReportData);
     const subtotal = invoiceLinesData.reduce((sum, row) => sum + row.lineTotal, 0);
     const footer = document.pages.flatMap(page => page.items).find(item => item.bandType === 'footer');
 
@@ -36,7 +36,7 @@ describe('Phase 6 RenderDocument regression suite', () => {
   });
 
   it('keeps long growing text inside the printable page area', () => {
-    const document = renderReportV2(longTextPaginationTemplate, sampleReportData);
+    const document = renderReport(longTextPaginationTemplate, sampleReportData);
     const page = longTextPaginationTemplate.pages[0];
     const bottom = page.height - page.margins.bottom;
 

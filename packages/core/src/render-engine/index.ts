@@ -108,9 +108,29 @@ function componentStyleToRendered(comp: ReportComponent, templateStyles: ReportS
   }
 
   return {
-    font: refStyle.font,
+    font: refStyle.font ? {
+      family: 'Arial',
+      size: 10,
+      bold: false,
+      italic: false,
+      underline: false,
+      strikethrough: false,
+      color: '#000000',
+      ...refStyle.font,
+    } : undefined,
     background: refStyle.backgroundColor,
-    border: refStyle.border,
+    border: refStyle.border ? {
+      style: refStyle.border.style ?? 'none',
+      width: refStyle.border.width ?? 0,
+      color: refStyle.border.color ?? '#000000',
+      sides: {
+        top: false,
+        right: false,
+        bottom: false,
+        left: false,
+        ...(refStyle.border.sides ?? {}),
+      },
+    } : undefined,
   };
 }
 
@@ -241,9 +261,10 @@ export function renderTemplate(
       }
 
       // Data band - render per row
-      if (band.type === 'data' && band.dataSource) {
-        const rows = data[band.dataSource] || [];
-        rowCount[band.dataSource] = (rowCount[band.dataSource] || 0) + rows.length;
+      if (band.type === 'data' && band.dataBand?.dataSourceId) {
+        const sourceId = band.dataBand.dataSourceId;
+        const rows = data[sourceId] || [];
+        rowCount[sourceId] = (rowCount[sourceId] || 0) + rows.length;
 
         for (let i = 0; i < rows.length; i++) {
           const row = rows[i];
