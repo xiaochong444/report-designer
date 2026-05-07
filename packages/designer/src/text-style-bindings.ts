@@ -199,10 +199,7 @@ export function applyTextStyleToComponent(component: TextComponent, style: Repor
 }
 
 export function syncTextComponentStyle(component: TextComponent, style: ReportStyle): TextComponent {
-  const existingBindings = component.styleBindings ?? [];
-  const activeBindings = existingBindings.filter((path): path is TextStyleBindingPath => (
-    isTextStyleBindingPath(path) && STYLE_VALUE_READERS[path](style) !== undefined
-  ));
+  const activeBindings = getTextStyleBindings(style);
   const next: TextComponent = { ...component, style: style.id };
 
   for (const path of activeBindings) {
@@ -330,27 +327,136 @@ export function getTextStyleBindingsToOmitForUpdates(
   return [...bindings];
 }
 
+function filterLockedFontUpdates(component: TextComponent, fontUpdates: Record<string, any>) {
+  const nextFont: Record<string, any> = {};
+  for (const key of Object.keys(fontUpdates)) {
+    const path = `font.${key}`;
+    if (!hasTextStyleBinding(component, path)) {
+      nextFont[key] = fontUpdates[key];
+    }
+  }
+  return nextFont;
+}
+
+function filterLockedBorderUpdates(component: TextComponent, borderUpdates: Record<string, any>) {
+  const nextBorder: Record<string, any> = {};
+
+  for (const key of ['style', 'width', 'color']) {
+    if (hasOwn(borderUpdates, key) && !hasTextStyleBinding(component, `border.${key}`)) {
+      nextBorder[key] = borderUpdates[key];
+    }
+  }
+
+  if (borderUpdates.sides && typeof borderUpdates.sides === 'object') {
+    const nextSides: Record<string, any> = {};
+    for (const side of ['top', 'right', 'bottom', 'left']) {
+      if (hasOwn(borderUpdates.sides, side) && !hasTextStyleBinding(component, `border.sides.${side}`)) {
+        nextSides[side] = borderUpdates.sides[side];
+      }
+    }
+    if (Object.keys(nextSides).length > 0) {
+      nextBorder.sides = nextSides;
+    }
+  }
+
+  return nextBorder;
+}
+
+function filterLockedPaddingUpdates(component: TextComponent, paddingUpdates: Record<string, any>) {
+  const nextPadding: Record<string, any> = {};
+  for (const side of ['top', 'right', 'bottom', 'left']) {
+    if (hasOwn(paddingUpdates, side) && !hasTextStyleBinding(component, `padding.${side}`)) {
+      nextPadding[side] = paddingUpdates[side];
+    }
+  }
+  return nextPadding;
+}
+
+function filterLockedFormatUpdates(component: TextComponent, formatUpdates: Record<string, any>) {
+  const nextFormat: Record<string, any> = {};
+  for (const key of ['type', 'pattern', 'nullValue', 'trueText', 'falseText']) {
+    if (hasOwn(formatUpdates, key) && !hasTextStyleBinding(component, `format.${key}`)) {
+      nextFormat[key] = formatUpdates[key];
+    }
+  }
+  return nextFormat;
+}
+
+function filterLockedTextComponentUpdates(
+  component: TextComponent,
+  updates: Record<string, any>,
+): Record<string, any> {
+  if (!component.styleBindings?.length) {
+    return updates;
+  }
+
+  const nextUpdates: Record<string, any> = {};
+
+  for (const [key, value] of Object.entries(updates)) {
+    if (key === 'font' && value && typeof value === 'object') {
+      const font = filterLockedFontUpdates(component, value);
+      if (Object.keys(font).length > 0) {
+        nextUpdates.font = font;
+      }
+      continue;
+    }
+    if (key === 'font' && hasTextStyleBinding(component, 'font')) {
+      continue;
+    }
+
+    if (key === 'border' && value && typeof value === 'object') {
+      const border = filterLockedBorderUpdates(component, value);
+      if (Object.keys(border).length > 0) {
+        nextUpdates.border = border;
+      }
+      continue;
+    }
+    if (key === 'border' && hasTextStyleBinding(component, 'border')) {
+      continue;
+    }
+
+    if (key === 'padding' && value && typeof value === 'object') {
+      const padding = filterLockedPaddingUpdates(component, value);
+      if (Object.keys(padding).length > 0) {
+        nextUpdates.padding = padding;
+      }
+      continue;
+    }
+    if (key === 'padding' && hasTextStyleBinding(component, 'padding')) {
+      continue;
+    }
+
+    if (key === 'format' && value && typeof value === 'object') {
+      const format = filterLockedFormatUpdates(component, value);
+      if (Object.keys(format).length > 0) {
+        nextUpdates.format = format;
+      }
+      continue;
+    }
+    if (key === 'format' && hasTextStyleBinding(component, 'format')) {
+      continue;
+    }
+
+    if (isTextStyleBindingPath(key) && hasTextStyleBinding(component, key)) {
+      continue;
+    }
+
+    nextUpdates[key] = value;
+  }
+
+  return nextUpdates;
+}
+
 export function applyManualTextComponentUpdates(
   component: TextComponent,
   updates: Record<string, any>,
 ): TextComponent {
-  const merged = mergeTextComponentUpdates(component, updates);
-  const bindingsToOmit = getTextStyleBindingsToOmitForUpdates(component, updates);
-  return omitTextStyleBindings(merged, bindingsToOmit);
+  return mergeTextComponentUpdates(component, filterLockedTextComponentUpdates(component, updates));
 }
 
 export function normalizeManualTextComponentUpdates(
   component: TextComponent,
   updates: Record<string, any>,
 ): Record<string, any> {
-  const bindingsToOmit = getTextStyleBindingsToOmitForUpdates(component, updates);
-  if (bindingsToOmit.length === 0) {
-    return updates;
-  }
-
-  const nextComponent = omitTextStyleBindings(component, bindingsToOmit);
-  return {
-    ...updates,
-    styleBindings: nextComponent.styleBindings,
-  };
+  return filterLockedTextComponentUpdates(component, updates);
 }

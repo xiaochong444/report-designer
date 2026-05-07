@@ -145,7 +145,7 @@ describe('Phase 9 text binding and style UI', () => {
     expect(selectedText().backgroundColor).toBe('#fff7e6');
   });
 
-  it('keeps field-specific format and number alignment when dropping fields into a default styled text template', async () => {
+  it('keeps default style formatting locked when dropping fields into a styled text template', async () => {
     const template = createDefaultTemplate('Phase 9 Field Drop');
     template.dataSources = [{
       id: 'employees',
@@ -194,9 +194,9 @@ describe('Phase 9 text binding and style UI', () => {
     const [salaryText, hireDateText] = textComponents();
 
     expect(salaryText.style).toBe('default-style');
-    expect(salaryText.textAlign).toBe('right');
-    expect(salaryText.format).toEqual({ type: 'number', pattern: '#,##0.00' });
-    expect(salaryText.styleBindings).not.toEqual(expect.arrayContaining([
+    expect(salaryText.textAlign).toBe('center');
+    expect(salaryText.format).toEqual({ type: 'currency', pattern: 'C2', nullValue: 'n/a' });
+    expect(salaryText.styleBindings).toEqual(expect.arrayContaining([
       'textAlign',
       'format.type',
       'format.pattern',
@@ -204,8 +204,8 @@ describe('Phase 9 text binding and style UI', () => {
     ]));
 
     expect(hireDateText.style).toBe('default-style');
-    expect(hireDateText.format).toEqual({ type: 'date', pattern: 'yyyy-MM-dd' });
-    expect(hireDateText.styleBindings).not.toEqual(expect.arrayContaining([
+    expect(hireDateText.format).toEqual({ type: 'currency', pattern: 'C2', nullValue: 'n/a' });
+    expect(hireDateText.styleBindings).toEqual(expect.arrayContaining([
       'format.type',
       'format.pattern',
       'format.nullValue',
@@ -219,9 +219,9 @@ describe('Phase 9 text binding and style UI', () => {
       });
     });
 
-    expect(textComponents()[0].textAlign).toBe('right');
-    expect(textComponents()[0].format).toEqual({ type: 'number', pattern: '#,##0.00' });
-    expect(textComponents()[1].format).toEqual({ type: 'date', pattern: 'yyyy-MM-dd' });
+    expect(textComponents()[0].textAlign).toBe('left');
+    expect(textComponents()[0].format).toEqual({ type: 'percent', pattern: 'P2', nullValue: '--' });
+    expect(textComponents()[1].format).toEqual({ type: 'percent', pattern: 'P2', nullValue: '--' });
 
     cleanupSurface();
   });

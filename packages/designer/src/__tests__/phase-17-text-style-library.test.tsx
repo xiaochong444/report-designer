@@ -216,7 +216,7 @@ describe('Phase 17 text style library store behavior', () => {
     ]));
   });
 
-  it('syncs only style-bound fields when a referenced text style changes', () => {
+  it('syncs all available style fields when a referenced text style changes', () => {
     const style: ReportStyle = {
       id: 'style-a',
       name: 'Style A',
@@ -245,14 +245,34 @@ describe('Phase 17 text style library store behavior', () => {
 
     expect(selectedText()).toMatchObject({
       style: 'style-a',
-      font: { family: 'Arial', size: 18, bold: true, color: '#00aa00' },
+      font: { family: 'Arial', size: 18, bold: true, color: '#aa0000' },
       backgroundColor: '#eeeeee',
-      textAlign: 'left',
+      textAlign: 'right',
     });
-    expect(selectedText()?.styleBindings).toEqual(['font.size', 'font.bold', 'backgroundColor']);
+    expect(selectedText()?.styleBindings).toEqual(expect.arrayContaining([
+      'font.family',
+      'font.size',
+      'font.bold',
+      'font.italic',
+      'font.underline',
+      'font.strikethrough',
+      'font.color',
+      'backgroundColor',
+      'textAlign',
+      'verticalAlign',
+      'border.style',
+      'border.width',
+      'border.color',
+      'border.sides.top',
+      'border.sides.right',
+      'border.sides.bottom',
+      'border.sides.left',
+      'canGrow',
+      'canShrink',
+    ]));
   });
 
-  it('drops bindings for manual text changes so later style sync keeps the manual overrides', () => {
+  it('keeps style-bound component properties locked against manual updates', () => {
     const style: ReportStyle = {
       id: 'style-a',
       name: 'Style A',
@@ -278,14 +298,14 @@ describe('Phase 17 text style library store behavior', () => {
     useDesignerStore.getState().setTextAlign('right');
     useDesignerStore.getState().setBorderAll(false);
 
-    expect(selectedText()?.font.size).toBe(24);
-    expect(selectedText()?.textAlign).toBe('right');
+    expect(selectedText()?.font.size).toBe(10);
+    expect(selectedText()?.textAlign).toBe('center');
     expect(selectedText()?.border).toMatchObject({
-      style: 'none',
-      width: 0,
-      sides: { top: false, right: false, bottom: false, left: false },
+      style: 'solid',
+      width: 0.2,
+      sides: { top: true, right: true, bottom: true, left: true },
     });
-    expect(selectedText()?.styleBindings).not.toEqual(expect.arrayContaining([
+    expect(selectedText()?.styleBindings).toEqual(expect.arrayContaining([
       'font.size',
       'textAlign',
       'border.style',
@@ -303,12 +323,12 @@ describe('Phase 17 text style library store behavior', () => {
       border: { ...style.border, style: 'double', width: 0.6, sides: { top: true, right: false, bottom: true, left: false } },
     });
 
-    expect(selectedText()?.font.size).toBe(24);
-    expect(selectedText()?.textAlign).toBe('right');
+    expect(selectedText()?.font.size).toBe(9);
+    expect(selectedText()?.textAlign).toBe('left');
     expect(selectedText()?.border).toMatchObject({
-      style: 'none',
-      width: 0,
-      sides: { top: false, right: false, bottom: false, left: false },
+      style: 'double',
+      width: 0.6,
+      sides: { top: true, right: false, bottom: true, left: false },
     });
   });
 
