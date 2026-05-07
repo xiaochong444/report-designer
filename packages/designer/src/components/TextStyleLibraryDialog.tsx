@@ -3,10 +3,6 @@ import {
   AlignCenterOutlined,
   AlignLeftOutlined,
   AlignRightOutlined,
-  ArrowDownOutlined,
-  ArrowLeftOutlined,
-  ArrowRightOutlined,
-  ArrowUpOutlined,
   BgColorsOutlined,
   BoldOutlined,
   CheckOutlined,
@@ -20,6 +16,7 @@ import {
 } from '@ant-design/icons';
 import {
   Button,
+  Checkbox,
   ColorPicker,
   Empty,
   Input,
@@ -636,57 +633,11 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
               </PanelCard>
 
               <PanelCard title="Border">
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <CompactField label="Style">
-                    <Select
-                      aria-label="样式边框样式"
-                      value={border.style}
-                      virtual={false}
-                      onChange={(value) => updateSelectedStyle({ border: { ...border, style: value } })}
-                      options={[
-                        { value: 'none', label: 'None' },
-                        { value: 'solid', label: 'Solid' },
-                        { value: 'dashed', label: 'Dashed' },
-                        { value: 'dotted', label: 'Dotted' },
-                        { value: 'double', label: 'Double' },
-                      ]}
-                    />
-                  </CompactField>
-                  <CompactField label="Width">
-                    <InputNumber
-                      aria-label="样式边框宽度"
-                      value={border.width}
-                      min={0}
-                      max={5}
-                      step={0.1}
-                      style={{ width: '100%' }}
-                      onChange={(value) => updateSelectedStyle({ border: { ...border, width: Number(value ?? border.width) } })}
-                    />
-                  </CompactField>
-                  <CompactField label="Color">
-                    <Space.Compact block>
-                      <Tooltip title="Border Color">
-                        <Button icon={<FontColorsOutlined />} aria-label="边框颜色图标" />
-                      </Tooltip>
-                      <ColorPicker
-                        aria-label="样式边框颜色"
-                        value={border.color}
-                        onChange={(value) => updateSelectedStyle({ border: { ...border, color: value.toHexString() } })}
-                        style={{ width: '100%', justifyContent: 'space-between' }}
-                      />
-                    </Space.Compact>
-                  </CompactField>
-                  <CompactField label="Sides">
-                    <IconToggleGroup
-                      items={[
-                        { label: '上', active: border.sides.top, icon: <ArrowUpOutlined />, onClick: () => setBorderSide('top', !border.sides.top) },
-                        { label: '右', active: border.sides.right, icon: <ArrowRightOutlined />, onClick: () => setBorderSide('right', !border.sides.right) },
-                        { label: '下', active: border.sides.bottom, icon: <ArrowDownOutlined />, onClick: () => setBorderSide('bottom', !border.sides.bottom) },
-                        { label: '左', active: border.sides.left, icon: <ArrowLeftOutlined />, onClick: () => setBorderSide('left', !border.sides.left) },
-                      ]}
-                    />
-                  </CompactField>
-                </div>
+                <BorderEditor
+                  border={border}
+                  onChange={(nextBorder) => updateSelectedStyle({ border: nextBorder })}
+                  onSideChange={setBorderSide}
+                />
               </PanelCard>
 
               <PanelCard title="Padding">
@@ -817,6 +768,80 @@ const VerticalAlignGlyph: React.FC<{ position: 'top' | 'middle' | 'bottom' }> = 
       <span style={{ position: 'absolute', left: 0, right: 0, top: 16, height: 1.5, background: 'currentColor', opacity: 0.5, borderRadius: 999 }} />
       <span style={{ position: 'absolute', left: 2, right: 2, top, height: 3.5, background: 'currentColor', borderRadius: 999 }} />
     </span>
+  );
+};
+
+const BorderEditor: React.FC<{
+  border: BorderConfig;
+  onChange: (border: BorderConfig) => void;
+  onSideChange: (side: 'top' | 'right' | 'bottom' | 'left', enabled: boolean) => void;
+}> = ({ border, onChange, onSideChange }) => {
+  const previewBorder = (enabled: boolean) => (
+    enabled && border.style !== 'none'
+      ? `${Math.max(border.width ?? 0, 0.2)}px ${border.style} ${border.color}`
+      : '1px solid #edf0f4'
+  );
+
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      <CompactField label="样式">
+        <Select
+          aria-label="样式边框样式"
+          value={border.style}
+          virtual={false}
+          onChange={(value) => onChange({ ...border, style: value })}
+          options={[
+            { value: 'none', label: '无' },
+            { value: 'solid', label: '实线' },
+            { value: 'dashed', label: '虚线' },
+            { value: 'dotted', label: '点线' },
+            { value: 'double', label: '双线' },
+          ]}
+        />
+      </CompactField>
+      <CompactField label="宽度">
+        <InputNumber
+          aria-label="样式边框宽度"
+          value={border.width}
+          min={0}
+          max={5}
+          step={0.1}
+          style={{ width: '100%' }}
+          onChange={(value) => onChange({ ...border, width: Number(value ?? border.width) })}
+        />
+      </CompactField>
+      <CompactField label="颜色">
+        <ColorPicker
+          aria-label="样式边框颜色"
+          value={border.color}
+          onChange={(value) => onChange({ ...border, color: value.toHexString() })}
+          style={{ width: 32 }}
+        />
+      </CompactField>
+      <div style={{ height: 1, background: '#edf0f4', margin: '2px 0 0' }} />
+      <div style={{ display: 'grid', gap: 8 }}>
+        <Typography.Text type="secondary" style={{ fontSize: 12 }}>应用边</Typography.Text>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <Checkbox checked={border.sides.top} onChange={(event) => onSideChange('top', event.target.checked)}>上</Checkbox>
+          <Checkbox checked={border.sides.right} onChange={(event) => onSideChange('right', event.target.checked)}>右</Checkbox>
+          <Checkbox checked={border.sides.bottom} onChange={(event) => onSideChange('bottom', event.target.checked)}>下</Checkbox>
+          <Checkbox checked={border.sides.left} onChange={(event) => onSideChange('left', event.target.checked)}>左</Checkbox>
+        </div>
+        <div
+          aria-label="边框应用边预览"
+          style={{
+            justifySelf: 'center',
+            width: 60,
+            height: 40,
+            background: '#ffffff',
+            borderTop: previewBorder(border.sides.top),
+            borderRight: previewBorder(border.sides.right),
+            borderBottom: previewBorder(border.sides.bottom),
+            borderLeft: previewBorder(border.sides.left),
+          }}
+        />
+      </div>
+    </div>
   );
 };
 

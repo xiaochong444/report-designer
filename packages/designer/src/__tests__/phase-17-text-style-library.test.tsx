@@ -778,8 +778,10 @@ describe('Phase 17 text style library store behavior', () => {
     fireEvent.change(within(dialog).getByLabelText('样式格式真值文本'), { target: { value: 'TRUE' } });
     fireEvent.change(within(dialog).getByLabelText('样式格式假值文本'), { target: { value: 'FALSE' } });
     expect(within(dialog).getByLabelText('样式边框样式')).toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole('button', { name: '右' }));
-    fireEvent.click(within(dialog).getByRole('button', { name: '下' }));
+    expect(within(dialog).getByText('应用边')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('边框应用边预览')).toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: '右' }));
+    fireEvent.click(within(dialog).getByRole('checkbox', { name: '下' }));
 
     await waitFor(() => {
       const updatedStyle = useDesignerStore.getState().template.styles.find(item => item.id === 'style-a');
