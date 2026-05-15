@@ -258,6 +258,10 @@ reg('TODAY', (args, ctx) => {
   return d;
 });
 
+reg('ROWINDEX', (args, ctx) => {
+  return ctx.rowIndex ?? 0;
+});
+
 reg('YEAR', (args, ctx) => {
   return new Date(args[0]).getFullYear();
 });

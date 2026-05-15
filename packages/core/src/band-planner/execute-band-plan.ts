@@ -129,13 +129,22 @@ function prepareRows(
   }
 
   const sort = section.dataBand.dataBand?.sort ?? [];
-  for (const sortRule of [...sort].reverse()) {
-    result.sort((a, b) => {
-      const left = evaluateField(sortRule.field, a, dataSourceId);
-      const right = evaluateField(sortRule.field, b, dataSourceId);
-      const direction = sortRule.direction === 'desc' ? -1 : 1;
-      return compareValues(left, right) * direction;
-    });
+  if (sort.length > 0) {
+    result = result
+      .map((row, originalIndex) => ({ row, originalIndex }))
+      .sort((a, b) => {
+        for (const sortRule of sort) {
+          const left = evaluateField(sortRule.field, a.row, dataSourceId, a.originalIndex);
+          const right = evaluateField(sortRule.field, b.row, dataSourceId, b.originalIndex);
+          const direction = sortRule.direction === 'desc' ? -1 : 1;
+          const compared = compareValues(left, right) * direction;
+          if (compared !== 0) {
+            return compared;
+          }
+        }
+        return a.originalIndex - b.originalIndex;
+      })
+      .map(item => item.row);
   }
 
   return result;
@@ -154,9 +163,12 @@ function evaluateRowExpression(
   return evalExpression(expression, (source, field) => resolveRowField(row, source || dataSourceId, field), rowIndex, { row });
 }
 
-function evaluateField(field: string, row: Record<string, unknown>, dataSourceId: string | undefined): unknown {
+function evaluateField(field: string, row: Record<string, unknown>, dataSourceId: string | undefined, rowIndex: number): unknown {
   if (field.startsWith('{') && field.endsWith('}')) {
-    return evaluateRowExpression(field, row, dataSourceId, 0);
+    return evaluateRowExpression(field, row, dataSourceId, rowIndex);
+  }
+  if (field.includes('(')) {
+    return evaluateRowExpression(field, row, dataSourceId, rowIndex);
   }
   return resolveRowField(row, dataSourceId, field);
 }
@@ -164,13 +176,44 @@ function evaluateField(field: string, row: Record<string, unknown>, dataSourceId
 function compareValues(left: unknown, right: unknown): number {
   if (left === right) return 0;
 
+  const leftEmpty = isEmptySortValue(left);
+  const rightEmpty = isEmptySortValue(right);
+  if (leftEmpty || rightEmpty) {
+    if (leftEmpty && rightEmpty) return 0;
+    return leftEmpty ? 1 : -1;
+  }
+
   const leftNumber = Number(left);
   const rightNumber = Number(right);
-  if (!Number.isNaN(leftNumber) && !Number.isNaN(rightNumber) && left !== '' && right !== '') {
+  if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+    if (leftNumber === rightNumber) return 0;
     return leftNumber > rightNumber ? 1 : -1;
   }
 
+  const leftTime = toSortableTime(left);
+  const rightTime = toSortableTime(right);
+  if (leftTime !== undefined && rightTime !== undefined) {
+    if (leftTime === rightTime) return 0;
+    return leftTime > rightTime ? 1 : -1;
+  }
+
   return String(left ?? '').localeCompare(String(right ?? ''));
+}
+
+function isEmptySortValue(value: unknown): boolean {
+  return value === null || value === undefined || value === '';
+}
+
+function toSortableTime(value: unknown): number | undefined {
+  if (value instanceof Date) {
+    const time = value.getTime();
+    return Number.isNaN(time) ? undefined : time;
+  }
+  if (typeof value !== 'string') {
+    return undefined;
+  }
+  const time = Date.parse(value);
+  return Number.isNaN(time) ? undefined : time;
 }
 
 function resolveRowField(row: Record<string, unknown>, source: string | undefined, field: string): unknown {

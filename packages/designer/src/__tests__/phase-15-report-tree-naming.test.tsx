@@ -87,7 +87,7 @@ describe('Phase 15 report tree naming and icons', () => {
     expect(screen.queryByText(/text - text-alpha/i)).not.toBeInTheDocument();
     expect(screen.getByTestId('report-tree-icon-text')).toBeInTheDocument();
     expect(screen.getByTestId('report-tree-icon-image')).toBeInTheDocument();
-    expect(screen.getByPlaceholderText('搜索组件')).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('搜索报表树')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: '添加带' })).not.toBeInTheDocument();
     expect(document.querySelector('.rd-report-tree-node-sub')).toBeNull();
     expect(document.querySelector('.rd-report-tree-actions')).toBeNull();
@@ -127,7 +127,7 @@ describe('Phase 15 report tree naming and icons', () => {
   it('filters visible components by search term', async () => {
     render(<Designer template={makeTreeTemplate()} />);
 
-    const searchInput = await screen.findByPlaceholderText('搜索组件');
+    const searchInput = await screen.findByPlaceholderText('搜索报表树');
     fireEvent.change(searchInput, { target: { value: 'Image1' } });
 
     const reportTree = screen.getByTestId('report-tree');

@@ -206,6 +206,7 @@ export type DesignerMessageKey =
   | 'leftPanel.groupAdvanced'
   | 'leftPanel.searchComponents'
   | 'leftPanel.searchDictionary'
+  | 'leftPanel.searchReportTree'
   | 'leftPanel.dataSources'
   | 'leftPanel.variables'
   | 'leftPanel.noVariables'
@@ -233,7 +234,17 @@ export type DesignerMessageKey =
   | 'pageSettings.top'
   | 'pageSettings.right'
   | 'pageSettings.bottom'
-  | 'pageSettings.left';
+  | 'pageSettings.left'
+  | 'dataBand.dataSource'
+  | 'dataBand.sort.title'
+  | 'dataBand.sort.addRule'
+  | 'dataBand.sort.fieldAria'
+  | 'dataBand.sort.ascending'
+  | 'dataBand.sort.descending'
+  | 'dataBand.sort.moveUp'
+  | 'dataBand.sort.moveDown'
+  | 'dataBand.sort.deleteRule'
+  | 'dataBand.sort.noFields';
 
 export type DesignerMessages = Record<DesignerMessageKey, string>;
 
@@ -444,6 +455,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.groupAdvanced': '高级',
     'leftPanel.searchComponents': '搜索组件',
     'leftPanel.searchDictionary': '搜索数据源和字段',
+    'leftPanel.searchReportTree': '搜索报表树',
     'leftPanel.dataSources': '数据源',
     'leftPanel.variables': '变量',
     'leftPanel.noVariables': '暂无变量',
@@ -472,6 +484,16 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.right': '右',
     'pageSettings.bottom': '下',
     'pageSettings.left': '左',
+    'dataBand.dataSource': '数据源',
+    'dataBand.sort.title': '排序',
+    'dataBand.sort.addRule': '添加排序规则',
+    'dataBand.sort.fieldAria': '排序字段 {index}',
+    'dataBand.sort.ascending': '升序',
+    'dataBand.sort.descending': '降序',
+    'dataBand.sort.moveUp': '上移排序规则 {index}',
+    'dataBand.sort.moveDown': '下移排序规则 {index}',
+    'dataBand.sort.deleteRule': '删除排序规则 {index}',
+    'dataBand.sort.noFields': '当前数据源没有可排序字段',
   },
   'en-US': {
     'common.cancel': 'Cancel',
@@ -679,6 +701,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.groupAdvanced': 'Advanced',
     'leftPanel.searchComponents': 'Search components',
     'leftPanel.searchDictionary': 'Search data sources and fields',
+    'leftPanel.searchReportTree': 'Search report tree',
     'leftPanel.dataSources': 'Data sources',
     'leftPanel.variables': 'Variables',
     'leftPanel.noVariables': 'No variables',
@@ -707,5 +730,15 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.right': 'Right',
     'pageSettings.bottom': 'Bottom',
     'pageSettings.left': 'Left',
+    'dataBand.dataSource': 'Data source',
+    'dataBand.sort.title': 'Sorting',
+    'dataBand.sort.addRule': 'Add sort rule',
+    'dataBand.sort.fieldAria': 'Sort field {index}',
+    'dataBand.sort.ascending': 'Ascending',
+    'dataBand.sort.descending': 'Descending',
+    'dataBand.sort.moveUp': 'Move sort rule {index} up',
+    'dataBand.sort.moveDown': 'Move sort rule {index} down',
+    'dataBand.sort.deleteRule': 'Delete sort rule {index}',
+    'dataBand.sort.noFields': 'The current data source has no sortable fields',
   },
 };

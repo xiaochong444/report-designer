@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tabs, Tree, Tooltip, Input } from 'antd';
+import { Tabs, Tree, Tooltip } from 'antd';
 import {
   FileTextOutlined,
   DatabaseOutlined,
@@ -12,6 +12,7 @@ import { getBandDisplayName, getComponentNamePrefix } from '../report-structure'
 import { useEffect, useMemo, useState } from 'react';
 import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
 import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
+import { PanelSearchBox } from './panels/PanelSearchBox';
 
 export const LeftPanel: React.FC = () => {
   const { t } = useDesignerI18n();
@@ -154,13 +155,10 @@ const ComponentPalette: React.FC = () => {
 
   return (
     <div className="rd-component-palette" data-testid="component-palette" onDrop={handleDropOnCanvas} onDragOver={handleDragOver}>
-      <Input.Search
-        allowClear
-        size="small"
+      <PanelSearchBox
         placeholder={t('leftPanel.searchComponents')}
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
-        className="rd-component-palette-search"
+        onChange={setQuery}
       />
       <div className="rd-component-palette-hint">{t('leftPanel.componentsHint')}</div>
       <div className="rd-component-palette-groups">
@@ -222,6 +220,11 @@ type DictionaryNodeKind =
   | 'format'
   | 'resource';
 
+type SearchableDataNode = DataNode & {
+  searchText?: string;
+  children?: SearchableDataNode[];
+};
+
 function renderDictionaryGlyph(kind: DictionaryNodeKind) {
   return (
     <span
@@ -231,7 +234,7 @@ function renderDictionaryGlyph(kind: DictionaryNodeKind) {
   );
 }
 
-function filterTreeNodes(nodes: DataNode[], query: string): DataNode[] {
+function filterTreeNodes(nodes: SearchableDataNode[], query: string): SearchableDataNode[] {
   if (!query) {
     return nodes;
   }
@@ -239,12 +242,13 @@ function filterTreeNodes(nodes: DataNode[], query: string): DataNode[] {
   return nodes
     .map((node) => {
       const titleText =
-        typeof node.title === 'string'
+        node.searchText ??
+        (typeof node.title === 'string'
           ? node.title
           : typeof node.key === 'string'
             ? node.key
-            : '';
-      const children = node.children ? filterTreeNodes(node.children as DataNode[], query) : [];
+            : '');
+      const children = node.children ? filterTreeNodes(node.children, query) : [];
       if (titleText.toLowerCase().includes(query) || children.length > 0) {
         return {
           ...node,
@@ -253,7 +257,7 @@ function filterTreeNodes(nodes: DataNode[], query: string): DataNode[] {
       }
       return null;
     })
-    .filter(Boolean) as DataNode[];
+    .filter(Boolean) as SearchableDataNode[];
 }
 
 const DataDictionary: React.FC = () => {
@@ -267,9 +271,10 @@ const DataDictionary: React.FC = () => {
     e.dataTransfer.effectAllowed = 'copy';
   };
 
-  const baseTreeData: DataNode[] = [
+  const baseTreeData: SearchableDataNode[] = [
     {
       key: 'dictionary-data-sources',
+      searchText: t('leftPanel.dataSources'),
       title: (
         <div className="rd-dictionary-node">
           {renderDictionaryGlyph('folder')}
@@ -278,6 +283,7 @@ const DataDictionary: React.FC = () => {
       ),
       children: dataSources.map((ds) => ({
         key: ds.id,
+        searchText: `${ds.id} ${ds.name}`,
         title: (
           <div className="rd-dictionary-node">
             {renderDictionaryGlyph('datasource')}
@@ -286,6 +292,7 @@ const DataDictionary: React.FC = () => {
         ),
         children: (ds.schema ?? ds.fields ?? []).map((field) => ({
           key: `${ds.id}.${field.name}`,
+          searchText: `${ds.id} ${ds.name} ${field.name} ${field.label ?? ''} ${field.type}`,
           title: (
             <div
               className="rd-dictionary-node rd-dictionary-node-field"
@@ -301,6 +308,7 @@ const DataDictionary: React.FC = () => {
     },
     {
       key: 'dictionary-variables',
+      searchText: t('leftPanel.variables'),
       title: (
         <div className="rd-dictionary-node">
           {renderDictionaryGlyph('variable')}
@@ -311,12 +319,14 @@ const DataDictionary: React.FC = () => {
         {
           key: 'dictionary-variable-empty',
           selectable: false,
+          searchText: t('leftPanel.noVariables'),
           title: <span className="rd-dictionary-empty">{t('leftPanel.noVariables')}</span>,
         },
       ],
     },
     {
       key: 'dictionary-system-variables',
+      searchText: t('leftPanel.systemVariables'),
       title: (
         <div className="rd-dictionary-node">
           {renderDictionaryGlyph('system')}
@@ -324,13 +334,14 @@ const DataDictionary: React.FC = () => {
         </div>
       ),
       children: [
-        { key: 'sys.Today', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{Today}'}</span></div> },
-        { key: 'sys.PageNumber', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{PageNumber}'}</span></div> },
-        { key: 'sys.TotalPages', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{TotalPages}'}</span></div> },
+        { key: 'sys.Today', searchText: 'Today', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{Today}'}</span></div> },
+        { key: 'sys.PageNumber', searchText: 'PageNumber', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{PageNumber}'}</span></div> },
+        { key: 'sys.TotalPages', searchText: 'TotalPages', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{TotalPages}'}</span></div> },
       ],
     },
     {
       key: 'dictionary-functions',
+      searchText: t('leftPanel.functions'),
       title: (
         <div className="rd-dictionary-node">
           {renderDictionaryGlyph('function')}
@@ -338,12 +349,13 @@ const DataDictionary: React.FC = () => {
         </div>
       ),
       children: [
-        { key: 'function.Sum', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('function')}<span>SUM</span></div> },
-        { key: 'function.Count', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('function')}<span>COUNT</span></div> },
+        { key: 'function.Sum', searchText: 'SUM', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('function')}<span>SUM</span></div> },
+        { key: 'function.Count', searchText: 'COUNT', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('function')}<span>COUNT</span></div> },
       ],
     },
     {
       key: 'dictionary-resources',
+      searchText: t('leftPanel.resources'),
       title: (
         <div className="rd-dictionary-node">
           {renderDictionaryGlyph('resource')}
@@ -354,6 +366,7 @@ const DataDictionary: React.FC = () => {
         {
           key: 'dictionary-resource-empty',
           selectable: false,
+          searchText: t('leftPanel.noResources'),
           title: <span className="rd-dictionary-empty">{t('leftPanel.noResources')}</span>,
         },
       ],
@@ -365,12 +378,10 @@ const DataDictionary: React.FC = () => {
   return (
     <div className="rd-dictionary-panel" data-testid="dictionary-tree">
       <div className="rd-dictionary-toolbar">
-        <Input
-          allowClear
-          size="small"
+        <PanelSearchBox
           placeholder={t('leftPanel.searchDictionary')}
           value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
+          onChange={setSearchTerm}
         />
       </div>
       <Tree
@@ -431,6 +442,13 @@ function renderTreeDocGlyph(kind: 'report' | 'page') {
   );
 }
 
+function matchesSearch(values: Array<string | undefined>, query: string) {
+  if (!query) {
+    return true;
+  }
+  return values.some(value => value?.toLowerCase().includes(query));
+}
+
 const PageTree: React.FC = () => {
   const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
@@ -481,13 +499,15 @@ const PageTree: React.FC = () => {
       ),
       children: template.pages.map((page, pageIndex) => {
         const bandTypeCounters: Partial<Record<BandType, number>> = {};
+        const pageName = `Page${pageIndex + 1}`;
+        const pageMatches = matchesSearch([pageName, page.id], normalizedSearchTerm);
         return {
           key: page.id,
           title: (
             <div className="rd-report-tree-node rd-report-tree-page-node">
               <div className="rd-report-tree-node-main">
                 {renderTreeDocGlyph('page')}
-                <span>{`Page${pageIndex + 1}`}</span>
+                <span>{pageName}</span>
               </div>
             </div>
           ),
@@ -495,16 +515,17 @@ const PageTree: React.FC = () => {
             bandTypeCounters[band.type] = (bandTypeCounters[band.type] ?? 0) + 1;
             const bandIndex = bandTypeCounters[band.type] ?? 1;
             const bandName = getBandDisplayName(band, bandIndex);
+            const bandMatches = pageMatches || matchesSearch([bandName, band.name, band.id, band.type], normalizedSearchTerm);
             const visibleComponents = band.components.filter((comp) => {
-              if (!normalizedSearchTerm) {
+              if (!normalizedSearchTerm || bandMatches) {
                 return true;
               }
 
               const componentName = comp.name?.trim() || getComponentNamePrefix(comp.type);
-              return componentName.toLowerCase().includes(normalizedSearchTerm);
+              return matchesSearch([componentName, comp.id, comp.type, getComponentNamePrefix(comp.type)], normalizedSearchTerm);
             });
 
-            if (normalizedSearchTerm && visibleComponents.length === 0) {
+            if (normalizedSearchTerm && !bandMatches && visibleComponents.length === 0) {
               return null;
             }
 
@@ -535,19 +556,17 @@ const PageTree: React.FC = () => {
             };
           }).filter(Boolean) as DataNode[],
         };
-      }),
+      }).filter((pageNode) => !normalizedSearchTerm || (pageNode.children?.length ?? 0) > 0 || matchesSearch([String(pageNode.key)], normalizedSearchTerm)),
     },
   ];
 
   return (
     <div className="rd-report-tree" data-testid="report-tree">
       <div className="rd-report-tree-header">
-        <Input
-          size="small"
-          allowClear
-          placeholder={t('leftPanel.searchComponents')}
+        <PanelSearchBox
+          placeholder={t('leftPanel.searchReportTree')}
           value={searchTerm}
-          onChange={(event) => setSearchTerm(event.target.value)}
+          onChange={setSearchTerm}
         />
       </div>
       <div className="rd-report-tree-body">

@@ -207,9 +207,22 @@
   overflow: hidden;
 }
 
-.rd-component-palette-search {
+.rd-panel-search {
   flex: 0 0 auto;
   margin-bottom: 6px;
+}
+
+.rd-panel-search.ant-input-search,
+.rd-panel-search .ant-input-affix-wrapper,
+.rd-panel-search .ant-input {
+  width: 100%;
+  min-height: 28px;
+  font-size: 11px;
+  line-height: 1.1;
+}
+
+.rd-panel-search .ant-input-search-button {
+  min-height: 28px;
 }
 
 .rd-component-palette-hint {
@@ -375,14 +388,6 @@
   gap: 6px;
 }
 
-.rd-report-tree-header .ant-input-affix-wrapper,
-.rd-report-tree-header .ant-input {
-  font-size: 11px;
-  line-height: 1.1;
-  width: 100%;
-  min-height: 28px;
-}
-
 .rd-report-tree-body {
   flex: 1;
   min-height: 0;
@@ -395,14 +400,6 @@
   flex-direction: column;
   gap: 6px;
   padding: 6px;
-}
-
-.rd-dictionary-toolbar .ant-input-affix-wrapper,
-.rd-dictionary-toolbar .ant-input {
-  font-size: 11px;
-  line-height: 1.1;
-  width: 100%;
-  min-height: 28px;
 }
 
 .rd-dictionary-tree {
