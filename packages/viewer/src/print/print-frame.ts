@@ -1,4 +1,4 @@
-import type { RenderComponentBox, RenderDocument } from '@report-designer/core';
+import type { RenderComponentBox, RenderDocument, RenderLine } from '@report-designer/core';
 
 type RenderTextStyle = NonNullable<Extract<RenderComponentBox, { type: 'text' }>['style']> & {
   padding?: { top: number; right: number; bottom: number; left: number };
@@ -62,6 +62,28 @@ function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY
   if (component.type === 'text' && 'content' in component) {
     const contentStyle = buildTextContentStyle(component);
     return `<div class="rd-print-component rd-print-text" style="${style}"><div class="rd-print-text-content" style="${contentStyle}">${escapeHtml(component.content)}</div></div>`;
+  }
+  if (component.type === 'image' && 'src' in component) {
+    const fitMode = component.fitMode === 'stretch' || component.fitMode === 'fill'
+      ? 'fill'
+      : component.fitMode ?? 'contain';
+    return `<img class="rd-print-component rd-print-image" src="${escapeAttribute(component.src)}" alt="" style="${style}object-fit:${fitMode};" />`;
+  }
+  if (component.type === 'richtext' && 'html' in component) {
+    return `<div class="rd-print-component rd-print-richtext" style="${style}overflow:hidden;">${sanitizeRichHtml(component.html)}</div>`;
+  }
+  if (component.type === 'barcode' && 'value' in component) {
+    return `<div class="rd-print-component rd-print-barcode" style="${style}overflow:hidden;font-family:monospace;font-size:10px;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,#000 0 1px,#fff 1px 3px);color:#000;" data-format="${escapeAttribute(String(component.format ?? 'CODE128'))}" aria-label="${escapeAttribute(component.value)}">${component.showText ? escapeHtml(component.value) : ''}</div>`;
+  }
+  if (component.type === 'checkbox' && 'checked' in component) {
+    return `<div class="rd-print-component rd-print-checkbox" style="${style}display:flex;align-items:center;gap:1.5mm;"><span style="width:3.2mm;height:3.2mm;border:0.2mm solid #333;display:inline-flex;align-items:center;justify-content:center;font-size:3mm;line-height:1;">${component.checked ? '&#10003;' : ''}</span>${component.label ? `<span>${escapeHtml(component.label)}</span>` : ''}</div>`;
+  }
+  if (component.type === 'line') {
+    const line = component as RenderLine;
+    return `<svg class="rd-print-component rd-print-line" style="${style}" viewBox="0 0 ${Math.max(1, line.width)} ${Math.max(1, line.height)}" preserveAspectRatio="none"><line x1="${line.startX ?? 0}" y1="${line.startY ?? line.height / 2}" x2="${line.endX ?? line.width}" y2="${line.endY ?? line.height / 2}" stroke="${escapeAttribute(line.lineColor ?? '#000000')}" stroke-width="${Math.max(0.2, line.lineWidth ?? 0.2)}" stroke-dasharray="${lineDashArray(line.lineStyle)}" /></svg>`;
+  }
+  if (component.type === 'shape') {
+    return `<svg class="rd-print-component rd-print-shape" style="${style}" viewBox="0 0 ${Math.max(1, component.width)} ${Math.max(1, component.height)}" preserveAspectRatio="none">${shapeSvg(component)}</svg>`;
   }
   return `<div class="rd-print-component" style="${style}"></div>`;
 }
@@ -139,4 +161,36 @@ function escapeHtml(value: string): string {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
+}
+
+function escapeAttribute(value: string): string {
+  return escapeHtml(value).replaceAll("'", '&#39;');
+}
+
+function sanitizeRichHtml(value: string): string {
+  return value.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+}
+
+function lineDashArray(style?: string): string {
+  if (style === 'dashed') return '6 4';
+  if (style === 'dotted') return '1 3';
+  return '';
+}
+
+function shapeSvg(component: RenderComponentBox): string {
+  const strokeWidth = Math.max(0.2, 'borderWidth' in component && typeof component.borderWidth === 'number' ? component.borderWidth : 0.2);
+  const half = strokeWidth / 2;
+  const stroke = escapeAttribute('borderColor' in component && typeof component.borderColor === 'string' ? component.borderColor : '#000000');
+  const fill = escapeAttribute('fillColor' in component && typeof component.fillColor === 'string' ? component.fillColor : 'transparent');
+  const dash = lineDashArray('borderStyle' in component && typeof component.borderStyle === 'string' ? component.borderStyle : undefined);
+  const attrs = `fill="${fill}" stroke="${stroke}" stroke-width="${strokeWidth}" stroke-dasharray="${dash}"`;
+
+  if ('shapeType' in component && component.shapeType === 'ellipse') {
+    return `<ellipse cx="${component.width / 2}" cy="${component.height / 2}" rx="${Math.max(0, component.width / 2 - half)}" ry="${Math.max(0, component.height / 2 - half)}" ${attrs} />`;
+  }
+  if ('shapeType' in component && component.shapeType === 'triangle') {
+    return `<polygon points="${component.width / 2},${half} ${component.width - half},${component.height - half} ${half},${component.height - half}" ${attrs} />`;
+  }
+  const radius = 'shapeType' in component && component.shapeType === 'roundRect' ? 3 : 0;
+  return `<rect x="${half}" y="${half}" width="${Math.max(0, component.width - strokeWidth)}" height="${Math.max(0, component.height - strokeWidth)}" rx="${radius}" ${attrs} />`;
 }

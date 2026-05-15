@@ -31,6 +31,7 @@ import {
 import type { BorderConfig, FontConfig, ReportStyle, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import { useDesignerI18n } from '../i18n';
+import { TextFormatEditor } from './TextFormatEditor';
 
 interface TextStyleLibraryDialogProps {
   open: boolean;
@@ -580,58 +581,11 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
               </PanelCard>
 
               <PanelCard title={t('styleLibrary.format')}>
-                <div style={{ display: 'grid', gap: 10 }}>
-                  <CompactField label={t('styleLibrary.type')}>
-                    <Select
-                      aria-label="样式格式类型"
-                      value={format.type}
-                      virtual={false}
-                      onChange={(value) => updateSelectedStyle({ format: value === 'none' ? { type: 'none' } : { ...(selectedStyle.format ?? EMPTY_FORMAT), type: value } })}
-                      options={[
-                        { value: 'none', label: t('styleLibrary.formatNone') },
-                        { value: 'number', label: t('styleLibrary.formatNumber') },
-                        { value: 'currency', label: t('styleLibrary.formatCurrency') },
-                        { value: 'date', label: t('styleLibrary.formatDate') },
-                        { value: 'time', label: t('styleLibrary.formatTime') },
-                        { value: 'percent', label: t('styleLibrary.formatPercent') },
-                        { value: 'boolean', label: t('styleLibrary.formatBoolean') },
-                        { value: 'custom', label: t('styleLibrary.formatCustom') },
-                      ]}
-                    />
-                  </CompactField>
-                  <CompactField label={t('styleLibrary.pattern')}>
-                    <Input
-                      aria-label="样式格式模式"
-                      value={format.pattern ?? ''}
-                      onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), pattern: event.target.value } })}
-                      placeholder="#,##0.00 / yyyy-MM-dd"
-                    />
-                  </CompactField>
-                  <CompactField label={t('styleLibrary.null')}>
-                    <Input
-                      aria-label="样式格式空值文本"
-                      value={format.nullValue ?? ''}
-                      onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), nullValue: event.target.value } })}
-                      placeholder={t('styleLibrary.noValuePlaceholder')}
-                    />
-                  </CompactField>
-                  <CompactField label={t('styleLibrary.true')}>
-                    <Input
-                      aria-label="样式格式真值文本"
-                      value={format.trueText ?? ''}
-                      onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), trueText: event.target.value } })}
-                      placeholder={t('styleLibrary.true')}
-                    />
-                  </CompactField>
-                  <CompactField label={t('styleLibrary.false')}>
-                    <Input
-                      aria-label="样式格式假值文本"
-                      value={format.falseText ?? ''}
-                      onChange={(event) => updateSelectedStyle({ format: { ...(selectedStyle.format ?? EMPTY_FORMAT), falseText: event.target.value } })}
-                      placeholder={t('styleLibrary.false')}
-                    />
-                  </CompactField>
-                </div>
+                <TextFormatEditor
+                  value={format}
+                  onChange={(nextFormat) => updateSelectedStyle({ format: nextFormat })}
+                  labelWidth={104}
+                />
               </PanelCard>
 
               <PanelCard title={t('styleLibrary.border')}>

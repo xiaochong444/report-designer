@@ -2,6 +2,7 @@ import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import type { ReportComponent, Band, TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
+import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
 
 const MM_TO_PX = 3.78;
 const SNAP_THRESHOLD = 5;
@@ -20,6 +21,9 @@ function mmToPx(mm: number): number {
     return 0;
   }
   return Math.round(numeric * MM_TO_PX);
+}
+function safeCssNumber(value: number): number {
+  return Number.isFinite(value) ? value : 0;
 }
 function pxToMm(px: number, zoom = 1): number { return Math.round(px / (MM_TO_PX * zoom) * 10) / 10; }
 
@@ -130,6 +134,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const moveComponent = useDesignerStore(s => s.moveComponent);
   const moveComponentSilent = useDesignerStore(s => s.moveComponentSilent);
   const updateComponent = useDesignerStore(s => s.updateComponent);
+  const addComponent = useDesignerStore(s => s.addComponent);
   const updateComponentSilent = useDesignerStore(s => s.updateComponentSilent);
   const resizeBand = useDesignerStore(s => s.resizeBand);
   const resizeBandSilent = useDesignerStore(s => s.resizeBandSilent);
@@ -657,6 +662,63 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     return () => window.removeEventListener('click', close);
   }, [contextMenu]);
 
+  const getDropPosition = useCallback((event: React.DragEvent) => {
+    if (!pageRef.current) return null;
+    const rect = pageRef.current.getBoundingClientRect();
+    const xMm = pxToMm(event.clientX - rect.left, zoom);
+    const yMm = pxToMm(event.clientY - rect.top, zoom);
+
+    for (const { band, visualY } of bands) {
+      const bandTop = visualY;
+      const bodyTop = visualY + BAND_HEADER_MM;
+      const bandBottom = bodyTop + band.height;
+      if (yMm >= bandTop && yMm <= bandBottom) {
+        return {
+          targetBandId: band.id,
+          xMm,
+          yMm: Math.max(0, Math.min(band.height, Math.round((yMm - bodyTop) * 10) / 10)),
+        };
+      }
+    }
+
+    const fallbackBand = currentPage?.bands.find(band => band.type === 'data') ?? currentPage?.bands[0];
+    return fallbackBand ? { targetBandId: fallbackBand.id, xMm, yMm: 0 } : null;
+  }, [bands, currentPage?.bands, zoom]);
+
+  const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
+    const types = Array.from(event.dataTransfer.types ?? []);
+    const hasSupportedPayload = types.includes('componentType') || types.includes('fieldBinding');
+    if (!hasSupportedPayload) return;
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'copy';
+  }, []);
+
+  const handleCanvasDrop = useCallback((event: React.DragEvent) => {
+    const position = getDropPosition(event);
+    if (!position || !currentPageId) return;
+
+    const fieldBinding = event.dataTransfer.getData('fieldBinding');
+    const componentType = event.dataTransfer.getData('componentType');
+    if (!fieldBinding && !componentType) return;
+
+    event.preventDefault();
+    if (fieldBinding) {
+      try {
+        const field = JSON.parse(fieldBinding);
+        addComponent(
+          currentPageId,
+          position.targetBandId,
+          createFieldExpressionComponent(field, position.xMm, position.yMm),
+        );
+        return;
+      } catch {
+        return;
+      }
+    }
+
+    addComponent(currentPageId, position.targetBandId, createDefaultComponent(componentType, position.xMm, position.yMm));
+  }, [addComponent, currentPageId, getDropPosition]);
+
   if (!currentPage) {
     return (
       <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999' }}>
@@ -687,7 +749,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     <div ref={containerRef} className={className}
       style={{ overflowX: 'hidden', overflowY: 'auto', backgroundColor: '#e8e8e8', height: '100%', padding: 24, userSelect: isBusy ? 'none' : 'auto', position: 'relative' }}
     >
-      <div data-testid="designer-canvas-page-stack" style={{ position: 'relative', width: scaledPageWidthPx + RULER_SIZE, height: scaledPageHeightPx + RULER_SIZE, margin: 0 }}>
+      <div data-testid="designer-canvas-page-stack" style={{ position: 'relative', width: safeCssNumber(scaledPageWidthPx + RULER_SIZE), height: safeCssNumber(scaledPageHeightPx + RULER_SIZE), margin: 0 }}>
         {/* 顶部标尺 */}
         <Ruler
           direction="horizontal"
@@ -710,9 +772,11 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
 
         <div ref={pageRef} data-page data-testid="designer-page-sheet"
           onMouseDown={handlePageMouseDown}
+          onDrop={handleCanvasDrop}
+          onDragOver={handleCanvasDragOver}
           onContextMenu={(e) => e.preventDefault()}
           style={{
-            width: rawPageWidthPx, height: rawPageHeightPx,
+            width: safeCssNumber(rawPageWidthPx), height: safeCssNumber(rawPageHeightPx),
             backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             position: 'relative', marginLeft: RULER_SIZE, marginTop: RULER_SIZE, overflow: 'hidden',
             transform: `scale(${zoom})`,
@@ -724,8 +788,8 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
               position: 'absolute',
               left: rawMarginLeftPx,
               top: rawMarginTopPx,
-              width: rawPrintableWidthPx,
-              height: rawPrintableHeightPx,
+              width: safeCssNumber(rawPrintableWidthPx),
+              height: safeCssNumber(rawPrintableHeightPx),
               backgroundImage: `
                 linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)
@@ -740,7 +804,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
               return (
                 <div key={i} style={{
                   position: 'absolute',
-                  ...(g.type === 'horizontal' ? { left: 0, right: 0, top: mmToPx(selectedFlat?.visualY ?? 0) + mmToPx(BAND_HEADER_MM) + g.position - mmToPx((selectedFlat?.comp.y ?? 0)), height: 1 } : { top: 0, bottom: 0, left: g.position, width: 1 }),
+                  ...(g.type === 'horizontal' ? { left: 0, right: 0, top: safeCssNumber(mmToPx(selectedFlat?.visualY ?? 0) + mmToPx(BAND_HEADER_MM) + g.position - mmToPx((selectedFlat?.comp.y ?? 0))), height: 1 } : { top: 0, bottom: 0, left: safeCssNumber(g.position), width: 1 }),
                   backgroundColor: '#ff4d4f', zIndex: 9998, pointerEvents: 'none',
                 }} />
               );
@@ -759,8 +823,8 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         {/* Selection box */}
         {mode.type === 'select' && selBox && (
           <div style={{
-            position: 'absolute', left: selBox.x, top: selBox.y,
-            width: selBox.w, height: selBox.h,
+            position: 'absolute', left: safeCssNumber(selBox.x), top: safeCssNumber(selBox.y),
+            width: safeCssNumber(selBox.w), height: safeCssNumber(selBox.h),
             border: '1px dashed #1890ff', backgroundColor: 'rgba(24,144,255,0.08)',
             pointerEvents: 'none', zIndex: 9999,
           }} />
@@ -1062,13 +1126,13 @@ const BandView: React.FC<{
 
   return (
     <div data-band-id={band.id} data-testid={`designer-band-frame-${band.type}`} onMouseDown={handleBandMouseDown} style={{
-      position: 'absolute', left: 0, top: mmToPx(visualY), width: '100%', height: headerHeight + bodyHeight,
+      position: 'absolute', left: 0, top: safeCssNumber(mmToPx(visualY)), width: '100%', height: safeCssNumber(headerHeight + bodyHeight),
       border: isSelected ? '1px solid #4d90fe' : '1px solid rgba(0,0,0,0.12)',
       boxSizing: 'border-box',
       backgroundColor: `${baseColor}10`,
     }}>
       <div style={{
-        position: 'absolute', left: 0, right: 0, top: 0, height: headerHeight,
+        position: 'absolute', left: 0, right: 0, top: 0, height: safeCssNumber(headerHeight),
         backgroundColor: `${baseColor}44`,
         borderBottom: `1px solid ${baseColor}66`,
         display: 'flex', alignItems: 'center',
@@ -1090,7 +1154,7 @@ const BandView: React.FC<{
         left: 0,
         right: 0,
         top: headerHeight,
-        height: bodyHeight,
+        height: safeCssNumber(bodyHeight),
       }}>
         {band.components
           .slice()
@@ -1134,10 +1198,10 @@ const ComponentView: React.FC<{
   const inputRef = useRef<HTMLInputElement>(null);
   React.useEffect(() => { if (editing) setTimeout(() => inputRef.current?.focus(), 0); }, [editing]);
 
-  const x = mmToPx(component.x);
-  const y = mmToPx(component.y);
-  const w = mmToPx(component.width);
-  const h = mmToPx(component.height);
+  const x = safeCssNumber(mmToPx(component.x));
+  const y = safeCssNumber(mmToPx(component.y));
+  const w = safeCssNumber(mmToPx(component.width));
+  const h = safeCssNumber(mmToPx(component.height));
 
   return (
     <div style={{
@@ -1231,18 +1295,68 @@ function getCompContent(comp: ReportComponent): React.ReactNode {
       return <div style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2 }}>{(comp as any).text || ''}</div>;
     case 'image': {
       const src = (comp as any).src || '';
+      const fitMode = (comp as any).fitMode === 'stretch' || (comp as any).fitMode === 'fill'
+        ? 'fill'
+        : (comp as any).fitMode || 'contain';
       return src
-        ? <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} draggable={false} />
+        ? <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: fitMode }} draggable={false} />
         : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ccc', fontSize: 10, border: '1px dashed #ddd' }}>图片</div>;
     }
-    case 'barcode':
-      return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ccc', fontSize: 10 }}>条码</div>;
-    case 'checkbox':
-      return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}><span style={{ fontSize: 16 }}>☐</span></div>;
+    case 'barcode': {
+      const t = comp as any;
+      const value = String(t.value || '');
+      return (
+        <div
+          data-testid="designer-component-barcode-content"
+          style={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'stretch',
+            overflow: 'hidden',
+            border: '1px solid rgba(0,0,0,0.2)',
+            backgroundColor: '#fff',
+          }}
+        >
+          <div
+            aria-hidden="true"
+            style={{
+              flex: 1,
+              minHeight: 0,
+              background: 'repeating-linear-gradient(90deg, #111 0 1px, transparent 1px 3px, #111 3px 5px, transparent 5px 8px)',
+            }}
+          />
+          {t.showText ? (
+            <div style={{ fontSize: 9, lineHeight: '11px', textAlign: 'center', color: '#111', fontFamily: 'monospace' }}>
+              {value}
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+    case 'checkbox': {
+      const t = comp as any;
+      const checked = readDesignBoolean(t.checked);
+      return (
+        <div data-testid="designer-component-checkbox-content" style={{ display: 'flex', alignItems: 'center', height: '100%', gap: 4, overflow: 'hidden' }}>
+          <span style={{ width: 13, height: 13, border: '1px solid #333', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, lineHeight: 1, flex: '0 0 auto' }}>
+            {checked ? '✓' : ''}
+          </span>
+          {t.label ? <span style={{ fontSize: 11, color: '#111', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.label}</span> : null}
+        </div>
+      );
+    }
     case 'table':
       return <TablePreview table={comp as TableComponent} />;
     case 'richtext':
-      return <div style={{ width: '100%', height: '100%', overflow: 'hidden', fontSize: 10, color: '#999' }}>富文本</div>;
+      return (
+        <div
+          data-testid="designer-component-richtext-content"
+          style={{ width: '100%', height: '100%', overflow: 'hidden' }}
+          dangerouslySetInnerHTML={{ __html: sanitizeRichHtml((comp as any).html || '') }}
+        />
+      );
     case 'subreport':
       return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ccc', fontSize: 10, border: '1px dashed #ddd' }}>子报表</div>;
     case 'panel':
@@ -1288,15 +1402,53 @@ function getCompContent(comp: ReportComponent): React.ReactNode {
     }
     case 'pagenumber': {
       const t = comp as any;
-      return <div style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2, textAlign: t.textAlign || 'center', ...getFontStyle(t.font) }}>页码</div>;
+      return <div data-testid="designer-component-pagenumber-content" style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2, textAlign: t.textAlign || 'center', ...getFontStyle(t.font) }}>{designPageNumberText(t.format)}</div>;
     }
     case 'datetime': {
       const t = comp as any;
-      return <div style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2, textAlign: t.textAlign || 'left', ...getFontStyle(t.font) }}>日期</div>;
+      return <div data-testid="designer-component-datetime-content" style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2, textAlign: t.textAlign || 'left', ...getFontStyle(t.font) }}>{formatDesignDateTime(new Date(), t.format || 'yyyy-MM-dd')}</div>;
     }
     default:
       return '';
   }
+}
+
+function sanitizeRichHtml(value: string): string {
+  return value.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
+}
+
+function readDesignBoolean(value: unknown): boolean {
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if (['true', '1', 'yes', 'y'].includes(normalized)) return true;
+  if (['false', '0', 'no', 'n', ''].includes(normalized)) return false;
+  return Boolean(value);
+}
+
+function designPageNumberText(format?: string): string {
+  switch (format) {
+    case '1':
+      return '1';
+    case 'Page 1':
+      return 'Page 1';
+    case 'Page 1 of N':
+      return 'Page 1 of 1';
+    case '1/N':
+    default:
+      return '1/1';
+  }
+}
+
+function formatDesignDateTime(date: Date, pattern: string): string {
+  const parts: Record<string, string> = {
+    yyyy: String(date.getFullYear()).padStart(4, '0'),
+    MM: String(date.getMonth() + 1).padStart(2, '0'),
+    dd: String(date.getDate()).padStart(2, '0'),
+    HH: String(date.getHours()).padStart(2, '0'),
+    mm: String(date.getMinutes()).padStart(2, '0'),
+    ss: String(date.getSeconds()).padStart(2, '0'),
+  };
+  return pattern.replace(/yyyy|MM|dd|HH|mm|ss/g, token => parts[token] ?? token);
 }
 
 const TablePreview: React.FC<{ table: TableComponent }> = ({ table }) => {

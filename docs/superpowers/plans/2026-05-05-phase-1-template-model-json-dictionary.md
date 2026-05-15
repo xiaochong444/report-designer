@@ -1,8 +1,8 @@
-# Phase 1 Template Model V2 And JSON Dictionary Implementation Plan
+# Phase 1 Template Model current model And JSON Dictionary Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add a Stimulsoft-style report template model and JSON-only data dictionary while keeping existing templates migratable.
+**Goal:** Add a reference-style report template model and JSON-only data dictionary while keeping existing templates migratable.
 
 **Architecture:** Add v2 model files next to the existing model, plus migration and validation utilities. JSON dictionary inference becomes a core capability consumed by designer and renderer.
 
@@ -12,9 +12,9 @@
 
 ## File Structure
 
-- Create: `packages/core/src/template-model/v2-types.ts`
-- Create: `packages/core/src/template-model/migrate-v1-to-v2.ts`
-- Create: `packages/core/src/template-model/v2-validator.ts`
+- Create: `packages/core/src/template-model/types.ts`
+- Create: `packages/core/src/template-model/normalize-template.ts`
+- Create: `packages/core/src/template-model/schema.ts`
 - Create: `packages/core/src/data-dictionary/json-dictionary.ts`
 - Create: `packages/core/src/data-dictionary/json-path.ts`
 - Modify: `packages/core/src/index.ts`
@@ -23,7 +23,7 @@
 
 ## Tasks
 
-### Task 1: Define V2 Bands And Components
+### Task 1: Define Bands And Components
 
 - [ ] **Step 1: Write failing type-level/runtime tests**
 
@@ -31,10 +31,10 @@ Create tests asserting these band types exist in exported constants:
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import { STANDARD_BAND_TYPES } from '../src/template-model/v2-types';
+import { STANDARD_BAND_TYPES } from '../src/template-model/types';
 
 describe('Phase 1 template v2', () => {
-  it('exports Stimulsoft-style standard band types', () => {
+  it('exports reference-style standard band types', () => {
     expect(STANDARD_BAND_TYPES).toEqual([
       'reportTitle',
       'reportSummary',
@@ -56,25 +56,25 @@ describe('Phase 1 template v2', () => {
 });
 ```
 
-- [ ] **Step 2: Implement `v2-types.ts`**
+- [ ] **Step 2: Implement `types.ts`**
 
 Define:
 
-- `ReportTemplateV2`
-- `ReportPageV2`
-- `ReportBandV2`
-- `ReportComponentV2`
-- `DataSourceV2`
-- `DataFieldV2`
-- `ReportParameterV2`
-- `ReportStyleV2`
+- `ReportTemplatecurrent model`
+- `ReportPagecurrent model`
+- `ReportBandcurrent model`
+- `ReportComponentcurrent model`
+- `DataSourcecurrent model`
+- `DataFieldcurrent model`
+- `ReportParametercurrent model`
+- `ReportStylecurrent model`
 
 Required band fields:
 
 ```ts
 type BandPrintOn = 'allPages' | 'firstPage' | 'exceptFirstPage' | 'lastPage' | 'oddPages' | 'evenPages';
 
-interface BandBehaviorV2 {
+interface BandBehaviorcurrent model {
   enabled: boolean;
   visibleExpression?: string;
   printOn: BandPrintOn;
@@ -90,7 +90,7 @@ interface BandBehaviorV2 {
 Required DataBand fields:
 
 ```ts
-interface DataBandOptionsV2 {
+interface DataBandOptionscurrent model {
   dataSourceId?: string;
   filterExpression?: string;
   sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
@@ -98,13 +98,13 @@ interface DataBandOptionsV2 {
 }
 ```
 
-### Task 2: Add Migration From V1
+### Task 2: Add Migration From legacy draft
 
 - [ ] **Step 1: Write migration test**
 
 Use `createDefaultTemplate()` and assert migrated template has version `2.0`, equivalent pages, bands, and data sources.
 
-- [ ] **Step 2: Implement `migrateV1ToV2(template)`**
+- [ ] **Step 2: Implement `migratelegacy draftTocurrent model(template)`**
 
 Map old band types directly where possible. Set new behavior defaults conservatively:
 
@@ -151,7 +151,7 @@ Rules:
 - Mixed primitive values infer the broadest type in this order: null, boolean, number, date, string.
 - ISO-like strings remain `date` only if all non-empty samples parse as valid dates and include date separators.
 
-### Task 4: Validate V2 Templates
+### Task 4: Validate Templates
 
 - [ ] **Step 1: Write validation tests**
 
@@ -163,7 +163,7 @@ Assert errors for:
 - GroupFooter without a preceding matching GroupHeader.
 - Component outside printable page area when strict mode is enabled.
 
-- [ ] **Step 2: Implement `validateTemplateV2(template, options)`**
+- [ ] **Step 2: Implement `validateTemplatecurrent model(template, options)`**
 
 Return `{ valid: boolean; errors: Array<{ path: string; message: string }> }`.
 

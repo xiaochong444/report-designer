@@ -1,21 +1,21 @@
-# Stimulsoft-Compatible Report Designer Design
+# Reference-Compatible Report Designer Design
 
-> **Scope:** Rebuild the current report designer into a Stimulsoft Reports-style print report designer and viewer. Charts are intentionally out of scope. Runtime data sources are JSON only.
+> **Scope:** Rebuild the current report designer into a the reference report designer-style print report designer and viewer. Charts are intentionally out of scope. Runtime data sources are JSON only.
 
 ## Goal
 
-The product should feel and behave like a practical subset of Stimulsoft Reports for print reports:
+The product should feel and behave like a practical subset of the reference report designer for print reports:
 
-- A designer with a Stimulsoft-style ribbon, toolbox, data dictionary, report tree, property grid, status bar, rulers, and banded canvas.
+- A designer with a reference-style ribbon, toolbox, data dictionary, report tree, property grid, status bar, rulers, and banded canvas.
 - A JSON-only data dictionary with schema inference, sample data, drag-to-bind fields, and nested-array support for master-detail reports.
 - A band-driven render engine that understands data bands, headers, footers, group headers, group footers, page headers, page footers, report title/summary, child bands, and common column/empty/overlay behavior.
-- A pagination model close to Stimulsoft: page bands repeat, data bands repeat for rows, group bands frame data, page footers sit at the bottom, and grows/keeps/breaks are handled before preview and print.
+- A pagination model close to the reference designer: page bands repeat, data bands repeat for rows, group bands frame data, page footers sit at the bottom, and grows/keeps/breaks are handled before preview and print.
 - Common print components: text, image, line, shape, checkbox, barcode, page number, date time, panel, table-as-band-helper, rich text, and subreport in the initial rebuild scope.
 - Common grouping and aggregate behavior: sum, avg, min, max, count, count distinct, conditional count/sum, report/group/page/running scopes.
 
 ## Official Behavior Baseline
 
-The compatibility target is based on Stimulsoft documentation:
+The compatibility target is based on the reference designer documentation:
 
 - Standard bands include Report Title, Report Summary, Page Header, Page Footer, Group Header, Group Footer, Header, Footer, Column Header, Column Footer, Data, Hierarchical Data, Child, Empty Data, and Overlay.
 - Band render order places page/report/list/data-associated bands into strict rendering roles; Header/Footer/Group/Column/Empty bands associate with a Data band.
@@ -25,12 +25,12 @@ The compatibility target is based on Stimulsoft documentation:
 
 Reference links:
 
-- https://www.stimulsoft.com/manuals/en/user-manual/report_internals_bands_band_types_standard_bands.htm
-- https://www.stimulsoft.com/manuals/en/user-manual/report_internals_bands_order_render.htm
-- https://www.stimulsoft.com/manuals/en/user-manual/report_internals_groups.htm
-- https://www.stimulsoft.com/manuals/en/user-manual/report_internals_groups_groupheaderband.htm
-- https://www.stimulsoft.com/manuals/en/user-manual/report_internals_functions_totals.htm
-- https://www.stimulsoft.com/manuals/en/user-manual/reports_designer.htm
+- https://www.reference-designer.com/manuals/en/user-manual/report_internals_bands_band_types_standard_bands.htm
+- https://www.reference-designer.com/manuals/en/user-manual/report_internals_bands_order_render.htm
+- https://www.reference-designer.com/manuals/en/user-manual/report_internals_groups.htm
+- https://www.reference-designer.com/manuals/en/user-manual/report_internals_groups_groupheaderband.htm
+- https://www.reference-designer.com/manuals/en/user-manual/report_internals_functions_totals.htm
+- https://www.reference-designer.com/manuals/en/user-manual/reports_designer.htm
 
 ## Current Codebase Assessment
 
@@ -46,7 +46,7 @@ Important gaps:
 - `core/src/render-engine/index.ts` renders only text/image/barcode semantics and treats group bands mostly as labels.
 - `core/src/pagination/index.ts` splits by accumulated band height and does not reserve page footer space, position page footers at bottom, repeat group/page-related bands correctly, or handle grow/shrink/break rules.
 - Aggregates in `expression-engine/evaluator.ts` are scalar argument functions, not report totals with band/group/page scopes.
-- Designer layout is functional but visually rough and does not resemble the Stimulsoft ribbon/panel/canvas arrangement closely enough.
+- Designer layout is functional but visually rough and does not resemble the the reference designer ribbon/panel/canvas arrangement closely enough.
 - Viewer and PDF export use different incomplete rendering behavior instead of a shared final render document.
 
 ## Architecture
@@ -54,7 +54,7 @@ Important gaps:
 The revised architecture centers on a platform-neutral render document.
 
 ```text
-ReportTemplateV2 + JsonDataContext
+ReportTemplatecurrent model + JsonDataContext
   -> JsonDictionary
   -> TemplateValidator
   -> BandPlan
@@ -69,7 +69,7 @@ ReportTemplateV2 + JsonDataContext
 
 ### Core Units
 
-- `template-model/v2-types.ts`: print-focused template schema with Stimulsoft-style bands and component properties.
+- `template-model/types.ts`: print-focused template schema with reference-style bands and component properties.
 - `data-dictionary/json-dictionary.ts`: JSON schema inference and field path utilities.
 - `band-planner/`: maps template bands to DataBand-owned render plans.
 - `aggregate-engine/`: report/group/page/running aggregate runtime.
@@ -79,7 +79,7 @@ ReportTemplateV2 + JsonDataContext
 
 ### Designer Units
 
-- `components/shell/DesignerShell.tsx`: Stimulsoft-style top-level layout.
+- `components/shell/DesignerShell.tsx`: reference-style top-level layout.
 - `components/ribbon/`: tabbed command ribbon: Home, Insert, Page, Layout, Preview.
 - `components/panels/`: Toolbox, DataDictionaryPanel, ReportTreePanel, PropertyGrid.
 - `components/canvas/`: ruler, page surface, band surface, selection, drag, resize, guides.
@@ -91,7 +91,7 @@ ReportTemplateV2 + JsonDataContext
 - `print/print-frame.ts`: print iframe generated from RenderDocument.
 - `export/pdf/`: PDF renderer generated from RenderDocument with Chinese font support.
 
-## Stimulsoft-Style Designer Layout
+## Reference-Style Designer Layout
 
 The first visible redesign should follow this shape:
 
@@ -123,19 +123,19 @@ Visual direction:
 
 - Quiet desktop tool, not a marketing page.
 - Light neutral background, compact controls, crisp borders, 8px or smaller radius.
-- Stimulsoft-like color-coded band headers, thin rulers, grid background, status bar, and dense property grid.
+- reference-style color-coded band headers, thin rulers, grid background, status bar, and dense property grid.
 - Icons for commands; text only where the command is not obvious.
 - No decorative gradients, floating cards, oversized hero-style headings, or rounded card stacks.
 
 ## Phase Breakdown
 
-### Phase 0: Stimulsoft Designer Shell
+### Phase 0: Reference Designer Shell
 
 Make the product stop feeling like a generic rough React demo. This phase changes the shell, ribbon, panels, canvas chrome, and status bar without changing report semantics.
 
-### Phase 1: Template Model V2 and JSON Dictionary
+### Phase 1: Template Model current model and JSON Dictionary
 
-Introduce a Stimulsoft-compatible template model and JSON-only data dictionary while keeping migration from the existing model possible.
+Introduce a the reference designer-compatible template model and JSON-only data dictionary while keeping migration from the existing model possible.
 
 ### Phase 2: Band Plan, Grouping, and Aggregates
 
@@ -151,7 +151,7 @@ Use one RenderDocument for preview, browser print, and PDF export. Implement com
 
 ### Phase 5: Designer Workflows
 
-Add Stimulsoft-style authoring workflows: data source wizard, band wizard, group wizard, expression editor, property grid, and preview mode integration.
+Add reference-style authoring workflows: data source wizard, band wizard, group wizard, expression editor, property grid, and preview mode integration.
 
 ### Phase 6: Examples and Regression Suite
 
@@ -162,13 +162,13 @@ Build representative templates and tests that prevent regressions in pagination,
 - Chart printing.
 - Cross-tab in the first rebuild.
 - SQL, Excel, REST, OData, or database connectors.
-- Pixel-perfect compatibility with Stimulsoft template files.
+- Pixel-perfect compatibility with the reference designer template files.
 - Importing or exporting `.mrt` files.
 
 ## Acceptance Criteria
 
 - A user can create a JSON-backed grouped report with report title, page header, table-like header, data rows, group footer totals, report summary, page footer page numbers, and print/PDF it.
 - Preview, browser print, and PDF use the same RenderDocument and show the same page breaks.
-- The designer visually resembles a serious Stimulsoft-style report designer, with ribbon, left panel, right property grid, rulers, colored bands, and status bar.
+- The designer visually resembles a serious reference-style report designer, with ribbon, left panel, right property grid, rulers, colored bands, and status bar.
 - The core engine has unit tests for band association, grouping, aggregates, and pagination edge cases.
 - The example app includes at least invoice, grouped employee list, master-detail order list, and long-text pagination templates.

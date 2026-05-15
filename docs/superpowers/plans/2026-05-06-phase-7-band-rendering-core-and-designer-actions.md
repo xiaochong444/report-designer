@@ -2,17 +2,17 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Lock Stimulsoft-style Band rendering semantics before continuing designer shortcut and table context-menu work.
+**Goal:** Lock reference-style Band rendering semantics before continuing designer shortcut and table context-menu work.
 
 **Architecture:** Treat Band rendering as a core contract owned by `@report-designer/core`. Designer operations create and edit bands, but the renderer must be validated independently through ordered logical-plan tests and paginated RenderDocument tests. Only after these core contracts pass should UI shortcut, context-menu, and table-property changes continue.
 
-**Tech Stack:** TypeScript, Vitest, React 19, Ant Design 6, Zustand, existing `renderReportV2`, `buildBandPlan`, `executeBandPlan`, and `paginateV2`.
+**Tech Stack:** TypeScript, Vitest, React 19, Ant Design 6, Zustand, existing `renderReportcurrent model`, `buildBandPlan`, `executeBandPlan`, and `paginatecurrent model`.
 
 ---
 
 ## Reference Contract
 
-Official Stimulsoft concepts used as the compatibility target:
+Official the reference designer concepts used as the compatibility target:
 
 - Standard bands include ReportTitle, ReportSummary, PageHeader, PageFooter, Header, Footer, GroupHeader, GroupFooter, ColumnHeader, ColumnFooter, Data, Child, EmptyData, and Overlay.
 - HeaderBand belongs to the nearest DataBand below it and prints before that DataBand section.
@@ -24,17 +24,17 @@ Official Stimulsoft concepts used as the compatibility target:
 
 Sources:
 
-- `https://www.stimulsoft.com/manuals/en/user-manual/report_internals_bands_band_types_standard_bands.htm`
-- `https://www.stimulsoft.com/documentation/en/user-manual/report_internals_bands_order_render.htm`
-- `https://www.stimulsoft.com/manuals/en/user-manual/report_internals_creating_master-detail_lists_headers_footers_and_masterdetail_reports.htm`
+- `https://www.reference-designer.com/manuals/en/user-manual/report_internals_bands_band_types_standard_bands.htm`
+- `https://www.reference-designer.com/documentation/en/user-manual/report_internals_bands_order_render.htm`
+- `https://www.reference-designer.com/manuals/en/user-manual/report_internals_creating_master-detail_lists_headers_footers_and_masterdetail_reports.htm`
 
 ## Current Repository Findings
 
 - Legacy Band type already has `data` and `header` in `packages/core/src/template-model/types.ts`.
-- V2 Band type already has the broader Stimulsoft-style taxonomy in `packages/core/src/template-model/v2-types.ts`.
+- Band type already has the broader reference-style taxonomy in `packages/core/src/template-model/types.ts`.
 - `buildBandPlan()` already attaches pending `header`, `groupHeader`, `columnHeader`, `footer`, `groupFooter`, `columnFooter`, `child`, and `emptyData` around the nearest `data` section.
 - `executeBandPlan()` already repeats DataBand per row and handles one group-pair layer.
-- `paginateV2()` already repeats PageHeader/PageFooter and supports repeated GroupHeader on new page.
+- `paginatecurrent model()` already repeats PageHeader/PageFooter and supports repeated GroupHeader on new page.
 - Gap: HeaderBand and ColumnHeader repeat-on-new-page behavior is not explicitly tested or implemented as a DataBand section contract.
 - Gap: Nested group execution is not tested and current implementation only executes the first `groupPairs[0]`.
 - Gap: `keepTogether`, `canBreak`, `breakIfLessThan`, and `printAtBottom` need strict rendering tests before any designer UI depends on them.
@@ -50,7 +50,7 @@ Sources:
 - Modify: `packages/core/src/band-planner/build-band-plan.ts`
 - Modify: `packages/core/src/band-planner/execute-band-plan.ts`
 - Modify: `packages/core/src/pagination/paginate-v2.ts`
-- Modify: `packages/core/src/template-model/v2-validator.ts`
+- Modify: `packages/core/src/template-model/schema.ts`
 - Modify later: `packages/designer/src/components/dialogs/BandWizardDialog.tsx`
 - Modify later: `packages/designer/src/components/Canvas.tsx`
 - Modify later: `packages/designer/src/components/PropertyEditor.tsx`
@@ -123,7 +123,7 @@ function bandTypesForData(templateBands: Parameters<typeof makeTemplate>[0], emp
     .map(item => item.band.type);
 }
 
-describe('Phase 7 Stimulsoft band rendering contract', () => {
+describe('Phase 7 the reference designer band rendering contract', () => {
   it('renders a data section in Header, ColumnHeader, GroupHeader, Data, Child, GroupFooter, ColumnFooter, Footer order', () => {
     const sequence = bandTypesForData([
       band('report-title', 'reportTitle'),
@@ -353,7 +353,7 @@ Create `packages/core/__tests__/phase-7-band-pagination-contract.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import { renderReportV2 } from '../src';
+import { renderReportcurrent model } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
 const repeatBehavior = {
@@ -366,7 +366,7 @@ const repeatBehavior = {
   printAtBottom: false,
 };
 
-describe('Phase 7 Stimulsoft band pagination contract', () => {
+describe('Phase 7 the reference designer band pagination contract', () => {
   it('repeats PageHeader and PageFooter on every page without duplicating ReportTitle or ReportSummary', () => {
     const template = makeTemplate([
       band('page-header', 'pageHeader', { height: 8 }),
@@ -378,7 +378,7 @@ describe('Phase 7 Stimulsoft band pagination contract', () => {
     template.pages[0].height = 70;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReportcurrent model(template, {
       employees: Array.from({ length: 5 }, (_, index) => ({ Name: `N${index}` })),
     });
 
@@ -400,7 +400,7 @@ describe('Phase 7 Stimulsoft band pagination contract', () => {
     template.pages[0].height = 64;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReportcurrent model(template, {
       employees: Array.from({ length: 5 }, (_, index) => ({ Name: `N${index}` })),
     });
 
@@ -430,9 +430,9 @@ Modify `packages/core/src/band-planner/band-plan.ts`:
 export type LogicalBandItem =
   | {
       kind: 'band';
-      band: ReportBandV2;
-      context: RenderContextV2;
-      repeatOnPageBreakBefore?: ReportBandV2[];
+      band: ReportBandcurrent model;
+      context: RenderContextcurrent model;
+      repeatOnPageBreakBefore?: ReportBandcurrent model[];
     }
   | { kind: 'pageBreak'; reason: string };
 ```
@@ -442,14 +442,14 @@ export type LogicalBandItem =
 In `packages/core/src/band-planner/execute-band-plan.ts`, add:
 
 ```ts
-function repeatableSectionBands(section: DataSectionPlan): ReportBandV2[] {
+function repeatableSectionBands(section: DataSectionPlan): ReportBandcurrent model[] {
   return [...section.headers, ...section.columnHeaders].filter((band) => band.behavior.printOnAllPages);
 }
 
 function createSectionBandItem(
-  band: ReportBandV2,
-  context: RenderContextV2,
-  repeatOnPageBreakBefore: ReportBandV2[],
+  band: ReportBandcurrent model,
+  context: RenderContextcurrent model,
+  repeatOnPageBreakBefore: ReportBandcurrent model[],
 ): LogicalBandItem {
   return { kind: 'band', band, context, repeatOnPageBreakBefore };
 }
@@ -462,7 +462,7 @@ When pushing `section.dataBand` or `section.childBands`, use `createSectionBandI
 In `packages/core/src/pagination/paginate-v2.ts`, keep the current PageHeader/GroupHeader logic and add a local active section repeat list:
 
 ```ts
-let activeSectionRepeatBands: ReportBandV2[] = [];
+let activeSectionRepeatBands: ReportBandcurrent model[] = [];
 ```
 
 Before placing each logical band:
@@ -512,7 +512,7 @@ Create `packages/core/__tests__/phase-7-band-break-contract.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import { renderReportV2 } from '../src';
+import { renderReportcurrent model } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
 function behavior(overrides: Partial<ReturnType<typeof band>['behavior']>) {
@@ -538,7 +538,7 @@ describe('Phase 7 band break behavior contract', () => {
     template.pages[0].height = 60;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReportcurrent model(template, {
       employees: [
         { Name: 'A', Department: 'Engineering' },
         { Name: 'B', Department: 'Engineering' },
@@ -556,7 +556,7 @@ describe('Phase 7 band break behavior contract', () => {
     template.pages[0].height = 60;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, {
+    const document = renderReportcurrent model(template, {
       employees: Array.from({ length: 3 }, (_, index) => ({ Name: `N${index}` })),
     });
 
@@ -572,7 +572,7 @@ describe('Phase 7 band break behavior contract', () => {
     template.pages[0].height = 80;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, { employees: [{ Name: 'A' }] });
+    const document = renderReportcurrent model(template, { employees: [{ Name: 'A' }] });
     const footer = document.pages[0].items.find(item => item.id === 'footer');
 
     expect(footer?.y).toBe(65);
@@ -631,14 +631,14 @@ Expected: PASS.
 
 **Files:**
 - Create or modify: `packages/core/__tests__/phase-7-band-rendering-contract.test.ts`
-- Modify: `packages/core/src/template-model/v2-validator.ts`
+- Modify: `packages/core/src/template-model/schema.ts`
 
 - [ ] **Step 1: Add validation tests**
 
 Append:
 
 ```ts
-import { validateTemplateV2 } from '../src';
+import { validateTemplatecurrent model } from '../src';
 
 it('rejects orphan HeaderBand without a following DataBand', () => {
   const template = makeTemplate([
@@ -646,7 +646,7 @@ it('rejects orphan HeaderBand without a following DataBand', () => {
     band('page-footer', 'pageFooter'),
   ]);
 
-  const result = validateTemplateV2(template);
+  const result = validateTemplatecurrent model(template);
 
   expect(result.valid).toBe(false);
   expect(result.errors.some(error => error.message.includes('HeaderBand requires a following DataBand'))).toBe(true);
@@ -657,7 +657,7 @@ it('rejects DataBand without a data source id', () => {
     band('data', 'data'),
   ]);
 
-  const result = validateTemplateV2(template);
+  const result = validateTemplatecurrent model(template);
 
   expect(result.valid).toBe(false);
   expect(result.errors.some(error => error.message.includes('DataBand requires dataBand.dataSourceId'))).toBe(true);
@@ -676,10 +676,10 @@ Expected before implementation: FAIL because validator does not enforce these tw
 
 - [ ] **Step 3: Implement validator checks**
 
-In `validatePage()` in `packages/core/src/template-model/v2-validator.ts`, track pending section bands:
+In `validatePage()` in `packages/core/src/template-model/schema.ts`, track pending section bands:
 
 ```ts
-const pendingSectionBands: ReportBandV2[] = [];
+const pendingSectionBands: ReportBandcurrent model[] = [];
 ```
 
 Inside the band loop:
@@ -741,7 +741,7 @@ import { BandWizardDialog } from '../components/dialogs/BandWizardDialog';
 import { useDesignerStore } from '../store/designer-store';
 
 describe('Phase 7 designer band contract', () => {
-  it('creates a Stimulsoft-style HeaderBand + DataBand + FooterBand section from the wizard', () => {
+  it('creates a reference-style HeaderBand + DataBand + FooterBand section from the wizard', () => {
     const template = createDefaultTemplate('Band Contract');
     template.dataSources = [{ id: 'employees', name: 'employees', type: 'json', schema: [{ name: 'name', type: 'string' }] }];
     useDesignerStore.getState().loadTemplate(template);
@@ -768,7 +768,7 @@ Expected before UI wording update: FAIL if the accessible label does not exist.
 
 - [ ] **Step 3: Update Band Wizard labels and presets**
 
-In `BandWizardDialog.tsx`, use Stimulsoft names in visible controls:
+In `BandWizardDialog.tsx`, use the reference designer names in visible controls:
 
 ```tsx
 <Radio value="header-data-footer" aria-label="HeaderBand + DataBand + FooterBand">
@@ -781,7 +781,7 @@ In `BandWizardDialog.tsx`, use Stimulsoft names in visible controls:
 
 - [ ] **Step 4: Add Band section hints on Canvas**
 
-In `Canvas.tsx`, band badges should display Stimulsoft names:
+In `Canvas.tsx`, band badges should display the reference designer names:
 
 ```ts
 const BAND_LABELS: Record<string, string> = {
@@ -1034,4 +1034,4 @@ Expected: commit succeeds after all tests pass.
 
 - Spec coverage: Band taxonomy, DataBand/HeaderBand ownership, logical execution order, empty data, grouping, nested grouping, page chrome, HeaderBand repetition, ColumnHeader repetition, KeepTogether, CanBreak, BreakIfLessThan, PrintAtBottom, designer Band UX, shortcuts, and table context-menu work are covered by tasks.
 - Placeholder scan: no `TBD`, `TODO`, `implement later`, or open-ended “write tests” steps remain.
-- Type consistency: plan uses existing `ReportBandV2`, `ReportTemplateV2`, `BandBehaviorV2`, `LogicalBandItem`, `RenderContextV2`, `renderReportV2`, `buildBandPlan`, `executeBandPlan`, and `validateTemplateV2` names from the current core package.
+- Type consistency: plan uses existing `ReportBandcurrent model`, `ReportTemplatecurrent model`, `BandBehaviorcurrent model`, `LogicalBandItem`, `RenderContextcurrent model`, `renderReportcurrent model`, `buildBandPlan`, `executeBandPlan`, and `validateTemplatecurrent model` names from the current core package.

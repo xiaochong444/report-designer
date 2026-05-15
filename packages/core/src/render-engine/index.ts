@@ -5,6 +5,7 @@ import type {
 } from '../template-model/types';
 import { evalExpression } from '../expression-engine';
 import type { EvalContext } from '../expression-engine/evaluator';
+import { applyConditionalFormatsToStyle } from '../conditional-format';
 
 /** A fully resolved/rendered component */
 export interface RenderedComponent {
@@ -34,6 +35,7 @@ export interface RenderedStyle {
   format?: TextFormatConfig;
   canGrow?: boolean;
   canShrink?: boolean;
+  enabled?: boolean;
 }
 
 export interface RenderedBand {
@@ -134,47 +136,6 @@ function componentStyleToRendered(comp: ReportComponent, templateStyles: ReportS
   };
 }
 
-/** Apply conditional rules to a component's style */
-function applyConditionalRules(
-  baseStyle: RenderedStyle,
-  formats: ConditionalFormat[],
-  comp: ReportComponent,
-  ctx: EvalContext,
-): RenderedStyle {
-  let style = { ...baseStyle };
-  for (const fmt of formats) {
-    // Check if this format applies to this component
-    if (fmt.applyTo.length > 0 && !fmt.applyTo.includes(comp.id)) {
-      continue;
-    }
-    for (const rule of fmt.rules) {
-      if (rule.expression) {
-        try {
-          const result = evalExpression(rule.expression, ctx.resolveField.bind(ctx), ctx.rowIndex, ctx.variables);
-          if (result) {
-            // Apply overrides to style
-            if (rule.overrides.font) {
-              style.font = { ...style.font, ...rule.overrides.font } as FontConfig;
-            }
-            if (rule.overrides.backgroundColor !== undefined) {
-              style.background = rule.overrides.backgroundColor;
-            }
-            if (rule.overrides.border) {
-              style.border = { ...style.border, ...rule.overrides.border } as BorderConfig;
-            }
-            if (rule.overrides.textAlign) {
-              style.textAlign = rule.overrides.textAlign;
-            }
-          }
-        } catch {
-          // Skip failed condition evaluations
-        }
-      }
-    }
-  }
-  return style;
-}
-
 /** Render a single component with expression resolution */
 function renderComponent(
   comp: ReportComponent,
@@ -183,7 +144,7 @@ function renderComponent(
   templateStyles: ReportStyle[],
 ): RenderedComponent {
   const baseStyle = componentStyleToRendered(comp, templateStyles);
-  const style = applyConditionalRules(baseStyle, formats, comp, ctx);
+  const style = applyConditionalFormatsToStyle(baseStyle, formats, comp, ctx);
 
   const rendered: RenderedComponent = {
     id: comp.id,
@@ -223,7 +184,9 @@ function renderBand(
   formats: ConditionalFormat[],
   templateStyles: ReportStyle[],
 ): RenderedBand {
-  const components = band.components.map(c => renderComponent(c, ctx, formats, templateStyles));
+  const components = band.components
+    .map(c => renderComponent(c, ctx, formats, templateStyles))
+    .filter(component => component.style.enabled !== false);
   return {
     id: band.id,
     type: band.type,

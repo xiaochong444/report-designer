@@ -1,5 +1,5 @@
 import React from 'react';
-import { Tabs, Tree, Button, Tooltip, Input } from 'antd';
+import { Tabs, Tree, Tooltip, Input } from 'antd';
 import {
   FileTextOutlined,
   DatabaseOutlined,
@@ -9,9 +9,9 @@ import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
 import type { ReportComponent, BandType } from '@report-designer/core';
 import { getBandDisplayName, getComponentNamePrefix } from '../report-structure';
-import { nanoid } from 'nanoid';
 import { useEffect, useMemo, useState } from 'react';
 import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
+import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
 
 export const LeftPanel: React.FC = () => {
   const { t } = useDesignerI18n();
@@ -52,18 +52,25 @@ export const LeftPanel: React.FC = () => {
 // ---- Component Palette ----
 
 const COMPONENT_TYPES = [
-  { type: 'text', labelKey: 'leftPanel.componentText', icon: 'T' },
-  { type: 'image', labelKey: 'leftPanel.componentImage', icon: 'I' },
-  { type: 'barcode', labelKey: 'leftPanel.componentBarcode', icon: 'B' },
-  { type: 'table', labelKey: 'leftPanel.componentTable', icon: '▦' },
-  { type: 'checkbox', labelKey: 'leftPanel.componentCheckbox', icon: '☑' },
-  { type: 'richtext', labelKey: 'leftPanel.componentRichText', icon: 'R' },
-  { type: 'subreport', labelKey: 'leftPanel.componentSubreport', icon: 'S' },
-  { type: 'panel', labelKey: 'leftPanel.componentPanel', icon: 'P' },
-  { type: 'line', labelKey: 'leftPanel.componentLine', icon: '╱' },
-  { type: 'shape', labelKey: 'leftPanel.componentShape', icon: '▭' },
-  { type: 'pagenumber', labelKey: 'leftPanel.componentPageNumber', icon: '#' },
-  { type: 'datetime', labelKey: 'leftPanel.componentDateTime', icon: 'D' },
+  { type: 'text', labelKey: 'leftPanel.componentText' },
+  { type: 'richtext', labelKey: 'leftPanel.componentRichText' },
+  { type: 'image', labelKey: 'leftPanel.componentImage' },
+  { type: 'table', labelKey: 'leftPanel.componentTable' },
+  { type: 'barcode', labelKey: 'leftPanel.componentBarcode' },
+  { type: 'checkbox', labelKey: 'leftPanel.componentCheckbox' },
+  { type: 'pagenumber', labelKey: 'leftPanel.componentPageNumber' },
+  { type: 'datetime', labelKey: 'leftPanel.componentDateTime' },
+  { type: 'line', labelKey: 'leftPanel.componentLine' },
+  { type: 'shape', labelKey: 'leftPanel.componentShape' },
+  { type: 'panel', labelKey: 'leftPanel.componentPanel' },
+  { type: 'subreport', labelKey: 'leftPanel.componentSubreport' },
+];
+
+const COMPONENT_GROUPS = [
+  { key: 'common', labelKey: 'leftPanel.groupCommon', types: ['text', 'richtext', 'image', 'table'] },
+  { key: 'data', labelKey: 'leftPanel.groupData', types: ['barcode', 'checkbox', 'pagenumber', 'datetime'] },
+  { key: 'graphics', labelKey: 'leftPanel.groupGraphics', types: ['line', 'shape', 'panel'] },
+  { key: 'advanced', labelKey: 'leftPanel.groupAdvanced', types: ['subreport'] },
 ];
 
 const ComponentPalette: React.FC = () => {
@@ -72,6 +79,7 @@ const ComponentPalette: React.FC = () => {
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const template = useDesignerStore(s => s.template);
   const zoom = useDesignerStore(s => s.zoom);
+  const [query, setQuery] = useState('');
 
   const getDropPosition = (e: React.DragEvent) => {
     const pageEl = document.querySelector('[data-page]') as HTMLElement;
@@ -119,60 +127,12 @@ const ComponentPalette: React.FC = () => {
     const fieldBindingStr = e.dataTransfer.getData('fieldBinding');
     if (fieldBindingStr) {
       try {
-        const { dataSourceId, fieldName, fieldType } = JSON.parse(fieldBindingStr);
-        let component: ReportComponent;
-
-        if (fieldType === 'boolean') {
-          component = {
-            id: `comp_checkbox_${nanoid(6)}`,
-            type: 'checkbox',
-            x: Math.round(pos.xMm * 10) / 10,
-            y: Math.round(pos.yMm * 10) / 10,
-            width: 15, height: 15,
-          } as ReportComponent;
-          addComponent(currentPageId, pos.targetBandId, component);
-          // Also set the checked binding
-          const bandId = pos.targetBandId;
-          useDesignerStore.getState().updateComponent(currentPageId, bandId, component.id, {
-            checked: `{${dataSourceId}.${fieldName}}`,
-          });
-        } else {
-          let format: any;
-          let textAlign = 'left';
-          if (fieldType === 'number') {
-            format = { type: 'number', pattern: '#,##0.00' };
-            textAlign = 'right';
-          } else if (fieldType === 'date') {
-            format = { type: 'date', pattern: 'yyyy-MM-dd' };
-          }
-          component = {
-            id: `comp_text_${nanoid(6)}`,
-            type: 'text',
-            x: Math.round(pos.xMm * 10) / 10,
-            y: Math.round(pos.yMm * 10) / 10,
-            width: 40, height: 15,
-            text: `{${dataSourceId}.${fieldName}}`,
-            font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
-            textAlign: textAlign as any,
-            verticalAlign: 'middle',
-            border: { style: 'none', width: 0, color: '#000', sides: { top: false, right: false, bottom: false, left: false } },
-            canGrow: false, canShrink: false,
-            dataSource: dataSourceId,
-            format,
-          } as any;
-          addComponent(currentPageId, pos.targetBandId, component);
-          if (fieldType === 'number' || fieldType === 'date') {
-            const state = useDesignerStore.getState();
-            state.updateComponent(
-              currentPageId,
-              pos.targetBandId,
-              component.id,
-              fieldType === 'number'
-                ? { textAlign: 'right', format }
-                : { format },
-            );
-          }
-        }
+        const field = JSON.parse(fieldBindingStr);
+        addComponent(
+          currentPageId,
+          pos.targetBandId,
+          createFieldExpressionComponent(field, pos.xMm, pos.yMm),
+        );
         return;
       } catch { /* fall through to component type handling */ }
     }
@@ -181,8 +141,7 @@ const ComponentPalette: React.FC = () => {
     const type = e.dataTransfer.getData('componentType');
     if (!type) return;
 
-    const component = createDefaultComponent(type, pos.xMm, pos.yMm);
-    addComponent(currentPageId, pos.targetBandId, component);
+    addComponent(currentPageId, pos.targetBandId, createDefaultComponent(type, pos.xMm, pos.yMm));
   };
 
   const handleDragOver = (e: React.DragEvent) => {
@@ -190,92 +149,63 @@ const ComponentPalette: React.FC = () => {
     e.dataTransfer.dropEffect = 'copy';
   };
 
+  const normalizedQuery = query.trim().toLowerCase();
+  const componentByType = new Map(COMPONENT_TYPES.map(item => [item.type, item]));
+
   return (
-    <div style={{ padding: 8 }} onDrop={handleDropOnCanvas} onDragOver={handleDragOver}>
-      <div style={{ fontSize: 11, color: '#6b7280', marginBottom: 8 }}>{t('leftPanel.componentsHint')}</div>
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-        gap: 6,
-      }}>
-        {COMPONENT_TYPES.map(item => {
-          const label = t(item.labelKey as DesignerMessageKey);
+    <div className="rd-component-palette" data-testid="component-palette" onDrop={handleDropOnCanvas} onDragOver={handleDragOver}>
+      <Input.Search
+        allowClear
+        size="small"
+        placeholder={t('leftPanel.searchComponents')}
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+        className="rd-component-palette-search"
+      />
+      <div className="rd-component-palette-hint">{t('leftPanel.componentsHint')}</div>
+      <div className="rd-component-palette-groups">
+        {COMPONENT_GROUPS.map(group => {
+          const items = group.types
+            .map(type => componentByType.get(type))
+            .filter((item): item is (typeof COMPONENT_TYPES)[number] => Boolean(item))
+            .filter(item => {
+              const label = t(item.labelKey as DesignerMessageKey).toLowerCase();
+              return !normalizedQuery || label.includes(normalizedQuery) || item.type.includes(normalizedQuery);
+            });
+          if (items.length === 0) return null;
+
           return (
-          <Tooltip key={item.type} title={label}>
-            <div
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('componentType', item.type);
-                e.dataTransfer.effectAllowed = 'copy';
-              }}
-              style={{ cursor: 'grab' }}
-            >
-              <Button
-                size="small"
-                style={{
-                  height: 52,
-                  fontSize: 15,
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 2,
-                  width: '100%',
-                }}
-              >
-                <span>{item.icon}</span>
-                <span style={{ fontSize: 10, lineHeight: 1.1 }}>{label}</span>
-              </Button>
-            </div>
-          </Tooltip>
+            <section key={group.key} className="rd-component-palette-group" data-testid={`component-palette-group-${group.key}`}>
+              <div className="rd-component-palette-group-title">{t(group.labelKey as DesignerMessageKey)}</div>
+              <div className="rd-component-toolbox-grid">
+                {items.map(item => {
+                  const label = t(item.labelKey as DesignerMessageKey);
+                  return (
+                    <Tooltip key={item.type} title={label} mouseEnterDelay={0.4}>
+                      <button
+                        type="button"
+                        className="rd-component-toolbox-item"
+                        data-testid={`component-palette-item-${item.type}`}
+                        draggable
+                        onDragStart={(e) => {
+                          e.dataTransfer.setData('componentType', item.type);
+                          e.dataTransfer.effectAllowed = 'copy';
+                        }}
+                      >
+                        <span className={`rd-report-tree-glyph rd-report-tree-glyph-${item.type}`} aria-hidden />
+                        <span className="rd-component-toolbox-label">{label}</span>
+                      </button>
+                    </Tooltip>
+                  );
+                })}
+              </div>
+            </section>
           );
         })}
       </div>
     </div>
   );
 };
-
-function createDefaultComponent(type: string, xMm: number, yMm: number): ReportComponent {
-  const id = `comp_${type}_${nanoid(6)}`;
-  const x = Math.round(xMm * 10) / 10;
-  const y = Math.round(yMm * 10) / 10;
-
-  switch (type) {
-    case 'text':
-      return {
-        id, type: 'text', x, y, width: 40, height: 15, style: '',
-        text: '{Field}',
-        font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
-        textAlign: 'left', verticalAlign: 'middle',
-        border: { style: 'none', width: 0, color: '#000', sides: { top: false, right: false, bottom: false, left: false } },
-        canGrow: false, canShrink: false,
-      } as ReportComponent;
-    case 'image':
-      return { id, type: 'image', x, y, width: 30, height: 30, style: '', src: '', fitMode: 'contain' } as ReportComponent;
-    case 'barcode':
-      return { id, type: 'barcode', x, y, width: 30, height: 30, style: '', value: '123456', format: 'CODE128', showText: true } as ReportComponent;
-    case 'table':
-      return { id, type: 'table', x, y, width: 100, height: 50, style: '', dataSource: '', columns: [], headerHeight: 20, rowHeight: 20, showBorder: true } as ReportComponent;
-    case 'checkbox':
-      return { id, type: 'checkbox', x, y, width: 15, height: 15, style: '' } as ReportComponent;
-    case 'richtext':
-      return { id, type: 'richtext', x, y, width: 60, height: 20, style: '', html: '<p>Rich text</p>' } as ReportComponent;
-    case 'subreport':
-      return { id, type: 'subreport', x, y, width: 80, height: 60, style: '', templateUrl: '', parameters: {} } as ReportComponent;
-    case 'panel':
-      return { id, type: 'panel', x, y, width: 60, height: 40, style: '', components: [], border: { style: 'none', width: 0, color: '#000', sides: { top: false, right: false, bottom: false, left: false } } } as ReportComponent;
-    case 'line':
-      return { id, type: 'line', x, y, width: 50, height: 10, startX: 0, startY: 0, endX: 50, endY: 0, lineColor: '#000000', lineWidth: 0.2, lineStyle: 'solid' } as ReportComponent;
-    case 'shape':
-      return { id, type: 'shape', x, y, width: 30, height: 30, shapeType: 'rectangle', fillColor: 'transparent', borderColor: '#000000', borderWidth: 0.2, borderStyle: 'solid' } as ReportComponent;
-    case 'pagenumber':
-      return { id, type: 'pagenumber', x, y, width: 30, height: 15, format: '1/N', font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' }, textAlign: 'center' } as ReportComponent;
-    case 'datetime':
-      return { id, type: 'datetime', x, y, width: 50, height: 15, format: 'yyyy-MM-dd', font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' }, textAlign: 'left' } as ReportComponent;
-    default:
-      return { id, type: 'text', x, y, width: 30, height: 20, style: '', text: '', font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000' }, textAlign: 'left', verticalAlign: 'middle', border: { style: 'none', width: 0, color: '#000', sides: { top: false, right: false, bottom: false, left: false } }, canGrow: false, canShrink: false } as ReportComponent;
-  }
-}
 
 // ---- Data Dictionary ----
 

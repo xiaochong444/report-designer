@@ -1,6 +1,6 @@
 # 报表设计器系统设计文档
 
-> 对标 Stimulsoft Reports，基于 React + Ant Design 6 的商业级报表打印组件系统。
+> 对标 the reference report designer，基于 React + Ant Design 6 的商业级报表打印组件系统。
 
 ## 决策记录
 

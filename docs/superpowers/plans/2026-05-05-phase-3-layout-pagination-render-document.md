@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace height-only pagination with Stimulsoft-style page-aware layout and produce a final RenderDocument shared by preview, print, and export.
+**Goal:** Replace height-only pagination with reference-style page-aware layout and produce a final RenderDocument shared by preview, print, and export.
 
 **Architecture:** Logical band items from Phase 2 are measured and placed by layout passes. Pagination owns page headers, page footers, repeated group/header behavior, bottom footers, and total page calculation.
 
@@ -29,7 +29,7 @@
 
 - [ ] **Step 1: Write RenderDocument shape tests**
 
-Assert `renderReportV2()` returns:
+Assert `renderReportcurrent model()` returns:
 
 ```ts
 {
@@ -96,7 +96,7 @@ Cases:
 - GroupHeader repeats on new page when configured.
 - GroupFooter stays with final group row when possible.
 
-- [ ] **Step 2: Implement `paginateV2()`**
+- [ ] **Step 2: Implement `paginatecurrent model()`**
 
 Algorithm:
 

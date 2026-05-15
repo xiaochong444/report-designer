@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import { Button, Tooltip } from 'antd';
 import { DesignerCanvasFrame } from '../canvas/DesignerCanvasFrame';
+import { ConditionalFormatManager } from '../ConditionalFormatManager';
 import { TextStyleLibraryDialog } from '../TextStyleLibraryDialog';
 import { DesignerLeftPanel } from '../panels/DesignerLeftPanel';
 import { DesignerPropertyPanel } from '../panels/DesignerPropertyPanel';
@@ -30,6 +31,8 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className }) => {
   const canRedo = useDesignerStore(s => s.canRedo);
   const textStyleLibraryOpen = useDesignerStore(s => s.textStyleLibraryOpen);
   const closeTextStyleLibrary = useDesignerStore(s => s.closeTextStyleLibrary);
+  const conditionalFormatLibraryOpen = useDesignerStore(s => s.conditionalFormatLibraryOpen);
+  const closeConditionalFormatLibrary = useDesignerStore(s => s.closeConditionalFormatLibrary);
 
   return (
     <div className={className ? `rd-designer-shell ${className}` : 'rd-designer-shell'}>
@@ -42,6 +45,7 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className }) => {
       </div>
       <DesignerStatusBar />
       <TextStyleLibraryDialog open={textStyleLibraryOpen} onClose={closeTextStyleLibrary} />
+      <ConditionalFormatManager open={conditionalFormatLibraryOpen} onClose={closeConditionalFormatLibrary} />
     </div>
   );
 };

@@ -91,15 +91,18 @@ function textComponents() {
 }
 
 describe('Phase 9 text binding and style UI', () => {
-  it('binds selected text to a data field from the property panel', async () => {
+  it('stores text binding as a single text content expression in the property panel', async () => {
     loadText();
     render(<PropertyEditor />);
 
-    fireEvent.mouseDown(screen.getByLabelText('绑定字段'));
-    fireEvent.click(await screen.findByText('Salary'));
+    fireEvent.change(screen.getByLabelText('文本内容'), {
+      target: { value: '{employees.Salary}' },
+    });
 
     expect(selectedText().text).toBe('{employees.Salary}');
-    expect(selectedText().dataSource).toBe('employees');
+    expect(selectedText().dataSource).toBeUndefined();
+    expect(screen.queryByLabelText('绑定字段')).not.toBeInTheDocument();
+    expect(screen.queryByText('数据绑定')).not.toBeInTheDocument();
   });
 
   it('applies a named style set and locks style-managed format properties in the property panel', async () => {
@@ -112,8 +115,9 @@ describe('Phase 9 text binding and style UI', () => {
     await waitFor(() => expect(selectedText().style).toBe('total-style'));
     expect(selectedText().font.bold).toBe(true);
     expect(selectedText().backgroundColor).toBe('#fff7e6');
-    expect(selectedText().format).toEqual({ type: 'none', pattern: '', nullValue: '', trueText: '', falseText: '' });
-    expect(screen.getByLabelText('格式模式')).toBeDisabled();
+    expect(selectedText().format).toMatchObject({ type: 'none', pattern: '', nullValue: '', trueText: '', falseText: '' });
+    expect(screen.getByLabelText('格式类型')).toHaveAttribute('aria-disabled', 'true');
+    expect(screen.queryByLabelText('格式模式')).not.toBeInTheDocument();
     expect(selectedText().styleBindings).toEqual(expect.arrayContaining([
       'font.family',
       'font.size',
@@ -129,6 +133,7 @@ describe('Phase 9 text binding and style UI', () => {
       'padding.right',
       'format.type',
       'format.pattern',
+      'format.decimalDigits',
     ]));
   });
 
@@ -197,19 +202,21 @@ describe('Phase 9 text binding and style UI', () => {
 
     expect(salaryText.style).toBe('default-style');
     expect(salaryText.textAlign).toBe('center');
-    expect(salaryText.format).toEqual({ type: 'currency', pattern: 'C2', nullValue: 'n/a', trueText: '', falseText: '' });
+    expect(salaryText.format).toMatchObject({ type: 'currency', pattern: 'C2', nullValue: 'n/a', trueText: '', falseText: '' });
     expect(salaryText.styleBindings).toEqual(expect.arrayContaining([
       'textAlign',
       'format.type',
       'format.pattern',
+      'format.decimalDigits',
       'format.nullValue',
     ]));
 
     expect(hireDateText.style).toBe('default-style');
-    expect(hireDateText.format).toEqual({ type: 'currency', pattern: 'C2', nullValue: 'n/a', trueText: '', falseText: '' });
+    expect(hireDateText.format).toMatchObject({ type: 'currency', pattern: 'C2', nullValue: 'n/a', trueText: '', falseText: '' });
     expect(hireDateText.styleBindings).toEqual(expect.arrayContaining([
       'format.type',
       'format.pattern',
+      'format.decimalDigits',
       'format.nullValue',
     ]));
 
@@ -222,8 +229,8 @@ describe('Phase 9 text binding and style UI', () => {
     });
 
     expect(textComponents()[0].textAlign).toBe('left');
-    expect(textComponents()[0].format).toEqual({ type: 'percent', pattern: 'P2', nullValue: '--', trueText: '', falseText: '' });
-    expect(textComponents()[1].format).toEqual({ type: 'percent', pattern: 'P2', nullValue: '--', trueText: '', falseText: '' });
+    expect(textComponents()[0].format).toMatchObject({ type: 'percent', pattern: 'P2', nullValue: '--', trueText: '', falseText: '' });
+    expect(textComponents()[1].format).toMatchObject({ type: 'percent', pattern: 'P2', nullValue: '--', trueText: '', falseText: '' });
 
     cleanupSurface();
   });

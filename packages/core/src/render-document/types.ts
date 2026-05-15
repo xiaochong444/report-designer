@@ -52,14 +52,32 @@ export interface RenderText extends RenderComponentBase {
 export interface RenderImage extends RenderComponentBase {
   type: 'image';
   src: string;
+  fitMode?: 'fill' | 'contain' | 'cover' | 'stretch';
+}
+
+export interface RenderRichText extends RenderComponentBase {
+  type: 'richtext';
+  html: string;
 }
 
 export interface RenderLine extends RenderComponentBase {
   type: 'line';
+  startX?: number;
+  startY?: number;
+  endX?: number;
+  endY?: number;
+  lineColor?: string;
+  lineWidth?: number;
+  lineStyle?: 'solid' | 'dashed' | 'dotted';
 }
 
 export interface RenderShape extends RenderComponentBase {
   type: 'shape';
+  shapeType?: 'rectangle' | 'ellipse' | 'roundRect' | 'triangle';
+  fillColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  borderStyle?: 'solid' | 'dashed' | 'dotted';
 }
 
 export interface RenderCheckbox extends RenderComponentBase {
@@ -71,11 +89,14 @@ export interface RenderCheckbox extends RenderComponentBase {
 export interface RenderBarcode extends RenderComponentBase {
   type: 'barcode';
   value: string;
+  format?: string;
+  showText?: boolean;
 }
 
 export type RenderComponentBox =
   | RenderText
   | RenderImage
+  | RenderRichText
   | RenderLine
   | RenderShape
   | RenderCheckbox

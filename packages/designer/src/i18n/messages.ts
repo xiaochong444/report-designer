@@ -42,6 +42,7 @@ export type DesignerMessageKey =
   | 'ribbon.deleteSelected'
   | 'ribbon.allBorders'
   | 'ribbon.styleDesigner'
+  | 'ribbon.conditionalFormats'
   | 'ribbon.jsonDataSource'
   | 'ribbon.bandWizard'
   | 'ribbon.groupWizard'
@@ -124,6 +125,58 @@ export type DesignerMessageKey =
   | 'styleLibrary.formatPercent'
   | 'styleLibrary.formatBoolean'
   | 'styleLibrary.formatCustom'
+  | 'formatEditor.type'
+  | 'formatEditor.preview'
+  | 'formatEditor.settings'
+  | 'formatEditor.none'
+  | 'formatEditor.text'
+  | 'formatEditor.number'
+  | 'formatEditor.currency'
+  | 'formatEditor.date'
+  | 'formatEditor.time'
+  | 'formatEditor.dateTime'
+  | 'formatEditor.percent'
+  | 'formatEditor.boolean'
+  | 'formatEditor.custom'
+  | 'formatEditor.pattern'
+  | 'formatEditor.decimalDigits'
+  | 'formatEditor.decimalSeparator'
+  | 'formatEditor.useGroupSeparator'
+  | 'formatEditor.groupSeparator'
+  | 'formatEditor.groupSize'
+  | 'formatEditor.useAbbreviation'
+  | 'formatEditor.positivePattern'
+  | 'formatEditor.positivePlain'
+  | 'formatEditor.positivePlus'
+  | 'formatEditor.negativePattern'
+  | 'formatEditor.negativeMinus'
+  | 'formatEditor.negativeParentheses'
+  | 'formatEditor.currencySymbol'
+  | 'formatEditor.currencySymbolPosition'
+  | 'formatEditor.prefix'
+  | 'formatEditor.suffix'
+  | 'formatEditor.currencySpace'
+  | 'formatEditor.percentMultiplier'
+  | 'formatEditor.percentFraction'
+  | 'formatEditor.percentWhole'
+  | 'formatEditor.percentSymbol'
+  | 'formatEditor.percentSymbolPosition'
+  | 'formatEditor.percentSpace'
+  | 'formatEditor.dateFormat'
+  | 'formatEditor.timeFormat'
+  | 'formatEditor.transform'
+  | 'formatEditor.transformNone'
+  | 'formatEditor.uppercase'
+  | 'formatEditor.lowercase'
+  | 'formatEditor.capitalize'
+  | 'formatEditor.trimText'
+  | 'formatEditor.nullValue'
+  | 'formatEditor.trueText'
+  | 'formatEditor.falseText'
+  | 'formatEditor.trueValues'
+  | 'formatEditor.falseValues'
+  | 'formatEditor.booleanValuesPlaceholder'
+  | 'formatEditor.noValuePlaceholder'
   | 'styleLibrary.borderNone'
   | 'styleLibrary.borderSolid'
   | 'styleLibrary.borderDashed'
@@ -147,6 +200,10 @@ export type DesignerMessageKey =
   | 'leftPanel.componentShape'
   | 'leftPanel.componentPageNumber'
   | 'leftPanel.componentDateTime'
+  | 'leftPanel.groupCommon'
+  | 'leftPanel.groupData'
+  | 'leftPanel.groupGraphics'
+  | 'leftPanel.groupAdvanced'
   | 'leftPanel.searchComponents'
   | 'leftPanel.searchDictionary'
   | 'leftPanel.dataSources'
@@ -223,6 +280,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.deleteSelected': '删除选中对象',
     'ribbon.allBorders': '全部边框',
     'ribbon.styleDesigner': '样式设计器',
+    'ribbon.conditionalFormats': '条件格式',
     'ribbon.jsonDataSource': 'JSON 数据源',
     'ribbon.bandWizard': '带区向导',
     'ribbon.groupWizard': '分组向导',
@@ -305,6 +363,58 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.formatPercent': '百分比',
     'styleLibrary.formatBoolean': '布尔值',
     'styleLibrary.formatCustom': '自定义',
+    'formatEditor.type': '格式类型',
+    'formatEditor.preview': '预览',
+    'formatEditor.settings': '设置',
+    'formatEditor.none': '无格式',
+    'formatEditor.text': '文本',
+    'formatEditor.number': '数字',
+    'formatEditor.currency': '货币',
+    'formatEditor.date': '日期',
+    'formatEditor.time': '时间',
+    'formatEditor.dateTime': '日期时间',
+    'formatEditor.percent': '百分比',
+    'formatEditor.boolean': '布尔值',
+    'formatEditor.custom': '自定义',
+    'formatEditor.pattern': '格式模式',
+    'formatEditor.decimalDigits': '小数位数',
+    'formatEditor.decimalSeparator': '小数分隔符',
+    'formatEditor.useGroupSeparator': '使用分组分隔符',
+    'formatEditor.groupSeparator': '分组分隔符',
+    'formatEditor.groupSize': '分组大小',
+    'formatEditor.useAbbreviation': '数字缩写',
+    'formatEditor.positivePattern': '正数格式',
+    'formatEditor.positivePlain': '1234',
+    'formatEditor.positivePlus': '+1234',
+    'formatEditor.negativePattern': '负数格式',
+    'formatEditor.negativeMinus': '-1234',
+    'formatEditor.negativeParentheses': '(1234)',
+    'formatEditor.currencySymbol': '货币符号',
+    'formatEditor.currencySymbolPosition': '符号位置',
+    'formatEditor.prefix': '前缀',
+    'formatEditor.suffix': '后缀',
+    'formatEditor.currencySpace': '符号空格',
+    'formatEditor.percentMultiplier': '百分比输入',
+    'formatEditor.percentFraction': '0.25 显示 25%',
+    'formatEditor.percentWhole': '25 显示 25%',
+    'formatEditor.percentSymbol': '百分比符号',
+    'formatEditor.percentSymbolPosition': '符号位置',
+    'formatEditor.percentSpace': '符号空格',
+    'formatEditor.dateFormat': '日期格式',
+    'formatEditor.timeFormat': '时间格式',
+    'formatEditor.transform': '文本转换',
+    'formatEditor.transformNone': '不转换',
+    'formatEditor.uppercase': '大写',
+    'formatEditor.lowercase': '小写',
+    'formatEditor.capitalize': '首字母大写',
+    'formatEditor.trimText': '去除首尾空格',
+    'formatEditor.nullValue': '空值文本',
+    'formatEditor.trueText': '真值文本',
+    'formatEditor.falseText': '假值文本',
+    'formatEditor.trueValues': '真值输入',
+    'formatEditor.falseValues': '假值输入',
+    'formatEditor.booleanValuesPlaceholder': '多个值用逗号分隔',
+    'formatEditor.noValuePlaceholder': '空值时显示',
     'styleLibrary.borderNone': '无',
     'styleLibrary.borderSolid': '实线',
     'styleLibrary.borderDashed': '虚线',
@@ -328,6 +438,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.componentShape': '形状',
     'leftPanel.componentPageNumber': '页码',
     'leftPanel.componentDateTime': '日期时间',
+    'leftPanel.groupCommon': '常用',
+    'leftPanel.groupData': '数据',
+    'leftPanel.groupGraphics': '图形',
+    'leftPanel.groupAdvanced': '高级',
     'leftPanel.searchComponents': '搜索组件',
     'leftPanel.searchDictionary': '搜索数据源和字段',
     'leftPanel.dataSources': '数据源',
@@ -401,6 +515,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.deleteSelected': 'Delete selected objects',
     'ribbon.allBorders': 'All borders',
     'ribbon.styleDesigner': 'Style Designer',
+    'ribbon.conditionalFormats': 'Conditional Formats',
     'ribbon.jsonDataSource': 'JSON data source',
     'ribbon.bandWizard': 'Band wizard',
     'ribbon.groupWizard': 'Group wizard',
@@ -483,6 +598,58 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.formatPercent': 'Percent',
     'styleLibrary.formatBoolean': 'Boolean',
     'styleLibrary.formatCustom': 'Custom',
+    'formatEditor.type': 'Format Type',
+    'formatEditor.preview': 'Preview',
+    'formatEditor.settings': 'Settings',
+    'formatEditor.none': 'None',
+    'formatEditor.text': 'Text',
+    'formatEditor.number': 'Number',
+    'formatEditor.currency': 'Currency',
+    'formatEditor.date': 'Date',
+    'formatEditor.time': 'Time',
+    'formatEditor.dateTime': 'Date/Time',
+    'formatEditor.percent': 'Percent',
+    'formatEditor.boolean': 'Boolean',
+    'formatEditor.custom': 'Custom',
+    'formatEditor.pattern': 'Pattern',
+    'formatEditor.decimalDigits': 'Decimal digits',
+    'formatEditor.decimalSeparator': 'Decimal separator',
+    'formatEditor.useGroupSeparator': 'Use group separator',
+    'formatEditor.groupSeparator': 'Group separator',
+    'formatEditor.groupSize': 'Group size',
+    'formatEditor.useAbbreviation': 'Abbreviation',
+    'formatEditor.positivePattern': 'Positive format',
+    'formatEditor.positivePlain': '1234',
+    'formatEditor.positivePlus': '+1234',
+    'formatEditor.negativePattern': 'Negative format',
+    'formatEditor.negativeMinus': '-1234',
+    'formatEditor.negativeParentheses': '(1234)',
+    'formatEditor.currencySymbol': 'Currency symbol',
+    'formatEditor.currencySymbolPosition': 'Symbol position',
+    'formatEditor.prefix': 'Prefix',
+    'formatEditor.suffix': 'Suffix',
+    'formatEditor.currencySpace': 'Symbol space',
+    'formatEditor.percentMultiplier': 'Percent input',
+    'formatEditor.percentFraction': '0.25 shows 25%',
+    'formatEditor.percentWhole': '25 shows 25%',
+    'formatEditor.percentSymbol': 'Percent symbol',
+    'formatEditor.percentSymbolPosition': 'Symbol position',
+    'formatEditor.percentSpace': 'Symbol space',
+    'formatEditor.dateFormat': 'Date format',
+    'formatEditor.timeFormat': 'Time format',
+    'formatEditor.transform': 'Text transform',
+    'formatEditor.transformNone': 'No transform',
+    'formatEditor.uppercase': 'Uppercase',
+    'formatEditor.lowercase': 'Lowercase',
+    'formatEditor.capitalize': 'Capitalize',
+    'formatEditor.trimText': 'Trim text',
+    'formatEditor.nullValue': 'Null text',
+    'formatEditor.trueText': 'True text',
+    'formatEditor.falseText': 'False text',
+    'formatEditor.trueValues': 'True inputs',
+    'formatEditor.falseValues': 'False inputs',
+    'formatEditor.booleanValuesPlaceholder': 'Separate multiple values with commas',
+    'formatEditor.noValuePlaceholder': 'Text for null values',
     'styleLibrary.borderNone': 'None',
     'styleLibrary.borderSolid': 'Solid',
     'styleLibrary.borderDashed': 'Dashed',
@@ -506,6 +673,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.componentShape': 'Shape',
     'leftPanel.componentPageNumber': 'Page #',
     'leftPanel.componentDateTime': 'Date/Time',
+    'leftPanel.groupCommon': 'Common',
+    'leftPanel.groupData': 'Data',
+    'leftPanel.groupGraphics': 'Graphics',
+    'leftPanel.groupAdvanced': 'Advanced',
     'leftPanel.searchComponents': 'Search components',
     'leftPanel.searchDictionary': 'Search data sources and fields',
     'leftPanel.dataSources': 'Data sources',

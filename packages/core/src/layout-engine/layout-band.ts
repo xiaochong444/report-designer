@@ -2,7 +2,20 @@ import { evalExpression } from '../expression-engine/evaluator';
 import { AggregateRuntime } from '../aggregate-engine';
 import type { RenderContext } from '../band-planner/band-plan';
 import type { RenderBandBox, RenderComponentBox } from '../render-document/types';
-import type { Band, ReportComponent, ReportStyle, TextComponent } from '../template-model/types';
+import type {
+  Band,
+  BarcodeComponent,
+  CheckboxComponent,
+  DateTimeComponent,
+  ImageComponent,
+  LineComponent,
+  PageNumberComponent,
+  ReportComponent,
+  ReportStyle,
+  RichtextComponent,
+  ShapeComponent,
+  TextComponent,
+} from '../template-model/types';
 import { formatValue } from '../text-format';
 import { measureTextBox } from './measure';
 
@@ -58,6 +71,136 @@ function layoutComponent(component: ReportComponent, band: Band, options: Layout
     };
   }
 
+  if (component.type === 'image') {
+    const imageComponent = component as ImageComponent;
+    return {
+      id: component.id,
+      type: 'image',
+      x: options.x + component.x,
+      y: options.y + component.y,
+      width: component.width,
+      height: component.height,
+      src: resolveTemplateValue(imageComponent.src, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
+      fitMode: imageComponent.fitMode,
+    };
+  }
+
+  if (component.type === 'richtext') {
+    const richTextComponent = component as RichtextComponent;
+    return {
+      id: component.id,
+      type: 'richtext',
+      x: options.x + component.x,
+      y: options.y + component.y,
+      width: component.width,
+      height: component.height,
+      html: resolveRichText(richTextComponent, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
+    };
+  }
+
+  if (component.type === 'barcode') {
+    const barcodeComponent = component as BarcodeComponent;
+    return {
+      id: component.id,
+      type: 'barcode',
+      x: options.x + component.x,
+      y: options.y + component.y,
+      width: component.width,
+      height: component.height,
+      value: resolveTemplateValue(barcodeComponent.value, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
+      format: barcodeComponent.format,
+      showText: barcodeComponent.showText,
+    };
+  }
+
+  if (component.type === 'checkbox') {
+    const checkboxComponent = component as CheckboxComponent;
+    return {
+      id: component.id,
+      type: 'checkbox',
+      x: options.x + component.x,
+      y: options.y + component.y,
+      width: component.width,
+      height: component.height,
+      checked: resolveTemplateBoolean(checkboxComponent.checked, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
+      label: checkboxComponent.label
+        ? resolveTemplateValue(checkboxComponent.label, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {})
+        : undefined,
+    };
+  }
+
+  if (component.type === 'line') {
+    const lineComponent = component as LineComponent;
+    return {
+      id: component.id,
+      type: 'line',
+      x: options.x + component.x,
+      y: options.y + component.y,
+      width: component.width,
+      height: component.height,
+      startX: lineComponent.startX,
+      startY: lineComponent.startY,
+      endX: lineComponent.endX,
+      endY: lineComponent.endY,
+      lineColor: lineComponent.lineColor,
+      lineWidth: lineComponent.lineWidth,
+      lineStyle: lineComponent.lineStyle,
+    };
+  }
+
+  if (component.type === 'shape') {
+    const shapeComponent = component as ShapeComponent;
+    return {
+      id: component.id,
+      type: 'shape',
+      x: options.x + component.x,
+      y: options.y + component.y,
+      width: component.width,
+      height: component.height,
+      shapeType: shapeComponent.shapeType,
+      fillColor: shapeComponent.fillColor,
+      borderColor: shapeComponent.borderColor,
+      borderWidth: shapeComponent.borderWidth,
+      borderStyle: shapeComponent.borderStyle,
+    };
+  }
+
+  if (component.type === 'pagenumber') {
+    const pageNumberComponent = component as PageNumberComponent;
+    return {
+      id: component.id,
+      type: 'text',
+      x: options.x + component.x,
+      y: options.y + component.y,
+      width: component.width,
+      height: component.height,
+      content: pageNumberContent(pageNumberComponent.format),
+      style: {
+        font: pageNumberComponent.font,
+        textAlign: pageNumberComponent.textAlign,
+        verticalAlign: 'middle',
+      },
+    };
+  }
+
+  if (component.type === 'datetime') {
+    const dateTimeComponent = component as DateTimeComponent;
+    return {
+      id: component.id,
+      type: 'text',
+      x: options.x + component.x,
+      y: options.y + component.y,
+      width: component.width,
+      height: component.height,
+      content: formatDateTime(new Date(), dateTimeComponent.format),
+      style: {
+        font: dateTimeComponent.font,
+        textAlign: dateTimeComponent.textAlign,
+        verticalAlign: 'middle',
+      },
+    };
+  }
+
   return {
     id: component.id,
     type: component.type,
@@ -66,6 +209,44 @@ function layoutComponent(component: ReportComponent, band: Band, options: Layout
     width: component.width,
     height: component.height,
   };
+}
+
+function resolveTemplateBoolean(
+  value: string,
+  context: RenderContext,
+  rowsByBand: Record<string, Record<string, unknown>[]>,
+  pageRowsByBand: Record<string, Record<string, unknown>[]>,
+): boolean {
+  const resolved = resolveTemplateValue(value, context, rowsByBand, pageRowsByBand).trim().toLowerCase();
+  if (['true', '1', 'yes', 'y'].includes(resolved)) return true;
+  if (['false', '0', 'no', 'n', ''].includes(resolved)) return false;
+  return Boolean(resolved);
+}
+
+function pageNumberContent(format: PageNumberComponent['format']): string {
+  switch (format) {
+    case '1':
+      return '{PageNumber}';
+    case 'Page 1':
+      return 'Page {PageNumber}';
+    case 'Page 1 of N':
+      return 'Page {PageNumber} of {TotalPages}';
+    case '1/N':
+    default:
+      return '{PageNumber}/{TotalPages}';
+  }
+}
+
+function formatDateTime(date: Date, pattern: string): string {
+  const parts: Record<string, string> = {
+    yyyy: String(date.getFullYear()).padStart(4, '0'),
+    MM: String(date.getMonth() + 1).padStart(2, '0'),
+    dd: String(date.getDate()).padStart(2, '0'),
+    HH: String(date.getHours()).padStart(2, '0'),
+    mm: String(date.getMinutes()).padStart(2, '0'),
+    ss: String(date.getSeconds()).padStart(2, '0'),
+  };
+  return pattern.replace(/yyyy|MM|dd|HH|mm|ss/g, token => parts[token] ?? token);
 }
 
 function resolveText(
@@ -93,6 +274,58 @@ function resolveText(
     return formatValue(value, component.format);
   } catch {
     return component.text;
+  }
+}
+
+function resolveRichText(
+  component: RichtextComponent,
+  context: RenderContext,
+  rowsByBand: Record<string, Record<string, unknown>[]>,
+  pageRowsByBand: Record<string, Record<string, unknown>[]>,
+): string {
+  return resolveTemplateValue(component.html, context, rowsByBand, pageRowsByBand);
+}
+
+function resolveTemplateValue(
+  value: string,
+  context: RenderContext,
+  rowsByBand: Record<string, Record<string, unknown>[]>,
+  pageRowsByBand: Record<string, Record<string, unknown>[]>,
+): string {
+  if (!value.includes('{') && !value.includes('(') && !value.includes('=')) {
+    return value;
+  }
+
+  const placeholderPattern = /\{([^{}]+)\}/g;
+  const isSinglePlaceholder = value.trim().match(/^\{([^{}]+)\}$/);
+  if (!isSinglePlaceholder && placeholderPattern.test(value)) {
+    return value.replace(/\{([^{}]+)\}/g, (match, expressionBody) => {
+      try {
+        const result = evalExpression(
+          `{${expressionBody}}`,
+          (source, field) => resolveField(context, source, field),
+          context.rowIndex,
+          { row: context.row, groupValues: context.groupValues },
+          new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand, pageRowsByBand }),
+        );
+        return result == null ? '' : String(result);
+      } catch {
+        return match;
+      }
+    });
+  }
+
+  try {
+    const result = evalExpression(
+      value,
+      (source, field) => resolveField(context, source, field),
+      context.rowIndex,
+      { row: context.row, groupValues: context.groupValues },
+      new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand, pageRowsByBand }),
+    );
+    return result == null ? '' : String(result);
+  } catch {
+    return value;
   }
 }
 

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Bring the designer shell closer to the Stimulsoft workflow by cleaning up the left explorer, adding paper presets and report units, fixing zoom/ruler alignment, and making all examples default to A4.
+**Goal:** Bring the designer shell closer to the the reference designer workflow by cleaning up the left explorer, adding paper presets and report units, fixing zoom/ruler alignment, and making all examples default to A4.
 
 **Architecture:** Keep all stored coordinates in millimeters and introduce a designer-only unit preference for UI conversion. Derive paper presets from page width and height instead of mutating the template schema. Split raw paper size from scaled paper size in the canvas so the page shell, printable grid, and rulers stay aligned at any zoom level.
 
@@ -63,9 +63,9 @@ Expected: still FAIL, but now only on the missing UI and canvas implementation d
 ### Task 3: Rebuild page settings and property editors around paper presets and units
 
 **Files:**
-- Modify: `packages/designer/src/components/panels/StimulsoftPropertyGrid.tsx`
+- Modify: `packages/designer/src/components/panels/the reference designerPropertyGrid.tsx`
 - Modify: `packages/designer/src/components/dialogs/PageSetupDialog.tsx`
-- Modify: `packages/designer/src/components/properties/PropertyGridV2.tsx`
+- Modify: `packages/designer/src/components/properties/PropertyGridcurrent model.tsx`
 - Modify: `packages/designer/src/components/PropertyEditor.tsx`
 - Modify: `packages/designer/src/components/shell/DesignerStatusBar.tsx`
 
@@ -98,7 +98,7 @@ Expected: PASS.
 ### Task 4: Simplify the left explorer and fix canvas zoom geometry
 
 **Files:**
-- Modify: `packages/designer/src/components/panels/StimulsoftLeftPanel.tsx`
+- Modify: `packages/designer/src/components/panels/the reference designerLeftPanel.tsx`
 - Modify: `packages/designer/src/components/LeftPanel.tsx`
 - Modify: `packages/designer/src/styles/designer-shell.css`
 - Modify: `packages/designer/src/components/Canvas.tsx`
@@ -124,7 +124,7 @@ Replace the fixed-position zoom bar with a canvas-local overlay and add `data-te
 Run:
 
 ```bash
-pnpm --filter @report-designer/designer test -- phase-14-canvas-zoom-layout phase-11-page-margin-ruler-band-chrome phase-10-canvas-stimulsoft-layout
+pnpm --filter @report-designer/designer test -- phase-14-canvas-zoom-layout phase-11-page-margin-ruler-band-chrome phase-10-canvas-reference-designer-layout
 ```
 
 Expected: PASS.

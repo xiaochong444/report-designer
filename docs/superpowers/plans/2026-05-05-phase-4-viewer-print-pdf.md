@@ -34,7 +34,7 @@ Render a template with two data rows and assert the viewer renders `data-testid=
 
 - [ ] **Step 2: Modify `Viewer.tsx`**
 
-Replace `paginate(template, data)` with `renderReportV2(template, data)` after Phase 3 exports it. Keep toolbar page navigation.
+Replace `paginate(template, data)` with `renderReportcurrent model(template, data)` after Phase 3 exports it. Keep toolbar page navigation.
 
 ### Task 2: Implement DOM Component Renderers
 

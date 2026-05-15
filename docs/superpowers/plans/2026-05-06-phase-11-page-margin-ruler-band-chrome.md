@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Align the designer canvas with Stimulsoft's page model: visible paper margins, rulers measuring the printable area, band titles as designer chrome, and grid rendering only inside the printable area.
+**Goal:** Align the designer canvas with the reference designer's page model: visible paper margins, rulers measuring the printable area, band titles as designer chrome, and grid rendering only inside the printable area.
 
 **Architecture:** Keep report data coordinates in printable-area millimeters. Render the page sheet as paper, render a separate printable content area at `page.margins`, place band chrome inside that content area, and keep band `height` as body height only. Rulers receive printable-area dimensions and offsets so their zero point aligns with the content area's top-left corner.
 
@@ -34,7 +34,7 @@
 
 - [x] Extend the test to assert horizontal ruler left/width and vertical ruler top/height are based on page margins.
 - [x] Change `Ruler` props from full page dimensions to printable dimensions and margin offsets.
-- [x] Restore Stimulsoft-like millimeter labels (`0`, `10`, `20`, ...), where label `0` starts at the printable area's top-left edge.
+- [x] Restore reference-style millimeter labels (`0`, `10`, `20`, ...), where label `0` starts at the printable area's top-left edge.
 - [x] Update the Phase 10 ruler test to match printable-area labels.
 - [x] Verify focused canvas tests pass.
 

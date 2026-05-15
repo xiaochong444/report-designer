@@ -2,7 +2,7 @@
 
 ## Context
 
-The current designer shell is close to the Stimulsoft-style surface, but a few workflow-level issues still make it feel off:
+The current designer shell is close to the reference-style surface, but a few workflow-level issues still make it feel off:
 
 - the left sidebar shows duplicated structure and reads as cluttered
 - page settings do not expose paper presets or report units

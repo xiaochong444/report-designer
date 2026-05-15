@@ -2,7 +2,7 @@
 
 ## Goal
 
-Polish the designer shell so the left-side resource navigation and expression editing flow feel closer to Stimulsoft Reports. This phase focuses on high-frequency editing surfaces rather than rendering logic.
+Polish the designer shell so the left-side resource navigation and expression editing flow feel closer to the reference report designer. This phase focuses on high-frequency editing surfaces rather than rendering logic.
 
 ## Scope
 
@@ -36,7 +36,7 @@ Polish the designer shell so the left-side resource navigation and expression ed
 
 ### Expression Editor
 
-- Replace the tabs-and-quick-buttons layout with a Stimulsoft-like three-column layout.
+- Replace the tabs-and-quick-buttons layout with a reference-style three-column layout.
 - Left rail categories:
   - 表达式
   - 数据列

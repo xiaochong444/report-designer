@@ -34,9 +34,30 @@ export const TEXT_STYLE_BINDING_PATHS = [
   'padding.left',
   'format.type',
   'format.pattern',
+  'format.decimalDigits',
+  'format.decimalSeparator',
+  'format.useGroupSeparator',
+  'format.groupSeparator',
+  'format.groupSize',
+  'format.useAbbreviation',
+  'format.positivePattern',
+  'format.negativePattern',
+  'format.currencySymbol',
+  'format.currencySymbolPosition',
+  'format.currencySpace',
+  'format.percentMultiplier',
+  'format.percentSymbol',
+  'format.percentSymbolPosition',
+  'format.percentSpace',
+  'format.dateFormat',
+  'format.timeFormat',
+  'format.textTransform',
+  'format.trimText',
   'format.nullValue',
   'format.trueText',
   'format.falseText',
+  'format.trueValues',
+  'format.falseValues',
   'canGrow',
   'canShrink',
 ] as const;
@@ -73,9 +94,30 @@ const PADDING_BINDING_PATHS = [
 const FORMAT_BINDING_PATHS = [
   'format.type',
   'format.pattern',
+  'format.decimalDigits',
+  'format.decimalSeparator',
+  'format.useGroupSeparator',
+  'format.groupSeparator',
+  'format.groupSize',
+  'format.useAbbreviation',
+  'format.positivePattern',
+  'format.negativePattern',
+  'format.currencySymbol',
+  'format.currencySymbolPosition',
+  'format.currencySpace',
+  'format.percentMultiplier',
+  'format.percentSymbol',
+  'format.percentSymbolPosition',
+  'format.percentSpace',
+  'format.dateFormat',
+  'format.timeFormat',
+  'format.textTransform',
+  'format.trimText',
   'format.nullValue',
   'format.trueText',
   'format.falseText',
+  'format.trueValues',
+  'format.falseValues',
 ] as const;
 
 const DEFAULT_STYLE_FONT: FontConfig = {
@@ -97,12 +139,33 @@ const DEFAULT_STYLE_BORDER: BorderConfig = {
 
 const DEFAULT_STYLE_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
 
-const DEFAULT_STYLE_FORMAT: Required<TextFormatConfig> = {
+const DEFAULT_STYLE_FORMAT: TextFormatConfig = {
   type: 'none',
   pattern: '',
+  decimalDigits: 2,
+  decimalSeparator: '.',
+  useGroupSeparator: true,
+  groupSeparator: ',',
+  groupSize: 3,
+  useAbbreviation: false,
+  positivePattern: 'plain',
+  negativePattern: 'minus',
+  currencySymbol: '$',
+  currencySymbolPosition: 'prefix',
+  currencySpace: false,
+  percentMultiplier: 100,
+  percentSymbol: '%',
+  percentSymbolPosition: 'suffix',
+  percentSpace: false,
+  dateFormat: 'yyyy-MM-dd',
+  timeFormat: 'HH:mm:ss',
+  textTransform: 'none',
+  trimText: false,
   nullValue: '',
   trueText: '',
   falseText: '',
+  trueValues: ['true', '1'],
+  falseValues: ['false', '0'],
 };
 
 function styleFont(style: ReportStyle): FontConfig {
@@ -130,7 +193,7 @@ function stylePadding(style: ReportStyle) {
   };
 }
 
-function styleFormat(style: ReportStyle): Required<TextFormatConfig> {
+function styleFormat(style: ReportStyle): TextFormatConfig {
   return {
     ...DEFAULT_STYLE_FORMAT,
     ...style.format,
@@ -161,9 +224,30 @@ const STYLE_VALUE_READERS: Record<TextStyleBindingPath, (style: ReportStyle) => 
   'padding.left': style => stylePadding(style).left,
   'format.type': style => styleFormat(style).type,
   'format.pattern': style => styleFormat(style).pattern,
+  'format.decimalDigits': style => styleFormat(style).decimalDigits,
+  'format.decimalSeparator': style => styleFormat(style).decimalSeparator,
+  'format.useGroupSeparator': style => styleFormat(style).useGroupSeparator,
+  'format.groupSeparator': style => styleFormat(style).groupSeparator,
+  'format.groupSize': style => styleFormat(style).groupSize,
+  'format.useAbbreviation': style => styleFormat(style).useAbbreviation,
+  'format.positivePattern': style => styleFormat(style).positivePattern,
+  'format.negativePattern': style => styleFormat(style).negativePattern,
+  'format.currencySymbol': style => styleFormat(style).currencySymbol,
+  'format.currencySymbolPosition': style => styleFormat(style).currencySymbolPosition,
+  'format.currencySpace': style => styleFormat(style).currencySpace,
+  'format.percentMultiplier': style => styleFormat(style).percentMultiplier,
+  'format.percentSymbol': style => styleFormat(style).percentSymbol,
+  'format.percentSymbolPosition': style => styleFormat(style).percentSymbolPosition,
+  'format.percentSpace': style => styleFormat(style).percentSpace,
+  'format.dateFormat': style => styleFormat(style).dateFormat,
+  'format.timeFormat': style => styleFormat(style).timeFormat,
+  'format.textTransform': style => styleFormat(style).textTransform,
+  'format.trimText': style => styleFormat(style).trimText,
   'format.nullValue': style => styleFormat(style).nullValue,
   'format.trueText': style => styleFormat(style).trueText,
   'format.falseText': style => styleFormat(style).falseText,
+  'format.trueValues': style => styleFormat(style).trueValues,
+  'format.falseValues': style => styleFormat(style).falseValues,
   canGrow: style => style.canGrow ?? false,
   canShrink: style => style.canShrink ?? false,
 };
@@ -444,7 +528,34 @@ function filterLockedPaddingUpdates(component: TextComponent, paddingUpdates: Re
 
 function filterLockedFormatUpdates(component: TextComponent, formatUpdates: Record<string, any>) {
   const nextFormat: Record<string, any> = {};
-  for (const key of ['type', 'pattern', 'nullValue', 'trueText', 'falseText']) {
+  for (const key of [
+    'type',
+    'pattern',
+    'decimalDigits',
+    'decimalSeparator',
+    'useGroupSeparator',
+    'groupSeparator',
+    'groupSize',
+    'useAbbreviation',
+    'positivePattern',
+    'negativePattern',
+    'currencySymbol',
+    'currencySymbolPosition',
+    'currencySpace',
+    'percentMultiplier',
+    'percentSymbol',
+    'percentSymbolPosition',
+    'percentSpace',
+    'dateFormat',
+    'timeFormat',
+    'textTransform',
+    'trimText',
+    'nullValue',
+    'trueText',
+    'falseText',
+    'trueValues',
+    'falseValues',
+  ]) {
     if (hasOwn(formatUpdates, key) && !hasTextStyleBinding(component, `format.${key}`)) {
       nextFormat[key] = formatUpdates[key];
     }

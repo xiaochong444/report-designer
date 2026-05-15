@@ -5,6 +5,7 @@ import {
   AlignLeftOutlined,
   AlignRightOutlined,
   AppstoreOutlined,
+  PartitionOutlined,
   BorderOuterOutlined,
   CheckSquareOutlined,
   DeleteOutlined,
@@ -76,6 +77,7 @@ export const DesignerRibbon: React.FC = () => {
     getSelectedFont,
     getSelectedTextAlign,
     openTextStyleLibrary,
+    openConditionalFormatLibrary,
     setMode,
   } = useDesignerStore();
 
@@ -372,6 +374,14 @@ export const DesignerRibbon: React.FC = () => {
         <RibbonGroup title={t('ribbon.styles')}>
           <Button size="small" icon={<AppstoreOutlined />} onClick={openTextStyleLibrary}>
             {t('ribbon.styleDesigner')}
+          </Button>
+          <Button
+            aria-label={t('ribbon.conditionalFormats')}
+            size="small"
+            icon={<PartitionOutlined aria-hidden />}
+            onClick={openConditionalFormatLibrary}
+          >
+            {t('ribbon.conditionalFormats')}
           </Button>
         </RibbonGroup>
       </>

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add Stimulsoft-style table cell context actions and shortcut regression coverage without changing the already-locked band rendering and pagination contracts.
+**Goal:** Add reference-style table cell context actions and shortcut regression coverage without changing the already-locked band rendering and pagination contracts.
 
 **Architecture:** Keep table editing pure in `packages/designer/src/table/table-structure.ts`, expose selected-table operations through the zustand designer store, and let `Canvas` pass the row/column hit from the right-click target. The canvas preview renders table cells with row/column metadata and honors `rowSpan`/`colSpan` so designer operations are visible immediately.
 
@@ -218,7 +218,7 @@ Expected: PASS.
 
 - [ ] **Step 1: Write regression tests for existing shortcut behavior**
 
-Create tests for `Ctrl+D`, `Ctrl+X`, arrow nudging, and `Shift+ArrowRight` resize. These shortcuts already exist; the test ensures later UI refactors do not regress Stimulsoft-style designer ergonomics.
+Create tests for `Ctrl+D`, `Ctrl+X`, arrow nudging, and `Shift+ArrowRight` resize. These shortcuts already exist; the test ensures later UI refactors do not regress reference-style designer ergonomics.
 
 - [ ] **Step 2: Run the shortcut tests**
 
@@ -279,6 +279,6 @@ Expected: Commit succeeds.
 
 ### Self-Review
 
-- Spec coverage: This plan addresses the user's request to first land a superpowers plan, then add another serious Stimulsoft comparison-driven designer operation pass. It leaves band rendering untouched because Phase 7 already locked DataBand/HeaderBand/FooterBand behavior with core contract tests.
+- Spec coverage: This plan addresses the user's request to first land a superpowers plan, then add another serious the reference designer comparison-driven designer operation pass. It leaves band rendering untouched because Phase 7 already locked DataBand/HeaderBand/FooterBand behavior with core contract tests.
 - Placeholder scan: No `TBD`, vague later tasks, or unnamed test commands remain.
 - Type consistency: Store methods, table helpers, and canvas callbacks consistently pass `(row: number, column: number)` for cell-specific operations.

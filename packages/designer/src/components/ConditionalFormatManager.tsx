@@ -1,252 +1,515 @@
-import React, { useState } from 'react';
-import { Modal, Form, Input, Select, Button, Space, Divider, Tag, Tooltip, InputNumber, ColorPicker, message } from 'antd';
+import React, { useMemo, useState } from 'react';
+import { Button, Checkbox, Divider, Empty, Form, Input, Modal, Select, Space, Tag } from 'antd';
 import {
-  PlusOutlined,
-  DeleteOutlined,
-  EyeOutlined,
-  EditOutlined,
+  BgColorsOutlined,
   BoldOutlined,
+  DeleteOutlined,
   ItalicOutlined,
+  PlusOutlined,
   UnderlineOutlined,
 } from '@ant-design/icons';
+import type { ConditionRule, ConditionalFormat } from '@report-designer/core';
+import { useDesignerI18n, type DesignerLocale } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
-import { nanoid } from 'nanoid';
-import type { ConditionalFormat, ConditionRule, ReportStyle } from '@report-designer/core';
 
-const OVERRIDE_FIELDS = [
-  { key: 'fontWeight', label: '加粗', type: 'boolean', icon: <BoldOutlined /> },
-  { key: 'fontStyle', label: '斜体', type: 'boolean', icon: <ItalicOutlined /> },
-  { key: 'textDecoration', label: '下划线', type: 'boolean', icon: <UnderlineOutlined /> },
-  { key: 'fontColor', label: '字体颜色', type: 'color' },
-  { key: 'fontSize', label: '字号', type: 'number' },
-  { key: 'backgroundColor', label: '背景色', type: 'color' },
-  { key: 'textAlign', label: '对齐', type: 'select', options: [
-    { value: 'left', label: '左' }, { value: 'center', label: '中' }, { value: 'right', label: '右' },
-  ]},
-  { key: 'border', label: '边框样式', type: 'select', options: [
-    { value: 'none', label: '无' }, { value: 'solid', label: '实线' }, { value: 'dashed', label: '虚线' },
-  ]},
-];
+type ConditionDataType = NonNullable<ConditionRule['dataType']>;
+type ConditionOperator = NonNullable<ConditionRule['operator']>;
 
-export const ConditionalFormatManager: React.FC<{
+interface ConditionalFormatManagerProps {
   open: boolean;
   onClose: () => void;
-}> = ({ open, onClose }) => {
-  const template = useDesignerStore(s => s.template);
-  const [formats, setFormats] = useState<ConditionalFormat[]>(template.conditionalFormats);
-  const [editingFormat, setEditingFormat] = useState<ConditionalFormat | null>(null);
+}
 
-  const handleAddFormat = () => {
-    const newFormat: ConditionalFormat = {
-      id: `cf_${nanoid(6)}`,
-      name: `条件格式 ${formats.length + 1}`,
-      rules: [],
-      applyTo: [],
-    };
-    const updated = [...formats, newFormat];
-    setFormats(updated);
-    setEditingFormat(newFormat);
+export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> = ({ open, onClose }) => {
+  const { locale } = useDesignerI18n();
+  const t = createConditionT(locale);
+  const formats = useDesignerStore(state => state.template.conditionalFormats);
+  const createConditionalFormat = useDesignerStore(state => state.createConditionalFormat);
+  const duplicateConditionalFormat = useDesignerStore(state => state.duplicateConditionalFormat);
+  const updateConditionalFormat = useDesignerStore(state => state.updateConditionalFormat);
+  const deleteConditionalFormat = useDesignerStore(state => state.deleteConditionalFormat);
+  const applySelectedConditionalFormat = useDesignerStore(state => state.applySelectedConditionalFormat);
+  const selectedComponentCount = useDesignerStore(state => state.selectedComponentIds.length);
+  const [selectedId, setSelectedId] = useState<string | null>(formats[0]?.id ?? null);
+  const [searchText, setSearchText] = useState('');
+  const [deleteTarget, setDeleteTarget] = useState<ConditionalFormat | null>(null);
+
+  const filteredFormats = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    if (!keyword) return formats;
+    return formats.filter(format => format.name.toLowerCase().includes(keyword));
+  }, [formats, searchText]);
+
+  const selectedFormat = formats.find(format => format.id === selectedId) ?? formats[0] ?? null;
+  const selectedRule = selectedFormat?.rules[0] ?? null;
+
+  const selectFormat = (format: ConditionalFormat) => setSelectedId(format.id);
+
+  const handleCreate = () => {
+    const id = createConditionalFormat({ name: t('newFormatName') });
+    setSelectedId(id);
   };
 
-  const handleDeleteFormat = (id: string) => {
-    setFormats(formats.filter(f => f.id !== id));
-    if (editingFormat?.id === id) setEditingFormat(null);
+  const handleDuplicate = () => {
+    if (!selectedFormat) return;
+    const id = duplicateConditionalFormat(selectedFormat.id);
+    if (id) setSelectedId(id);
   };
 
-  const handleSaveAll = () => {
-    const state = useDesignerStore.getState();
-    // Update the template's conditionalFormats
-    const newTemplate = { ...state.template, conditionalFormats: formats };
-    state.loadTemplate(newTemplate);
-    message.success('已保存条件格式');
-    onClose();
+  const handleDelete = () => {
+    if (!selectedFormat) return;
+    setDeleteTarget(selectedFormat);
   };
 
-  const handleAddRule = () => {
-    if (!editingFormat) return;
-    const newRule: ConditionRule = {
-      id: `rule_${nanoid(6)}`,
-      expression: '',
-      overrides: {},
-    };
-    setEditingFormat({ ...editingFormat, rules: [...editingFormat.rules, newRule] });
-    // Also update in the formats array
-    setFormats(formats.map(f => f.id === editingFormat.id ? { ...f, rules: [...f.rules, newRule] } : f));
+  const handleApplyToSelected = () => {
+    if (!selectedFormat) return;
+    applySelectedConditionalFormat(selectedFormat.id);
   };
 
-  const handleUpdateRule = (ruleId: string, updates: Partial<ConditionRule>) => {
-    if (!editingFormat) return;
-    const updatedRules = editingFormat.rules.map(r => r.id === ruleId ? { ...r, ...updates } : r);
-    const updated = { ...editingFormat, rules: updatedRules };
-    setEditingFormat(updated);
-    setFormats(formats.map(f => f.id === editingFormat.id ? updated : f));
+  const confirmDelete = () => {
+    if (!deleteTarget) return;
+    const deletingId = deleteTarget.id;
+    deleteConditionalFormat(deletingId);
+    const remaining = useDesignerStore.getState().template.conditionalFormats.filter(format => format.id !== deletingId);
+    setSelectedId(remaining[0]?.id ?? null);
+    setDeleteTarget(null);
   };
 
-  const handleDeleteRule = (ruleId: string) => {
-    if (!editingFormat) return;
-    const updatedRules = editingFormat.rules.filter(r => r.id !== ruleId);
-    const updated = { ...editingFormat, rules: updatedRules };
-    setEditingFormat(updated);
-    setFormats(formats.map(f => f.id === editingFormat.id ? updated : f));
+  const updateSelectedFormat = (updates: Partial<ConditionalFormat>) => {
+    if (!selectedFormat) return;
+    updateConditionalFormat(selectedFormat.id, updates);
   };
 
-  const handleOverrideChange = (rule: ConditionRule, field: string, value: any) => {
-    const newOverrides = { ...rule.overrides, [field]: value };
-    handleUpdateRule(rule.id, { overrides: newOverrides });
+  const updateRule = (ruleId: string, updates: Partial<ConditionRule>) => {
+    if (!selectedFormat) return;
+    updateSelectedFormat({
+      rules: selectedFormat.rules.map(rule => (
+        rule.id === ruleId ? { ...rule, ...updates, overrides: { ...(rule.overrides ?? {}), ...(updates.overrides ?? {}) } } : rule
+      )),
+    });
+  };
+
+  const updateRuleOverride = (rule: ConditionRule, key: string, value: unknown) => {
+    updateRule(rule.id, { overrides: { ...(rule.overrides ?? {}), [key]: value } });
+  };
+
+  const updateRuleValue = (rule: ConditionRule, value: string) => {
+    updateRule(rule.id, {
+      conditionType: 'value',
+      value: parseConditionValue(value, rule.dataType ?? 'string'),
+    });
   };
 
   return (
+    <div style={{ display: 'contents' }}>
     <Modal
-      title="条件格式管理"
+      title={<span>{t('title')}</span>}
       open={open}
-      onOk={handleSaveAll}
       onCancel={onClose}
-      width={800}
-      okText="保存"
-      cancelText="取消"
+      width={980}
+      getContainer={false}
+      aria-label={t('title')}
+      modalRender={modal => React.cloneElement(modal as React.ReactElement<any>, {
+        'aria-label': t('title'),
+        'aria-labelledby': undefined,
+      })}
+      footer={<Button type="primary" onClick={onClose}>{t('done')}</Button>}
     >
-      <div style={{ display: 'flex', height: 450, gap: 12 }}>
-        {/* Left: Format list */}
-        <div style={{ width: 200, border: '1px solid #d9d9d9', borderRadius: 4, padding: 8, display: 'flex', flexDirection: 'column' }}>
-          <Button size="small" icon={<PlusOutlined />} onClick={handleAddFormat} block style={{ marginBottom: 8 }}>
-            新建
+      <div style={{ display: 'flex', height: 560, minHeight: 0, gap: 12 }}>
+        <aside style={{ width: 248, display: 'flex', minHeight: 0, flexDirection: 'column', borderRight: '1px solid #f0f0f0', paddingRight: 12 }}>
+          <Input.Search
+            aria-label={t('search')}
+            placeholder={t('search')}
+            value={searchText}
+            onChange={event => setSearchText(event.target.value)}
+            size="small"
+            style={{ marginBottom: 8 }}
+          />
+          <Space size={6} style={{ marginBottom: 8 }}>
+            <Button aria-label={t('new')} size="small" icon={<PlusOutlined aria-hidden />} onClick={handleCreate}>{t('new')}</Button>
+            <Button aria-label={t('duplicate')} size="small" onClick={handleDuplicate} disabled={!selectedFormat}>{t('duplicate')}</Button>
+            <Button aria-label={t('delete')} size="small" danger icon={<DeleteOutlined aria-hidden />} onClick={handleDelete} disabled={!selectedFormat}>{t('delete')}</Button>
+          </Space>
+          <Button
+            aria-label={t('applyToSelected')}
+            size="small"
+            type="primary"
+            disabled={!selectedFormat || selectedComponentCount === 0}
+            onClick={handleApplyToSelected}
+            style={{ marginBottom: 8 }}
+            block
+          >
+            {t('applyToSelected')}
           </Button>
-          <div style={{ flex: 1, overflow: 'auto' }}>
-            {formats.map(f => (
-              <div
-                key={f.id}
-                onClick={() => setEditingFormat(f)}
+          <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+            {filteredFormats.length === 0 ? (
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('empty')} />
+            ) : filteredFormats.map(format => (
+              <button
+                key={format.id}
+                type="button"
+                onClick={() => selectFormat(format)}
                 style={{
-                  padding: '6px 8px', cursor: 'pointer', borderRadius: 4, marginBottom: 4,
-                  backgroundColor: editingFormat?.id === f.id ? '#e6f7ff' : 'transparent',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                  width: '100%',
+                  border: 0,
+                  borderRadius: 4,
+                  padding: '6px 8px',
+                  marginBottom: 2,
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  background: format.id === selectedFormat?.id ? '#e6f4ff' : 'transparent',
                 }}
               >
-                <span style={{ fontSize: 13 }}>{f.name}</span>
-                <Tooltip title="删除">
-                  <Button
-                    type="text" size="small" danger icon={<DeleteOutlined />}
-                    style={{ height: 20, padding: 0, fontSize: 10 }}
-                    onClick={(e) => { e.stopPropagation(); handleDeleteFormat(f.id); }}
-                  />
-                </Tooltip>
-              </div>
+                <span style={{ display: 'block', fontSize: 13, lineHeight: '18px' }}>{format.name}</span>
+                <span style={{ color: '#8c8c8c', fontSize: 11 }}>{t('ruleCount', { count: format.rules.length })}</span>
+              </button>
             ))}
-            {formats.length === 0 && (
-              <div style={{ color: '#999', fontSize: 12, textAlign: 'center', padding: 16 }}>
-                没有条件格式
-              </div>
-            )}
           </div>
-        </div>
+        </aside>
 
-        {/* Right: Rule editor */}
-        <div style={{ flex: 1, border: '1px solid #d9d9d9', borderRadius: 4, padding: 8, overflow: 'auto' }}>
-          {editingFormat ? (
-            <>
-              <div style={{ marginBottom: 12 }}>
-                <Input
-                  value={editingFormat.name}
-                  onChange={(e) => {
-                    const updated = { ...editingFormat, name: e.target.value };
-                    setEditingFormat(updated);
-                    setFormats(formats.map(f => f.id === editingFormat.id ? updated : f));
-                  }}
-                  placeholder="条件格式名称"
-                  size="small"
-                />
-              </div>
-              <Button size="small" icon={<PlusOutlined />} onClick={handleAddRule} block style={{ marginBottom: 8 }}>
-                添加规则
-              </Button>
-              {editingFormat.rules.map((rule, idx) => (
-                <div key={rule.id} style={{
-                  border: '1px solid #e8e8e8', borderRadius: 4, padding: 8, marginBottom: 8,
-                  backgroundColor: '#fafafa',
-                }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-                    <Tag color="blue">规则 {idx + 1}</Tag>
-                    <Button
-                      type="text" size="small" danger icon={<DeleteOutlined />}
-                      onClick={() => handleDeleteRule(rule.id)}
-                    />
-                  </div>
-                  <div style={{ marginBottom: 8 }}>
-                    <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>条件表达式</div>
+        <main style={{ flex: 1, minWidth: 0, minHeight: 0, overflowY: 'auto', paddingRight: 4 }}>
+          {selectedFormat ? (
+            <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+              <section>
+                <Form layout="vertical" size="small">
+                  <Form.Item label={t('name')}>
                     <Input
-                      value={rule.expression}
-                      onChange={(e) => handleUpdateRule(rule.id, { expression: e.target.value })}
-                      placeholder="如 {Data.Amount} > 1000"
-                      size="small"
+                      aria-label={t('name')}
+                      value={selectedFormat.name}
+                      onChange={event => updateSelectedFormat({ name: event.target.value })}
                     />
-                  </div>
-                  <Divider style={{ margin: '8px 0' }} />
-                  <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>覆盖样式</div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 4 }}>
-                    {OVERRIDE_FIELDS.map(field => (
-                      <div key={field.key} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                        {field.type === 'boolean' && (
-                          <Button
-                            size="small" icon={field.icon}
-                            type={rule.overrides[field.key] ? 'primary' : 'default'}
-                            onClick={() => handleOverrideChange(rule, field.key, !rule.overrides[field.key])}
-                            style={{ width: 28, height: 24, padding: 0, fontSize: 12 }}
-                          />
-                        )}
-                        {field.type === 'color' && (
-                          <>
-                            <span style={{ fontSize: 11, width: 50 }}>{field.label}</span>
-                            <ColorPicker
-                              size="small"
-                              value={rule.overrides[field.key] || '#000000'}
-                              onChange={(color) => handleOverrideChange(rule, field.key, color.toHexString())}
-                            />
-                          </>
-                        )}
-                        {field.type === 'number' && (
-                          <>
-                            <span style={{ fontSize: 11, width: 50 }}>{field.label}</span>
-                            <InputNumber
-                              size="small"
-                              value={rule.overrides[field.key] || 12}
-                              onChange={(v) => handleOverrideChange(rule, field.key, v)}
-                              style={{ width: 60 }}
-                              min={6}
-                              max={72}
-                            />
-                          </>
-                        )}
-                        {field.type === 'select' && (
-                          <>
-                            <span style={{ fontSize: 11, width: 50 }}>{field.label}</span>
-                            <Select
-                              size="small"
-                              value={rule.overrides[field.key] || undefined}
-                              onChange={(v) => handleOverrideChange(rule, field.key, v)}
-                              style={{ width: 70 }}
-                              options={field.options}
-                              allowClear
-                            />
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  </Form.Item>
+                </Form>
+              </section>
+
+              <section style={{ border: '1px solid #f0f0f0', borderRadius: 6, padding: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+                  <strong>{t('rules')}</strong>
+                  {selectedRule ? (
+                    <Tag color={selectedRule.enabled === false ? 'default' : 'blue'}>
+                      {selectedRule.enabled === false ? t('disabled') : t('enabled')}
+                    </Tag>
+                  ) : null}
                 </div>
-              ))}
-              {editingFormat.rules.length === 0 && (
-                <div style={{ color: '#999', fontSize: 12, textAlign: 'center', padding: 16 }}>
-                  点击"添加规则"创建条件
+                {selectedRule ? (
+                  <Form layout="vertical" size="small">
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 160px', gap: 8 }}>
+                    <Form.Item label={t('conditionField')}>
+                      <Input
+                        aria-label={t('conditionField')}
+                        value={selectedRule.field ?? ''}
+                        onChange={event => updateRule(selectedRule.id, { conditionType: 'value', field: event.target.value })}
+                        placeholder="{Orders.Amount}"
+                      />
+                    </Form.Item>
+                    <Form.Item label={t('dataType')}>
+                      <Select
+                        aria-label={t('dataType')}
+                        value={selectedRule.dataType ?? 'string'}
+                        onChange={(value: ConditionDataType) => updateRule(selectedRule.id, {
+                          conditionType: 'value',
+                          dataType: value,
+                          value: parseConditionValue(String(selectedRule.value ?? ''), value),
+                        })}
+                        virtual={false}
+                        options={DATA_TYPE_OPTIONS.map(option => ({ value: option.value, label: t(option.labelKey) }))}
+                      />
+                    </Form.Item>
+                    <Form.Item label={t('operator')}>
+                      <Select
+                        aria-label={t('operator')}
+                        value={selectedRule.operator ?? 'equalTo'}
+                        onChange={(value: ConditionOperator) => updateRule(selectedRule.id, { conditionType: 'value', operator: value })}
+                        virtual={false}
+                        options={OPERATOR_OPTIONS.map(option => ({ value: option.value, label: t(option.labelKey) }))}
+                      />
+                    </Form.Item>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                    <Form.Item label={t('value')}>
+                      <Input
+                        aria-label={t('value')}
+                        value={String(selectedRule.value ?? '')}
+                        onChange={event => updateRuleValue(selectedRule, event.target.value)}
+                      />
+                    </Form.Item>
+                    <Form.Item label={t('expression')}>
+                      <Input
+                        aria-label={t('expression')}
+                        value={selectedRule.expression ?? ''}
+                        onChange={event => updateRule(selectedRule.id, { conditionType: 'expression', expression: event.target.value })}
+                        placeholder="{Orders.Amount} > 1000"
+                      />
+                    </Form.Item>
+                  </div>
+
+                  <Checkbox
+                    checked={selectedRule.breakIfTrue ?? false}
+                    onChange={event => updateRule(selectedRule.id, { breakIfTrue: event.target.checked })}
+                  >
+                    {t('breakIfTrue')}
+                  </Checkbox>
+                  </Form>
+                ) : (
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('noRules')} />
+                )}
+              </section>
+
+              {selectedRule ? (
+              <section style={{ border: '1px solid #f0f0f0', borderRadius: 6, padding: 12 }}>
+                <strong>{t('formatting')}</strong>
+                <Divider style={{ margin: '10px 0' }} />
+                <Space size={6} wrap>
+                  <Button
+                    aria-label={t('bold')}
+                    title={t('bold')}
+                    icon={<BoldOutlined />}
+                    type={selectedRule.overrides?.fontWeight ? 'primary' : 'default'}
+                    onClick={() => updateRuleOverride(selectedRule, 'fontWeight', !selectedRule.overrides?.fontWeight)}
+                  />
+                  <Button
+                    aria-label={t('italic')}
+                    title={t('italic')}
+                    icon={<ItalicOutlined />}
+                    type={selectedRule.overrides?.fontStyle ? 'primary' : 'default'}
+                    onClick={() => updateRuleOverride(selectedRule, 'fontStyle', !selectedRule.overrides?.fontStyle)}
+                  />
+                  <Button
+                    aria-label={t('underline')}
+                    title={t('underline')}
+                    icon={<UnderlineOutlined />}
+                    type={selectedRule.overrides?.textDecoration ? 'primary' : 'default'}
+                    onClick={() => updateRuleOverride(selectedRule, 'textDecoration', !selectedRule.overrides?.textDecoration)}
+                  />
+                </Space>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 12 }}>
+                  <Form layout="vertical" size="small">
+                    <Form.Item label={t('textColor')}>
+                      <Input
+                        aria-label={t('textColor')}
+                        type="color"
+                        value={String(selectedRule.overrides?.fontColor ?? '#000000')}
+                        onChange={event => updateRuleOverride(selectedRule, 'fontColor', event.target.value)}
+                      />
+                    </Form.Item>
+                  </Form>
+                  <Form layout="vertical" size="small">
+                    <Form.Item label={t('backgroundColor')}>
+                      <Input
+                        aria-label={t('backgroundColor')}
+                        type="color"
+                        prefix={<BgColorsOutlined />}
+                        value={String(selectedRule.overrides?.backgroundColor ?? '#ffffff')}
+                        onChange={event => updateRuleOverride(selectedRule, 'backgroundColor', event.target.value)}
+                      />
+                    </Form.Item>
+                  </Form>
+                  <Form layout="vertical" size="small">
+                    <Form.Item label={t('borderStyle')}>
+                      <Select
+                        aria-label={t('borderStyle')}
+                        value={(selectedRule.overrides?.border as any)?.style ?? selectedRule.overrides?.border ?? 'none'}
+                        onChange={value => updateRuleOverride(selectedRule, 'border', value)}
+                        virtual={false}
+                        options={[
+                          { value: 'none', label: t('borderNone') },
+                          { value: 'solid', label: t('borderSolid') },
+                          { value: 'dashed', label: t('borderDashed') },
+                          { value: 'dotted', label: t('borderDotted') },
+                          { value: 'double', label: t('borderDouble') },
+                        ]}
+                      />
+                    </Form.Item>
+                  </Form>
                 </div>
-              )}
-            </>
+              </section>
+              ) : null}
+            </Space>
           ) : (
-            <div style={{ color: '#999', fontSize: 12, textAlign: 'center', padding: 40 }}>
-              选择或创建一个条件格式
-            </div>
+            <Empty description={t('selectOrCreate')} />
           )}
-        </div>
+        </main>
       </div>
     </Modal>
+    <Modal
+      title={deleteTarget ? t('deleteTitle', { name: deleteTarget.name }) : t('delete')}
+      open={Boolean(deleteTarget)}
+      getContainer={false}
+      onOk={confirmDelete}
+      onCancel={() => setDeleteTarget(null)}
+      okText={t('confirm')}
+      cancelText={t('cancel')}
+      okButtonProps={{ 'aria-label': t('confirm') }}
+      cancelButtonProps={{ 'aria-label': t('cancel') }}
+    >
+      {t('deleteDescription')}
+    </Modal>
+    </div>
   );
 };
+
+const DATA_TYPE_OPTIONS: Array<{ value: ConditionDataType; labelKey: ConditionMessageKey }> = [
+  { value: 'string', labelKey: 'typeString' },
+  { value: 'number', labelKey: 'typeNumber' },
+  { value: 'date', labelKey: 'typeDate' },
+  { value: 'boolean', labelKey: 'typeBoolean' },
+  { value: 'expression', labelKey: 'typeExpression' },
+];
+
+const OPERATOR_OPTIONS: Array<{ value: ConditionOperator; labelKey: ConditionMessageKey }> = [
+  { value: 'equalTo', labelKey: 'opEqualTo' },
+  { value: 'notEqualTo', labelKey: 'opNotEqualTo' },
+  { value: 'between', labelKey: 'opBetween' },
+  { value: 'notBetween', labelKey: 'opNotBetween' },
+  { value: 'greaterThan', labelKey: 'opGreaterThan' },
+  { value: 'greaterThanOrEqualTo', labelKey: 'opGreaterThanOrEqualTo' },
+  { value: 'lessThan', labelKey: 'opLessThan' },
+  { value: 'lessThanOrEqualTo', labelKey: 'opLessThanOrEqualTo' },
+  { value: 'containing', labelKey: 'opContaining' },
+  { value: 'notContaining', labelKey: 'opNotContaining' },
+  { value: 'beginningWith', labelKey: 'opBeginningWith' },
+  { value: 'endingWith', labelKey: 'opEndingWith' },
+];
+
+function parseConditionValue(value: string, dataType: ConditionDataType) {
+  if (dataType === 'number') {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) ? numberValue : 0;
+  }
+  if (dataType === 'boolean') {
+    return value === 'true' || value === '1';
+  }
+  return value;
+}
+
+const conditionMessages = {
+  'zh-CN': {
+    title: '条件格式库',
+    search: '搜索条件格式',
+    new: '新建',
+    duplicate: '复制',
+    delete: '删除',
+    applyToSelected: '应用到选中项',
+    done: '完成',
+    cancel: '取消',
+    confirm: '确认',
+    empty: '没有条件格式',
+    newFormatName: '新建条件格式',
+    ruleCount: '{count} 条规则',
+    deleteTitle: '删除“{name}”？',
+    deleteDescription: '删除后会清除已选择该条件格式的组件引用。',
+    name: '名称',
+    rules: '规则',
+    enabled: '已启用',
+    disabled: '已禁用',
+    noRules: '没有规则',
+    conditionField: '条件字段',
+    dataType: '数据类型',
+    operator: '操作符',
+    value: '值',
+    expression: '表达式',
+    breakIfTrue: '满足后停止',
+    formatting: '格式设置',
+    bold: '加粗',
+    italic: '斜体',
+    underline: '下划线',
+    textColor: '文本颜色',
+    backgroundColor: '背景色',
+    borderStyle: '边框样式',
+    borderNone: '无',
+    borderSolid: '实线',
+    borderDashed: '虚线',
+    borderDotted: '点线',
+    borderDouble: '双线',
+    selectOrCreate: '选择或新建一个条件格式',
+    typeString: '文本',
+    typeNumber: '数字',
+    typeDate: '日期',
+    typeBoolean: '布尔值',
+    typeExpression: '表达式',
+    opEqualTo: '等于',
+    opNotEqualTo: '不等于',
+    opBetween: '介于',
+    opNotBetween: '不介于',
+    opGreaterThan: '大于',
+    opGreaterThanOrEqualTo: '大于等于',
+    opLessThan: '小于',
+    opLessThanOrEqualTo: '小于等于',
+    opContaining: '包含',
+    opNotContaining: '不包含',
+    opBeginningWith: '开头为',
+    opEndingWith: '结尾为',
+  },
+  'en-US': {
+    title: 'Conditional Format Library',
+    search: 'Search conditional formats',
+    new: 'New',
+    duplicate: 'Duplicate',
+    delete: 'Delete',
+    applyToSelected: 'Apply to Selected',
+    done: 'Done',
+    cancel: 'Cancel',
+    confirm: 'Confirm',
+    empty: 'No conditional formats',
+    newFormatName: 'New Conditional Format',
+    ruleCount: '{count} rule(s)',
+    deleteTitle: 'Delete "{name}"?',
+    deleteDescription: 'Deleting it clears this conditional format from referenced components.',
+    name: 'Name',
+    rules: 'Rules',
+    enabled: 'Enabled',
+    disabled: 'Disabled',
+    noRules: 'No rules',
+    conditionField: 'Condition field',
+    dataType: 'Data type',
+    operator: 'Operator',
+    value: 'Value',
+    expression: 'Expression',
+    breakIfTrue: 'Break if True',
+    formatting: 'Formatting',
+    bold: 'Bold',
+    italic: 'Italic',
+    underline: 'Underline',
+    textColor: 'Text color',
+    backgroundColor: 'Background color',
+    borderStyle: 'Border style',
+    borderNone: 'None',
+    borderSolid: 'Solid',
+    borderDashed: 'Dashed',
+    borderDotted: 'Dotted',
+    borderDouble: 'Double',
+    selectOrCreate: 'Select or create a conditional format',
+    typeString: 'Text',
+    typeNumber: 'Number',
+    typeDate: 'Date',
+    typeBoolean: 'Boolean',
+    typeExpression: 'Expression',
+    opEqualTo: 'Equal to',
+    opNotEqualTo: 'Not equal to',
+    opBetween: 'Between',
+    opNotBetween: 'Not between',
+    opGreaterThan: 'Greater than',
+    opGreaterThanOrEqualTo: 'Greater than or equal to',
+    opLessThan: 'Less than',
+    opLessThanOrEqualTo: 'Less than or equal to',
+    opContaining: 'Containing',
+    opNotContaining: 'Not containing',
+    opBeginningWith: 'Beginning with',
+    opEndingWith: 'Ending with',
+  },
+} as const;
+
+type ConditionMessageKey = keyof typeof conditionMessages['zh-CN'];
+
+function createConditionT(locale: DesignerLocale) {
+  const messages = conditionMessages[locale] ?? conditionMessages['zh-CN'];
+  const fallback = conditionMessages['en-US'];
+  return (key: ConditionMessageKey, values?: Record<string, string | number>) => {
+    const message = messages[key] ?? fallback[key] ?? key;
+    if (!values) return message;
+    return message.replace(/\{(\w+)\}/g, (match, valueKey) => (
+      Object.prototype.hasOwnProperty.call(values, valueKey) ? String(values[valueKey]) : match
+    ));
+  };
+}

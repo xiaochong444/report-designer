@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Rebuild the report explorer so it reads closer to Stimulsoft, with automatic component names, per-type icons, and a cleaner structure tree.
+**Goal:** Rebuild the report explorer so it reads closer to the reference designer, with automatic component names, per-type icons, and a cleaner structure tree.
 
 **Architecture:** Add a small naming helper layer in the designer package that can normalize unnamed template components and generate the next available name per component type. Keep the tree hierarchy intact, but switch the explorer UI to a compact styled presentation with controlled expansion keys.
 
@@ -37,7 +37,7 @@ Expected before implementation: FAIL.
 
 - [x] **Step 1: Implement type-to-name mappings**
 
-Add prefix helpers for report components and Stimulsoft-style band display names.
+Add prefix helpers for report components and reference-style band display names.
 
 - [x] **Step 2: Normalize unnamed components**
 
@@ -61,7 +61,7 @@ Expected: still FAIL or partially pass until the tree UI is updated.
 
 - [x] **Step 1: Replace raw labels with explorer labels**
 
-Show report name, `Page1`, Stimulsoft-style band names, and component names only.
+Show report name, `Page1`, reference-style band names, and component names only.
 
 - [x] **Step 2: Add per-type icons and compact tree styling**
 
@@ -76,7 +76,7 @@ Replace `defaultExpandAll` with controlled `expandedKeys` so the loaded template
 Run:
 
 ```bash
-pnpm --filter @report-designer/designer test -- phase-15-report-tree-naming phase-10-canvas-stimulsoft-layout
+pnpm --filter @report-designer/designer test -- phase-15-report-tree-naming phase-10-canvas-reference-designer-layout
 ```
 
 Expected: PASS.
@@ -84,7 +84,7 @@ Expected: PASS.
 ### Task 4: Full verification
 
 **Files:**
-- Modify if needed: `packages/designer/src/__tests__/phase-10-canvas-stimulsoft-layout.test.tsx`
+- Modify if needed: `packages/designer/src/__tests__/phase-10-canvas-reference-designer-layout.test.tsx`
 
 - [x] **Step 1: Run full designer verification**
 

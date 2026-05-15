@@ -1,10 +1,10 @@
-# Stimulsoft Report Designer Roadmap
+# Reference Report Designer Roadmap
 
 This roadmap ties the phase plans together.
 
 ## Execution Order
 
-1. `2026-05-05-phase-0-stimulsoft-designer-shell.md`
+1. `2026-05-05-phase-0-reference-designer-designer-shell.md`
 2. `2026-05-05-phase-1-template-model-json-dictionary.md`
 3. `2026-05-05-phase-2-band-plan-grouping-aggregates.md`
 4. `2026-05-05-phase-3-layout-pagination-render-document.md`
@@ -18,7 +18,7 @@ The current UI does not visually communicate a professional print report designe
 
 ## Why Core Engine Work Comes Before Deep Designer Workflows
 
-Stimulsoft-style authoring depends on DataBand ownership, group scopes, aggregates, and pagination. Without those semantics, wizards and property panels would only collect settings the engine cannot honor.
+reference-style authoring depends on DataBand ownership, group scopes, aggregates, and pagination. Without those semantics, wizards and property panels would only collect settings the engine cannot honor.
 
 ## Minimum Useful Milestone
 
@@ -41,7 +41,7 @@ The first milestone worth using for real print reports is Phase 0 through Phase 
 
 Phase 0 through Phase 6 completes the initial rebuild:
 
-- Stimulsoft-style designer shell and workflows.
+- reference-style designer shell and workflows.
 - JSON-only dictionary.
 - Band-driven render engine.
 - Grouping and aggregates.

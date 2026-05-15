@@ -2,14 +2,14 @@
 
 ## Context
 
-The current report tree works functionally, but it still feels much rougher than the Stimulsoft report explorer:
+The current report tree works functionally, but it still feels much rougher than the the reference designer report explorer:
 
 - component rows expose raw `type - id` strings instead of readable names
 - new components do not get designer-friendly default names
 - the tree does not visually distinguish text, image, table, barcode, and other component types
 - the overall left-side structure reads as a generic tree instead of a compact report explorer
 
-The user wants the tree to feel closer to Stimulsoft: cleaner rows, automatic naming, and recognizable per-type visuals.
+The user wants the tree to feel closer to the reference designer: cleaner rows, automatic naming, and recognizable per-type visuals.
 
 ## Goals
 
@@ -31,7 +31,7 @@ The user wants the tree to feel closer to Stimulsoft: cleaner rows, automatic na
 
 ### 1. Component naming model
 
-Component names remain optional in the persisted schema, but the designer surface will normalize unnamed components into Stimulsoft-style defaults:
+Component names remain optional in the persisted schema, but the designer surface will normalize unnamed components into reference-style defaults:
 
 - `Text1`, `Text2`, ...
 - `Image1`, `Image2`, ...

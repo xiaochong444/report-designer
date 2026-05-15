@@ -8,6 +8,7 @@ import { createDefaultTemplate } from '@report-designer/core';
 import { Designer } from '../components/Designer';
 import { PropertyEditor } from '../components/PropertyEditor';
 import { RibbonToolbar } from '../components/RibbonToolbar';
+import { DesignerI18nProvider } from '../i18n';
 import type { DesignerLocale } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 import { Modal } from 'antd';
@@ -113,12 +114,12 @@ async function findTextStyleLibraryDialog() {
 }
 
 async function openTextStyleLibraryFromManage() {
-  const styleSelect = await screen.findByLabelText('文本样式');
+  const styleSelect = await screen.findByLabelText(/Text style|文本样式/);
   const compact = styleSelect.closest('.ant-space-compact') as HTMLElement | null;
   if (!compact) {
     throw new Error('Unable to locate text style property editor controls');
   }
-  fireEvent.click(within(compact).getByRole('button', { name: 'Manage' }));
+  fireEvent.click(within(compact).getByRole('button', { name: /Manage|管\s*理/ }));
   return await findTextStyleLibraryDialog();
 }
 
@@ -132,6 +133,9 @@ async function openSelect(label: string, scope: HTMLElement | Document = documen
   const trigger = (
     target.closest('.ant-select-selector')
     ?? target.closest('.ant-select')?.querySelector('.ant-select-selector')
+    ?? target.closest('[data-format-select]')?.querySelector('.ant-select-selector')
+    ?? target.querySelector?.('.ant-select-selector')
+    ?? target.parentElement?.querySelector('.ant-select-selector')
   ) as HTMLElement | null;
   if (!trigger) {
     throw new Error(`Unable to find select trigger for ${label}`);
@@ -211,12 +215,104 @@ describe('Phase 17 text style library store behavior', () => {
       'padding.left',
       'format.type',
       'format.pattern',
+      'format.decimalDigits',
+      'format.decimalSeparator',
+      'format.useGroupSeparator',
+      'format.groupSeparator',
+      'format.useAbbreviation',
+      'format.positivePattern',
+      'format.currencySymbol',
+      'format.currencySymbolPosition',
+      'format.percentSymbol',
+      'format.trueValues',
+      'format.dateFormat',
+      'format.textTransform',
       'format.nullValue',
       'format.trueText',
       'format.falseText',
       'canGrow',
       'canShrink',
     ]));
+  });
+
+  it('shows structured format controls in the property panel and only exposes pattern for custom formats', async () => {
+    const { pageId, bandId } = loadTemplate(undefined, [createText('text-1')]);
+    useDesignerStore.getState().selectComponents(['text-1']);
+    render(<PropertyEditor />);
+
+    await act(async () => {
+      useDesignerStore.getState().updateComponent(pageId, bandId, 'text-1', {
+        format: { type: 'number', decimalDigits: 2, useGroupSeparator: true },
+      });
+    });
+    expect(screen.getByLabelText('小数位数')).toBeInTheDocument();
+    expect(screen.getByLabelText('小数分隔符')).toBeInTheDocument();
+    expect(screen.getByLabelText('使用分组分隔符')).toBeInTheDocument();
+    expect(screen.getByLabelText('分组分隔符')).toBeInTheDocument();
+    expect(screen.getByLabelText('数字缩写')).toBeInTheDocument();
+    expect(screen.getByLabelText('正数格式')).toBeInTheDocument();
+    expect(screen.getByText('预览')).toBeInTheDocument();
+    expect(screen.getByTestId('format-editor-preview')).toBeInTheDocument();
+    expect(screen.getByTestId('format-editor-settings')).toBeInTheDocument();
+    expect(screen.getByTestId('property-format-editor-full-width')).toBeInTheDocument();
+    expect(screen.getAllByTestId('format-switch-control')[0]).toHaveStyle({ justifySelf: 'start' });
+    expect(screen.queryByLabelText('格式模式')).not.toBeInTheDocument();
+
+    await act(async () => {
+      useDesignerStore.getState().updateComponent(pageId, bandId, 'text-1', {
+        format: { type: 'custom', pattern: '#,##0.00' },
+      });
+    });
+    expect(screen.getByLabelText('格式模式')).toBeInTheDocument();
+  });
+
+  it('localizes the component property panel to English', () => {
+    loadTemplate(undefined, [createText('text-1')]);
+    useDesignerStore.getState().selectComponents(['text-1']);
+
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <PropertyEditor />
+      </DesignerI18nProvider>,
+    );
+
+    expect(screen.getByText('General')).toBeInTheDocument();
+    expect(screen.getByText('Position and Size')).toBeInTheDocument();
+    expect(screen.getByText('Text Content')).toBeInTheDocument();
+    expect(screen.getByText('Font')).toBeInTheDocument();
+    expect(screen.getByText('Border')).toBeInTheDocument();
+    expect(screen.getByText('Appearance')).toBeInTheDocument();
+    expect(screen.getByLabelText('Name')).toBeInTheDocument();
+    expect(screen.getByLabelText('Text content')).toBeInTheDocument();
+    expect(screen.getByLabelText('Text style')).toBeInTheDocument();
+    expect(screen.queryByText('Data Binding')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Bound field')).not.toBeInTheDocument();
+    expect(screen.queryByText('基本信息')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('名称')).not.toBeInTheDocument();
+  });
+
+  it('uses the same structured format controls in the style library', async () => {
+    const style: ReportStyle = {
+      id: 'style-format',
+      name: 'Format Style',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: 'transparent',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      format: { type: 'currency', currencySymbol: '¥', decimalDigits: 0 } as any,
+    };
+    const { template } = loadTemplate([style], [createText('text-1')]);
+    await renderDesignerWithSelection(template, 'text-1', 'zh-CN');
+
+    const dialog = await openTextStyleLibraryFromManage();
+    expect(within(dialog).getAllByText('预览').length).toBeGreaterThan(0);
+    expect(within(dialog).getByTestId('format-editor-settings')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('货币符号')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('小数位数')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('小数分隔符')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('正数格式')).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText('样式格式模式')).not.toBeInTheDocument();
   });
 
   it('syncs all available style fields when a referenced text style changes', () => {
@@ -599,6 +695,7 @@ describe('Phase 17 text style library store behavior', () => {
     template.styles = [style];
     template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
       style: 'style-a',
+      format: style.format,
       styleBindings: [
         'format.type',
         'textAlign',
@@ -613,25 +710,26 @@ describe('Phase 17 text style library store behavior', () => {
 
     await renderDesignerWithSelection(template, 'text-1');
 
-    expectAntdControlDisabled(await screen.findByLabelText('格式类型'));
-    expect(screen.getByLabelText('格式模式')).toBeEnabled();
-    expect(screen.getByRole('button', { name: '左对齐' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '水平居中' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '右对齐' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '顶部对齐' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: '垂直居中' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: '底部对齐' })).toBeEnabled();
-    expect(screen.getByRole('switch', { name: '自动增大' })).toBeDisabled();
-    expect(screen.getByRole('switch', { name: '自动缩小' })).toBeEnabled();
-    expect(screen.getByLabelText('字体系列')).not.toHaveAttribute('aria-disabled', 'true');
-    expectAntdControlDisabled(screen.getByLabelText('字号'));
-    expect(screen.getByLabelText('边框样式')).not.toHaveAttribute('aria-disabled', 'true');
-    expectAntdControlDisabled(screen.getByLabelText('边框宽度'));
-    expectAntdControlDisabled(screen.getByLabelText('背景色'));
-    expectAntdControlDisabled(screen.getByLabelText('内边距上'));
-    expect(screen.getByLabelText('内边距右')).toBeEnabled();
-    expect(screen.getByRole('checkbox', { name: '上' })).toBeDisabled();
-    expect(screen.getByRole('checkbox', { name: '右' })).toBeEnabled();
+    expectAntdControlDisabled(await screen.findByLabelText('Format Type'));
+    expect(screen.queryByLabelText('Pattern')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Decimal digits')).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Align left' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Center horizontally' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Align right' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Align top' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Center vertically' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Align bottom' })).toBeEnabled();
+    expect(screen.getByRole('switch', { name: 'Can grow' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Can shrink' })).toBeEnabled();
+    expect(screen.getByLabelText('Font family')).not.toHaveAttribute('aria-disabled', 'true');
+    expectAntdControlDisabled(screen.getByLabelText('Font size'));
+    expect(screen.getByLabelText('Border style')).not.toHaveAttribute('aria-disabled', 'true');
+    expectAntdControlDisabled(screen.getByLabelText('Border width'));
+    expectAntdControlDisabled(screen.getByLabelText('Background color'));
+    expectAntdControlDisabled(screen.getByLabelText('Padding top'));
+    expect(screen.getByLabelText('Padding right')).toBeEnabled();
+    expect(screen.getByRole('checkbox', { name: 'Top' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Right' })).toBeEnabled();
   });
 
   it('disables every style-managed property control in the component property panel after selecting a style', async () => {
@@ -648,41 +746,39 @@ describe('Phase 17 text style library store behavior', () => {
 
     await renderDesignerWithSelection(template, 'text-1');
 
-    fireEvent.mouseDown(await screen.findByLabelText('文本样式'));
+    fireEvent.mouseDown(await screen.findByLabelText('Text style'));
     fireEvent.click(await screen.findByText('Style A'));
 
     await waitFor(() => expect(selectedText()?.styleBindings).toEqual(TEXT_STYLE_BINDING_PATHS));
 
-    expect(screen.getByRole('button', { name: '左对齐' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '水平居中' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '右对齐' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '顶部对齐' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '垂直居中' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '底部对齐' })).toBeDisabled();
-    expectAntdControlDisabled(screen.getByLabelText('内边距上'));
-    expectAntdControlDisabled(screen.getByLabelText('内边距右'));
-    expectAntdControlDisabled(screen.getByLabelText('内边距下'));
-    expectAntdControlDisabled(screen.getByLabelText('内边距左'));
-    expectAntdControlDisabled(screen.getByLabelText('边框样式'));
-    expectAntdControlDisabled(screen.getByLabelText('边框宽度'));
-    expectAntdControlDisabled(screen.getByLabelText('边框颜色'));
-    expect(screen.getByRole('checkbox', { name: '上' })).toBeDisabled();
-    expect(screen.getByRole('checkbox', { name: '右' })).toBeDisabled();
-    expect(screen.getByRole('checkbox', { name: '下' })).toBeDisabled();
-    expect(screen.getByRole('checkbox', { name: '左' })).toBeDisabled();
-    expectAntdControlDisabled(screen.getByLabelText('格式类型'));
-    expect(screen.getByLabelText('格式模式')).toBeDisabled();
-    expect(screen.getByRole('switch', { name: '自动增大' })).toBeDisabled();
-    expect(screen.getByRole('switch', { name: '自动缩小' })).toBeDisabled();
-    expectAntdControlDisabled(screen.getByLabelText('字号'));
-    expectAntdControlDisabled(screen.getByLabelText('字体系列'));
-    expect(screen.getByRole('button', { name: '加粗' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '斜体' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '下划线' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '删除线' })).toBeDisabled();
-    expectAntdControlDisabled(screen.getByLabelText('字体颜色'));
-    expectAntdControlDisabled(screen.getByLabelText('背景色'));
-    expect(screen.getByLabelText('格式化')).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Align left' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Center horizontally' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Align right' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Align top' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Center vertically' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Align bottom' })).toBeDisabled();
+    expectAntdControlDisabled(screen.getByLabelText('Padding top'));
+    expectAntdControlDisabled(screen.getByLabelText('Padding right'));
+    expectAntdControlDisabled(screen.getByLabelText('Padding bottom'));
+    expectAntdControlDisabled(screen.getByLabelText('Padding left'));
+    expectAntdControlDisabled(screen.getByLabelText('Border style'));
+    expectAntdControlDisabled(screen.getByLabelText('Border width'));
+    expectAntdControlDisabled(screen.getByLabelText('Border color'));
+    expect(screen.getByRole('checkbox', { name: 'Top' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Right' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Bottom' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Left' })).toBeDisabled();
+    expectAntdControlDisabled(screen.getByLabelText('Format Type'));
+    expect(screen.getByRole('switch', { name: 'Can grow' })).toBeDisabled();
+    expect(screen.getByRole('switch', { name: 'Can shrink' })).toBeDisabled();
+    expectAntdControlDisabled(screen.getByLabelText('Font size'));
+    expectAntdControlDisabled(screen.getByLabelText('Font family'));
+    expect(screen.getByRole('button', { name: 'Bold' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Italic' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Underline' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Strike' })).toBeDisabled();
+    expectAntdControlDisabled(screen.getByLabelText('Font color'));
+    expectAntdControlDisabled(screen.getByLabelText('Background color'));
   });
 
   it('disables style-managed property controls in the standalone property panel', () => {
@@ -711,8 +807,6 @@ describe('Phase 17 text style library store behavior', () => {
     expectAntdControlDisabled(screen.getByLabelText('边框样式'));
     expectAntdControlDisabled(screen.getByLabelText('内边距上'));
     expectAntdControlDisabled(screen.getByLabelText('格式类型'));
-    expect(screen.getByLabelText('格式模式')).toBeDisabled();
-    expect(screen.getByLabelText('格式化')).toBeDisabled();
   });
 
   it('disables toolbar entries for style-managed text properties', () => {
@@ -1050,9 +1144,8 @@ describe('Phase 17 text style library store behavior', () => {
 
     const dialog = await openTextStyleLibraryFromManage();
 
-    fireEvent.change(within(dialog).getByLabelText('样式格式空值文本'), { target: { value: '(empty)' } });
-    fireEvent.change(within(dialog).getByLabelText('样式格式真值文本'), { target: { value: 'TRUE' } });
-    fireEvent.change(within(dialog).getByLabelText('样式格式假值文本'), { target: { value: 'FALSE' } });
+    fireEvent.change(within(dialog).getByLabelText('Null text'), { target: { value: '(empty)' } });
+    fireEvent.change(within(dialog).getByLabelText('Decimal digits'), { target: { value: '3' } });
     expect(within(dialog).getByLabelText('样式边框样式')).toBeInTheDocument();
     expect(within(dialog).getByText('Apply sides')).toBeInTheDocument();
     expect(within(dialog).getByLabelText('Border side preview')).toBeInTheDocument();
@@ -1063,8 +1156,7 @@ describe('Phase 17 text style library store behavior', () => {
       const updatedStyle = useDesignerStore.getState().template.styles.find(item => item.id === 'style-a');
       expect(updatedStyle?.format).toMatchObject({
         nullValue: '(empty)',
-        trueText: 'TRUE',
-        falseText: 'FALSE',
+        decimalDigits: 3,
       });
       expect(updatedStyle?.border).toMatchObject({
         style: 'solid',

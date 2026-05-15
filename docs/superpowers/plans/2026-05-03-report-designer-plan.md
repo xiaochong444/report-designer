@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** 对标 Stimulsoft Reports 的商业级 React 报表打印组件系统，包含可视化设计器、渲染引擎和打印/导出功能。
+**Goal:** 对标 the reference report designer 的商业级 React 报表打印组件系统，包含可视化设计器、渲染引擎和打印/导出功能。
 
 **Architecture:** 分层渲染管道架构 — `core`（表达式引擎 + 渲染管道）与 UI 完全解耦，`designer`（可视化设计器）和 `viewer`（报表查看器）各自消费 core 的渲染管道输出。
 
@@ -1953,22 +1953,22 @@ Expected: 所有 17 个测试 PASS
 
 Run: `cd d:/ItemSource/report-designer && git add packages/core/src/expression-engine packages/core/__tests__/expression-evaluator.test.ts && git commit -m "feat(core): add expression evaluator with 20+ built-in functions"`
 
-- [ ] **Step 8: 对比 Stimulsoft Reports 表达式功能**
+- [ ] **Step 8: 对比 the reference report designer 表达式功能**
 
 对比检查项：
-- [x] 字段引用 `{DataSource.Field}` — Stimulsoft: `{DataSource.FieldName}`
-- [x] 算术运算 +, -, *, / — Stimulsoft: 完全支持
-- [x] 比较运算 >, <, >=, <=, =, != — Stimulsoft: 完全支持
-- [x] 逻辑运算 AND, OR, NOT — Stimulsoft: 完全支持
-- [x] 条件函数 IF — Stimulsoft: IIf 函数
-- [x] 数值函数 ROUND, ABS — Stimulsoft: 完全支持
-- [x] 聚合函数 SUM, AVG, MIN, MAX — Stimulsoft: 完全支持
-- [x] 字符串函数 UPPER, LOWER, TRIM, CONCAT — Stimulsoft: 完全支持
-- [x] 日期函数 TODAY, NOW, DATEADD, DATEDIFF — Stimulsoft: 完全支持
-- [x] 格式化 FORMAT — Stimulsoft: Format 函数
-- [x] 类型转换 TONUMBER, TOSTRING, TODATE — Stimulsoft: CStr, CNum, CDate
+- [x] 字段引用 `{DataSource.Field}` — the reference designer: `{DataSource.FieldName}`
+- [x] 算术运算 +, -, *, / — the reference designer: 完全支持
+- [x] 比较运算 >, <, >=, <=, =, != — the reference designer: 完全支持
+- [x] 逻辑运算 AND, OR, NOT — the reference designer: 完全支持
+- [x] 条件函数 IF — the reference designer: IIf 函数
+- [x] 数值函数 ROUND, ABS — the reference designer: 完全支持
+- [x] 聚合函数 SUM, AVG, MIN, MAX — the reference designer: 完全支持
+- [x] 字符串函数 UPPER, LOWER, TRIM, CONCAT — the reference designer: 完全支持
+- [x] 日期函数 TODAY, NOW, DATEADD, DATEDIFF — the reference designer: 完全支持
+- [x] 格式化 FORMAT — the reference designer: Format 函数
+- [x] 类型转换 TONUMBER, TOSTRING, TODATE — the reference designer: CStr, CNum, CDate
 - [x] 安全白名单 — 不允许 eval/任意代码执行
-- 差异: Stimulsoft 支持 `RunningSum`（运行累计），暂未实现，记入后续
+- 差异: the reference designer 支持 `RunningSum`（运行累计），暂未实现，记入后续
 
 ---
 
@@ -2567,14 +2567,14 @@ Expected: 所有 5 个测试 PASS
 
 Run: `cd d:/ItemSource/report-designer && git add packages/core/src/renderer packages/core/__tests__/renderer.test.ts && git commit -m "feat(core): add rendering engine with data binding, grouping, conditional formatting"`
 
-- [ ] **Step 11: 对比 Stimulsoft Reports 渲染功能**
+- [ ] **Step 11: 对比 the reference report designer 渲染功能**
 
 对比检查项：
 - [x] 数据绑定 — 表达式求值后注入组件 props
-- [x] DataBand 展开为多行 — Stimulsoft: DataBand 按数据行展开
-- [x] 分组渲染 — Stimulsoft: GroupHeader/GroupFooter 按分组字段
-- [x] 条件格式 — Stimulsoft: Conditions 面板设置条件规则
-- [x] mm→px 坐标转换 — Stimulsoft: 内部也使用 mm 单位
+- [x] DataBand 展开为多行 — the reference designer: DataBand 按数据行展开
+- [x] 分组渲染 — the reference designer: GroupHeader/GroupFooter 按分组字段
+- [x] 条件格式 — the reference designer: Conditions 面板设置条件规则
+- [x] mm→px 坐标转换 — the reference designer: 内部也使用 mm 单位
 - 差异: 分页逻辑（overflow/page break）暂未在测试中验证，需要在 Task 6 中完善
 
 ---
@@ -2914,7 +2914,7 @@ Run: `cd d:/ItemSource/report-designer && git add packages/core/src/command-disp
 
 ---
 
-## Task 8: Core 包构建验证 + 对比 Stimulsoft
+## Task 8: Core 包构建验证 + 对比 the reference designer
 
 - [ ] **Step 1: 构建 core 包**
 
@@ -2926,11 +2926,11 @@ Expected: 构建成功，dist/ 目录生成
 Run: `cd d:/ItemSource/report-designer && pnpm --filter @report-designer/core test`
 Expected: 所有测试 PASS
 
-- [ ] **Step 3: 对照 Stimulsoft Reports 进行 Core 模块全面对比**
+- [ ] **Step 3: 对照 the reference report designer 进行 Core 模块全面对比**
 
 对比检查清单：
 
-| Stimulsoft 功能 | 状态 | 备注 |
+| the reference designer 功能 | 状态 | 备注 |
 |----------------|------|------|
 | 模板 JSON 存储 | ✅ | ReportTemplate 完整定义 |
 | A4/Letter 等页面尺寸 | ✅ | createDefaultTemplate 支持自定义 |
@@ -2953,7 +2953,7 @@ Expected: 所有测试 PASS
 
 - [ ] **Step 4: 提交当前状态**
 
-Run: `cd d:/ItemSource/report-designer && git add -A && git commit -m "chore: core package complete, Stimulsoft comparison verified"`
+Run: `cd d:/ItemSource/report-designer && git add -A && git commit -m "chore: core package complete, the reference designer comparison verified"`
 
 ---
 
@@ -3099,29 +3099,29 @@ Task 2: 表达式词法分析器 (Lexer)
 Task 3: 表达式解析器 (Parser)
   ↓
 Task 4: 表达式求值器 (Evaluator + 20+ 函数)
-  ↓  ← 对比 Stimulsoft 表达式功能
+  ↓  ← 对比 the reference designer 表达式功能
 Task 5: 渲染引擎 (数据绑定 + 分组 + 条件格式)
   ↓
 Task 6: 渲染引擎 (分页布局)
-  ↓  ← 对比 Stimulsoft 渲染功能
+  ↓  ← 对比 the reference designer 渲染功能
 Task 7: 命令分发器
   ↓
-Task 8: Core 包构建验证 + 全面对比 Stimulsoft
+Task 8: Core 包构建验证 + 全面对比 the reference designer
   ↓
 Task 9: 设计器入口 + 撤销/重做
   ↓
 Task 10: Ribbon 工具栏
-  ↓  ← 对比 Stimulsoft Designer Ribbon
+  ↓  ← 对比 Reference Designer Ribbon
 Task 11: 画布 (网格 + 标尺 + 缩放)
   ↓
 Task 12: 画布 (选择 + 拖拽 + Resize)
-  ↓  ← 对比 Stimulsoft Designer Canvas
+  ↓  ← 对比 Reference Designer Canvas
 Task 13: 侧面板 (数据字典 + 属性 + 报表树)
-  ↓  ← 对比 Stimulsoft Designer Panels
+  ↓  ← 对比 Reference Designer Panels
 Task 14: Viewer 报表查看器
-  ↓  ← 对比 Stimulsoft Viewer
+  ↓  ← 对比 the reference designer Viewer
 Task 15: 打印 + PDF 导出
-  ↓  ← 对比 Stimulsoft Export
+  ↓  ← 对比 the reference designer Export
 Task 16: Example 示例应用
   ↓
 完成

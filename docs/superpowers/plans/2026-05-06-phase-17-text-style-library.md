@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Build a Stimulsoft-like report-level text style library with dedicated management UI, default text style seeding, and style-to-component distribution with controlled field sync.
+**Goal:** Build a reference-style report-level text style library with dedicated management UI, default text style seeding, and style-to-component distribution with controlled field sync.
 
 **Architecture:** Extend the current `template.styles` asset model instead of introducing a new asset store. When a style is assigned, copy style-defined values into the component and record which fields remain style-controlled. Style edits then resync those bound fields across referencing components, so designer preview plus viewer/print all consume the same final component values directly.
 
@@ -26,7 +26,7 @@
 
 - Modify: `D:/sources/report-designer/packages/designer/src/store/designer-store.ts`
 - Modify: `D:/sources/report-designer/packages/designer/src/components/PropertyEditor.tsx`
-- Modify: `D:/sources/report-designer/packages/designer/src/components/ribbon/StimulsoftRibbon.tsx`
+- Modify: `D:/sources/report-designer/packages/designer/src/components/ribbon/the reference designerRibbon.tsx`
 - Modify: `D:/sources/report-designer/packages/designer/src/components/LeftPanel.tsx`
 - Create: `D:/sources/report-designer/packages/designer/src/components/TextStyleLibraryDialog.tsx`
 - Test: `D:/sources/report-designer/packages/designer/src/__tests__/phase-17-text-style-library.test.tsx`
@@ -249,7 +249,7 @@ git commit -m "feat(designer): 增加文本样式库状态与默认样式插入"
 **Files:**
 - Create: `D:/sources/report-designer/packages/designer/src/components/TextStyleLibraryDialog.tsx`
 - Modify: `D:/sources/report-designer/packages/designer/src/components/PropertyEditor.tsx`
-- Modify: `D:/sources/report-designer/packages/designer/src/components/ribbon/StimulsoftRibbon.tsx`
+- Modify: `D:/sources/report-designer/packages/designer/src/components/ribbon/the reference designerRibbon.tsx`
 - Test: `D:/sources/report-designer/packages/designer/src/__tests__/phase-17-text-style-library.test.tsx`
 
 - [ ] **Step 1: Extend designer UI tests for dialog flow**
@@ -295,7 +295,7 @@ In `D:/sources/report-designer/packages/designer/src/components/PropertyEditor.t
 - show style-controlled fields as disabled
 - provide field-level `解除样式控制` where supported
 
-In `D:/sources/report-designer/packages/designer/src/components/ribbon/StimulsoftRibbon.tsx`:
+In `D:/sources/report-designer/packages/designer/src/components/ribbon/the reference designerRibbon.tsx`:
 - add a `Styles` ribbon group on `Home`
 - add `Style Designer` command
 
@@ -311,7 +311,7 @@ Expected:
 
 Commit:
 ```bash
-git add packages/designer/src/components/TextStyleLibraryDialog.tsx packages/designer/src/components/PropertyEditor.tsx packages/designer/src/components/ribbon/StimulsoftRibbon.tsx packages/designer/src/__tests__/phase-17-text-style-library.test.tsx
+git add packages/designer/src/components/TextStyleLibraryDialog.tsx packages/designer/src/components/PropertyEditor.tsx packages/designer/src/components/ribbon/the reference designerRibbon.tsx packages/designer/src/__tests__/phase-17-text-style-library.test.tsx
 git commit -m "feat(designer): 增加文本样式库管理界面"
 ```
 

@@ -33,6 +33,109 @@ describe('Phase 4 print frame', () => {
     expect(html).not.toContain('left:25mm;top:25mm');
   });
 
+  it('prints rich text html and image components from the render document', () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push(
+      {
+        id: 'rich1',
+        type: 'richtext',
+        x: 10,
+        y: 10,
+        width: 60,
+        height: 12,
+        html: '<strong>Rich Print</strong>',
+        style: {},
+      },
+      {
+        id: 'image1',
+        type: 'image',
+        x: 80,
+        y: 10,
+        width: 20,
+        height: 12,
+        src: 'data:image/png;base64,ZmFrZQ==',
+        style: {},
+      },
+    );
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('<strong>Rich Print</strong>');
+    expect(html).toContain('class="rd-print-component rd-print-richtext"');
+    expect(html).toContain('class="rd-print-component rd-print-image"');
+    expect(html).toContain('src="data:image/png;base64,ZmFrZQ=="');
+  });
+
+  it('prints common non-text components from the render document', () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push(
+      {
+        id: 'barcode1',
+        type: 'barcode',
+        x: 10,
+        y: 10,
+        width: 40,
+        height: 12,
+        value: 'ORD-1001',
+        format: 'CODE128',
+        showText: true,
+        style: {},
+      },
+      {
+        id: 'check1',
+        type: 'checkbox',
+        x: 10,
+        y: 24,
+        width: 40,
+        height: 8,
+        checked: true,
+        label: 'Paid',
+        style: {},
+      },
+      {
+        id: 'line1',
+        type: 'line',
+        x: 10,
+        y: 34,
+        width: 40,
+        height: 5,
+        startX: 0,
+        startY: 0,
+        endX: 40,
+        endY: 5,
+        lineColor: '#ff0000',
+        lineWidth: 0.3,
+        lineStyle: 'dashed',
+        style: {},
+      },
+      {
+        id: 'shape1',
+        type: 'shape',
+        x: 10,
+        y: 42,
+        width: 20,
+        height: 12,
+        shapeType: 'roundRect',
+        fillColor: '#eeeeee',
+        borderColor: '#333333',
+        borderWidth: 0.4,
+        borderStyle: 'solid',
+        style: {},
+      },
+    );
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('class="rd-print-component rd-print-barcode"');
+    expect(html).toContain('ORD-1001');
+    expect(html).toContain('class="rd-print-component rd-print-checkbox"');
+    expect(html).toContain('Paid');
+    expect(html).toContain('class="rd-print-component rd-print-line"');
+    expect(html).toContain('<line');
+    expect(html).toContain('class="rd-print-component rd-print-shape"');
+    expect(html).toContain('<rect');
+  });
+
   it('applies centered print text alignment to a full-width text content box', () => {
     const document = makeRenderDocument();
     const component = document.pages[0].items[0].components[0];

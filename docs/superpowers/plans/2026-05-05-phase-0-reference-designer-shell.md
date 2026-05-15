@@ -1,8 +1,8 @@
-# Phase 0 Stimulsoft Designer Shell Implementation Plan
+# Phase 0 Reference Designer Shell Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Replace the rough designer shell with a Stimulsoft-style desktop report designer layout.
+**Goal:** Replace the rough designer shell with a reference-style desktop report designer layout.
 
 **Architecture:** This phase changes only designer presentation and UI state. It introduces a shell/ribbon/panel/canvas/status structure while preserving the existing template model and store actions.
 
@@ -14,9 +14,9 @@
 
 - Create: `packages/designer/src/components/shell/DesignerShell.tsx`
 - Create: `packages/designer/src/components/shell/DesignerStatusBar.tsx`
-- Create: `packages/designer/src/components/ribbon/StimulsoftRibbon.tsx`
-- Create: `packages/designer/src/components/panels/StimulsoftLeftPanel.tsx`
-- Create: `packages/designer/src/components/panels/StimulsoftPropertyGrid.tsx`
+- Create: `packages/designer/src/components/ribbon/the reference designerRibbon.tsx`
+- Create: `packages/designer/src/components/panels/the reference designerLeftPanel.tsx`
+- Create: `packages/designer/src/components/panels/the reference designerPropertyGrid.tsx`
 - Create: `packages/designer/src/components/canvas/DesignerCanvasFrame.tsx`
 - Create: `packages/designer/src/styles/designer-shell.css`
 - Modify: `packages/designer/src/components/Designer.tsx`
@@ -36,8 +36,8 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { Designer } from '../components/Designer';
 
-describe('Phase 0 Stimulsoft designer shell', () => {
-  it('renders Stimulsoft-style shell regions', () => {
+describe('Phase 0 the reference designer designer shell', () => {
+  it('renders reference-style shell regions', () => {
     render(<Designer />);
 
     expect(screen.getByTestId('designer-quick-access')).toBeTruthy();
@@ -62,21 +62,21 @@ Expected: FAIL because the new test ids do not exist.
 
 Create a component with five regions: quick access, ribbon, left panel, canvas, property grid, status bar. Use CSS classes rather than inline layout for the shell.
 
-- [ ] **Step 2: Create `StimulsoftRibbon.tsx`**
+- [ ] **Step 2: Create `the reference designerRibbon.tsx`**
 
 Implement tab-like command groups: Home, Insert, Page, Layout, Preview. For this phase commands call existing toolbar/store operations where available. Commands whose backing capability belongs to Phase 1 through Phase 6 must be visible with disabled state and a tooltip naming the required phase, for example `Requires Phase 3 pagination`.
 
-- [ ] **Step 3: Create `StimulsoftLeftPanel.tsx`**
+- [ ] **Step 3: Create `the reference designerLeftPanel.tsx`**
 
 Wrap existing Palette, Data Dictionary, and Report Tree behavior into a left tab rail. Preserve existing drag/drop behavior from `LeftPanel.tsx`.
 
-- [ ] **Step 4: Create `StimulsoftPropertyGrid.tsx`**
+- [ ] **Step 4: Create `the reference designerPropertyGrid.tsx`**
 
 Wrap existing `PropertyEditor` in a property-grid surface with compact section styling and a header that shows the selected object type.
 
 - [ ] **Step 5: Create `DesignerCanvasFrame.tsx`**
 
-Wrap existing `Canvas` in a Stimulsoft-style canvas frame: horizontal ruler slot, vertical ruler slot, neutral workspace, page shadow, and bottom zoom/status affordance.
+Wrap existing `Canvas` in a reference-style canvas frame: horizontal ruler slot, vertical ruler slot, neutral workspace, page shadow, and bottom zoom/status affordance.
 
 ### Task 3: Wire the New Shell
 
@@ -145,5 +145,5 @@ Open the local Vite URL. Confirm the first screen is the designer itself with ri
 
 ```bash
 git add packages/designer/src
-git commit -m "feat(designer): 调整为stimulsoft风格设计器壳层"
+git commit -m "feat(designer): 调整为reference-designer风格设计器壳层"
 ```

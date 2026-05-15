@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Fix the designer canvas so the ruler, paper, printable grid, band chrome, and preview coordinates match the Stimulsoft-style layout shown by the user.
+**Goal:** Fix the designer canvas so the ruler, paper, printable grid, band chrome, and preview coordinates match the reference-style layout shown by the user.
 
-**Architecture:** Keep page coordinates in millimeters and treat report components as coordinates relative to the printable area. The designer canvas draws three distinct layers: paper outer box, printable content/grid inside margins, and band chrome inside the printable area but outside band body height. The viewer keeps using V2 pagination margins, and this phase adds parity checks to catch any designer/preview title drift.
+**Architecture:** Keep page coordinates in millimeters and treat report components as coordinates relative to the printable area. The designer canvas draws three distinct layers: paper outer box, printable content/grid inside margins, and band chrome inside the printable area but outside band body height. The viewer keeps using current model pagination margins, and this phase adds parity checks to catch any designer/preview title drift.
 
 **Tech Stack:** React, TypeScript, Vitest, Testing Library, Playwright against the Vite example app, AntD 6-compatible API usage.
 
@@ -18,7 +18,7 @@
 
 - [x] **Step 1: Write the failing test**
 
-Update the existing Phase 11 test so it asserts the user-visible Stimulsoft geometry:
+Update the existing Phase 11 test so it asserts the user-visible the reference designer geometry:
 
 ```ts
 const pageStack = screen.getByTestId('designer-canvas-page-stack');
@@ -94,7 +94,7 @@ pos: printableOffsetPx + mmToPx(mm) * zoom,
 Run:
 
 ```bash
-pnpm --filter @report-designer/designer test -- phase-11-page-margin-ruler-band-chrome phase-10-canvas-stimulsoft-layout
+pnpm --filter @report-designer/designer test -- phase-11-page-margin-ruler-band-chrome phase-10-canvas-reference-designer-layout
 ```
 
 Expected: PASS.
@@ -142,7 +142,7 @@ Expected: the design title and preview title have matching horizontal centers re
 Run:
 
 ```bash
-pnpm --filter @report-designer/designer test -- phase-11-page-margin-ruler-band-chrome phase-10-canvas-stimulsoft-layout
+pnpm --filter @report-designer/designer test -- phase-11-page-margin-ruler-band-chrome phase-10-canvas-reference-designer-layout
 pnpm --filter @report-designer/designer build
 pnpm --filter @report-designer/example test
 ```

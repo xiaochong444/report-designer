@@ -2,7 +2,7 @@
 
 ## Goal
 
-Bring the current text style workflow closer to Stimulsoft Reports by replacing the single property dropdown with a real text style library. This phase focuses only on text-oriented styles and their management flow.
+Bring the current text style workflow closer to the reference report designer by replacing the single property dropdown with a real text style library. This phase focuses only on text-oriented styles and their management flow.
 
 ## Scope
 
@@ -28,7 +28,7 @@ The current designer supports only a simple style reference on text components:
 - The property editor exposes only a dropdown to assign a style to the selected text component.
 - There is no style manager, no preview, no duplicate/rename flow, no default-style concept, and no shared resolution layer that can be clearly reasoned about across designer preview and printing.
 
-That gap makes the feature feel unlike Stimulsoft Reports, where styles are a reusable report-level asset rather than a loose select box.
+That gap makes the feature feel unlike the reference report designer, where styles are a reusable report-level asset rather than a loose select box.
 
 ## User Experience Design
 
@@ -45,7 +45,7 @@ This keeps high-frequency assignment quick while moving style maintenance into a
 
 ### Style Designer Layout
 
-The style designer should follow a compact desktop-tool layout inspired by Stimulsoft:
+The style designer should follow a compact desktop-tool layout inspired by the reference designer:
 
 - Left column: searchable style list
 - Center column: live style preview

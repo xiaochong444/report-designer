@@ -2,11 +2,11 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Add Stimulsoft-style report authoring workflows on top of the new engine: JSON data source wizard, band wizard, group wizard, expression editor, property grid, and preview integration.
+**Goal:** Add reference-style report authoring workflows on top of the new engine: JSON data source wizard, band wizard, group wizard, expression editor, property grid, and preview integration.
 
-**Architecture:** Designer workflows edit Template V2 through focused panels/dialogs. The canvas should show band semantics clearly and use RenderDocument preview for accurate page breaks.
+**Architecture:** Designer workflows edit Template model through focused panels/dialogs. The canvas should show band semantics clearly and use RenderDocument preview for accurate page breaks.
 
-**Tech Stack:** React 19, Ant Design 6, Zustand, TypeScript, existing designer package, core Template V2 APIs.
+**Tech Stack:** React 19, Ant Design 6, Zustand, TypeScript, existing designer package, core Template model APIs.
 
 ---
 
@@ -16,11 +16,11 @@
 - Create: `packages/designer/src/components/dialogs/BandWizardDialog.tsx`
 - Create: `packages/designer/src/components/dialogs/GroupWizardDialog.tsx`
 - Create: `packages/designer/src/components/dialogs/PageSetupDialog.tsx`
-- Create: `packages/designer/src/components/expression/ExpressionEditorV2.tsx`
-- Create: `packages/designer/src/components/properties/PropertyGridV2.tsx`
-- Create: `packages/designer/src/components/tree/ReportTreeV2.tsx`
+- Create: `packages/designer/src/components/expression/ExpressionEditorcurrent model.tsx`
+- Create: `packages/designer/src/components/properties/PropertyGridcurrent model.tsx`
+- Create: `packages/designer/src/components/tree/ReportTreecurrent model.tsx`
 - Modify: `packages/designer/src/store/designer-store.ts`
-- Modify: `packages/designer/src/components/ribbon/StimulsoftRibbon.tsx`
+- Modify: `packages/designer/src/components/ribbon/the reference designerRibbon.tsx`
 - Modify: `packages/designer/src/components/canvas/DesignerCanvasFrame.tsx`
 - Test: `packages/designer/src/__tests__/phase-5-json-data-source-dialog.test.tsx`
 - Test: `packages/designer/src/__tests__/phase-5-band-wizard.test.tsx`
@@ -94,13 +94,13 @@ Controls:
 - Keep group together
 - Add group footer totals
 
-### Task 4: Expression Editor V2
+### Task 4: Expression Editor current model
 
 - [ ] **Step 1: Write expression editor tests**
 
 Assert field tree insertion, aggregate insertion, and validation result rendering.
 
-- [ ] **Step 2: Implement `ExpressionEditorV2.tsx`**
+- [ ] **Step 2: Implement `ExpressionEditorcurrent model.tsx`**
 
 Panels:
 
@@ -118,7 +118,7 @@ Supported quick inserts:
 - `SUM("DataBand1", "{Orders.Total}")`
 - `Totals.Sum("{Orders.Total}")`
 
-### Task 5: Property Grid V2
+### Task 5: Property Grid current model
 
 - [ ] **Step 1: Write property grid tests**
 
@@ -126,7 +126,7 @@ Selecting a DataBand shows data source, sort, filter, columns, keep, break, and 
 
 Selecting a Text component shows text, expression, format, font, alignment, borders, grow/shrink, print options, and conditions.
 
-- [ ] **Step 2: Implement `PropertyGridV2.tsx`**
+- [ ] **Step 2: Implement `PropertyGridcurrent model.tsx`**
 
 Use compact grouped rows, not large forms. Preserve keyboard-friendly inputs.
 
@@ -175,5 +175,5 @@ Expected: Preview matches the banded report structure.
 
 ```bash
 git add packages/designer/src
-git commit -m "feat(designer): 增加stimulsoft风格报表设计流程"
+git commit -m "feat(designer): 增加reference-designer风格报表设计流程"
 ```

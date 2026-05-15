@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import type { ReportTemplate, ReportComponent, Band, Page, TableComponent, ReportStyle, TextComponent } from '@report-designer/core';
+import type { ReportTemplate, ReportComponent, Band, Page, TableComponent, ReportStyle, TextComponent, ConditionalFormat } from '@report-designer/core';
 import { createDefaultTemplate, getDefaultTextStyle, normalizeTemplate } from '@report-designer/core';
 import { CommandDispatcher } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
@@ -30,6 +30,7 @@ export interface DesignerState {
   currentPageId: string;
   mode: 'design' | 'preview';
   textStyleLibraryOpen: boolean;
+  conditionalFormatLibraryOpen: boolean;
   selectedComponentIds: string[];
   selectedBandId: string | null;
   dataSources: Record<string, any[]>;
@@ -45,6 +46,8 @@ export interface DesignerState {
   setMode: (mode: 'design' | 'preview') => void;
   openTextStyleLibrary: () => void;
   closeTextStyleLibrary: () => void;
+  openConditionalFormatLibrary: () => void;
+  closeConditionalFormatLibrary: () => void;
   selectComponents: (componentIds: string[]) => void;
   selectBand: (bandId: string | null) => void;
   setDataSources: (data: Record<string, any[]>) => void;
@@ -101,6 +104,11 @@ export interface DesignerState {
   setDefaultTextStyle: (styleId: string | undefined) => void;
   syncTextStyleReferences: (styleId?: string) => void;
   getTextStyleUsageCount: (styleId: string) => number;
+  applySelectedConditionalFormat: (formatId: string | undefined) => void;
+  createConditionalFormat: (format?: Partial<ConditionalFormat> & { name?: string }) => string;
+  duplicateConditionalFormat: (formatId: string) => string | undefined;
+  updateConditionalFormat: (formatId: string, updates: Partial<ConditionalFormat>) => void;
+  deleteConditionalFormat: (formatId: string) => void;
   insertSelectedTableColumn: (afterColumn?: number) => void;
   deleteSelectedTableColumn: (columnIndex?: number) => void;
   insertSelectedTableRow: (afterRow?: number) => void;
@@ -140,6 +148,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     currentPageId: '',
     mode: 'design',
     textStyleLibraryOpen: false,
+    conditionalFormatLibraryOpen: false,
     selectedComponentIds: [],
     selectedBandId: null,
     dataSources: {},
@@ -155,6 +164,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       currentPageId: normalizedTemplate.pages[0]?.id || '',
       mode: 'design',
       textStyleLibraryOpen: false,
+      conditionalFormatLibraryOpen: false,
       selectedComponentIds: [],
       selectedBandId: null,
       reportUnit: 'mm',
@@ -171,6 +181,10 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   openTextStyleLibrary: () => set({ textStyleLibraryOpen: true }),
 
   closeTextStyleLibrary: () => set({ textStyleLibraryOpen: false }),
+
+  openConditionalFormatLibrary: () => set({ conditionalFormatLibraryOpen: true }),
+
+  closeConditionalFormatLibrary: () => set({ conditionalFormatLibraryOpen: false }),
 
   selectComponents: (componentIds) => set({ selectedComponentIds: componentIds }),
 
@@ -194,7 +208,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       execute: () => template,
       undo: () => template,
     });
-    set({ template: newTemplate });
+    set({ template: newTemplate, selectedComponentIds: [normalizedComponent.id], selectedBandId: undefined });
   },
 
   removeComponent: (pageId, bandId, componentId) => {
@@ -795,6 +809,63 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     return countTextStyleUsage(template, styleId);
   },
 
+  applySelectedConditionalFormat: (formatId) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const exists = formatId ? template.conditionalFormats.some(item => item.id === formatId) : false;
+    const nextFormatId = exists ? formatId : undefined;
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, component => {
+      const nextComponent = { ...component } as ReportComponent;
+      if (nextFormatId) {
+        nextComponent.conditionalFormat = nextFormatId;
+      } else {
+        delete nextComponent.conditionalFormat;
+      }
+      return nextComponent;
+    });
+    set({ template: newTemplate });
+  },
+
+  createConditionalFormat: (format) => {
+    const { template } = get();
+    const nextFormat = createConditionalFormatDraft(template, format);
+    set({ template: { ...template, conditionalFormats: [...template.conditionalFormats, nextFormat] } });
+    return nextFormat.id;
+  },
+
+  duplicateConditionalFormat: (formatId) => {
+    const { template } = get();
+    const format = template.conditionalFormats.find(item => item.id === formatId);
+    if (!format) return undefined;
+
+    const duplicate = cloneConditionalFormat(format, {
+      id: createConditionalFormatId(),
+      name: `${format.name} Copy`,
+    });
+    set({ template: { ...template, conditionalFormats: [...template.conditionalFormats, duplicate] } });
+    return duplicate.id;
+  },
+
+  updateConditionalFormat: (formatId, updates) => {
+    const { template } = get();
+    set({
+      template: {
+        ...template,
+        conditionalFormats: template.conditionalFormats.map(format => (
+          format.id === formatId ? mergeConditionalFormat(format, updates) : format
+        )),
+      },
+    });
+  },
+
+  deleteConditionalFormat: (formatId) => {
+    const { template } = get();
+    const nextTemplate = clearConditionalFormatReferencesInTemplate({
+      ...template,
+      conditionalFormats: template.conditionalFormats.filter(format => format.id !== formatId),
+    }, formatId);
+    set({ template: nextTemplate });
+  },
+
   insertSelectedTableColumn: (afterColumn) => {
     const { template, currentPageId, selectedComponentIds } = get();
     const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
@@ -1175,6 +1246,78 @@ function countTextStyleUsage(template: ReportTemplate, styleId: string): number 
   }
 
   return count;
+}
+
+function createConditionalFormatId() {
+  return `cf_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function createConditionRuleId() {
+  return `rule_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
+function cloneConditionRule(rule: ConditionalFormat['rules'][number]): ConditionalFormat['rules'][number] {
+  return {
+    ...rule,
+    overrides: { ...(rule.overrides ?? {}) },
+  };
+}
+
+function cloneConditionalFormat(
+  format: ConditionalFormat,
+  overrides?: Partial<ConditionalFormat>,
+): ConditionalFormat {
+  return {
+    ...format,
+    ...overrides,
+    applyTo: overrides?.applyTo ? [...overrides.applyTo] : [...(format.applyTo ?? [])],
+    rules: (overrides?.rules ?? format.rules ?? []).map(cloneConditionRule),
+  };
+}
+
+function createConditionalFormatDraft(
+  template: ReportTemplate,
+  format?: Partial<ConditionalFormat> & { name?: string },
+): ConditionalFormat {
+  const nextIndex = template.conditionalFormats.length + 1;
+  return cloneConditionalFormat({
+    id: createConditionalFormatId(),
+    name: format?.name ?? `Conditional Format ${nextIndex}`,
+    applyTo: [],
+    rules: [{
+      id: createConditionRuleId(),
+      expression: 'true',
+      conditionType: 'expression',
+      enabled: true,
+      breakIfTrue: false,
+      overrides: {},
+    }],
+  }, format);
+}
+
+function mergeConditionalFormat(
+  format: ConditionalFormat,
+  updates: Partial<ConditionalFormat>,
+): ConditionalFormat {
+  return cloneConditionalFormat(format, updates);
+}
+
+function clearConditionalFormatReferencesInTemplate(template: ReportTemplate, formatId: string): ReportTemplate {
+  return {
+    ...template,
+    pages: template.pages.map(page => ({
+      ...page,
+      bands: page.bands.map(band => ({
+        ...band,
+        components: band.components.map(component => {
+          if (component.conditionalFormat !== formatId) return component;
+          const nextComponent = { ...component } as ReportComponent;
+          delete nextComponent.conditionalFormat;
+          return nextComponent;
+        }),
+      })),
+    })),
+  };
 }
 
 function mapSelectedComponents(

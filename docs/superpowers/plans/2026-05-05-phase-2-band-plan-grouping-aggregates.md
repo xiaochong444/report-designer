@@ -4,7 +4,7 @@
 
 **Goal:** Add the semantic layer that makes bands, groups, child bands, and totals behave like a print report engine instead of static page sections.
 
-**Architecture:** Build a `BandPlan` from Template V2, then execute it against JSON rows. Aggregates are computed through a runtime context with report, group, page, and running scopes.
+**Architecture:** Build a `BandPlan` from Template model, then execute it against JSON rows. Aggregates are computed through a runtime context with report, group, page, and running scopes.
 
 **Tech Stack:** TypeScript, Vitest, existing `@report-designer/core` expression engine.
 
@@ -40,7 +40,7 @@ Expected:
 
 - `pageHeader` is a page band.
 - `reportTitle` and `reportSummary` are report bands.
-- `header/groupHeader/groupFooter/footer` are associated with the nearest `data` band according to Stimulsoft-style order.
+- `header/groupHeader/groupFooter/footer` are associated with the nearest `data` band according to reference-style order.
 
 - [ ] **Step 2: Implement `buildBandPlan(template)`**
 
@@ -48,20 +48,20 @@ Return:
 
 ```ts
 interface BandPlan {
-  pageBands: { pageHeader: ReportBandV2[]; pageFooter: ReportBandV2[]; overlay: ReportBandV2[] };
-  reportBands: { reportTitle: ReportBandV2[]; reportSummary: ReportBandV2[] };
+  pageBands: { pageHeader: ReportBandcurrent model[]; pageFooter: ReportBandcurrent model[]; overlay: ReportBandcurrent model[] };
+  reportBands: { reportTitle: ReportBandcurrent model[]; reportSummary: ReportBandcurrent model[] };
   dataSections: DataSectionPlan[];
 }
 
 interface DataSectionPlan {
-  dataBand: ReportBandV2;
-  headers: ReportBandV2[];
-  groupPairs: Array<{ header: ReportBandV2; footer?: ReportBandV2 }>;
-  columnHeaders: ReportBandV2[];
-  columnFooters: ReportBandV2[];
-  childBands: ReportBandV2[];
-  footers: ReportBandV2[];
-  emptyDataBands: ReportBandV2[];
+  dataBand: ReportBandcurrent model;
+  headers: ReportBandcurrent model[];
+  groupPairs: Array<{ header: ReportBandcurrent model; footer?: ReportBandcurrent model }>;
+  columnHeaders: ReportBandcurrent model[];
+  columnFooters: ReportBandcurrent model[];
+  childBands: ReportBandcurrent model[];
+  footers: ReportBandcurrent model[];
+  emptyDataBands: ReportBandcurrent model[];
 }
 ```
 
@@ -87,7 +87,7 @@ Output logical items:
 
 ```ts
 type LogicalBandItem =
-  | { kind: 'band'; band: ReportBandV2; context: RenderContextV2 }
+  | { kind: 'band'; band: ReportBandcurrent model; context: RenderContextcurrent model }
   | { kind: 'pageBreak'; reason: string };
 ```
 

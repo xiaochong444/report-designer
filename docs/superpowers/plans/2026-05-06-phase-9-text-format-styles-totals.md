@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Align common Stimulsoft-style text binding, text properties, style set selection, value formatting, and page/report totals for JSON-only reports.
+**Goal:** Align common reference-style text binding, text properties, style set selection, value formatting, and page/report totals for JSON-only reports.
 
 **Architecture:** Keep formatting and total calculation in `@report-designer/core` so designer, viewer, PDF, and tests share one behavior. The designer only edits text binding, style reference, and formatting metadata; render-time layout resolves expression values, applies formatting, resolves style sets, and evaluates page/report totals using the existing band pagination flow.
 
@@ -27,7 +27,7 @@ import { describe, expect, it } from 'vitest';
 import { formatValue } from '../src';
 
 describe('Phase 9 text formatting', () => {
-  it('formats common Stimulsoft-style number, currency, percent, date, boolean, and null values', () => {
+  it('formats common reference-style number, currency, percent, date, boolean, and null values', () => {
     expect(formatValue(1234.5, { type: 'number', pattern: '#,##0.00' })).toBe('1,234.50');
     expect(formatValue(1234.5, { type: 'currency', pattern: '$#,##0.00' })).toBe('$1,234.50');
     expect(formatValue(0.257, { type: 'percent', pattern: '0.0%' })).toBe('25.7%');
@@ -106,7 +106,7 @@ Create `packages/core/__tests__/phase-9-text-rendering.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import { renderReportV2 } from '../src';
+import { renderReportcurrent model } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
 describe('Phase 9 text rendering', () => {
@@ -130,7 +130,7 @@ describe('Phase 9 text rendering', () => {
       }),
     ]);
 
-    const document = renderReportV2(template, { employees: [{ Salary: 1234.5 }] });
+    const document = renderReportcurrent model(template, { employees: [{ Salary: 1234.5 }] });
     expect(document.pages[0].items[0].components[0].content).toBe('1,234.50');
   });
 
@@ -161,7 +161,7 @@ describe('Phase 9 text rendering', () => {
       backgroundColor: '#fff7e6',
     }];
 
-    const box = renderReportV2(template, { employees: [{ Name: 'Alice' }] }).pages[0].items[0].components[0];
+    const box = renderReportcurrent model(template, { employees: [{ Name: 'Alice' }] }).pages[0].items[0].components[0];
     expect(box.style?.font?.bold).toBe(true);
     expect(box.style?.font?.color).toBe('#ff0000');
     expect(box.style?.backgroundColor).toBe('#fff7e6');
@@ -177,7 +177,7 @@ Expected: FAIL because layout does not apply format metadata or template styles.
 
 - [ ] **Step 3: Add template styles to layout options**
 
-Extend `LayoutBandOptions` with `styles?: ReportStyleV2[]`, pass template styles from `paginateV2`, and merge `component.style` by id before creating `RenderStyle`.
+Extend `LayoutBandOptions` with `styles?: ReportStylecurrent model[]`, pass template styles from `paginatecurrent model`, and merge `component.style` by id before creating `RenderStyle`.
 
 - [ ] **Step 4: Apply formatting in `resolveText`**
 
@@ -205,7 +205,7 @@ Create `packages/core/__tests__/phase-9-page-report-totals.test.ts`:
 
 ```ts
 import { describe, expect, it } from 'vitest';
-import { AggregateRuntime, evalExpression, renderReportV2 } from '../src';
+import { AggregateRuntime, evalExpression, renderReportcurrent model } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
 const rows = [
@@ -269,7 +269,7 @@ describe('Phase 9 page and report totals', () => {
     template.pages[0].height = 55;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReportV2(template, { employees: rows });
+    const document = renderReportcurrent model(template, { employees: rows });
     const pageFooterTotals = document.pages.map(page => page.items.find(item => item.bandType === 'pageFooter')!.components[0].content);
     const reportSummary = document.pages.flatMap(page => page.items).find(item => item.bandType === 'reportSummary')!.components[0].content;
 
@@ -291,7 +291,7 @@ Add aggregate names `REPORTSUM`, `REPORTCOUNT`, `PAGESUM`, `PAGECOUNT`, `TOTALS.
 
 - [ ] **Step 4: Track page rows during pagination**
 
-In `paginateV2`, collect data rows into a `WeakMap<RenderPage, Record<string, Record<string, unknown>[]>>` whenever a data band or child band with `context.row` and `context.dataSourceId` is placed. Pass the current page rows into `layoutBand` for page footer and overlay rendering.
+In `paginatecurrent model`, collect data rows into a `WeakMap<RenderPage, Record<string, Record<string, unknown>[]>>` whenever a data band or child band with `context.row` and `context.dataSourceId` is placed. Pass the current page rows into `layoutBand` for page footer and overlay rendering.
 
 - [ ] **Step 5: Run the green test**
 

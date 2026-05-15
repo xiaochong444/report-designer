@@ -39,10 +39,34 @@ export interface Padding {
 export interface ConditionRule {
   id: string;
   expression: Expression;
+  conditionType?: 'expression' | 'value';
+  enabled?: boolean;
+  breakIfTrue?: boolean;
+  dataType?: 'string' | 'number' | 'date' | 'boolean' | 'expression';
+  field?: Expression;
+  operator?:
+    | 'equalTo'
+    | 'notEqualTo'
+    | 'between'
+    | 'notBetween'
+    | 'greaterThan'
+    | 'greaterThanOrEqualTo'
+    | 'lessThan'
+    | 'lessThanOrEqualTo'
+    | 'containing'
+    | 'notContaining'
+    | 'beginningWith'
+    | 'endingWith';
+  value?: string | number | boolean;
+  valueTo?: string | number | boolean;
   overrides: Record<string, any>;
 }
 
-export type TextFormatType = 'none' | 'number' | 'currency' | 'date' | 'time' | 'percent' | 'boolean' | 'custom';
+export type TextFormatType = 'none' | 'text' | 'number' | 'currency' | 'date' | 'time' | 'dateTime' | 'percent' | 'boolean' | 'custom';
+export type TextFormatNegativePattern = 'minus' | 'parentheses';
+export type TextFormatPositivePattern = 'plain' | 'plus';
+export type TextFormatSymbolPosition = 'prefix' | 'suffix';
+export type TextFormatTextTransform = 'none' | 'uppercase' | 'lowercase' | 'capitalize';
 
 export interface TextFormatConfig {
   type: TextFormatType;
@@ -50,6 +74,27 @@ export interface TextFormatConfig {
   nullValue?: string;
   trueText?: string;
   falseText?: string;
+  decimalDigits?: number;
+  decimalSeparator?: string;
+  useGroupSeparator?: boolean;
+  groupSeparator?: string;
+  groupSize?: number;
+  useAbbreviation?: boolean;
+  positivePattern?: TextFormatPositivePattern;
+  negativePattern?: TextFormatNegativePattern;
+  currencySymbol?: string;
+  currencySymbolPosition?: TextFormatSymbolPosition;
+  currencySpace?: boolean;
+  percentMultiplier?: 1 | 100;
+  percentSymbol?: string;
+  percentSymbolPosition?: TextFormatSymbolPosition;
+  percentSpace?: boolean;
+  dateFormat?: string;
+  timeFormat?: string;
+  textTransform?: TextFormatTextTransform;
+  trimText?: boolean;
+  trueValues?: string[];
+  falseValues?: string[];
 }
 
 export type TextAlign = 'left' | 'center' | 'right';
@@ -127,6 +172,7 @@ export interface ReportComponent {
   backgroundColor?: string;
   padding?: Padding;
   style?: string;
+  conditionalFormat?: string;
   conditions?: ConditionRule[];
   anchor?: string;
 }
