@@ -31,4 +31,27 @@ describe('example sample paper defaults', () => {
     expect(commonTextStyles).toHaveLength(originalLength);
     expect(second.styles).toHaveLength(originalLength);
   });
+
+  it('bundles a common components sample with panel children and a local subreport key', () => {
+    const sample = sampleReports.find(report => report.key === 'commonComponents');
+
+    expect(sample?.label).toBe('Common Components');
+
+    const components = sample?.template.pages.flatMap(page => page.bands.flatMap(band => band.components)) ?? [];
+    const panel = components.find(component => component.type === 'panel') as any;
+    const subreport = components.find(component => component.type === 'subreport') as any;
+
+    expect(panel?.components?.map((component: any) => component.type)).toEqual(expect.arrayContaining([
+      'text',
+      'image',
+      'line',
+      'shape',
+      'checkbox',
+      'barcode',
+      'richtext',
+      'subreport',
+    ]));
+    expect(subreport?.templateUrl).toBe('common-components-detail');
+    expect(sample?.subreports?.['common-components-detail']?.name).toBe('Common Components Detail');
+  });
 });

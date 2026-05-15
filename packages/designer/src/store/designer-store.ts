@@ -56,6 +56,7 @@ export interface DesignerState {
 
   // Command-dispatched actions
   addComponent: (pageId: string, bandId: string, component: ReportComponent) => void;
+  addComponentToPanel: (pageId: string, bandId: string, panelId: string, component: ReportComponent) => void;
   removeComponent: (pageId: string, bandId: string, componentId: string) => void;
   updateComponent: (pageId: string, bandId: string, componentId: string, updates: Record<string, any>, previous?: Record<string, any>) => void;
   updateComponentSilent: (pageId: string, bandId: string, componentId: string, updates: Record<string, any>) => void;
@@ -209,6 +210,26 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       undo: () => template,
     });
     set({ template: newTemplate, selectedComponentIds: [normalizedComponent.id], selectedBandId: undefined });
+  },
+
+  addComponentToPanel: (pageId, bandId, panelId, component) => {
+    const { template, dispatcher } = get();
+    const band = findBand(template, pageId, bandId);
+    const panel = band?.components.find(item => item.id === panelId && item.type === 'panel') as (ReportComponent & { components?: ReportComponent[] }) | undefined;
+    if (!panel) return;
+    const styledComponent = isTextComponent(component)
+      ? applyDefaultTextStyle(component, template.styles)
+      : component;
+    const normalizedComponent = prepareComponentForInsert(template, styledComponent);
+    const previous = { ...panel, components: [...(panel.components ?? [])] };
+    const nextComponents = [...(panel.components ?? []), normalizedComponent];
+    const newTemplate = dispatcher.execute(template, {
+      type: 'update-component',
+      payload: { pageId, bandId, componentId: panelId, updates: { components: nextComponents }, previous },
+      execute: () => template,
+      undo: () => template,
+    });
+    set({ template: newTemplate, selectedComponentIds: [panelId], selectedBandId: undefined });
   },
 
   removeComponent: (pageId, bandId, componentId) => {

@@ -47,7 +47,7 @@ const RenderPageView: React.FC<{ page: RenderPage; zoom: number }> = ({ page, zo
           }}
         >
           {band.components.map((component) => (
-            <RenderComponent key={component.id} component={{ ...component, x: component.x - band.x, y: component.y - band.y }} zoom={zoom} />
+            <RenderComponent key={component.id} component={component} zoom={zoom} parentOriginX={band.x} parentOriginY={band.y} />
           ))}
         </div>
       ))}

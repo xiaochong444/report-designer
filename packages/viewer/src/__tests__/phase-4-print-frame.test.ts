@@ -153,4 +153,63 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('style="width:100%;text-align:center;white-space:inherit;"');
     expect(html).toContain('Centered Print Title');
   });
+
+  it('prints panel and subreport children with preview-equivalent coordinate semantics', () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push({
+      id: 'panel-1',
+      type: 'panel',
+      x: 30,
+      y: 30,
+      width: 80,
+      height: 40,
+      style: { backgroundColor: '#ffffff' },
+      children: [
+        {
+          id: 'panel-text-1',
+          type: 'text',
+          x: 35,
+          y: 36,
+          width: 30,
+          height: 8,
+          content: 'Panel child',
+          style: {},
+        },
+      ],
+    });
+    document.pages[0].items[0].components.push({
+      id: 'subreport-1',
+      type: 'subreport',
+      x: 120,
+      y: 30,
+      width: 60,
+      height: 30,
+      templateUrl: 'child-report.json',
+      missing: false,
+      style: {},
+      children: [
+        {
+          id: 'subreport-text-1',
+          type: 'text',
+          x: 125,
+          y: 35,
+          width: 30,
+          height: 8,
+          content: 'Sub child',
+          style: {},
+        },
+      ],
+    });
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('data-report-component="panel-1"');
+    expect(html).toContain('data-report-component="panel-text-1"');
+    expect(html).toContain('data-report-component="subreport-1"');
+    expect(html).toContain('data-report-component="subreport-text-1"');
+    expect(html).toContain('data-report-component="panel-1" style="left:10mm;top:10mm;width:80mm;height:40mm;');
+    expect(html).toContain('data-report-component="panel-text-1" style="left:5mm;top:6mm;width:30mm;height:8mm;');
+    expect(html).toContain('data-report-component="subreport-1" style="left:100mm;top:10mm;width:60mm;height:30mm;');
+    expect(html).toContain('data-report-component="subreport-text-1" style="left:5mm;top:5mm;width:30mm;height:8mm;');
+  });
 });

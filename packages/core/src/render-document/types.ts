@@ -44,6 +44,10 @@ export interface RenderComponentBase {
   overflow?: boolean;
 }
 
+export interface RenderContainerBase extends RenderComponentBase {
+  children: RenderComponentBox[];
+}
+
 export interface RenderText extends RenderComponentBase {
   type: 'text';
   content: string;
@@ -93,6 +97,16 @@ export interface RenderBarcode extends RenderComponentBase {
   showText?: boolean;
 }
 
+export interface RenderPanel extends RenderContainerBase {
+  type: 'panel';
+}
+
+export interface RenderSubreport extends RenderContainerBase {
+  type: 'subreport';
+  templateUrl: string;
+  missing: boolean;
+}
+
 export type RenderComponentBox =
   | RenderText
   | RenderImage
@@ -101,4 +115,6 @@ export type RenderComponentBox =
   | RenderShape
   | RenderCheckbox
   | RenderBarcode
+  | RenderPanel
+  | RenderSubreport
   | RenderComponentBase;

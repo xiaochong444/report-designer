@@ -1,5 +1,6 @@
 import employees from '../fixtures/json/employees.json';
 import orders from '../fixtures/json/orders.json';
+import { commonComponentsDetailTemplate, commonComponentsTemplate } from './common-components';
 import { groupedEmployeesTemplate } from './grouped-employees';
 import { invoiceTemplate } from './invoice';
 import { longTextPaginationTemplate } from './long-text-pagination';
@@ -26,9 +27,18 @@ export const sampleReports = [
   { key: 'invoice', label: 'Invoice', template: invoiceTemplate, data: sampleReportData },
   { key: 'masterDetailOrders', label: 'Master Detail Orders', template: masterDetailOrdersTemplate, data: sampleReportData },
   { key: 'longTextPagination', label: 'Long Text Pagination', template: longTextPaginationTemplate, data: sampleReportData },
+  {
+    key: 'commonComponents',
+    label: 'Common Components',
+    template: commonComponentsTemplate,
+    data: sampleReportData,
+    subreports: { 'common-components-detail': commonComponentsDetailTemplate },
+  },
 ] as const;
 
 export {
+  commonComponentsDetailTemplate,
+  commonComponentsTemplate,
   groupedEmployeesTemplate,
   invoiceTemplate,
   longTextPaginationTemplate,

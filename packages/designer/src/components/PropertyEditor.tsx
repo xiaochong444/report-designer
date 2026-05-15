@@ -902,12 +902,13 @@ const ComponentContentProperties: React.FC<{
     case 'subreport':
       return (
         <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-          <Form.Item label={t('templateUrl')}>
+          <Form.Item label={t('localTemplateKey')}>
             <Input
-              aria-label={t('templateUrl')}
+              aria-label={t('localTemplateKey')}
               value={comp.templateUrl || ''}
               onChange={(event) => onChange('templateUrl', event.target.value)}
               size="small"
+              placeholder={t('localTemplateKeyPlaceholder')}
             />
           </Form.Item>
           <Form.Item label={t('parameters')}>
@@ -994,7 +995,8 @@ const propertyEditorMessages = {
     checkedExpression: '选中表达式',
     labelText: '标签文本',
     htmlContent: 'HTML 内容',
-    templateUrl: '模板地址',
+    localTemplateKey: '本地模板键/名称',
+    localTemplateKeyPlaceholder: '例如：invoice-detail',
     parameters: '参数',
     panelContentHint: '面板可承载子组件，使用外观和边框属性设置容器样式。',
     noContentProperties: '该组件暂无专属内容属性。',
@@ -1109,7 +1111,8 @@ const propertyEditorMessages = {
     checkedExpression: 'Checked expression',
     labelText: 'Label text',
     htmlContent: 'HTML content',
-    templateUrl: 'Template URL',
+    localTemplateKey: 'Local template key/name',
+    localTemplateKeyPlaceholder: 'For example: invoice-detail',
     parameters: 'Parameters',
     panelContentHint: 'Panels host child components. Use appearance and border properties for container styling.',
     noContentProperties: 'This component has no content-specific properties.',

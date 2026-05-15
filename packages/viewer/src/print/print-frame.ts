@@ -59,33 +59,38 @@ export async function printRenderDocument(document: RenderDocument): Promise<voi
 
 function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY: number): string {
   const style = buildComponentStyle(component, bandX, bandY);
+  const dataAttribute = `data-report-component="${escapeAttribute(component.id)}"`;
+  if ((component.type === 'panel' || component.type === 'subreport') && 'children' in component) {
+    const children = component.children.map((child) => renderComponentHtml(child, component.x, component.y)).join('');
+    return `<div class="rd-print-component rd-print-${component.type}" ${dataAttribute} style="${style}">${children}</div>`;
+  }
   if (component.type === 'text' && 'content' in component) {
     const contentStyle = buildTextContentStyle(component);
-    return `<div class="rd-print-component rd-print-text" style="${style}"><div class="rd-print-text-content" style="${contentStyle}">${escapeHtml(component.content)}</div></div>`;
+    return `<div class="rd-print-component rd-print-text" ${dataAttribute} style="${style}"><div class="rd-print-text-content" style="${contentStyle}">${escapeHtml(component.content)}</div></div>`;
   }
   if (component.type === 'image' && 'src' in component) {
     const fitMode = component.fitMode === 'stretch' || component.fitMode === 'fill'
       ? 'fill'
       : component.fitMode ?? 'contain';
-    return `<img class="rd-print-component rd-print-image" src="${escapeAttribute(component.src)}" alt="" style="${style}object-fit:${fitMode};" />`;
+    return `<img class="rd-print-component rd-print-image" ${dataAttribute} src="${escapeAttribute(component.src)}" alt="" style="${style}object-fit:${fitMode};" />`;
   }
   if (component.type === 'richtext' && 'html' in component) {
-    return `<div class="rd-print-component rd-print-richtext" style="${style}overflow:hidden;">${sanitizeRichHtml(component.html)}</div>`;
+    return `<div class="rd-print-component rd-print-richtext" ${dataAttribute} style="${style}overflow:hidden;">${sanitizeRichHtml(component.html)}</div>`;
   }
   if (component.type === 'barcode' && 'value' in component) {
-    return `<div class="rd-print-component rd-print-barcode" style="${style}overflow:hidden;font-family:monospace;font-size:10px;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,#000 0 1px,#fff 1px 3px);color:#000;" data-format="${escapeAttribute(String(component.format ?? 'CODE128'))}" aria-label="${escapeAttribute(component.value)}">${component.showText ? escapeHtml(component.value) : ''}</div>`;
+    return `<div class="rd-print-component rd-print-barcode" ${dataAttribute} style="${style}overflow:hidden;font-family:monospace;font-size:10px;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,#000 0 1px,#fff 1px 3px);color:#000;" data-format="${escapeAttribute(String(component.format ?? 'CODE128'))}" aria-label="${escapeAttribute(component.value)}">${component.showText ? escapeHtml(component.value) : ''}</div>`;
   }
   if (component.type === 'checkbox' && 'checked' in component) {
-    return `<div class="rd-print-component rd-print-checkbox" style="${style}display:flex;align-items:center;gap:1.5mm;"><span style="width:3.2mm;height:3.2mm;border:0.2mm solid #333;display:inline-flex;align-items:center;justify-content:center;font-size:3mm;line-height:1;">${component.checked ? '&#10003;' : ''}</span>${component.label ? `<span>${escapeHtml(component.label)}</span>` : ''}</div>`;
+    return `<div class="rd-print-component rd-print-checkbox" ${dataAttribute} style="${style}display:flex;align-items:center;gap:1.5mm;"><span style="width:3.2mm;height:3.2mm;border:0.2mm solid #333;display:inline-flex;align-items:center;justify-content:center;font-size:3mm;line-height:1;">${component.checked ? '&#10003;' : ''}</span>${component.label ? `<span>${escapeHtml(component.label)}</span>` : ''}</div>`;
   }
   if (component.type === 'line') {
     const line = component as RenderLine;
-    return `<svg class="rd-print-component rd-print-line" style="${style}" viewBox="0 0 ${Math.max(1, line.width)} ${Math.max(1, line.height)}" preserveAspectRatio="none"><line x1="${line.startX ?? 0}" y1="${line.startY ?? line.height / 2}" x2="${line.endX ?? line.width}" y2="${line.endY ?? line.height / 2}" stroke="${escapeAttribute(line.lineColor ?? '#000000')}" stroke-width="${Math.max(0.2, line.lineWidth ?? 0.2)}" stroke-dasharray="${lineDashArray(line.lineStyle)}" /></svg>`;
+    return `<svg class="rd-print-component rd-print-line" ${dataAttribute} style="${style}" viewBox="0 0 ${Math.max(1, line.width)} ${Math.max(1, line.height)}" preserveAspectRatio="none"><line x1="${line.startX ?? 0}" y1="${line.startY ?? line.height / 2}" x2="${line.endX ?? line.width}" y2="${line.endY ?? line.height / 2}" stroke="${escapeAttribute(line.lineColor ?? '#000000')}" stroke-width="${Math.max(0.2, line.lineWidth ?? 0.2)}" stroke-dasharray="${lineDashArray(line.lineStyle)}" /></svg>`;
   }
   if (component.type === 'shape') {
-    return `<svg class="rd-print-component rd-print-shape" style="${style}" viewBox="0 0 ${Math.max(1, component.width)} ${Math.max(1, component.height)}" preserveAspectRatio="none">${shapeSvg(component)}</svg>`;
+    return `<svg class="rd-print-component rd-print-shape" ${dataAttribute} style="${style}" viewBox="0 0 ${Math.max(1, component.width)} ${Math.max(1, component.height)}" preserveAspectRatio="none">${shapeSvg(component)}</svg>`;
   }
-  return `<div class="rd-print-component" style="${style}"></div>`;
+  return `<div class="rd-print-component" ${dataAttribute} style="${style}"></div>`;
 }
 
 function buildComponentStyle(component: RenderComponentBox, bandX: number, bandY: number): string {

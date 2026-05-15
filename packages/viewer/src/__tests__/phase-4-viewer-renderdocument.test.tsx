@@ -18,6 +18,41 @@ describe('Phase 4 RenderDocument viewer', () => {
     expect(screen.getByText('Employee 1')).toBeInTheDocument();
   });
 
+  it('passes local subreport registry entries into preview rendering', () => {
+    const { template, data } = makeViewerTemplate(1);
+    template.pages[0].bands[0].components = [{
+      id: 'local-subreport',
+      type: 'subreport',
+      x: 0,
+      y: 0,
+      width: 80,
+      height: 20,
+      templateUrl: 'detail-template',
+      parameters: {},
+    }];
+    const detail = makeViewerTemplate(1).template;
+    detail.pages[0].bands[0].components = [{
+      id: 'detail-text',
+      type: 'text',
+      x: 0,
+      y: 0,
+      width: 60,
+      height: 8,
+      text: 'Local detail rendered',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    }];
+
+    render(<Viewer template={template} data={data} subreports={{ 'detail-template': detail }} />);
+
+    expect(screen.getAllByText('Local detail rendered').length).toBeGreaterThan(0);
+    expect(screen.queryByText(/Missing subreport/)).not.toBeInTheDocument();
+  });
+
   it('renders core component types in the DOM renderer', () => {
     render(<RenderDocumentView document={makeRenderDocument()} zoom={100} />);
 
@@ -92,5 +127,65 @@ describe('Phase 4 RenderDocument viewer', () => {
     expect(textBox).toHaveStyle({ display: 'flex' });
     expect(content).toHaveStyle({ width: '100%', textAlign: 'center' });
     expect(content).toHaveTextContent('Centered Title');
+  });
+
+  it('renders panel and subreport children without applying band or container offsets twice', () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push({
+      id: 'panel-1',
+      type: 'panel',
+      x: 30,
+      y: 30,
+      width: 80,
+      height: 40,
+      style: { backgroundColor: '#ffffff' },
+      children: [
+        {
+          id: 'panel-text-1',
+          type: 'text',
+          x: 35,
+          y: 36,
+          width: 30,
+          height: 8,
+          content: 'Panel child',
+          style: {},
+        },
+      ],
+    });
+    document.pages[0].items[0].components.push({
+      id: 'subreport-1',
+      type: 'subreport',
+      x: 120,
+      y: 30,
+      width: 60,
+      height: 30,
+      templateUrl: 'child-report.json',
+      missing: false,
+      style: {},
+      children: [
+        {
+          id: 'subreport-text-1',
+          type: 'text',
+          x: 125,
+          y: 35,
+          width: 30,
+          height: 8,
+          content: 'Sub child',
+          style: {},
+        },
+      ],
+    });
+
+    const { container } = render(<RenderDocumentView document={document} zoom={100} />);
+
+    const panel = container.querySelector('[data-report-component="panel-1"]') as HTMLElement;
+    const panelChild = container.querySelector('[data-report-component="panel-text-1"]') as HTMLElement;
+    const subreport = container.querySelector('[data-report-component="subreport-1"]') as HTMLElement;
+    const subreportChild = container.querySelector('[data-report-component="subreport-text-1"]') as HTMLElement;
+
+    expect(panel).toHaveStyle({ left: `${10 * 96 / 25.4}px`, top: `${10 * 96 / 25.4}px` });
+    expect(panelChild).toHaveStyle({ left: `${5 * 96 / 25.4}px`, top: `${6 * 96 / 25.4}px` });
+    expect(subreport).toHaveStyle({ left: `${100 * 96 / 25.4}px`, top: `${10 * 96 / 25.4}px` });
+    expect(subreportChild).toHaveStyle({ left: `${5 * 96 / 25.4}px`, top: `${5 * 96 / 25.4}px` });
   });
 });

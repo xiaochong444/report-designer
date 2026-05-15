@@ -25,7 +25,7 @@ export async function exportRenderDocumentToPDF(
     const page = pdfDoc.addPage([renderPage.width * MM_TO_PT, renderPage.height * MM_TO_PT]);
     for (const band of renderPage.items) {
       for (const component of band.components) {
-        drawRenderComponent(page, component, renderPage.height, font, boldFont);
+        await drawRenderComponent(pdfDoc, page, component, renderPage.height, font, boldFont);
       }
     }
   }

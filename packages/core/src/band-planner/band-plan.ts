@@ -31,6 +31,7 @@ export interface RenderContext {
   groupValues: Record<string, unknown>;
   parentRow?: Record<string, unknown>;
   rowsByBand?: Record<string, Record<string, unknown>[]>;
+  parameters?: Record<string, unknown>;
 }
 
 export type LogicalBandItem =

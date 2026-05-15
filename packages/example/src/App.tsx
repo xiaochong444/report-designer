@@ -96,7 +96,7 @@ function App() {
       </Header>
       <Content style={{ minHeight: 0 }}>
         {viewMode === 'preview' ? (
-          <Viewer template={previewTemplate} data={selected.data} />
+          <Viewer template={previewTemplate} data={selected.data} subreports={'subreports' in selected ? selected.subreports : undefined} />
         ) : (
           <Designer
             key={selected.key}

@@ -10,41 +10,54 @@ type RenderTextStyle = NonNullable<RenderText['style']> & {
 interface RenderComponentProps {
   component: RenderComponentBox;
   zoom: number;
+  parentOriginX?: number;
+  parentOriginY?: number;
 }
 
-export const RenderComponent: React.FC<RenderComponentProps> = ({ component, zoom }) => {
+export const RenderComponent: React.FC<RenderComponentProps> = ({ component, zoom, parentOriginX = 0, parentOriginY = 0 }) => {
   const scale = zoom / 100;
-  const style = toAbsoluteStyle(component, scale);
+  const style = toAbsoluteStyle(component, scale, parentOriginX, parentOriginY);
+  const dataProps = { 'data-report-component': component.id };
 
   switch (component.type) {
+    case 'panel':
+    case 'subreport':
+      return (
+        <div data-testid={`render-component-${component.type}`} {...dataProps} style={style}>
+          {'children' in component ? component.children.map((child) => (
+            <RenderComponent key={child.id} component={child} zoom={zoom} parentOriginX={component.x} parentOriginY={component.y} />
+          )) : null}
+        </div>
+      );
     case 'text':
       return (
-        <div data-testid="render-component-text" style={{ ...style, ...textBoxStyle(component as RenderText, scale) }}>
+        <div data-testid="render-component-text" {...dataProps} style={{ ...style, ...textBoxStyle(component as RenderText, scale) }}>
           <div data-testid="render-component-text-content" style={textContentStyle(component as RenderText)}>
             {(component as RenderText).content}
           </div>
         </div>
       );
     case 'image':
-      return <img data-testid="render-component-image" src={(component as RenderImage).src} alt="" style={{ ...style, objectFit: imageFitMode(component as RenderImage) }} />;
+      return <img data-testid="render-component-image" {...dataProps} src={(component as RenderImage).src} alt="" style={{ ...style, objectFit: imageFitMode(component as RenderImage) }} />;
     case 'richtext':
       return (
         <div
           data-testid="render-component-richtext"
+          {...dataProps}
           style={{ ...style, overflow: 'hidden' }}
           dangerouslySetInnerHTML={{ __html: sanitizeRichHtml((component as RenderRichText).html) }}
         />
       );
     case 'line':
-      return <LineComponent component={component as RenderLine} style={style} />;
+      return <LineComponent component={component as RenderLine} style={style} dataProps={dataProps} />;
     case 'shape':
-      return <ShapeComponent component={component as RenderShape} style={style} />;
+      return <ShapeComponent component={component as RenderShape} style={style} dataProps={dataProps} />;
     case 'checkbox':
-      return <CheckboxComponent component={component as RenderCheckbox} style={style} scale={scale} />;
+      return <CheckboxComponent component={component as RenderCheckbox} style={style} scale={scale} dataProps={dataProps} />;
     case 'barcode':
-      return <BarcodeComponent component={component as RenderBarcode} style={style} />;
+      return <BarcodeComponent component={component as RenderBarcode} style={style} dataProps={dataProps} />;
     default:
-      return <div data-testid="render-component-unknown" style={style} />;
+      return <div data-testid="render-component-unknown" {...dataProps} style={style} />;
   }
 };
 
@@ -54,12 +67,12 @@ function imageFitMode(component: RenderImage): React.CSSProperties['objectFit'] 
     : component.fitMode ?? 'contain';
 }
 
-export function toAbsoluteStyle(component: RenderComponentBox, scale: number): React.CSSProperties {
+export function toAbsoluteStyle(component: RenderComponentBox, scale: number, parentOriginX = 0, parentOriginY = 0): React.CSSProperties {
   const border = component.style?.border;
   return {
     position: 'absolute',
-    left: component.x * MM_TO_PX * scale,
-    top: component.y * MM_TO_PX * scale,
+    left: (component.x - parentOriginX) * MM_TO_PX * scale,
+    top: (component.y - parentOriginY) * MM_TO_PX * scale,
     width: component.width * MM_TO_PX * scale,
     height: component.height * MM_TO_PX * scale,
     boxSizing: 'border-box',
@@ -119,8 +132,8 @@ function toPaddingPx(value = 0, scale: number): number {
   return value * MM_TO_PX * scale;
 }
 
-const LineComponent: React.FC<{ component: RenderLine; style: React.CSSProperties }> = ({ component, style }) => (
-  <svg data-testid="render-component-line" style={{ ...style, color: component.lineColor ?? '#000000' }} viewBox={`0 0 ${Math.max(1, component.width)} ${Math.max(1, component.height)}`} preserveAspectRatio="none">
+const LineComponent: React.FC<{ component: RenderLine; style: React.CSSProperties; dataProps: Record<string, string> }> = ({ component, style, dataProps }) => (
+  <svg data-testid="render-component-line" {...dataProps} style={{ ...style, color: component.lineColor ?? '#000000' }} viewBox={`0 0 ${Math.max(1, component.width)} ${Math.max(1, component.height)}`} preserveAspectRatio="none">
     <line
       x1={component.startX ?? 0}
       y1={component.startY ?? component.height / 2}
@@ -133,7 +146,7 @@ const LineComponent: React.FC<{ component: RenderLine; style: React.CSSPropertie
   </svg>
 );
 
-const ShapeComponent: React.FC<{ component: RenderShape; style: React.CSSProperties }> = ({ component, style }) => {
+const ShapeComponent: React.FC<{ component: RenderShape; style: React.CSSProperties; dataProps: Record<string, string> }> = ({ component, style, dataProps }) => {
   const strokeWidth = Math.max(1, (component.borderWidth ?? 0.2) * MM_TO_PX);
   const stroke = component.borderColor ?? '#000000';
   const fill = component.fillColor ?? 'transparent';
@@ -142,7 +155,7 @@ const ShapeComponent: React.FC<{ component: RenderShape; style: React.CSSPropert
   const common = { fill, stroke, strokeWidth, strokeDasharray: dash };
 
   return (
-    <svg data-testid="render-component-shape" style={style} viewBox={viewBox} preserveAspectRatio="none">
+    <svg data-testid="render-component-shape" {...dataProps} style={style} viewBox={viewBox} preserveAspectRatio="none">
       {component.shapeType === 'ellipse'
         ? <ellipse cx={component.width / 2} cy={component.height / 2} rx={Math.max(0, component.width / 2 - strokeWidth / 2)} ry={Math.max(0, component.height / 2 - strokeWidth / 2)} {...common} />
         : component.shapeType === 'triangle'
@@ -152,8 +165,8 @@ const ShapeComponent: React.FC<{ component: RenderShape; style: React.CSSPropert
   );
 };
 
-const CheckboxComponent: React.FC<{ component: RenderCheckbox; style: React.CSSProperties; scale: number }> = ({ component, style, scale }) => (
-  <div data-testid="render-component-checkbox" style={{ ...style, display: 'flex', alignItems: 'center', gap: 4 * scale }}>
+const CheckboxComponent: React.FC<{ component: RenderCheckbox; style: React.CSSProperties; scale: number; dataProps: Record<string, string> }> = ({ component, style, scale, dataProps }) => (
+  <div data-testid="render-component-checkbox" {...dataProps} style={{ ...style, display: 'flex', alignItems: 'center', gap: 4 * scale }}>
     <span style={{ width: 12 * scale, height: 12 * scale, border: '1px solid #333', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
       {component.checked ? '✓' : ''}
     </span>
@@ -161,7 +174,7 @@ const CheckboxComponent: React.FC<{ component: RenderCheckbox; style: React.CSSP
   </div>
 );
 
-const BarcodeComponent: React.FC<{ component: RenderBarcode; style: React.CSSProperties }> = ({ component, style }) => {
+const BarcodeComponent: React.FC<{ component: RenderBarcode; style: React.CSSProperties; dataProps: Record<string, string> }> = ({ component, style, dataProps }) => {
   const ref = useRef<SVGSVGElement | null>(null);
   useEffect(() => {
     if (ref.current) {
@@ -174,7 +187,7 @@ const BarcodeComponent: React.FC<{ component: RenderBarcode; style: React.CSSPro
   }, [component.format, component.value]);
 
   return (
-    <div data-testid="render-component-barcode" style={{ ...style, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+    <div data-testid="render-component-barcode" {...dataProps} style={{ ...style, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <svg ref={ref} style={{ width: '100%', height: component.showText ? '75%' : '100%' }} />
       {component.showText ? <div style={{ fontSize: 10, lineHeight: '1.1', textAlign: 'center' }}>{component.value}</div> : null}
     </div>

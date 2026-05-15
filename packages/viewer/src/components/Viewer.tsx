@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Layout } from 'antd';
-import { renderReport, type ReportTemplate } from '@report-designer/core';
+import { renderReport, type RenderReportOptions, type ReportTemplate } from '@report-designer/core';
 import { ViewerToolbar } from './ViewerToolbar';
 import { downloadPDF, exportToPDF, printReport } from '../export';
 import { RenderDocumentView } from '../renderers/dom/RenderDocumentView';
@@ -11,15 +11,16 @@ interface ViewerProps {
   template: ReportTemplate;
   data: Record<string, any[]>;
   className?: string;
+  subreports?: RenderReportOptions['subreports'];
 }
 
-export const Viewer: React.FC<ViewerProps> = ({ template, data, className }) => {
+export const Viewer: React.FC<ViewerProps> = ({ template, data, className, subreports }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(100);
 
   const document = useMemo(
-    () => renderReport(template, data),
-    [template, data],
+    () => renderReport(template, data, { subreports }),
+    [template, data, subreports],
   );
   const totalPages = document.pages.length;
 

@@ -1,4 +1,4 @@
-import type { BorderConfig, FontConfig, Band, ReportStyle, ReportTemplate, TextComponent } from '@report-designer/core';
+import type { BorderConfig, FontConfig, Band, ReportComponent, ReportStyle, ReportTemplate, TextComponent } from '@report-designer/core';
 
 type TextOptions = Omit<Partial<TextComponent>, 'font' | 'border'> & {
   font?: Partial<FontConfig>;
@@ -127,7 +127,7 @@ export function template(
   };
 }
 
-export function band(id: string, type: Band['type'], height: number, components: TextComponent[] = [], overrides: Partial<Band> = {}): Band {
+export function band(id: string, type: Band['type'], height: number, components: ReportComponent[] = [], overrides: Partial<Band> = {}): Band {
   return {
     id,
     type,

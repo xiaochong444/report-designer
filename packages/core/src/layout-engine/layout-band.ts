@@ -10,10 +10,12 @@ import type {
   ImageComponent,
   LineComponent,
   PageNumberComponent,
+  PanelComponent,
   ReportComponent,
   ReportStyle,
   RichtextComponent,
   ShapeComponent,
+  SubreportComponent,
   TextComponent,
 } from '../template-model/types';
 import { formatValue } from '../text-format';
@@ -27,6 +29,7 @@ export interface LayoutBandOptions {
   rowsByBand?: Record<string, Record<string, unknown>[]>;
   pageRowsByBand?: Record<string, Record<string, unknown>[]>;
   styles?: ReportStyle[];
+  renderSubreport?: (component: SubreportComponent, x: number, y: number, context: RenderContext) => { children: RenderComponentBox[]; missing: boolean; height?: number };
 }
 
 export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBox {
@@ -201,6 +204,59 @@ function layoutComponent(component: ReportComponent, band: Band, options: Layout
     };
   }
 
+  if (component.type === 'panel') {
+    const panelComponent = component as PanelComponent;
+    const panelX = options.x + component.x;
+    const panelY = options.y + component.y;
+    const contentX = panelX + (panelComponent.padding?.left ?? 0);
+    const contentY = panelY + (panelComponent.padding?.top ?? 0);
+    const children = panelComponent.components.map((child) => layoutComponent(child, band, {
+      ...options,
+      x: contentX,
+      y: contentY,
+    }));
+    const overflow = hasContainerOverflow(children, panelX, panelY, component.width, component.height);
+
+    return {
+      id: component.id,
+      type: 'panel',
+      x: panelX,
+      y: panelY,
+      width: component.width,
+      height: component.height,
+      children,
+      overflow,
+      style: {
+        backgroundColor: panelComponent.backgroundColor,
+        border: panelComponent.border,
+      },
+    };
+  }
+
+  if (component.type === 'subreport') {
+    const subreportComponent = component as SubreportComponent;
+    const subreportX = options.x + component.x;
+    const subreportY = options.y + component.y;
+    const rendered = options.renderSubreport?.(subreportComponent, subreportX, subreportY, options.context) ?? {
+      missing: true,
+      children: [createSubreportPlaceholder(subreportComponent, subreportX, subreportY)],
+    };
+    const height = Math.max(component.height, rendered.height ?? component.height);
+
+    return {
+      id: component.id,
+      type: 'subreport',
+      x: subreportX,
+      y: subreportY,
+      width: component.width,
+      height,
+      templateUrl: subreportComponent.templateUrl,
+      missing: rendered.missing,
+      children: rendered.children,
+      overflow: hasContainerOverflow(rendered.children, subreportX, subreportY, component.width, height),
+    };
+  }
+
   return {
     id: component.id,
     type: component.type,
@@ -209,6 +265,28 @@ function layoutComponent(component: ReportComponent, band: Band, options: Layout
     width: component.width,
     height: component.height,
   };
+}
+
+function createSubreportPlaceholder(component: SubreportComponent, x: number, y: number): RenderComponentBox {
+  return {
+    id: `${component.id}-missing-placeholder`,
+    type: 'text',
+    x,
+    y,
+    width: component.width,
+    height: component.height,
+    content: `Missing subreport: ${component.templateUrl}`,
+  };
+}
+
+function hasContainerOverflow(children: RenderComponentBox[], x: number, y: number, width: number, height: number): boolean {
+  return children.some(child => (
+    Boolean(child.overflow)
+    || child.x < x
+    || child.y < y
+    || child.x + child.width > x + width
+    || child.y + child.height > y + height
+  ));
 }
 
 function resolveTemplateBoolean(
@@ -352,6 +430,14 @@ function resolveTextComponentStyle(component: TextComponent, styles: ReportStyle
 }
 
 function resolveField(context: RenderContext, source: string, field: string): unknown {
+  if (['Parameter', 'Parameters', 'Params'].includes(source)) {
+    return context.parameters?.[field];
+  }
+
+  if (!source && context.parameters && field in context.parameters) {
+    return context.parameters[field];
+  }
+
   if (source === 'Group' || source === 'Groups') {
     return context.groupValues[field];
   }

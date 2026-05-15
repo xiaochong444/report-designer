@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import type { ReportComponent, Band, TableComponent } from '@report-designer/core';
+import type { ReportComponent, Band, PanelComponent, TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
 import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
@@ -112,6 +112,29 @@ const BAND_LABELS: Record<string, string> = {
   overlay: 'OverlayBand',
 };
 
+function findPanelDropTarget(band: Band, xMm: number, yMm: number): { panelId: string; xMm: number; yMm: number } | null {
+  const panels = band.components
+    .filter((component): component is PanelComponent => component.type === 'panel')
+    .slice()
+    .sort((a, b) => (b.zOrder ?? 0) - (a.zOrder ?? 0));
+
+  for (const panel of panels) {
+    const insideX = xMm >= panel.x && xMm <= panel.x + panel.width;
+    const insideY = yMm >= panel.y && yMm <= panel.y + panel.height;
+    if (!insideX || !insideY) continue;
+    const padding = panel.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
+    const contentWidth = Math.max(0, panel.width - padding.left - padding.right);
+    const contentHeight = Math.max(0, panel.height - padding.top - padding.bottom);
+    return {
+      panelId: panel.id,
+      xMm: Math.max(0, Math.min(contentWidth, Math.round((xMm - panel.x - padding.left) * 10) / 10)),
+      yMm: Math.max(0, Math.min(contentHeight, Math.round((yMm - panel.y - padding.top) * 10) / 10)),
+    };
+  }
+
+  return null;
+}
+
 // ---- Context Menu ----
 
 interface ContextMenuPos {
@@ -135,6 +158,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const moveComponentSilent = useDesignerStore(s => s.moveComponentSilent);
   const updateComponent = useDesignerStore(s => s.updateComponent);
   const addComponent = useDesignerStore(s => s.addComponent);
+  const addComponentToPanel = useDesignerStore(s => s.addComponentToPanel);
   const updateComponentSilent = useDesignerStore(s => s.updateComponentSilent);
   const resizeBand = useDesignerStore(s => s.resizeBand);
   const resizeBandSilent = useDesignerStore(s => s.resizeBandSilent);
@@ -665,18 +689,35 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const getDropPosition = useCallback((event: React.DragEvent) => {
     if (!pageRef.current) return null;
     const rect = pageRef.current.getBoundingClientRect();
-    const xMm = pxToMm(event.clientX - rect.left, zoom);
-    const yMm = pxToMm(event.clientY - rect.top, zoom);
+    const clientX = Number.isFinite(event.clientX) ? event.clientX : rect.left;
+    const clientY = Number.isFinite(event.clientY) ? event.clientY : rect.top;
+    const pageX = pxToMm(clientX - rect.left, zoom);
+    const pageY = pxToMm(clientY - rect.top, zoom);
+    const margins = currentPage?.margins ?? { top: 0, right: 0, bottom: 0, left: 0 };
+    const printableWidth = currentPage ? Math.max(0, currentPage.width - margins.left - margins.right) : 0;
+    const xMm = Math.max(0, Math.min(printableWidth, Math.round((pageX - margins.left) * 10) / 10));
+    const yMm = Math.round((pageY - margins.top) * 10) / 10;
 
     for (const { band, visualY } of bands) {
       const bandTop = visualY;
       const bodyTop = visualY + BAND_HEADER_MM;
       const bandBottom = bodyTop + band.height;
       if (yMm >= bandTop && yMm <= bandBottom) {
+        const bandX = xMm;
+        const bandY = Math.max(0, Math.min(band.height, Math.round((yMm - bodyTop) * 10) / 10));
+        const panelTarget = findPanelDropTarget(band, bandX, bandY);
+        if (panelTarget) {
+          return {
+            targetBandId: band.id,
+            targetPanelId: panelTarget.panelId,
+            xMm: panelTarget.xMm,
+            yMm: panelTarget.yMm,
+          };
+        }
         return {
           targetBandId: band.id,
-          xMm,
-          yMm: Math.max(0, Math.min(band.height, Math.round((yMm - bodyTop) * 10) / 10)),
+          xMm: bandX,
+          yMm: bandY,
         };
       }
     }
@@ -705,19 +746,25 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     if (fieldBinding) {
       try {
         const field = JSON.parse(fieldBinding);
-        addComponent(
-          currentPageId,
-          position.targetBandId,
-          createFieldExpressionComponent(field, position.xMm, position.yMm),
-        );
+        const component = createFieldExpressionComponent(field, position.xMm, position.yMm);
+        if ('targetPanelId' in position && position.targetPanelId) {
+          addComponentToPanel(currentPageId, position.targetBandId, position.targetPanelId, component);
+        } else {
+          addComponent(currentPageId, position.targetBandId, component);
+        }
         return;
       } catch {
         return;
       }
     }
 
-    addComponent(currentPageId, position.targetBandId, createDefaultComponent(componentType, position.xMm, position.yMm));
-  }, [addComponent, currentPageId, getDropPosition]);
+    const component = createDefaultComponent(componentType, position.xMm, position.yMm);
+    if ('targetPanelId' in position && position.targetPanelId) {
+      addComponentToPanel(currentPageId, position.targetBandId, position.targetPanelId, component);
+    } else {
+      addComponent(currentPageId, position.targetBandId, component);
+    }
+  }, [addComponent, addComponentToPanel, currentPageId, getDropPosition]);
 
   if (!currentPage) {
     return (
@@ -1246,6 +1293,21 @@ const ComponentView: React.FC<{
 // ---- Helpers ----
 
 function getCompStyle(comp: ReportComponent): React.CSSProperties {
+  if (comp.type === 'panel') {
+    const panel = comp as any;
+    const pad = comp.padding;
+    return {
+      backgroundColor: comp.backgroundColor || 'transparent',
+      ...borderToCss(panel.border),
+      ...(pad ? {
+        paddingTop: `${pad.top * MM_TO_PX}px`,
+        paddingRight: `${pad.right * MM_TO_PX}px`,
+        paddingBottom: `${pad.bottom * MM_TO_PX}px`,
+        paddingLeft: `${pad.left * MM_TO_PX}px`,
+      } : {}),
+    };
+  }
+
   if (comp.type === 'text') {
     const t = comp as any;
     const decorations: string[] = [];
@@ -1276,6 +1338,19 @@ function getCompStyle(comp: ReportComponent): React.CSSProperties {
     };
   }
   return {};
+}
+
+function borderToCss(border: any): React.CSSProperties {
+  if (!border || border.style === 'none') return {};
+  const width = border.width ?? 0;
+  const style = border.style ?? 'solid';
+  const color = border.color ?? '#000000';
+  return {
+    borderTop: border.sides?.top ? `${width}mm ${style} ${color}` : 'none',
+    borderRight: border.sides?.right ? `${width}mm ${style} ${color}` : 'none',
+    borderBottom: border.sides?.bottom ? `${width}mm ${style} ${color}` : 'none',
+    borderLeft: border.sides?.left ? `${width}mm ${style} ${color}` : 'none',
+  };
 }
 
 function getFontStyle(font: any): React.CSSProperties {
@@ -1358,9 +1433,13 @@ function getCompContent(comp: ReportComponent): React.ReactNode {
         />
       );
     case 'subreport':
-      return <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ccc', fontSize: 10, border: '1px dashed #ddd' }}>子报表</div>;
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b', fontSize: 10, border: '1px dashed #cbd5e1', backgroundColor: '#f8fafc' }}>
+          {`Subreport: ${(comp as any).templateUrl || 'local template'}`}
+        </div>
+      );
     case 'panel':
-      return <div style={{ width: '100%', height: '100%', border: '1px dashed #ddd' }} />;
+      return <PanelChildrenPreview panel={comp as any} />;
     case 'line': {
       const t = comp as any;
       const lw = (t.lineWidth ?? 0.2) * MM_TO_PX;
@@ -1412,6 +1491,46 @@ function getCompContent(comp: ReportComponent): React.ReactNode {
       return '';
   }
 }
+
+const PanelChildrenPreview: React.FC<{ panel: ReportComponent & { components?: ReportComponent[] } }> = ({ panel }) => {
+  const children = (panel.components ?? [])
+    .slice()
+    .sort((a, b) => (a.zOrder ?? 0) - (b.zOrder ?? 0));
+
+  return (
+    <div
+      data-testid="designer-panel-content"
+      style={{
+        position: 'relative',
+        width: '100%',
+        height: '100%',
+        overflow: 'hidden',
+      }}
+    >
+      {children.map(child => (
+        <PanelChildPreview key={child.id} component={child} />
+      ))}
+    </div>
+  );
+};
+
+const PanelChildPreview: React.FC<{ component: ReportComponent }> = ({ component }) => (
+  <div
+    style={{
+      position: 'absolute',
+      left: safeCssNumber(mmToPx(component.x)),
+      top: safeCssNumber(mmToPx(component.y)),
+      width: safeCssNumber(mmToPx(component.width)),
+      height: safeCssNumber(mmToPx(component.height)),
+      boxSizing: 'border-box',
+      overflow: 'hidden',
+      padding: 2,
+      ...getCompStyle(component),
+    }}
+  >
+    {getCompContent(component)}
+  </div>
+);
 
 function sanitizeRichHtml(value: string): string {
   return value.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
