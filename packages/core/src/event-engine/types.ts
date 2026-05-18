@@ -25,6 +25,13 @@ export interface EventTargetState {
   eventName: string;
 }
 
+export interface EventExecutionState {
+  canceled: boolean;
+  hidden: boolean;
+  value?: unknown;
+  hasValue: boolean;
+}
+
 export interface EventLogEntry extends EventTargetState {
   level: EventLogLevel;
   message: string;
@@ -43,35 +50,74 @@ export interface EventRuntimeState {
   maxEventCount: number;
 }
 
+import type {
+  Band,
+  BarcodeComponent,
+  ImageComponent,
+  Page,
+  ReportComponent,
+  ReportTemplate,
+  TextComponent,
+} from '../template-model/types';
+
 export interface DynamicTextOptions {
-  text?: string;
-  visible?: boolean;
-  style?: Record<string, unknown>;
+  name?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  text: string;
+  font?: Partial<TextComponent['font']>;
 }
 
 export interface DynamicImageOptions {
-  src?: string;
-  visible?: boolean;
-  fitMode?: 'fill' | 'contain' | 'cover' | 'stretch';
+  name?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  src: string;
+  fitMode?: ImageComponent['fitMode'];
 }
 
 export interface DynamicBarcodeOptions {
-  value?: string;
-  visible?: boolean;
-  format?: string;
+  name?: string;
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  value: string;
+  format?: BarcodeComponent['format'];
   showText?: boolean;
 }
 
 export interface EventContext {
   mode: EventMode;
+  report?: ReportTemplate;
+  page?: Page;
+  band?: Band;
+  component?: ReportComponent;
+  row?: Record<string, unknown>;
+  rowIndex?: number;
+  dataSourceId?: string;
   data: Record<string, unknown>;
+  parameters?: Record<string, unknown>;
+  variables?: Record<string, unknown>;
   state: Record<string, unknown>;
   target: EventTargetState;
   log: EventLogCollector;
   runtime?: EventRuntimeState;
-  text?: DynamicTextOptions;
-  image?: DynamicImageOptions;
-  barcode?: DynamicBarcodeOptions;
+  value?: unknown;
+  execution?: EventExecutionState;
+  cancel?: () => void;
+  hide?: () => void;
+  setValue?: (value: unknown) => void;
+  getComponent?: (idOrName: string) => ReportComponent | undefined;
+  setComponentProperty?: (idOrName: string, path: string, value: unknown) => void;
+  bindText?: (idOrName: string, expression: string) => void;
+  createText?: (options: DynamicTextOptions) => TextComponent;
+  createImage?: (options: DynamicImageOptions) => ImageComponent;
+  createBarcode?: (options: DynamicBarcodeOptions) => BarcodeComponent;
 }
 
 export interface EventScriptValidationResult {
