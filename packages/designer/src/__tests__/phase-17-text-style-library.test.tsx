@@ -431,58 +431,58 @@ describe('Phase 17 text style library store behavior', () => {
     });
   });
 
-  it('edits legacy styles that do not have border metadata', () => {
-    const legacyStyle = {
-      id: 'legacy-style',
-      name: 'Legacy Style',
+  it('edits historical styles that do not have border metadata', () => {
+    const historicalStyle = {
+      id: 'historical-style',
+      name: 'Historical Style',
       category: 'text',
       font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
     } as ReportStyle;
-    loadTemplate([legacyStyle], [createText('text-1', {
-      style: 'legacy-style',
+    loadTemplate([historicalStyle], [createText('text-1', {
+      style: 'historical-style',
       styleBindings: ['font.size'],
       font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
     })]);
 
     expect(() => {
-      useDesignerStore.getState().updateTextStyle('legacy-style', {
-        font: { ...legacyStyle.font, size: 22 },
+      useDesignerStore.getState().updateTextStyle('historical-style', {
+        font: { ...historicalStyle.font, size: 22 },
       });
     }).not.toThrow();
-    expect(useDesignerStore.getState().template.styles.find(style => style.id === 'legacy-style')?.font.size).toBe(22);
+    expect(useDesignerStore.getState().template.styles.find(style => style.id === 'historical-style')?.font.size).toBe(22);
     expect(selectedText()?.font.size).toBe(22);
   });
 
-  it('applies legacy styles that do not have border metadata', () => {
-    const legacyStyle = {
-      id: 'legacy-style',
-      name: 'Legacy Style',
+  it('applies historical styles that do not have border metadata', () => {
+    const historicalStyle = {
+      id: 'historical-style',
+      name: 'Historical Style',
       category: 'text',
       font: { family: 'Arial', size: 18, bold: true, italic: false, underline: false, strikethrough: false, color: '#123456' },
       textAlign: 'center',
     } as ReportStyle;
-    loadTemplate([legacyStyle], [createText('text-1')]);
+    loadTemplate([historicalStyle], [createText('text-1')]);
     useDesignerStore.getState().selectComponents(['text-1']);
 
     expect(() => {
-      useDesignerStore.getState().applySelectedStyle('legacy-style');
+      useDesignerStore.getState().applySelectedStyle('historical-style');
     }).not.toThrow();
     expect(selectedText()).toMatchObject({
-      style: 'legacy-style',
+      style: 'historical-style',
       font: { size: 18, bold: true, color: '#123456' },
       textAlign: 'center',
     });
   });
 
   it('locks every style-managed text property after selecting a style with missing optional metadata', () => {
-    const legacyStyle = {
+    const historicalStyle = {
       id: 'minimal-style',
       name: 'Minimal Style',
       category: 'text',
       font: { family: 'Arial', size: 18, bold: true, italic: false, underline: false, strikethrough: false, color: '#123456' },
       textAlign: 'center',
     } as ReportStyle;
-    loadTemplate([legacyStyle], [createText('text-1')]);
+    loadTemplate([historicalStyle], [createText('text-1')]);
     useDesignerStore.getState().selectComponents(['text-1']);
 
     useDesignerStore.getState().applySelectedStyle('minimal-style');

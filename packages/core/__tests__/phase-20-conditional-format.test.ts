@@ -178,13 +178,13 @@ describe('Phase 20 conditional format evaluation', () => {
     expect(style.background).not.toBe('#000000');
   });
 
-  it('keeps legacy applyTo formats and skips disabled matching rules', () => {
+  it('keeps historical applyTo formats and skips disabled matching rules', () => {
     const base: RenderedStyle = {
       font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#111111' },
     };
     const formats: ConditionalFormat[] = [{
-      id: 'cf_legacy',
-      name: 'Legacy',
+      id: 'cf_historical',
+      name: 'Historical',
       applyTo: ['text_1'],
       rules: [
         { id: 'disabled', enabled: false, expression: '{Orders.Amount} > 1000', overrides: { fontColor: '#ff0000' } },

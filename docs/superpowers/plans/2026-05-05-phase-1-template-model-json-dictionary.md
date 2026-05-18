@@ -98,13 +98,13 @@ interface DataBandOptionscurrent model {
 }
 ```
 
-### Task 2: Add Migration From legacy draft
+### Task 2: Add Migration From historical draft
 
 - [ ] **Step 1: Write migration test**
 
 Use `createDefaultTemplate()` and assert migrated template has version `2.0`, equivalent pages, bands, and data sources.
 
-- [ ] **Step 2: Implement `migratelegacy draftTocurrent model(template)`**
+- [ ] **Step 2: Implement `migrateHistoricalDraftToCurrentModel(template)`**
 
 Map old band types directly where possible. Set new behavior defaults conservatively:
 

@@ -122,10 +122,10 @@ function getRenderedTextStyle(template: ReportTemplate) {
 }
 
 describe('Phase 17 text style resolution', () => {
-  it('accepts legacy text styles without category', () => {
-    const legacyStyle = makeTextStyle();
+  it('accepts historical text styles without category', () => {
+    const historicalStyle = makeTextStyle();
 
-    expect(getTextStyleById([legacyStyle], legacyStyle.id)).toEqual(legacyStyle);
+    expect(getTextStyleById([historicalStyle], historicalStyle.id)).toEqual(historicalStyle);
   });
 
   it('creates a default template with one default text style and the baseline style set', () => {

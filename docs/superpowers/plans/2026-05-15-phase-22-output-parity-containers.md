@@ -547,7 +547,7 @@ Playwright smoke requirements:
 
 - All tests listed in the verification section pass.
 - `pnpm build` passes.
-- The forbidden product-name and legacy-version terminology scan across `docs` and `packages` returns no matches.
+- The forbidden product-name and old-version terminology scan across `docs` and `packages` returns no matches.
 - Common components example opens at `http://127.0.0.1:5180/`.
 - Designer preview, browser print, and PDF export are driven by the same `RenderDocument`.
 - No common non-chart component is silently dropped in preview, print, or PDF.

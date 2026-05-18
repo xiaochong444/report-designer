@@ -61,7 +61,7 @@ describe('Phase 17 text style parity', () => {
     expect(content).toHaveStyle({ textAlign: 'right' });
   });
 
-  it('prefers released explicit final component values over stale legacy style-controlled fields in preview', () => {
+  it('prefers released explicit final component values over stale style-controlled fields in preview', () => {
     render(<RenderDocumentView document={makeStyledTextDocument()} zoom={100} />);
 
     const textBox = screen.getByTestId('render-component-text');

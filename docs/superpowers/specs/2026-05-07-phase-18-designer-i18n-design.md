@@ -15,7 +15,7 @@ Add a lightweight multilingual foundation for the designer and remove the curren
 
 ## Non-Goals
 
-- Translating every legacy test fixture name.
+- Translating every historical test fixture name.
 - Translating report template data or user-authored report content.
 - Translating viewer output in this phase.
 - Introducing a full external i18n runtime.

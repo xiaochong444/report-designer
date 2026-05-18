@@ -40,14 +40,14 @@ Sources:
 - Create `packages/core/src/conditional-format/index.ts`
   - Normalize rule overrides.
   - Evaluate expression and value rules.
-  - Resolve component-selected and legacy `applyTo` condition formats.
+  - Resolve component-selected and historical `applyTo` condition formats.
 - Modify `packages/core/src/index.ts`
   - Export conditional-format helpers.
 - Modify `packages/core/src/render-engine/index.ts`
   - Use the shared conditional-format evaluator.
   - Apply `enabled === false` by skipping a rendered component.
 - Create `packages/core/__tests__/phase-20-conditional-format.test.ts`
-  - Cover expression, value operators, order, `breakIfTrue`, legacy overrides, and component-selected formats.
+  - Cover expression, value operators, order, `breakIfTrue`, historical overrides, and component-selected formats.
 - Replace/refactor `packages/designer/src/components/ConditionalFormatManager.tsx`
   - Library dialog with search/list, create/duplicate/delete, rule editor, condition type tabs, format preview, and compact icon controls.
 - Modify `packages/designer/src/components/PropertyEditor.tsx`
@@ -64,7 +64,7 @@ Sources:
 - Create `packages/designer/src/__tests__/phase-20-conditional-format-library.test.tsx`
   - Cover dialog CRUD, component selection, and localization.
 - Modify `packages/designer/src/__tests__/task-j-conditional-format.test.ts`
-  - Update legacy type tests to the expanded model.
+  - Update historical type tests to the expanded model.
 
 ---
 
@@ -82,7 +82,7 @@ Sources:
   - `valueTo?: string | number | boolean`
 - [ ] Add `conditionalFormat?: string` to `ReportComponent`.
 - [ ] Implement `evaluateConditionRule(rule, ctx)` and `applyConditionalFormatsToStyle(baseStyle, formats, comp, ctx)`.
-- [ ] Preserve legacy compatibility:
+- [ ] Preserve historical compatibility:
   - Existing `expression` means expression condition.
   - Existing `fontWeight`, `fontStyle`, `textDecoration`, `fontColor`, `fontSize`, `border` overrides map into `font` and `border`.
   - Existing `applyTo` still works.

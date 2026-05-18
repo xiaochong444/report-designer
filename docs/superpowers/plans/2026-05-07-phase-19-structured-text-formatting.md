@@ -19,7 +19,7 @@
 
 - [x] Add structured fields for separators, abbreviation, positive sign, percent symbol placement, and boolean input values.
 - [x] Add tests covering custom separators, K/M/B abbreviation, currency positive sign, percent symbol text, and boolean input recognition.
-- [x] Keep legacy `pattern` behavior for old templates and reserve raw pattern editing for `custom`.
+- [x] Keep historical `pattern` behavior for old templates and reserve raw pattern editing for `custom`.
 
 ### Task 2: Shared Designer Editor
 

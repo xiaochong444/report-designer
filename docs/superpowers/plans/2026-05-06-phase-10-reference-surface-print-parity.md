@@ -4,7 +4,7 @@
 
 **Goal:** Make the example app open the designer for each sample template, and close the largest the reference designer parity gaps visible in the user's screenshot: preview/print consistency, rulers, clickable ribbon tabs, readable band headers, and page property editing.
 
-**Architecture:** Keep report rendering single-source by making print HTML reuse the same render-box style semantics as the DOM preview. Keep designer chrome changes in the existing shell/canvas/property files instead of introducing a second designer surface. Adapt the example's sample templates into the designer's current legacy draft store shape at the app boundary so the sample can be inspected without changing the viewer pipeline.
+**Architecture:** Keep report rendering single-source by making print HTML reuse the same render-box style semantics as the DOM preview. Keep designer chrome changes in the existing shell/canvas/property files instead of introducing a second designer surface. Adapt the example's sample templates into the designer's current draft store shape at the app boundary so the sample can be inspected without changing the viewer pipeline.
 
 **Tech Stack:** React 19, Ant Design 6, Vitest/jsdom, Vite, Playwright smoke checks.
 

@@ -61,7 +61,7 @@
 - [ ] **Step 1: Write the failing core tests for style resolution and default-style selection**
 
 Cover:
-- legacy styles without `category`
+- historical styles without `category`
 - one `isDefault` text style
 - local text component overrides winning over style values
 - style values winning over intrinsic text defaults
