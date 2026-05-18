@@ -117,7 +117,7 @@ describe('phase 23 event engine', () => {
     ]);
   });
 
-  it('does not run disabled scripts', () => {
+  it('skips inactive scripts', () => {
     const eventLogs = createEventLogCollector();
     const ctx: EventContext = {
       mode: 'preview',
