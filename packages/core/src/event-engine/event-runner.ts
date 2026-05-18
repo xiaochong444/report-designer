@@ -20,6 +20,9 @@ const blockedTokens = [
   'sessionStorage',
   'import',
   'require',
+  'constructor',
+  'prototype',
+  '__proto__',
 ] as const;
 
 const shadowedGlobals = [

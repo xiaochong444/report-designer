@@ -73,6 +73,20 @@ describe('phase 23 event engine', () => {
     expect(result.errors.join(' ')).toContain('fetch');
   });
 
+  it('rejects constructor access during validation', () => {
+    const result = validateEventScript('ctx.log.info.constructor.constructor("return 1")()');
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toContain('constructor');
+  });
+
+  it('rejects prototype mutation during validation', () => {
+    const result = validateEventScript('ctx.state.__proto__ = {}');
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toContain('__proto__');
+  });
+
   it('captures thrown errors into event logs without throwing', () => {
     const eventLogs = createEventLogCollector();
     const ctx: EventContext = {
@@ -144,6 +158,36 @@ describe('phase 23 event engine', () => {
         level: 'error',
         message: expect.stringContaining('maxEventCount'),
       }),
+    ]);
+  });
+
+  it('does not add wall-clock timestamps to event logs', () => {
+    const eventLogs = createEventLogCollector();
+
+    eventLogs.info('stable');
+    eventLogs.push({
+      level: 'warning',
+      message: 'pushed',
+      ownerType: 'report',
+      ownerId: 'report1',
+      eventName: 'beforeRender',
+    });
+
+    expect(eventLogs.entries).toEqual([
+      {
+        level: 'info',
+        message: 'stable',
+        ownerType: 'report',
+        ownerId: '',
+        eventName: '',
+      },
+      {
+        level: 'warning',
+        message: 'pushed',
+        ownerType: 'report',
+        ownerId: 'report1',
+        eventName: 'beforeRender',
+      },
     ]);
   });
 });

@@ -28,7 +28,6 @@ export interface EventTargetState {
 export interface EventLogEntry extends EventTargetState {
   level: EventLogLevel;
   message: string;
-  timestamp: string;
 }
 
 export interface EventLogCollector {
@@ -36,7 +35,7 @@ export interface EventLogCollector {
   info(message: string, target?: Partial<EventTargetState>): void;
   warning(message: string, target?: Partial<EventTargetState>): void;
   error(message: string, target?: Partial<EventTargetState>): void;
-  push(entry: Omit<EventLogEntry, 'timestamp'> & { timestamp?: string }): void;
+  push(entry: EventLogEntry): void;
 }
 
 export interface EventRuntimeState {
