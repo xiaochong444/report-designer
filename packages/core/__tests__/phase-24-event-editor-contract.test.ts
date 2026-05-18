@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   EVENT_SCRIPT_DTS,
+  eventEditorContextTypeByEvent,
   eventEditorHelpers,
   getEventEditorContextType,
 } from '../src/event-engine';
@@ -14,6 +15,11 @@ describe('phase 24 event editor contract', () => {
     expect(EVENT_SCRIPT_DTS).toContain('createText');
     expect(EVENT_SCRIPT_DTS).toContain('createImage');
     expect(EVENT_SCRIPT_DTS).toContain('createBarcode');
+    expect(EVENT_SCRIPT_DTS).toContain('hide?: () => void');
+    expect(EVENT_SCRIPT_DTS).toContain('setValue?: (value: unknown) => void');
+    expect(EVENT_SCRIPT_DTS).toMatch(
+      /interface ComponentGetValueEventContext extends ComponentEventContext \{[\s\S]*setValue\(value: unknown\): void;[\s\S]*\}/,
+    );
   });
 
   it('returns context types for known event targets', () => {
@@ -44,7 +50,53 @@ describe('phase 24 event editor contract', () => {
       expect(helper.descriptionKey).toMatch(/^events\.helper\./);
 
       const methodName = helper.id.replace(/^ctx\./, '').split('.').at(-1);
-      expect(EVENT_SCRIPT_DTS).toContain(`${methodName}(`);
+      expect(EVENT_SCRIPT_DTS).toContain(methodName);
+    }
+  });
+
+  it('maps all current event names to editor context types', () => {
+    expect(Object.keys(eventEditorContextTypeByEvent.report)).toEqual([
+      'beforePreview',
+      'beforePrint',
+      'beforeRender',
+      'afterRender',
+      'beforeData',
+      'afterData',
+    ]);
+    expect(Object.keys(eventEditorContextTypeByEvent.band)).toEqual([
+      'beforePrint',
+      'afterPrint',
+      'beforeRow',
+      'afterRow',
+    ]);
+    expect(Object.keys(eventEditorContextTypeByEvent.component)).toEqual([
+      'getValue',
+      'beforePrint',
+      'afterPrint',
+    ]);
+  });
+
+  it('provides snippets that run after default placeholder expansion', () => {
+    const ctx = {
+      log: {
+        info() {},
+        warning() {},
+        error() {},
+      },
+      hide() {},
+      cancel() {},
+      setValue() {},
+      bindText() {},
+      getComponent() {},
+      setComponentProperty() {},
+      createText() {},
+      createImage() {},
+      createBarcode() {},
+    };
+
+    for (const helper of eventEditorHelpers) {
+      const expanded = helper.snippet.replace(/\$\{\d+:([^}]+)\}/g, '$1');
+      expect(() => new Function('ctx', expanded)(ctx), helper.id).not.toThrow();
     }
   });
 });

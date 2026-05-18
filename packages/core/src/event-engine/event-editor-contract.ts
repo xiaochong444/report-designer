@@ -116,15 +116,15 @@ interface EventContext {
   target: EventTargetState;
   log: EventLogCollector;
   value?: unknown;
-  cancel(): void;
-  hide(): void;
-  setValue(value: unknown): void;
-  getComponent(idOrName: string): ReportComponent | undefined;
-  setComponentProperty(idOrName: string, path: string, value: unknown): void;
-  bindText(idOrName: string, expression: string): void;
-  createText(options: DynamicTextOptions): TextComponent;
-  createImage(options: DynamicImageOptions): ImageComponent;
-  createBarcode(options: DynamicBarcodeOptions): BarcodeComponent;
+  cancel?: () => void;
+  hide?: () => void;
+  setValue?: (value: unknown) => void;
+  getComponent?: (idOrName: string) => ReportComponent | undefined;
+  setComponentProperty?: (idOrName: string, path: string, value: unknown) => void;
+  bindText?: (idOrName: string, expression: string) => void;
+  createText?: (options: DynamicTextOptions) => TextComponent;
+  createImage?: (options: DynamicImageOptions) => ImageComponent;
+  createBarcode?: (options: DynamicBarcodeOptions) => BarcodeComponent;
 }
 
 interface ReportEventContext extends EventContext {
@@ -180,73 +180,73 @@ export const eventEditorContextTypeByEvent = {
 export const eventEditorHelpers: readonly EventEditorHelperDescriptor[] = [
   {
     id: 'ctx.log.info',
-    snippet: 'ctx.log.info(${1:message});',
+    snippet: 'ctx.log.info("${1:message}");',
     descriptionKey: 'events.helper.log.info',
     group: 'log',
   },
   {
     id: 'ctx.log.warning',
-    snippet: 'ctx.log.warning(${1:message});',
+    snippet: 'ctx.log.warning("${1:message}");',
     descriptionKey: 'events.helper.log.warning',
     group: 'log',
   },
   {
     id: 'ctx.log.error',
-    snippet: 'ctx.log.error(${1:message});',
+    snippet: 'ctx.log.error("${1:message}");',
     descriptionKey: 'events.helper.log.error',
     group: 'log',
   },
   {
     id: 'ctx.hide',
-    snippet: 'ctx.hide();',
+    snippet: 'ctx.hide?.();',
     descriptionKey: 'events.helper.flow.hide',
     group: 'flow',
   },
   {
     id: 'ctx.cancel',
-    snippet: 'ctx.cancel();',
+    snippet: 'ctx.cancel?.();',
     descriptionKey: 'events.helper.flow.cancel',
     group: 'flow',
   },
   {
     id: 'ctx.setValue',
-    snippet: 'ctx.setValue(${1:value});',
+    snippet: 'ctx.setValue?.("${1:value}");',
     descriptionKey: 'events.helper.value.setValue',
     group: 'value',
   },
   {
     id: 'ctx.bindText',
-    snippet: 'ctx.bindText(${1:idOrName}, ${2:expression});',
+    snippet: 'ctx.bindText?.("${1:Text1}", "${2:{Data.Field}}");',
     descriptionKey: 'events.helper.mutation.bindText',
     group: 'mutation',
   },
   {
     id: 'ctx.getComponent',
-    snippet: 'ctx.getComponent(${1:idOrName});',
+    snippet: 'ctx.getComponent?.("${1:Text1}");',
     descriptionKey: 'events.helper.mutation.getComponent',
     group: 'mutation',
   },
   {
     id: 'ctx.setComponentProperty',
-    snippet: 'ctx.setComponentProperty(${1:idOrName}, ${2:path}, ${3:value});',
+    snippet: 'ctx.setComponentProperty?.("${1:Text1}", "${2:text}", "${3:value}");',
     descriptionKey: 'events.helper.mutation.setComponentProperty',
     group: 'mutation',
   },
   {
     id: 'ctx.createText',
-    snippet: 'ctx.createText({ x: ${1:0}, y: ${2:0}, width: ${3:40}, height: ${4:8}, text: ${5:text} });',
+    snippet: 'ctx.createText?.({ x: ${1:0}, y: ${2:0}, width: ${3:40}, height: ${4:8}, text: "${5:New text}" });',
     descriptionKey: 'events.helper.dynamic.createText',
     group: 'dynamic',
   },
   {
     id: 'ctx.createImage',
-    snippet: 'ctx.createImage({ x: ${1:0}, y: ${2:0}, width: ${3:40}, height: ${4:30}, src: ${5:src} });',
+    snippet: 'ctx.createImage?.({ x: ${1:0}, y: ${2:0}, width: ${3:40}, height: ${4:30}, src: "${5:image.png}" });',
     descriptionKey: 'events.helper.dynamic.createImage',
     group: 'dynamic',
   },
   {
     id: 'ctx.createBarcode',
-    snippet: 'ctx.createBarcode({ x: ${1:0}, y: ${2:0}, width: ${3:40}, height: ${4:16}, value: ${5:value} });',
+    snippet: 'ctx.createBarcode?.({ x: ${1:0}, y: ${2:0}, width: ${3:40}, height: ${4:16}, value: "${5:123456}" });',
     descriptionKey: 'events.helper.dynamic.createBarcode',
     group: 'dynamic',
   },
