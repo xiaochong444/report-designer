@@ -19,18 +19,20 @@ export const Viewer: React.FC<ViewerProps> = ({ template, data, className, subre
   const [zoom, setZoom] = useState(100);
 
   const document = useMemo(
-    () => renderReport(template, data, { subreports }),
+    () => renderReport(template, data, { subreports, mode: 'preview' }),
     [template, data, subreports],
   );
   const totalPages = document.pages.length;
 
   const handleExportPDF = async () => {
-    const pdfBytes = await exportToPDF(document);
+    const pdfDocument = renderReport(template, data, { subreports, mode: 'pdf' });
+    const pdfBytes = await exportToPDF(pdfDocument);
     await downloadPDF(pdfBytes, 'report.pdf');
   };
 
   const handlePrint = () => {
-    void printReport(document);
+    const printDocument = renderReport(template, data, { subreports, mode: 'print' });
+    void printReport(printDocument);
   };
 
   return (

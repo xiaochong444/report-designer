@@ -40,10 +40,10 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
     }}>
       <Space>
         <Tooltip title="Print">
-          <Button icon={<PrinterOutlined />} size="small" onClick={onPrint} />
+          <Button aria-label="Print" icon={<PrinterOutlined />} size="small" onClick={onPrint} />
         </Tooltip>
         <Tooltip title="Export PDF">
-          <Button icon={<DownloadOutlined />} size="small" onClick={onExportPDF} />
+          <Button aria-label="Export PDF" icon={<DownloadOutlined />} size="small" onClick={onExportPDF} />
         </Tooltip>
       </Space>
 
