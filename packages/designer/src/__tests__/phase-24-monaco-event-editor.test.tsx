@@ -43,6 +43,7 @@ describe('phase 24 monaco event editor helpers', () => {
             title: 'Orders',
             children: [{ key: 'Orders.Amount', title: 'Orders.Amount' }],
           },
+          { key: 'EmptyGroup', title: 'Empty group', insertable: false },
         ],
         componentItems: [
           {
@@ -58,13 +59,40 @@ describe('phase 24 monaco event editor helpers', () => {
 
     expect(items.map(item => item.label)).toEqual(['ctx.hide', 'Orders.Amount', 'TitleText', 'Set value']);
     expect(items[1]).toMatchObject({
+      detail: 'Orders.Amount',
       insertText: '{Orders.Amount}',
       kind: monaco.CompletionItemKind.Field,
+    });
+    expect(items[2]).toMatchObject({
+      detail: 'TitleText',
+      kind: monaco.CompletionItemKind.Variable,
     });
     expect(items[3]).toMatchObject({
       kind: monaco.CompletionItemKind.Snippet,
       insertTextRules: monaco.CompletionItemInsertTextRule.InsertAsSnippet,
     });
+    expect(items[0]).toMatchObject({
+      kind: monaco.CompletionItemKind.Function,
+      insertTextRules: monaco.CompletionItemInsertTextRule.InsertAsSnippet,
+    });
+  });
+
+  it('supports Monaco instances that expose completion constants through languages', () => {
+    const items = buildEventScriptCompletions(
+      { helperItems: [{ label: 'ctx.hide', insertText: 'ctx.hide?.();' }] },
+      { languages: monaco },
+    );
+
+    expect(items[0]).toMatchObject({
+      kind: monaco.CompletionItemKind.Function,
+      insertTextRules: monaco.CompletionItemInsertTextRule.InsertAsSnippet,
+    });
+  });
+
+  it('throws a clear error when Monaco completion constants are missing', () => {
+    expect(() => buildEventScriptCompletions({ helperItems: [{ label: 'ctx.hide' }] }, {})).toThrow(
+      'Monaco completion constants are not available.',
+    );
   });
 
   it('splits diagnostics by blocking severity and warning severity', () => {

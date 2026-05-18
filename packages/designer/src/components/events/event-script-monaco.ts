@@ -8,6 +8,7 @@ import {
 export interface EventCompletionTreeItem {
   key: string;
   title: string;
+  insertable?: boolean;
   children?: EventCompletionTreeItem[];
 }
 
@@ -73,14 +74,18 @@ export function buildEventScriptCompletions(
   const constants = getCompletionConstants(monaco);
 
   return [
-    ...mapTextItems(input.helperItems, constants.CompletionItemKind.Function),
+    ...mapTextItems(input.helperItems, constants.CompletionItemKind.Function, {
+      insertTextRules: constants.CompletionItemInsertTextRule.InsertAsSnippet,
+    }),
     ...flattenTreeItems(input.dictionaryItems).map(item => ({
       label: item.title,
+      detail: item.key,
       kind: constants.CompletionItemKind.Field,
       insertText: `{${item.key}}`,
     })),
     ...flattenTreeItems(input.componentItems).map(item => ({
       label: item.title,
+      detail: item.key,
       kind: constants.CompletionItemKind.Variable,
       insertText: item.key,
     })),
@@ -116,11 +121,24 @@ export function getDefaultHelperCompletionItems(t: (key: string) => string): Eve
 
 function getCompletionConstants(monaco: MonacoCompletionConstants): Required<MonacoCompletionConstants> {
   const source = monaco.languages ?? monaco;
+  const kind = source.CompletionItemKind ?? monaco.CompletionItemKind;
+  const insertTextRule = source.CompletionItemInsertTextRule ?? monaco.CompletionItemInsertTextRule;
+
+  if (
+    typeof kind?.Function !== 'number' ||
+    typeof kind.Field !== 'number' ||
+    typeof kind.Variable !== 'number' ||
+    typeof kind.Snippet !== 'number' ||
+    typeof insertTextRule?.InsertAsSnippet !== 'number'
+  ) {
+    throw new Error('Monaco completion constants are not available.');
+  }
+
   return {
-    CompletionItemKind: source.CompletionItemKind ?? monaco.CompletionItemKind,
-    CompletionItemInsertTextRule: source.CompletionItemInsertTextRule ?? monaco.CompletionItemInsertTextRule,
+    CompletionItemKind: kind,
+    CompletionItemInsertTextRule: insertTextRule,
     languages: source,
-  } as Required<MonacoCompletionConstants>;
+  };
 }
 
 function mapTextItems(
@@ -143,7 +161,7 @@ function flattenTreeItems(items: EventCompletionTreeItem[] | undefined): EventCo
   for (const item of items ?? []) {
     if (item.children?.length) {
       result.push(...flattenTreeItems(item.children));
-    } else {
+    } else if (item.insertable !== false) {
       result.push(item);
     }
   }
