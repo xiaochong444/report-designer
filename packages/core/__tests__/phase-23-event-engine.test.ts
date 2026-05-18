@@ -87,6 +87,13 @@ describe('phase 23 event engine', () => {
     expect(result.errors.join(' ')).toContain('__proto__');
   });
 
+  it('rejects prototype access during validation', () => {
+    const result = validateEventScript('ctx.state.prototype = {}');
+
+    expect(result.valid).toBe(false);
+    expect(result.errors.join(' ')).toContain('prototype');
+  });
+
   it('captures thrown errors into event logs without throwing', () => {
     const eventLogs = createEventLogCollector();
     const ctx: EventContext = {
