@@ -1,23 +1,95 @@
 import { buildBandPlan, executeBandPlan } from '../band-planner';
 import type { LogicalBandItem, RenderContext } from '../band-planner';
 import { layoutBand } from '../layout-engine/layout-band';
+import type { LayoutEventRuntime } from '../layout-engine/layout-band';
 import type { RenderBandBox, RenderComponentBox, RenderDocument, RenderPage } from '../render-document/types';
 import type { Band, Page, ReportTemplate, SubreportComponent } from '../template-model/types';
 import { normalizeTemplate } from '../template-model';
 import { evalExpression } from '../expression-engine/evaluator';
 import { applyPageNumberPass } from './page-number-pass';
+import {
+  cloneReportTemplate,
+  createEventContext,
+  createEventLogCollector,
+  createEventRuntimeState,
+  runEventScript,
+} from '../event-engine';
+import type { BandEventName, EventExecutionState, EventMode, ReportEventName } from '../event-engine';
 
 export interface RenderReportOptions {
   subreports?: Record<string, ReportTemplate>;
   maxSubreportDepth?: number;
   parameters?: Record<string, unknown>;
+  mode?: EventMode;
 }
 
 interface InternalRenderReportOptions extends RenderReportOptions {
   subreportDepth?: number;
+  eventRuntime?: LayoutEventRuntime;
+  suppressEvents?: boolean;
 }
 
 const DEFAULT_MAX_SUBREPORT_DEPTH = 3;
+
+function createRenderEventRuntime(
+  template: ReportTemplate,
+  data: Record<string, Record<string, unknown>[]>,
+  options: InternalRenderReportOptions,
+): LayoutEventRuntime {
+  const mode = options.mode ?? options.eventRuntime?.mode ?? 'preview';
+
+  if (options.eventRuntime) {
+    return {
+      ...options.eventRuntime,
+      mode,
+      report: template,
+      data,
+      parameters: options.parameters ?? options.eventRuntime.parameters,
+    };
+  }
+
+  return {
+    mode,
+    report: template,
+    data,
+    parameters: options.parameters,
+    variables: {},
+    state: {},
+    log: createEventLogCollector({ ownerType: 'report', ownerId: template.id, eventName: '' }),
+    runtime: createEventRuntimeState(),
+  };
+}
+
+function runReportEvent(
+  template: ReportTemplate,
+  eventName: ReportEventName,
+  eventRuntime: LayoutEventRuntime,
+): EventExecutionState {
+  const execution: EventExecutionState = { canceled: false, hidden: false, hasValue: false };
+  const target = { ownerType: 'report' as const, ownerId: template.id, eventName };
+  const ctx = createEventContext({
+    mode: eventRuntime.mode,
+    report: template,
+    data: eventRuntime.data,
+    parameters: eventRuntime.parameters,
+    variables: eventRuntime.variables,
+    state: eventRuntime.state,
+    log: eventRuntime.log,
+    target,
+    runtime: eventRuntime.runtime,
+    execution,
+  });
+
+  runEventScript({
+    event: template.events?.[eventName],
+    ctx,
+    target,
+    eventLogs: eventRuntime.log,
+    runtimeState: eventRuntime.runtime,
+  });
+
+  return execution;
+}
 
 export function renderReport(
   template: ReportTemplate,
@@ -32,12 +104,40 @@ function renderReportInternal(
   data: Record<string, Record<string, unknown>[]>,
   options: InternalRenderReportOptions,
 ): RenderDocument {
-  const normalizedTemplate = normalizeTemplate(template);
+  const normalizedTemplate = normalizeTemplate(cloneReportTemplate(template));
+  const eventRuntime = createRenderEventRuntime(normalizedTemplate, data, options);
+
+  if (!options.suppressEvents) {
+    const modeEvent: ReportEventName = eventRuntime.mode === 'preview' ? 'beforePreview' : 'beforePrint';
+    const modeExecution = runReportEvent(normalizedTemplate, modeEvent, eventRuntime);
+    if (modeExecution.canceled) {
+      return { pages: [], eventLogs: eventRuntime.log.entries };
+    }
+
+    for (const eventName of ['beforeRender', 'beforeData'] as const) {
+      const execution = runReportEvent(normalizedTemplate, eventName, eventRuntime);
+      if (execution.canceled) {
+        return { pages: [], eventLogs: eventRuntime.log.entries };
+      }
+    }
+  }
+
   const templatePage = normalizedTemplate.pages[0];
   const plan = buildBandPlan(normalizedTemplate);
   const logicalItems = executeBandPlan(plan, data);
-  const pages = paginate(templatePage, plan.pageBands, logicalItems, data, normalizedTemplate.styles, options);
-  return applyPageNumberPass({ pages });
+  if (!options.suppressEvents) {
+    runReportEvent(normalizedTemplate, 'afterData', eventRuntime);
+  }
+  const pages = paginate(templatePage, plan.pageBands, logicalItems, data, normalizedTemplate.styles, {
+    ...options,
+    eventRuntime: options.suppressEvents ? undefined : eventRuntime,
+  });
+  const document = applyPageNumberPass({ pages, eventLogs: eventRuntime.log.entries });
+  if (!options.suppressEvents) {
+    runReportEvent(normalizedTemplate, 'afterRender', eventRuntime);
+  }
+  document.eventLogs = eventRuntime.log.entries;
+  return document;
 }
 
 export function paginate(
@@ -88,28 +188,34 @@ export function paginate(
     }
   };
 
-  const placeBand = (band: Band, context: RenderContext, force = false): RenderBandBox => {
+  const placeBand = (band: Band, context: RenderContext, force = false): RenderBandBox | undefined => {
     ensurePage();
+    const eventBand = prepareBandInstance(band, context, options, templatePage);
+    if (!eventBand) {
+      return undefined;
+    }
+
     const layoutContext = withParameters(context, options.parameters);
-    const behavior = getBandBehavior(band);
+    const behavior = getBandBehavior(eventBand);
     const currentPageRows = currentPage ? pageRows.get(currentPage) ?? {} : {};
-    let preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: currentPageRows, styles, renderSubreport: createSubreportRenderer(rowsByBand, options) });
+    let preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: currentPageRows, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false) });
     const breakIfLessThan = behavior.breakIfLessThan ?? 0;
     if (!force && breakIfLessThan > 0 && pageBottomY - cursorY < breakIfLessThan && currentPage!.items.length > 0) {
       newPage();
-      preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options) });
+      preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false) });
     }
 
     if (!force && cursorY + preview.height > pageBottomY && currentPage!.items.length > 0) {
       newPage();
-      preview = layoutBand(band, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options) });
+      preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false) });
     }
 
     const targetY = behavior.printAtBottom ? pageBottomY - preview.height : cursorY;
-    const box = layoutBand(band, { x: printableX, y: targetY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options) });
+    const box = layoutBand(eventBand, { x: printableX, y: targetY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, true), eventRuntime: withEventPage(options.eventRuntime, templatePage) });
     currentPage!.items.push(box);
-    collectPageRow(pageRows.get(currentPage!)!, band, context);
+    collectPageRow(pageRows.get(currentPage!)!, eventBand, context);
     cursorY = behavior.printAtBottom ? pageBottomY : cursorY + box.height;
+    finishBandInstance(eventBand, context, options, templatePage);
     return box;
   };
 
@@ -160,23 +266,156 @@ export function paginate(
 
   for (const page of pages) {
     for (const overlay of pageBands.overlay) {
-      page.items.unshift(layoutBand(overlay, { x: printableX, y: templatePage.margins.top, width: printableWidth, context: createEmptyContext(options.parameters), rowsByBand, pageRowsByBand: pageRows.get(page) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options) }));
+      const box = renderFixedBand(overlay, createEmptyContext(options.parameters), templatePage.margins.top, pageRows.get(page) ?? {}, templatePage, printableX, printableWidth, rowsByBand, styles, options);
+      if (box) {
+        page.items.unshift(box);
+      }
     }
 
     let footerY = templatePage.height - templatePage.margins.bottom - footerHeight;
     for (const footer of pageBands.pageFooter) {
-      const box = layoutBand(footer, { x: printableX, y: footerY, width: printableWidth, context: createEmptyContext(options.parameters), rowsByBand, pageRowsByBand: pageRows.get(page) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options) });
-      page.items.push(box);
-      footerY += box.height;
+      const box = renderFixedBand(footer, createEmptyContext(options.parameters), footerY, pageRows.get(page) ?? {}, templatePage, printableX, printableWidth, rowsByBand, styles, options);
+      if (box) {
+        page.items.push(box);
+        footerY += box.height;
+      }
     }
   }
 
   return pages;
 }
 
+function renderFixedBand(
+  band: Band,
+  context: RenderContext,
+  y: number,
+  pageRowsByBand: Record<string, Record<string, unknown>[]>,
+  templatePage: Page,
+  x: number,
+  width: number,
+  rowsByBand: Record<string, Record<string, unknown>[]>,
+  styles: ReportTemplate['styles'],
+  options: InternalRenderReportOptions,
+): RenderBandBox | undefined {
+  const eventBand = prepareBandInstance(band, context, options, templatePage);
+  if (!eventBand) {
+    return undefined;
+  }
+
+  const layoutContext = withParameters(context, options.parameters);
+  const box = layoutBand(eventBand, {
+    x,
+    y,
+    width,
+    context: layoutContext,
+    rowsByBand,
+    pageRowsByBand,
+    styles,
+    renderSubreport: createSubreportRenderer(rowsByBand, options, true),
+    eventRuntime: withEventPage(options.eventRuntime, templatePage),
+  });
+  finishBandInstance(eventBand, context, options, templatePage);
+  return box;
+}
+
+function prepareBandInstance(
+  band: Band,
+  context: RenderContext,
+  options: InternalRenderReportOptions,
+  page: Page,
+): Band | undefined {
+  const eventBand = cloneBand(band);
+  if (!options.eventRuntime) {
+    return eventBand;
+  }
+
+  const execution: EventExecutionState = { canceled: false, hidden: false, hasValue: false };
+  runBandEvent(eventBand, context, 'beforePrint', options.eventRuntime, page, execution);
+  if (isDataRowBand(eventBand, context)) {
+    runBandEvent(eventBand, context, 'beforeRow', options.eventRuntime, page, execution);
+  }
+
+  return execution.hidden ? undefined : eventBand;
+}
+
+function finishBandInstance(
+  band: Band,
+  context: RenderContext,
+  options: InternalRenderReportOptions,
+  page: Page,
+): void {
+  if (!options.eventRuntime) {
+    return;
+  }
+
+  const execution: EventExecutionState = { canceled: false, hidden: false, hasValue: false };
+  runBandEvent(band, context, 'afterPrint', options.eventRuntime, page, execution);
+  if (isDataRowBand(band, context)) {
+    runBandEvent(band, context, 'afterRow', options.eventRuntime, page, execution);
+  }
+}
+
+function runBandEvent(
+  band: Band,
+  context: RenderContext,
+  eventName: BandEventName,
+  eventRuntime: LayoutEventRuntime,
+  page: Page,
+  execution: EventExecutionState,
+): void {
+  const event = band.events?.[eventName];
+  if (!event) {
+    return;
+  }
+
+  const target = { ownerType: 'band' as const, ownerId: band.id, eventName };
+  const ctx = createEventContext({
+    mode: eventRuntime.mode,
+    report: eventRuntime.report,
+    page,
+    band,
+    row: context.row,
+    rowIndex: context.rowIndex,
+    dataSourceId: context.dataSourceId,
+    data: eventRuntime.data,
+    parameters: context.parameters ?? eventRuntime.parameters,
+    variables: eventRuntime.variables,
+    state: eventRuntime.state,
+    log: eventRuntime.log,
+    target,
+    runtime: eventRuntime.runtime,
+    execution,
+  });
+
+  runEventScript({
+    event,
+    ctx,
+    target,
+    eventLogs: eventRuntime.log,
+    runtimeState: eventRuntime.runtime,
+  });
+}
+
+function isDataRowBand(band: Band, context: RenderContext): boolean {
+  return Boolean(
+    context.row
+      && context.dataSourceId
+      && (band.type === 'data' || band.type === 'hierarchicalData' || band.type === 'child'),
+  );
+}
+
+function cloneBand(band: Band): Band {
+  return JSON.parse(JSON.stringify(band)) as Band;
+}
+
+function withEventPage(eventRuntime: LayoutEventRuntime | undefined, page: Page): LayoutEventRuntime | undefined {
+  return eventRuntime ? { ...eventRuntime, page } : undefined;
+}
+
 function createSubreportRenderer(
   rowsByBand: Record<string, Record<string, unknown>[]>,
   options: InternalRenderReportOptions,
+  enableEvents: boolean,
 ) {
   return (component: SubreportComponent, x: number, y: number, context: RenderContext) => {
     const template = options.subreports?.[component.templateUrl];
@@ -203,6 +442,7 @@ function createSubreportRenderer(
       ...options,
       parameters,
       subreportDepth: depth + 1,
+      suppressEvents: options.suppressEvents || !enableEvents,
     });
     const children = flattenSubreportPages(document.pages, x, y);
     return {

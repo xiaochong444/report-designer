@@ -1,4 +1,4 @@
-import type { Band, Page, ReportComponent, ReportTemplate, TextComponent } from '../template-model/types';
+import type { Band, Page, PanelComponent, ReportComponent, ReportTemplate, TextComponent } from '../template-model/types';
 import {
   appendComponentToBand,
   createDynamicComponentId,
@@ -51,7 +51,10 @@ export function createEventContext(options: CreateEventContextOptions): EventCon
     return report;
   };
 
-  const getComponent = (idOrName: string): ReportComponent | undefined => findComponentInTemplate(requireReport(), idOrName);
+  const getComponent = (idOrName: string): ReportComponent | undefined => (
+    findComponentInComponents(options.band?.components ?? [], idOrName)
+    ?? findComponentInTemplate(requireReport(), idOrName)
+  );
 
   const ctx: EventContext = {
     mode: options.mode ?? 'preview',
@@ -123,4 +126,25 @@ export function createEventContext(options: CreateEventContextOptions): EventCon
   };
 
   return ctx;
+}
+
+function findComponentInComponents(components: ReportComponent[], idOrName: string): ReportComponent | undefined {
+  for (const component of components) {
+    if (component.id === idOrName || component.name === idOrName) {
+      return component;
+    }
+
+    if (isPanelComponent(component)) {
+      const found = findComponentInComponents(component.components, idOrName);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function isPanelComponent(component: ReportComponent): component is PanelComponent {
+  return component.type === 'panel';
 }

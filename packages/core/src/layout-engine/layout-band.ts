@@ -1,6 +1,8 @@
 import { evalExpression } from '../expression-engine/evaluator';
 import { AggregateRuntime } from '../aggregate-engine';
 import type { RenderContext } from '../band-planner/band-plan';
+import { createEventContext, runEventScript } from '../event-engine';
+import type { EventLogCollector, EventMode, EventRuntimeState, EventExecutionState } from '../event-engine';
 import type { RenderBandBox, RenderComponentBox } from '../render-document/types';
 import type {
   Band,
@@ -9,9 +11,11 @@ import type {
   DateTimeComponent,
   ImageComponent,
   LineComponent,
+  Page,
   PageNumberComponent,
   PanelComponent,
   ReportComponent,
+  ReportTemplate,
   ReportStyle,
   RichtextComponent,
   ShapeComponent,
@@ -30,10 +34,25 @@ export interface LayoutBandOptions {
   pageRowsByBand?: Record<string, Record<string, unknown>[]>;
   styles?: ReportStyle[];
   renderSubreport?: (component: SubreportComponent, x: number, y: number, context: RenderContext) => { children: RenderComponentBox[]; missing: boolean; height?: number };
+  eventRuntime?: LayoutEventRuntime;
+}
+
+export interface LayoutEventRuntime {
+  mode: EventMode;
+  report: ReportTemplate;
+  page?: Page;
+  data: Record<string, Record<string, unknown>[]>;
+  parameters?: Record<string, unknown>;
+  variables?: Record<string, unknown>;
+  state: Record<string, unknown>;
+  log: EventLogCollector;
+  runtime: EventRuntimeState;
 }
 
 export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBox {
-  const components = band.components.map((component) => layoutComponent(component, band, options));
+  const components = band.components
+    .map((component) => layoutComponentWithEvents(component, band, options))
+    .filter((component): component is RenderComponentBox => Boolean(component));
   const contentHeight = components.reduce((height, component) => Math.max(height, component.y - options.y + component.height), band.height);
 
   return {
@@ -49,11 +68,74 @@ export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBo
   };
 }
 
-function layoutComponent(component: ReportComponent, band: Band, options: LayoutBandOptions): RenderComponentBox {
+function layoutComponentWithEvents(component: ReportComponent, band: Band, options: LayoutBandOptions): RenderComponentBox | undefined {
+  if (!options.eventRuntime) {
+    return layoutComponent(component, band, options);
+  }
+
+  const execution: EventExecutionState = { canceled: false, hidden: false, hasValue: false };
+  runComponentEvent(component, band, options, 'getValue', execution);
+  runComponentEvent(component, band, options, 'beforePrint', execution);
+
+  if (execution.hidden) {
+    return undefined;
+  }
+
+  const box = layoutComponent(component, band, options, execution);
+  runComponentEvent(component, band, options, 'afterPrint', execution);
+  return box;
+}
+
+function runComponentEvent(
+  component: ReportComponent,
+  band: Band,
+  options: LayoutBandOptions,
+  eventName: 'getValue' | 'beforePrint' | 'afterPrint',
+  execution: EventExecutionState,
+): void {
+  const eventRuntime = options.eventRuntime;
+  const event = component.events?.[eventName];
+  if (!eventRuntime || !event) return;
+
+  const target = { ownerType: 'component' as const, ownerId: component.id, eventName };
+  const ctx = createEventContext({
+    mode: eventRuntime.mode,
+    report: eventRuntime.report,
+    page: eventRuntime.page,
+    band,
+    component,
+    row: options.context.row,
+    rowIndex: options.context.rowIndex,
+    dataSourceId: options.context.dataSourceId,
+    data: eventRuntime.data,
+    parameters: options.context.parameters ?? eventRuntime.parameters,
+    variables: eventRuntime.variables,
+    state: eventRuntime.state,
+    log: eventRuntime.log,
+    target,
+    runtime: eventRuntime.runtime,
+    execution,
+  });
+
+  runEventScript({
+    event,
+    ctx,
+    target,
+    eventLogs: eventRuntime.log,
+    runtimeState: eventRuntime.runtime,
+  });
+}
+
+function layoutComponent(
+  component: ReportComponent,
+  band: Band,
+  options: LayoutBandOptions,
+  execution?: EventExecutionState,
+): RenderComponentBox {
   if (component.type === 'text') {
     const textComponent = component as TextComponent;
     const effective = resolveTextComponentStyle(textComponent, options.styles ?? []);
-    const text = resolveText(textComponent, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {});
+    const text = resolveText(textComponent, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}, execution);
     const measured = measureTextBox(effective, text);
     return {
       id: component.id,
@@ -210,11 +292,11 @@ function layoutComponent(component: ReportComponent, band: Band, options: Layout
     const panelY = options.y + component.y;
     const contentX = panelX + (panelComponent.padding?.left ?? 0);
     const contentY = panelY + (panelComponent.padding?.top ?? 0);
-    const children = panelComponent.components.map((child) => layoutComponent(child, band, {
+    const children = panelComponent.components.map((child) => layoutComponentWithEvents(child, band, {
       ...options,
       x: contentX,
       y: contentY,
-    }));
+    })).filter((child): child is RenderComponentBox => Boolean(child));
     const overflow = hasContainerOverflow(children, panelX, panelY, component.width, component.height);
 
     return {
@@ -332,7 +414,12 @@ function resolveText(
   context: RenderContext,
   rowsByBand: Record<string, Record<string, unknown>[]>,
   pageRowsByBand: Record<string, Record<string, unknown>[]>,
+  execution?: EventExecutionState,
 ): string {
+  if (execution?.hasValue) {
+    return formatValue(execution.value, component.format);
+  }
+
   if (component.text.includes('{PageNumber}') || component.text.includes('{TotalPages}')) {
     return component.text;
   }
