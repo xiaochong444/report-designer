@@ -26,22 +26,38 @@ export function findComponentInTemplate(template: ReportTemplate, idOrName: stri
   return undefined;
 }
 
+export function createDynamicComponentId(template: ReportTemplate, prefix: string): string {
+  const usedIds = new Set<string>();
+  for (const page of template.pages) {
+    for (const band of page.bands) {
+      collectComponentIds(band.components, usedIds);
+    }
+  }
+
+  let index = 1;
+  while (usedIds.has(`${prefix}-${index}`)) {
+    index += 1;
+  }
+
+  return `${prefix}-${index}`;
+}
+
 export function setComponentProperty(component: ReportComponent, path: string, value: unknown): void {
   const segments = path.split('.').filter(Boolean);
   if (segments.length === 0) {
     throw new Error('Component property path is required.');
   }
 
-  let target = component as unknown as Record<string, unknown>;
+  let target: unknown = component;
   for (const segment of segments.slice(0, -1)) {
-    const next = target[segment];
-    if (!isRecord(next)) {
-      target[segment] = {};
-    }
-    target = target[segment] as Record<string, unknown>;
+    target = readPathSegment(target, segment, path);
   }
 
-  target[segments[segments.length - 1]] = value;
+  if (!isRecord(target) && !Array.isArray(target)) {
+    throw new Error(`Cannot set component property path: ${path}`);
+  }
+
+  writePathSegment(target, segments[segments.length - 1], value, path);
 }
 
 export function createDynamicText(options: DynamicTextOptions, id: string): TextComponent {
@@ -136,10 +152,59 @@ function findComponentInList(components: ReportComponent[], idOrName: string): R
   return undefined;
 }
 
+function collectComponentIds(components: ReportComponent[], usedIds: Set<string>): void {
+  for (const component of components) {
+    usedIds.add(component.id);
+    if (isPanelComponent(component)) {
+      collectComponentIds(component.components, usedIds);
+    }
+  }
+}
+
 function isPanelComponent(component: ReportComponent): component is PanelComponent {
   return component.type === 'panel';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function readPathSegment(target: unknown, segment: string, fullPath: string): unknown {
+  if (Array.isArray(target)) {
+    const index = parseArrayIndex(segment);
+    if (index === undefined || index >= target.length) {
+      throw new Error(`Cannot set component property path: ${fullPath}`);
+    }
+    return target[index];
+  }
+
+  if (isRecord(target) && segment in target) {
+    const next = target[segment];
+    if (isRecord(next) || Array.isArray(next)) {
+      return next;
+    }
+  }
+
+  throw new Error(`Cannot set component property path: ${fullPath}`);
+}
+
+function writePathSegment(target: Record<string, unknown> | unknown[], segment: string, value: unknown, fullPath: string): void {
+  if (Array.isArray(target)) {
+    const index = parseArrayIndex(segment);
+    if (index === undefined || index >= target.length) {
+      throw new Error(`Cannot set component property path: ${fullPath}`);
+    }
+    target[index] = value;
+    return;
+  }
+
+  target[segment] = value;
+}
+
+function parseArrayIndex(segment: string): number | undefined {
+  if (!/^\d+$/.test(segment)) {
+    return undefined;
+  }
+
+  return Number(segment);
 }

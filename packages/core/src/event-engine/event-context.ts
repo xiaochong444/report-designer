@@ -1,6 +1,7 @@
 import type { Band, Page, ReportComponent, ReportTemplate, TextComponent } from '../template-model/types';
 import {
   appendComponentToBand,
+  createDynamicComponentId,
   createDynamicBarcode,
   createDynamicImage,
   createDynamicText,
@@ -42,12 +43,6 @@ export interface CreateEventContextOptions {
 export function createEventContext(options: CreateEventContextOptions): EventContext {
   const report = options.report ?? options.template;
   const execution = options.execution ?? { canceled: false, hidden: false, hasValue: false };
-  let dynamicCounter = 0;
-
-  const nextId = (kind: 'text' | 'image' | 'barcode') => {
-    dynamicCounter += 1;
-    return `dynamic-${kind}-${dynamicCounter}`;
-  };
 
   const requireReport = (): ReportTemplate => {
     if (!report) {
@@ -111,17 +106,17 @@ export function createEventContext(options: CreateEventContextOptions): EventCon
       (found as TextComponent).text = expression;
     },
     createText(options: DynamicTextOptions) {
-      const component = createDynamicText(options, nextId('text'));
+      const component = createDynamicText(options, createDynamicComponentId(requireReport(), 'dynamic-text'));
       appendComponentToBand(ctx.band, component);
       return component;
     },
     createImage(options: DynamicImageOptions) {
-      const component = createDynamicImage(options, nextId('image'));
+      const component = createDynamicImage(options, createDynamicComponentId(requireReport(), 'dynamic-image'));
       appendComponentToBand(ctx.band, component);
       return component;
     },
     createBarcode(options: DynamicBarcodeOptions) {
-      const component = createDynamicBarcode(options, nextId('barcode'));
+      const component = createDynamicBarcode(options, createDynamicComponentId(requireReport(), 'dynamic-barcode'));
       appendComponentToBand(ctx.band, component);
       return component;
     },

@@ -405,7 +405,6 @@ describe('phase 23 event template helpers', () => {
       'Code',
     ]);
     expect(dynamicText).toMatchObject({
-      id: 'dynamic-text-1',
       type: 'text',
       text: 'VIP',
       font: { family: 'Arial', size: 10, bold: true, italic: false, color: '#d97706' },
@@ -414,19 +413,88 @@ describe('phase 23 event template helpers', () => {
       canGrow: true,
       canShrink: false,
     });
+    expect(dynamicText.id).toMatch(/^dynamic-text-\d+$/);
     expect(dynamicImage).toMatchObject({
-      id: 'dynamic-image-2',
       type: 'image',
       src: 'data:image/png;base64,a',
       fitMode: 'contain',
     });
+    expect(dynamicImage.id).toMatch(/^dynamic-image-\d+$/);
     expect(dynamicBarcode).toMatchObject({
-      id: 'dynamic-barcode-3',
       type: 'barcode',
       value: '{orders.Code}',
       format: 'CODE128',
       showText: true,
     });
+    expect(dynamicBarcode.id).toMatch(/^dynamic-barcode-\d+$/);
+    expect(new Set([dynamicText.id, dynamicImage.id, dynamicBarcode.id]).size).toBe(3);
+  });
+
+  it('keeps dynamic component ids unique across contexts for the same template', () => {
+    const template = cloneReportTemplate(eventTemplate());
+    const band = template.pages[0].bands[0];
+    const firstCtx = createEventContext({
+      report: template,
+      band,
+      log: createEventLogCollector(),
+      target: { ownerType: 'band', ownerId: 'band-1', eventName: 'beforePrint' },
+    });
+    const secondCtx = createEventContext({
+      report: template,
+      band,
+      log: createEventLogCollector(),
+      target: { ownerType: 'band', ownerId: 'band-1', eventName: 'beforePrint' },
+    });
+
+    const first = firstCtx.createText({ x: 0, y: 0, width: 10, height: 5, text: 'First' });
+    const second = secondCtx.createText({ x: 12, y: 0, width: 10, height: 5, text: 'Second' });
+
+    expect(first.id).toMatch(/^dynamic-text-\d+$/);
+    expect(second.id).toMatch(/^dynamic-text-\d+$/);
+    expect(first.id).not.toBe(second.id);
+    expect(band.components.map((item) => item.id)).toEqual(expect.arrayContaining([first.id, second.id]));
+  });
+
+  it('sets component properties through existing array path segments', () => {
+    const template = cloneReportTemplate(
+      eventTemplate([
+        textComponent({
+          conditions: [{ id: 'c1', expression: 'true', overrides: {} }],
+        }),
+      ]),
+    );
+    const ctx = createEventContext({
+      report: template,
+      band: template.pages[0].bands[0],
+      log: createEventLogCollector(),
+      target: { ownerType: 'component', ownerId: 'text-1', eventName: 'beforePrint' },
+    });
+
+    ctx.setComponentProperty('AmountText', 'conditions.0.overrides.backgroundColor', '#fef3c7');
+
+    expect((findComponentInTemplate(template, 'AmountText') as TextComponent).conditions?.[0].overrides).toEqual({
+      backgroundColor: '#fef3c7',
+    });
+  });
+
+  it('throws when component property paths cross missing array elements', () => {
+    const template = cloneReportTemplate(
+      eventTemplate([
+        textComponent({
+          conditions: [{ id: 'c1', expression: 'true', overrides: {} }],
+        }),
+      ]),
+    );
+    const ctx = createEventContext({
+      report: template,
+      band: template.pages[0].bands[0],
+      log: createEventLogCollector(),
+      target: { ownerType: 'component', ownerId: 'text-1', eventName: 'beforePrint' },
+    });
+
+    expect(() =>
+      ctx.setComponentProperty('AmountText', 'conditions.1.overrides.backgroundColor', '#fef3c7'),
+    ).toThrow('Cannot set component property path: conditions.1.overrides.backgroundColor');
   });
 
   it('throws a clear error when creating dynamic components without a current band', () => {
