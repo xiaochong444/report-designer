@@ -1,6 +1,7 @@
 import employees from '../fixtures/json/employees.json';
 import orders from '../fixtures/json/orders.json';
 import { commonComponentsDetailTemplate, commonComponentsTemplate } from './common-components';
+import { eventLogicTemplate, eventOrdersData } from './event-logic';
 import { groupedEmployeesTemplate } from './grouped-employees';
 import { invoiceTemplate } from './invoice';
 import { longTextPaginationTemplate } from './long-text-pagination';
@@ -20,6 +21,7 @@ export const sampleReportData = {
   employees: employeesData,
   invoiceLines: invoiceLinesData,
   orderLines: orderLinesData,
+  eventOrders: eventOrdersData,
 };
 
 export const sampleReports = [
@@ -34,11 +36,13 @@ export const sampleReports = [
     data: sampleReportData,
     subreports: { 'common-components-detail': commonComponentsDetailTemplate },
   },
+  { key: 'eventLogic', label: 'Event Logic', template: eventLogicTemplate, data: sampleReportData },
 ] as const;
 
 export {
   commonComponentsDetailTemplate,
   commonComponentsTemplate,
+  eventLogicTemplate,
   groupedEmployeesTemplate,
   invoiceTemplate,
   longTextPaginationTemplate,
