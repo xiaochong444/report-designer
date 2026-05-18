@@ -1,4 +1,8 @@
-import { describe, expect, it } from 'vitest';
+/* @vitest-environment jsdom */
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { EventScriptEditor } from '../components/events/EventScriptEditor';
 import {
   buildEventEditorExtraLib,
   buildEventScriptCompletions,
@@ -6,7 +10,52 @@ import {
   splitDiagnostics,
 } from '../components/events/event-script-monaco';
 
+const monacoEditorMock = vi.hoisted(() => ({
+  lastProps: undefined as Record<string, unknown> | undefined,
+}));
+
+vi.mock('@monaco-editor/react', () => ({
+  default: (props: Record<string, unknown>) => {
+    monacoEditorMock.lastProps = props;
+    return (
+      <>
+        <span>{props.loading as React.ReactNode}</span>
+        <textarea
+          aria-label={props['aria-label'] as string}
+          value={props.value as string}
+          onChange={(event) => (props.onChange as (value: string | undefined) => void)(event.target.value)}
+        />
+      </>
+    );
+  },
+}));
+
 const monaco = {
+  languages: {
+    typescript: {
+      ScriptTarget: {
+        ES2020: 7,
+      },
+      javascriptDefaults: {
+        setCompilerOptions: vi.fn(),
+        addExtraLib: vi.fn(),
+      },
+    },
+    CompletionItemKind: {
+      Function: 1,
+      Field: 2,
+      Variable: 3,
+      Snippet: 4,
+    },
+    CompletionItemInsertTextRule: {
+      InsertAsSnippet: 4,
+    },
+    registerCompletionItemProvider: vi.fn(
+      (_language: string, _provider: { provideCompletionItems: () => { suggestions: unknown[] } }) => ({
+        dispose: vi.fn(),
+      }),
+    ),
+  },
   CompletionItemKind: {
     Function: 1,
     Field: 2,
@@ -19,6 +68,11 @@ const monaco = {
 };
 
 describe('phase 24 monaco event editor helpers', () => {
+  beforeEach(() => {
+    monacoEditorMock.lastProps = undefined;
+    vi.clearAllMocks();
+  });
+
   it('builds a stable in-memory model path for event scripts', () => {
     expect(getEventScriptModelPath('component', 'getValue')).toBe(
       'inmemory://event-scripts/component/getValue.js',
@@ -104,5 +158,106 @@ describe('phase 24 monaco event editor helpers', () => {
 
     expect(result.blocking).toEqual(['Line 2: Unexpected token', 'Line 7: Cannot compile']);
     expect(result.warnings).toEqual(['Line 5: Unused value']);
+  });
+
+  it('renders the event script editor loading text and forwards script changes', () => {
+    const onChange = vi.fn();
+
+    render(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value="ctx.log.info('ready');"
+        targetType="component"
+        eventName="beforePrint"
+        loadingText="Loading script editor"
+        onChange={onChange}
+      />,
+    );
+
+    expect(screen.getByText('Loading script editor')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Script'), { target: { value: 'ctx.hide?.();' } });
+
+    expect(onChange).toHaveBeenCalledWith('ctx.hide?.();');
+    expect(monacoEditorMock.lastProps).toMatchObject({
+      language: 'javascript',
+      path: 'inmemory://event-scripts/component/beforePrint.js',
+      height: '420px',
+      options: {
+        minimap: { enabled: false },
+        fontSize: 13,
+        lineNumbers: 'on',
+        scrollBeyondLastLine: false,
+        wordWrap: 'on',
+        automaticLayout: true,
+        tabSize: 2,
+      },
+    });
+  });
+
+  it('wires event script editor lifecycle props into Monaco configuration and diagnostics', () => {
+    const onDiagnostics = vi.fn();
+    const helperItems = [{ label: 'ctx.hide', insertText: 'ctx.hide?.();', detail: 'Hide component' }];
+    const dictionaryItems = [{ key: 'Order.Amount', title: 'Order.Amount' }];
+    const componentItems = [{ key: 'TotalLabel', title: 'TotalLabel' }];
+    const exampleItems = [{ label: 'Set value', insertText: 'ctx.setValue(${1:value});' }];
+
+    render(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value=""
+        targetType="component"
+        eventName="getValue"
+        helperItems={helperItems}
+        dictionaryItems={dictionaryItems}
+        componentItems={componentItems}
+        exampleItems={exampleItems}
+        onChange={() => undefined}
+        onDiagnostics={onDiagnostics}
+      />,
+    );
+
+    const props = monacoEditorMock.lastProps;
+    expect(props).toBeDefined();
+
+    (props?.beforeMount as (monacoInstance: typeof monaco) => void)(monaco);
+
+    expect(monaco.languages.typescript.javascriptDefaults.setCompilerOptions).toHaveBeenCalledWith({
+      allowNonTsExtensions: true,
+      checkJs: true,
+      noEmit: true,
+      target: monaco.languages.typescript.ScriptTarget.ES2020,
+    });
+    expect(monaco.languages.typescript.javascriptDefaults.addExtraLib).toHaveBeenCalledWith(
+      expect.stringContaining('declare const ctx: ComponentGetValueEventContext'),
+      'inmemory://event-scripts/event-api.d.ts',
+    );
+
+    (props?.onMount as (_editor: unknown, monacoInstance: typeof monaco) => void)({}, monaco);
+
+    expect(monaco.languages.registerCompletionItemProvider).toHaveBeenCalledWith(
+      'javascript',
+      expect.objectContaining({ provideCompletionItems: expect.any(Function) }),
+    );
+    const provider = vi.mocked(monaco.languages.registerCompletionItemProvider).mock.calls[0]?.[1];
+    expect(provider).toBeDefined();
+    expect(provider!.provideCompletionItems()).toEqual({
+      suggestions: expect.arrayContaining([
+        expect.objectContaining({ label: 'ctx.hide' }),
+        expect.objectContaining({ label: 'Order.Amount', insertText: '{Order.Amount}' }),
+        expect.objectContaining({ label: 'TotalLabel', insertText: 'TotalLabel' }),
+        expect.objectContaining({ label: 'Set value' }),
+      ]),
+    });
+
+    (props?.onValidate as (markers: Array<{ severity: number; startLineNumber: number; message: string }>) => void)([
+      { severity: 8, startLineNumber: 3, message: 'Unexpected token' },
+      { severity: 4, startLineNumber: 9, message: 'Unused value' },
+    ]);
+
+    expect(onDiagnostics).toHaveBeenCalledWith({
+      blocking: ['Line 3: Unexpected token'],
+      warnings: ['Line 9: Unused value'],
+    });
   });
 });
