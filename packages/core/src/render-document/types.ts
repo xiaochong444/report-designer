@@ -1,7 +1,9 @@
 import type { BorderConfig, FontConfig } from '../template-model/types';
+import type { EventLogEntry } from '../event-engine/types';
 
 export interface RenderDocument {
   pages: RenderPage[];
+  eventLogs?: EventLogEntry[];
 }
 
 export interface RenderPage {

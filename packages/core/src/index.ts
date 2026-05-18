@@ -11,3 +11,4 @@ export * from './text-style';
 export * from './conditional-format';
 export * from './pagination';
 export * from './command-engine';
+export * from './event-engine';

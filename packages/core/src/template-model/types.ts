@@ -1,3 +1,5 @@
+import type { BandEventName, ComponentEventName, EventMap, ReportEventName } from '../event-engine/types';
+
 export type Expression = string;
 
 export interface Margins {
@@ -174,6 +176,7 @@ export interface ReportComponent {
   style?: string;
   conditionalFormat?: string;
   conditions?: ConditionRule[];
+  events?: EventMap<ComponentEventName>;
   anchor?: string;
 }
 
@@ -369,6 +372,7 @@ export interface Band {
   groupField?: string;
   sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
   visible?: Expression;
+  events?: EventMap<BandEventName>;
 }
 
 export type PageOrientation = 'portrait' | 'landscape';
@@ -398,6 +402,7 @@ export interface ReportTemplate {
   styles: ReportStyle[];
   conditionalFormats: ConditionalFormat[];
   parameters: ReportParameter[];
+  events?: EventMap<ReportEventName>;
 }
 
 export interface JsonDictionary {
