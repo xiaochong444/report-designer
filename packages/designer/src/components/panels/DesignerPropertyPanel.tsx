@@ -1,5 +1,5 @@
 import React from 'react';
-import { Collapse, Form, InputNumber, Select, Typography } from 'antd';
+import { Button, Collapse, Form, InputNumber, Select, Typography } from 'antd';
 import type { Margins, Page } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import {
@@ -14,6 +14,7 @@ import {
 import { useDesignerI18n } from '../../i18n';
 import { BandPropertyGrid } from '../properties/BandPropertyGrid';
 import { PropertyEditor } from '../PropertyEditor';
+import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDialog';
 
 export const DesignerPropertyPanel: React.FC = () => {
   const { t } = useDesignerI18n();
@@ -59,6 +60,8 @@ const PageProperties: React.FC = () => {
   const setPageSettings = useDesignerStore(s => s.setPageSettings);
   const reportUnit = useDesignerStore(s => s.reportUnit);
   const setReportUnit = useDesignerStore(s => s.setReportUnit);
+  const replaceReportEvents = useDesignerStore(s => s.replaceReportEvents);
+  const [eventEditorOpen, setEventEditorOpen] = React.useState(false);
   const page = template.pages.find(item => item.id === currentPageId) ?? template.pages[0];
 
   if (!page) {
@@ -199,8 +202,60 @@ const PageProperties: React.FC = () => {
               </Form>
             ),
           },
+          {
+            key: 'events',
+            label: t('events.title'),
+            children: (
+              <>
+                <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
+                  {Object.keys(template.events ?? {}).length} {t('events.title')}
+                </Typography.Text>
+                <Button size="small" onClick={() => setEventEditorOpen(true)}>
+                  {t('events.edit')}
+                </Button>
+                <EventEditorDialog
+                  open={eventEditorOpen}
+                  targetType="report"
+                  events={template.events}
+                  dictionaryItems={buildDictionaryEventItems(template)}
+                  componentItems={buildComponentEventItems(template)}
+                  onCancel={() => setEventEditorOpen(false)}
+                  onSave={(events) => {
+                    replaceReportEvents(events);
+                    setEventEditorOpen(false);
+                  }}
+                />
+              </>
+            ),
+          },
         ]}
       />
     </div>
   );
 };
+
+function buildDictionaryEventItems(template: { dataSources: Array<{ id: string; name?: string; fields?: Array<{ name: string; label?: string }>; schema?: Array<{ name: string; label?: string }> }> }): EventTreeItem[] {
+  return template.dataSources.map(source => ({
+    key: source.id,
+    title: source.name || source.id,
+    children: (source.schema ?? source.fields ?? []).map(field => ({
+      key: `${source.id}.${field.name}`,
+      title: field.label || field.name,
+    })),
+  }));
+}
+
+function buildComponentEventItems(template: { pages: Array<{ id: string; bands: Array<{ id: string; name?: string; components: Array<{ id: string; name?: string }> }> }> }): EventTreeItem[] {
+  return template.pages.map(page => ({
+    key: page.id,
+    title: page.id,
+    children: page.bands.map(band => ({
+      key: band.id,
+      title: band.name || band.id,
+      children: band.components.map(component => ({
+        key: component.name || component.id,
+        title: component.name || component.id,
+      })),
+    })),
+  }));
+}

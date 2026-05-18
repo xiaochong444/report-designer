@@ -5,6 +5,7 @@ import type { DataBandOptions, DataField } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../../page-settings';
 import { useDesignerI18n } from '../../i18n';
+import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDialog';
 
 export const BandPropertyGrid: React.FC = () => {
   const { t } = useDesignerI18n();
@@ -12,7 +13,9 @@ export const BandPropertyGrid: React.FC = () => {
   const selectedBandId = useDesignerStore(s => s.selectedBandId);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const updateTemplate = useDesignerStore(s => s.updateTemplate);
+  const replaceBandEvents = useDesignerStore(s => s.replaceBandEvents);
   const reportUnit = useDesignerStore(s => s.reportUnit);
+  const [eventEditorOpen, setEventEditorOpen] = React.useState(false);
   const page = template.pages.find(item => item.id === currentPageId) ?? template.pages[0];
   const band = page?.bands.find(item => item.id === selectedBandId);
 
@@ -52,6 +55,21 @@ export const BandPropertyGrid: React.FC = () => {
     <Space orientation="vertical" size={10} style={{ width: '100%' }}>
       <Typography.Text type="secondary">Name</Typography.Text>
       <Input value={band.id} readOnly />
+      <Button size="small" onClick={() => setEventEditorOpen(true)}>
+        {t('events.edit')}
+      </Button>
+      <EventEditorDialog
+        open={eventEditorOpen}
+        targetType="band"
+        events={band.events}
+        dictionaryItems={buildDictionaryEventItems(template)}
+        componentItems={buildComponentEventItems(template)}
+        onCancel={() => setEventEditorOpen(false)}
+        onSave={(events) => {
+          replaceBandEvents(page.id, band.id, events);
+          setEventEditorOpen(false);
+        }}
+      />
       <Select
         aria-label={t('dataBand.dataSource')}
         value={dataSourceId}
@@ -161,6 +179,32 @@ export const BandPropertyGrid: React.FC = () => {
     </Space>
   );
 };
+
+function buildDictionaryEventItems(template: { dataSources: Array<{ id: string; name?: string; fields?: DataField[]; schema?: DataField[] }> }): EventTreeItem[] {
+  return template.dataSources.map(source => ({
+    key: source.id,
+    title: source.name || source.id,
+    children: (source.schema ?? source.fields ?? []).map(field => ({
+      key: `${source.id}.${field.name}`,
+      title: field.label || field.name,
+    })),
+  }));
+}
+
+function buildComponentEventItems(template: { pages: Array<{ id: string; bands: Array<{ id: string; name?: string; components: Array<{ id: string; name?: string }> }> }> }): EventTreeItem[] {
+  return template.pages.map(page => ({
+    key: page.id,
+    title: page.id,
+    children: page.bands.map(band => ({
+      key: band.id,
+      title: band.name || band.id,
+      children: band.components.map(component => ({
+        key: component.name || component.id,
+        title: component.name || component.id,
+      })),
+    })),
+  }));
+}
 
 function getSortFields(fields: DataField[] | undefined) {
   return (fields ?? []).map(field => ({

@@ -244,7 +244,29 @@ export type DesignerMessageKey =
   | 'dataBand.sort.moveUp'
   | 'dataBand.sort.moveDown'
   | 'dataBand.sort.deleteRule'
-  | 'dataBand.sort.noFields';
+  | 'dataBand.sort.noFields'
+  | 'events.title'
+  | 'events.script'
+  | 'events.validate'
+  | 'events.apply'
+  | 'events.cancel'
+  | 'events.enabled'
+  | 'events.off'
+  | 'events.helper'
+  | 'events.fields'
+  | 'events.components'
+  | 'events.validationPassed'
+  | 'events.edit'
+  | 'events.beforePreview'
+  | 'events.beforePrint'
+  | 'events.beforeRender'
+  | 'events.afterRender'
+  | 'events.beforeData'
+  | 'events.afterData'
+  | 'events.beforeRow'
+  | 'events.afterRow'
+  | 'events.getValue'
+  | 'events.afterPrint';
 
 export type DesignerMessages = Record<DesignerMessageKey, string>;
 
@@ -494,6 +516,28 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'dataBand.sort.moveDown': '下移排序规则 {index}',
     'dataBand.sort.deleteRule': '删除排序规则 {index}',
     'dataBand.sort.noFields': '当前数据源没有可排序字段',
+    'events.title': '事件',
+    'events.script': '脚本',
+    'events.validate': '校验',
+    'events.apply': '应用',
+    'events.cancel': '取消',
+    'events.enabled': '启用',
+    'events.off': '关闭',
+    'events.helper': '辅助',
+    'events.fields': '字段',
+    'events.components': '组件',
+    'events.validationPassed': '校验通过',
+    'events.edit': '编辑事件',
+    'events.beforePreview': '预览前',
+    'events.beforePrint': '打印前',
+    'events.beforeRender': '渲染前',
+    'events.afterRender': '渲染后',
+    'events.beforeData': '取数前',
+    'events.afterData': '取数后',
+    'events.beforeRow': '行前',
+    'events.afterRow': '行后',
+    'events.getValue': '取值',
+    'events.afterPrint': '打印后',
   },
   'en-US': {
     'common.cancel': 'Cancel',
@@ -740,5 +784,27 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'dataBand.sort.moveDown': 'Move sort rule {index} down',
     'dataBand.sort.deleteRule': 'Delete sort rule {index}',
     'dataBand.sort.noFields': 'The current data source has no sortable fields',
+    'events.title': 'Events',
+    'events.script': 'Script',
+    'events.validate': 'Validate',
+    'events.apply': 'Apply',
+    'events.cancel': 'Cancel',
+    'events.enabled': 'Enabled',
+    'events.off': 'Off',
+    'events.helper': 'Helpers',
+    'events.fields': 'Fields',
+    'events.components': 'Components',
+    'events.validationPassed': 'Validation passed',
+    'events.edit': 'Edit events',
+    'events.beforePreview': 'Before Preview',
+    'events.beforePrint': 'Before Print',
+    'events.beforeRender': 'Before Render',
+    'events.afterRender': 'After Render',
+    'events.beforeData': 'Before Data',
+    'events.afterData': 'After Data',
+    'events.beforeRow': 'Before Row',
+    'events.afterRow': 'After Row',
+    'events.getValue': 'Get Value',
+    'events.afterPrint': 'After Print',
   },
 };

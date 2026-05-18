@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Checkbox } from 'antd';
+import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Checkbox, Typography } from 'antd';
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
@@ -12,7 +12,7 @@ import {
   UploadOutlined,
 } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
-import type { BorderConfig, TableComponent, TextFormatConfig } from '@report-designer/core';
+import type { BorderConfig, ReportTemplate, TableComponent, TextFormatConfig } from '@report-designer/core';
 import type { CSSProperties } from 'react';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { ExpressionEditor } from './ExpressionEditor';
@@ -20,6 +20,7 @@ import { normalizeTable } from '../table/table-structure';
 import { hasTextStyleBinding } from '../text-style-bindings';
 import { TextFormatEditor } from './TextFormatEditor';
 import { useDesignerI18n, type DesignerLocale } from '../i18n';
+import { EventEditorDialog, type EventTreeItem } from './events/EventEditorDialog';
 
 const DEFAULT_BORDER: BorderConfig = {
   style: 'none',
@@ -30,7 +31,7 @@ const DEFAULT_BORDER: BorderConfig = {
 const NO_CONDITIONAL_FORMAT = '__none__';
 
 export const PropertyEditor: React.FC = () => {
-  const { locale } = useDesignerI18n();
+  const { locale, t: globalT } = useDesignerI18n();
   const t = createPropertyT(locale);
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
@@ -39,6 +40,7 @@ export const PropertyEditor: React.FC = () => {
   const updateSelectedTable = useDesignerStore(s => s.updateSelectedTable);
   const applySelectedStyle = useDesignerStore(s => s.applySelectedStyle);
   const applySelectedConditionalFormat = useDesignerStore(s => s.applySelectedConditionalFormat);
+  const replaceComponentEvents = useDesignerStore(s => s.replaceComponentEvents);
   const openTextStyleLibrary = useDesignerStore(s => s.openTextStyleLibrary);
   const openConditionalFormatLibrary = useDesignerStore(s => s.openConditionalFormatLibrary);
   const reportUnit = useDesignerStore(s => s.reportUnit);
@@ -55,6 +57,7 @@ export const PropertyEditor: React.FC = () => {
   }, [template, currentPageId, selectedComponentIds]);
 
   const [exprModalOpen, setExprModalOpen] = useState(false);
+  const [eventEditorOpen, setEventEditorOpen] = useState(false);
   const unitStep = getUnitStep(reportUnit);
   const fineUnitStep = getUnitStep(reportUnit, 'fine');
 
@@ -132,11 +135,13 @@ export const PropertyEditor: React.FC = () => {
     isTextComponent ? hasTextStyleBinding(component as { styleBindings?: string[] }, pathOrPrefix) : false
   );
   const backgroundLocked = isTextStyleLocked('backgroundColor');
+  const dictionaryItems = buildDictionaryEventItems(template);
+  const componentItems = buildComponentEventItems(template);
 
   return (
     <div style={{ padding: 8 }}>
       <Collapse
-        defaultActiveKey={['general', 'position', 'text', 'font', 'border', 'appearance', 'table', 'line', 'shape', 'pagenumber', 'datetime']}
+        defaultActiveKey={['general', 'position', 'text', 'font', 'border', 'appearance', 'events', 'table', 'line', 'shape', 'pagenumber', 'datetime']}
         size="small"
         items={[
           // ---- 基本信息 ----
@@ -755,7 +760,34 @@ export const PropertyEditor: React.FC = () => {
             ),
           } : null,
 
+          {
+            key: 'events',
+            label: globalT('events.title'),
+            children: (
+              <Space orientation="vertical" style={{ width: '100%' }}>
+                <Button block size="small" icon={<EditOutlined />} onClick={() => setEventEditorOpen(true)}>
+                  {globalT('events.edit')}
+                </Button>
+                <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+                  {Object.keys(comp.events ?? {}).length} {globalT('events.title')}
+                </Typography.Text>
+              </Space>
+            ),
+          },
+
         ].filter(Boolean) as any}
+      />
+      <EventEditorDialog
+        open={eventEditorOpen}
+        targetType="component"
+        events={component.events}
+        dictionaryItems={dictionaryItems}
+        componentItems={componentItems}
+        onCancel={() => setEventEditorOpen(false)}
+        onSave={(events) => {
+          replaceComponentEvents(currentPageId, bandId, component.id, events);
+          setEventEditorOpen(false);
+        }}
       />
       <ExpressionEditor
         open={exprModalOpen}
@@ -942,6 +974,32 @@ function readImageAsDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(reader.error ?? new Error('Failed to read image file'));
     reader.readAsDataURL(file);
   });
+}
+
+function buildDictionaryEventItems(template: ReportTemplate): EventTreeItem[] {
+  return template.dataSources.map(source => ({
+    key: source.id,
+    title: source.name || source.id,
+    children: (source.schema ?? source.fields ?? []).map(field => ({
+      key: `${source.id}.${field.name}`,
+      title: field.label || field.name,
+    })),
+  }));
+}
+
+function buildComponentEventItems(template: ReportTemplate): EventTreeItem[] {
+  return template.pages.map(page => ({
+    key: page.id,
+    title: page.id,
+    children: page.bands.map(band => ({
+      key: band.id,
+      title: band.name || band.id,
+      children: band.components.map(component => ({
+        key: component.name || component.id,
+        title: component.name || component.id,
+      })),
+    })),
+  }));
 }
 
 const propertyEditorMessages = {

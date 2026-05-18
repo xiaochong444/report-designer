@@ -1,5 +1,19 @@
 import { create } from 'zustand';
-import type { ReportTemplate, ReportComponent, Band, Page, TableComponent, ReportStyle, TextComponent, ConditionalFormat } from '@report-designer/core';
+import type {
+  Band,
+  BandEventName,
+  ComponentEventName,
+  ConditionalFormat,
+  EventMap,
+  EventScript,
+  Page,
+  ReportComponent,
+  ReportEventName,
+  ReportStyle,
+  ReportTemplate,
+  TableComponent,
+  TextComponent,
+} from '@report-designer/core';
 import { createDefaultTemplate, getDefaultTextStyle, normalizeTemplate } from '@report-designer/core';
 import { CommandDispatcher } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
@@ -42,6 +56,12 @@ export interface DesignerState {
   // Actions
   loadTemplate: (template: ReportTemplate) => void;
   updateTemplate: (updater: (template: ReportTemplate) => ReportTemplate) => void;
+  replaceReportEvents: (events: EventMap<ReportEventName>) => void;
+  replaceBandEvents: (pageId: string, bandId: string, events: EventMap<BandEventName>) => void;
+  replaceComponentEvents: (pageId: string, bandId: string, componentId: string, events: EventMap<ComponentEventName>) => void;
+  updateReportEvent: (eventName: ReportEventName, event: EventScript) => void;
+  updateBandEvent: (pageId: string, bandId: string, eventName: BandEventName, event: EventScript) => void;
+  updateComponentEvent: (pageId: string, bandId: string, componentId: string, eventName: ComponentEventName, event: EventScript) => void;
   setCurrentPage: (pageId: string) => void;
   setMode: (mode: 'design' | 'preview') => void;
   openTextStyleLibrary: () => void;
@@ -174,6 +194,58 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   },
 
   updateTemplate: (updater) => set(state => ({ template: updater(state.template) })),
+
+  replaceReportEvents: (events) => set(state => ({
+    template: { ...state.template, events: cleanEventMap(events) as EventMap<ReportEventName> },
+  })),
+
+  replaceBandEvents: (pageId, bandId, events) => set(state => ({
+    template: {
+      ...state.template,
+      pages: state.template.pages.map(page => page.id === pageId ? {
+        ...page,
+        bands: page.bands.map(band => band.id === bandId ? {
+          ...band,
+          events: cleanEventMap(events) as EventMap<BandEventName>,
+        } : band),
+      } : page),
+    },
+  })),
+
+  replaceComponentEvents: (pageId, bandId, componentId, events) => set(state => ({
+    template: {
+      ...state.template,
+      pages: state.template.pages.map(page => page.id === pageId ? {
+        ...page,
+        bands: page.bands.map(band => band.id === bandId ? {
+          ...band,
+          components: band.components.map(component => (
+            component.id === componentId
+              ? { ...component, events: cleanEventMap(events) as EventMap<ComponentEventName> }
+              : component
+          )),
+        } : band),
+      } : page),
+    },
+  })),
+
+  updateReportEvent: (eventName, event) => {
+    const events = { ...(get().template.events ?? {}), [eventName]: event };
+    get().replaceReportEvents(events);
+  },
+
+  updateBandEvent: (pageId, bandId, eventName, event) => {
+    const band = findBand(get().template, pageId, bandId);
+    const events = { ...(band?.events ?? {}), [eventName]: event };
+    get().replaceBandEvents(pageId, bandId, events);
+  },
+
+  updateComponentEvent: (pageId, bandId, componentId, eventName, event) => {
+    const band = findBand(get().template, pageId, bandId);
+    const component = band?.components.find(item => item.id === componentId);
+    const events = { ...(component?.events ?? {}), [eventName]: event };
+    get().replaceComponentEvents(pageId, bandId, componentId, events);
+  },
 
   setCurrentPage: (pageId) => set({ currentPageId: pageId }),
 
@@ -1123,6 +1195,16 @@ function findBand(template: ReportTemplate, pageId: string, bandId: string): Ban
   const page = template.pages.find(p => p.id === pageId);
   if (!page) return undefined;
   return page.bands.find(b => b.id === bandId);
+}
+
+function cleanEventMap<TName extends string>(events: EventMap<TName>): EventMap<TName> | undefined {
+  const next: EventMap<TName> = {};
+  for (const [key, event] of Object.entries(events) as Array<[TName, EventScript]>) {
+    if (event.enabled || event.script.trim()) {
+      next[key] = event;
+    }
+  }
+  return Object.keys(next).length ? next : undefined;
 }
 
 function isTextComponent(component: ReportComponent): component is TextComponent {
