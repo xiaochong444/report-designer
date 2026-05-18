@@ -330,12 +330,12 @@ function prepareBandInstance(
   }
 
   const execution: EventExecutionState = { canceled: false, hidden: false, hasValue: false };
-  runBandEvent(eventBand, context, 'beforePrint', options.eventRuntime, page, execution);
   if (isDataRowBand(eventBand, context)) {
     runBandEvent(eventBand, context, 'beforeRow', options.eventRuntime, page, execution);
   }
+  runBandEvent(eventBand, context, 'beforePrint', options.eventRuntime, page, execution);
 
-  return execution.hidden ? undefined : eventBand;
+  return execution.hidden || execution.canceled ? undefined : eventBand;
 }
 
 function finishBandInstance(

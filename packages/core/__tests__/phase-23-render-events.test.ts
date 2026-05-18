@@ -154,6 +154,22 @@ describe('phase 23 render events', () => {
     expect(textContents(template)).toEqual(['Visible']);
   });
 
+  it('lets component beforePrint cancel the component', () => {
+    const template = reportTemplate({
+      components: [
+        textComponent({
+          text: 'Canceled',
+          events: {
+            beforePrint: { enabled: true, script: 'ctx.cancel();' },
+          },
+        }),
+        textComponent({ id: 'visible-text', name: 'VisibleText', y: 8, text: 'Visible' }),
+      ],
+    });
+
+    expect(textContents(template)).toEqual(['Visible']);
+  });
+
   it('lets band beforePrint hide the current band instance', () => {
     const template = reportTemplate({
       bandEvents: {
@@ -209,6 +225,49 @@ describe('phase 23 render events', () => {
 
     expect(textContentsFromDocument(document)).toEqual(['7', 'Dynamic 7']);
     expect(template.pages[0].bands[0].components.map(component => component.name)).toEqual(['AmountText']);
+  });
+
+  it('keeps multiple dynamic components unique within one band instance', () => {
+    const template = reportTemplate({
+      bandEvents: {
+        beforePrint: {
+          enabled: true,
+          script: [
+            'ctx.createText({ name: "DynamicA", x: 70, y: 0, width: 30, height: 8, text: "A" });',
+            'ctx.createText({ name: "DynamicB", x: 100, y: 0, width: 30, height: 8, text: "B" });',
+          ].join(''),
+        },
+      },
+    });
+
+    const document = renderReport(template, { orders: [{ Amount: 7 }] });
+    const dynamicText = document.pages[0].items[0].components.filter(component => (
+      component.type === 'text' && component.id.startsWith('dynamic-text-')
+    ));
+
+    expect(textContentsFromDocument(document)).toEqual(['7', 'A', 'B']);
+    expect(dynamicText).toHaveLength(2);
+    expect(new Set(dynamicText.map(component => component.id)).size).toBe(2);
+  });
+
+  it('keeps dynamic component ids unique across data rows', () => {
+    const template = reportTemplate({
+      bandEvents: {
+        beforePrint: {
+          enabled: true,
+          script: 'ctx.createText({ name: "DynamicLabel", x: 70, y: 0, width: 60, height: 8, text: "Dynamic " + ctx.row.Amount });',
+        },
+      },
+    });
+
+    const document = renderReport(template, { orders: [{ Amount: 7 }, { Amount: 8 }] });
+    const dynamicText = document.pages.flatMap(page => page.items).flatMap(item => item.components).filter(component => (
+      component.type === 'text' && component.id.startsWith('dynamic-text-')
+    ));
+
+    expect(textContentsFromDocument(document)).toEqual(['7', 'Dynamic 7', '8', 'Dynamic 8']);
+    expect(dynamicText).toHaveLength(2);
+    expect(new Set(dynamicText.map(component => component.id)).size).toBe(2);
   });
 
   it('binds dynamic text expressions to the current row', () => {

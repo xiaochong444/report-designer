@@ -48,6 +48,7 @@ export interface EventLogCollector {
 export interface EventRuntimeState {
   eventCount: number;
   maxEventCount: number;
+  dynamicCounters?: Record<string, number>;
 }
 
 import type {

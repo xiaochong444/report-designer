@@ -109,17 +109,35 @@ export function createEventContext(options: CreateEventContextOptions): EventCon
       (found as TextComponent).text = expression;
     },
     createText(options: DynamicTextOptions) {
-      const component = createDynamicText(options, createDynamicComponentId(requireReport(), 'dynamic-text'));
+      const component = createDynamicText(
+        options,
+        createDynamicComponentId(requireReport(), 'dynamic-text', {
+          extraComponents: ctx.band?.components,
+          runtime: ctx.runtime,
+        }),
+      );
       appendComponentToBand(ctx.band, component);
       return component;
     },
     createImage(options: DynamicImageOptions) {
-      const component = createDynamicImage(options, createDynamicComponentId(requireReport(), 'dynamic-image'));
+      const component = createDynamicImage(
+        options,
+        createDynamicComponentId(requireReport(), 'dynamic-image', {
+          extraComponents: ctx.band?.components,
+          runtime: ctx.runtime,
+        }),
+      );
       appendComponentToBand(ctx.band, component);
       return component;
     },
     createBarcode(options: DynamicBarcodeOptions) {
-      const component = createDynamicBarcode(options, createDynamicComponentId(requireReport(), 'dynamic-barcode'));
+      const component = createDynamicBarcode(
+        options,
+        createDynamicComponentId(requireReport(), 'dynamic-barcode', {
+          extraComponents: ctx.band?.components,
+          runtime: ctx.runtime,
+        }),
+      );
       appendComponentToBand(ctx.band, component);
       return component;
     },

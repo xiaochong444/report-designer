@@ -77,7 +77,7 @@ function layoutComponentWithEvents(component: ReportComponent, band: Band, optio
   runComponentEvent(component, band, options, 'getValue', execution);
   runComponentEvent(component, band, options, 'beforePrint', execution);
 
-  if (execution.hidden) {
+  if (execution.hidden || execution.canceled) {
     return undefined;
   }
 

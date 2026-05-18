@@ -7,7 +7,7 @@ import type {
   ReportTemplate,
   TextComponent,
 } from '../template-model/types';
-import type { DynamicBarcodeOptions, DynamicImageOptions, DynamicTextOptions } from './types';
+import type { DynamicBarcodeOptions, DynamicImageOptions, DynamicTextOptions, EventRuntimeState } from './types';
 
 export function cloneReportTemplate(template: ReportTemplate): ReportTemplate {
   return JSON.parse(JSON.stringify(template)) as ReportTemplate;
@@ -26,7 +26,11 @@ export function findComponentInTemplate(template: ReportTemplate, idOrName: stri
   return undefined;
 }
 
-export function createDynamicComponentId(template: ReportTemplate, prefix: string): string {
+export function createDynamicComponentId(
+  template: ReportTemplate,
+  prefix: string,
+  options: { extraComponents?: ReportComponent[]; runtime?: EventRuntimeState } = {},
+): string {
   const usedIds = new Set<string>();
   for (const page of template.pages) {
     for (const band of page.bands) {
@@ -34,9 +38,21 @@ export function createDynamicComponentId(template: ReportTemplate, prefix: strin
     }
   }
 
-  let index = 1;
+  if (options.extraComponents) {
+    collectComponentIds(options.extraComponents, usedIds);
+  }
+
+  const counters = options.runtime?.dynamicCounters ?? {};
+  let index = (counters[prefix] ?? 0) + 1;
   while (usedIds.has(`${prefix}-${index}`)) {
     index += 1;
+  }
+
+  if (options.runtime) {
+    options.runtime.dynamicCounters = {
+      ...counters,
+      [prefix]: index,
+    };
   }
 
   return `${prefix}-${index}`;
