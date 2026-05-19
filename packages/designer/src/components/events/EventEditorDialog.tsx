@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Button, Input, Modal, Space, Switch, Tree, Typography } from 'antd';
-import type { EventMap, EventScript } from '@report-designer/core';
+import type { EventEditorDataContractInput, EventMap, EventScript } from '@report-designer/core';
 import { useDesignerI18n, type DesignerMessageKey } from '../../i18n';
 import { EventScriptEditor, type EventScriptEditorDiagnostics } from './EventScriptEditor';
 import {
@@ -35,6 +35,7 @@ interface EventEditorDialogProps {
   open: boolean;
   targetType: EventTargetType;
   events?: EventMap<string>;
+  dataContext?: EventEditorDataContractInput;
   dictionaryItems?: EventTreeItem[];
   componentItems?: EventTreeItem[];
   onCancel: () => void;
@@ -43,6 +44,7 @@ interface EventEditorDialogProps {
 
 export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   componentItems = [],
+  dataContext,
   dictionaryItems = [],
   events,
   onCancel,
@@ -186,6 +188,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
             targetType={targetType}
             eventName={active}
             helperItems={helperItems}
+            dataContext={dataContext}
             dictionaryItems={dictionaryItems}
             componentItems={componentItems}
             exampleItems={exampleItems}

@@ -21,6 +21,7 @@ import { hasTextStyleBinding } from '../text-style-bindings';
 import { TextFormatEditor } from './TextFormatEditor';
 import { useDesignerI18n, type DesignerLocale } from '../i18n';
 import { EventEditorDialog, type EventTreeItem } from './events/EventEditorDialog';
+import { buildEventEditorDataContext } from './events/event-editor-utils';
 
 const DEFAULT_BORDER: BorderConfig = {
   style: 'none',
@@ -781,6 +782,7 @@ export const PropertyEditor: React.FC = () => {
         open={eventEditorOpen}
         targetType="component"
         events={component.events}
+        dataContext={buildEventEditorDataContext(template, { targetType: 'component', componentId: component.id })}
         dictionaryItems={dictionaryItems}
         componentItems={componentItems}
         onCancel={() => setEventEditorOpen(false)}

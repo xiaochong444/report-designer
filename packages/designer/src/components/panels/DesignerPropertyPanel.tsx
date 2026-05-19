@@ -15,6 +15,7 @@ import { useDesignerI18n } from '../../i18n';
 import { BandPropertyGrid } from '../properties/BandPropertyGrid';
 import { PropertyEditor } from '../PropertyEditor';
 import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDialog';
+import { buildEventEditorDataContext } from '../events/event-editor-utils';
 
 export const DesignerPropertyPanel: React.FC = () => {
   const { t } = useDesignerI18n();
@@ -217,6 +218,7 @@ const PageProperties: React.FC = () => {
                   open={eventEditorOpen}
                   targetType="report"
                   events={template.events}
+                  dataContext={buildEventEditorDataContext(template, { targetType: 'report' })}
                   dictionaryItems={buildDictionaryEventItems(template)}
                   componentItems={buildComponentEventItems(template)}
                   onCancel={() => setEventEditorOpen(false)}

@@ -6,6 +6,7 @@ import { useDesignerStore } from '../../store/designer-store';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../../page-settings';
 import { useDesignerI18n } from '../../i18n';
 import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDialog';
+import { buildEventEditorDataContext } from '../events/event-editor-utils';
 
 export const BandPropertyGrid: React.FC = () => {
   const { t } = useDesignerI18n();
@@ -62,6 +63,7 @@ export const BandPropertyGrid: React.FC = () => {
         open={eventEditorOpen}
         targetType="band"
         events={band.events}
+        dataContext={buildEventEditorDataContext(template, { targetType: 'band', bandId: band.id })}
         dictionaryItems={buildDictionaryEventItems(template)}
         componentItems={buildComponentEventItems(template)}
         onCancel={() => setEventEditorOpen(false)}
