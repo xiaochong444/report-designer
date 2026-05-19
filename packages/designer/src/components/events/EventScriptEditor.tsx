@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef } from 'react';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import type { EventEditorTargetType } from '@report-designer/core';
 import {
@@ -43,7 +43,7 @@ interface MonacoLike {
       };
       javascriptDefaults?: {
         setCompilerOptions: (options: Record<string, unknown>) => void;
-        addExtraLib: (content: string, filePath?: string) => void;
+        addExtraLib: (content: string, filePath?: string) => Disposable;
       };
     };
     registerCompletionItemProvider?: (
@@ -69,6 +69,8 @@ export function EventScriptEditor({
   onChange,
   onDiagnostics,
 }: EventScriptEditorProps) {
+  const monacoRef = useRef<MonacoLike | undefined>(undefined);
+  const extraLibDisposableRef = useRef<Disposable | undefined>(undefined);
   const completionDisposableRef = useRef<Disposable | undefined>(undefined);
 
   const disposeCompletionProvider = useCallback(() => {
@@ -76,14 +78,55 @@ export function EventScriptEditor({
     completionDisposableRef.current = undefined;
   }, []);
 
-  useEffect(() => disposeCompletionProvider, [disposeCompletionProvider]);
+  const disposeEventApiExtraLib = useCallback(() => {
+    extraLibDisposableRef.current?.dispose();
+    extraLibDisposableRef.current = undefined;
+  }, []);
 
-  const completionInput = {
-    helperItems,
-    dictionaryItems,
-    componentItems,
-    exampleItems,
-  };
+  const completionInput = useMemo(
+    () => ({
+      helperItems,
+      dictionaryItems,
+      componentItems,
+      exampleItems,
+    }),
+    [componentItems, dictionaryItems, exampleItems, helperItems],
+  );
+  const latestCompletionInputRef = useRef(completionInput);
+
+  useEffect(() => {
+    latestCompletionInputRef.current = completionInput;
+  }, [completionInput]);
+
+  const registerEventApiExtraLib = useCallback(
+    (monaco: MonacoLike) => {
+      const javascriptDefaults = monaco.languages?.typescript?.javascriptDefaults;
+      if (!javascriptDefaults) {
+        return;
+      }
+
+      disposeEventApiExtraLib();
+      extraLibDisposableRef.current = javascriptDefaults.addExtraLib(
+        buildEventEditorExtraLib(targetType, eventName),
+        EVENT_API_EXTRA_LIB_PATH,
+      );
+    },
+    [disposeEventApiExtraLib, eventName, targetType],
+  );
+
+  useEffect(() => {
+    if (monacoRef.current) {
+      registerEventApiExtraLib(monacoRef.current);
+    }
+  }, [registerEventApiExtraLib]);
+
+  useEffect(
+    () => () => {
+      disposeCompletionProvider();
+      disposeEventApiExtraLib();
+    },
+    [disposeCompletionProvider, disposeEventApiExtraLib],
+  );
 
   const beforeMount = useCallback(
     (monaco: MonacoLike) => {
@@ -98,13 +141,14 @@ export function EventScriptEditor({
         noEmit: true,
         target: monaco.languages?.typescript?.ScriptTarget?.ES2020 ?? FALLBACK_SCRIPT_TARGET_ES2020,
       });
-      javascriptDefaults.addExtraLib(buildEventEditorExtraLib(targetType, eventName), EVENT_API_EXTRA_LIB_PATH);
     },
-    [eventName, targetType],
+    [],
   );
 
   const onMount = useCallback(
     (_editor: unknown, monaco: MonacoLike) => {
+      monacoRef.current = monaco;
+      registerEventApiExtraLib(monaco);
       disposeCompletionProvider();
 
       const registerCompletionItemProvider = monaco.languages?.registerCompletionItemProvider;
@@ -115,13 +159,13 @@ export function EventScriptEditor({
       completionDisposableRef.current = registerCompletionItemProvider('javascript', {
         provideCompletionItems: () => ({
           suggestions: buildEventScriptCompletions(
-            completionInput,
+            latestCompletionInputRef.current,
             (monaco.languages ?? monaco) as MonacoCompletionConstants,
           ),
         }),
       });
     },
-    [completionInput, disposeCompletionProvider],
+    [disposeCompletionProvider, registerEventApiExtraLib],
   );
 
   const onValidate = useCallback(

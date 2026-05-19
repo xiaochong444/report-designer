@@ -14,6 +14,12 @@ const monacoEditorMock = vi.hoisted(() => ({
   lastProps: undefined as Record<string, unknown> | undefined,
 }));
 
+interface CompletionProviderMock {
+  provideCompletionItems: () => { suggestions: unknown[] };
+}
+
+const createDisposable = () => ({ dispose: vi.fn() });
+
 vi.mock('@monaco-editor/react', () => ({
   default: (props: Record<string, unknown>) => {
     monacoEditorMock.lastProps = props;
@@ -38,7 +44,7 @@ const monaco = {
       },
       javascriptDefaults: {
         setCompilerOptions: vi.fn(),
-        addExtraLib: vi.fn(),
+        addExtraLib: vi.fn((_content: string, _filePath?: string) => createDisposable()),
       },
     },
     CompletionItemKind: {
@@ -50,11 +56,7 @@ const monaco = {
     CompletionItemInsertTextRule: {
       InsertAsSnippet: 4,
     },
-    registerCompletionItemProvider: vi.fn(
-      (_language: string, _provider: { provideCompletionItems: () => { suggestions: unknown[] } }) => ({
-        dispose: vi.fn(),
-      }),
-    ),
+    registerCompletionItemProvider: vi.fn((_language: string, _provider: CompletionProviderMock) => createDisposable()),
   },
   CompletionItemKind: {
     Function: 1,
@@ -228,12 +230,13 @@ describe('phase 24 monaco event editor helpers', () => {
       noEmit: true,
       target: monaco.languages.typescript.ScriptTarget.ES2020,
     });
+
+    (props?.onMount as (_editor: unknown, monacoInstance: typeof monaco) => void)({}, monaco);
+
     expect(monaco.languages.typescript.javascriptDefaults.addExtraLib).toHaveBeenCalledWith(
       expect.stringContaining('declare const ctx: ComponentGetValueEventContext'),
       'inmemory://event-scripts/event-api.d.ts',
     );
-
-    (props?.onMount as (_editor: unknown, monacoInstance: typeof monaco) => void)({}, monaco);
 
     expect(monaco.languages.registerCompletionItemProvider).toHaveBeenCalledWith(
       'javascript',
@@ -259,5 +262,136 @@ describe('phase 24 monaco event editor helpers', () => {
       blocking: ['Line 3: Unexpected token'],
       warnings: ['Line 9: Unused value'],
     });
+  });
+
+  it('refreshes the event api extra lib when the selected event changes', () => {
+    const firstExtraLibDisposable = createDisposable();
+    const secondExtraLibDisposable = createDisposable();
+    monaco.languages.typescript.javascriptDefaults.addExtraLib
+      .mockReturnValueOnce(firstExtraLibDisposable)
+      .mockReturnValueOnce(secondExtraLibDisposable);
+
+    const { rerender } = render(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value=""
+        targetType="component"
+        eventName="getValue"
+        onChange={() => undefined}
+      />,
+    );
+
+    const firstProps = monacoEditorMock.lastProps;
+    (firstProps?.onMount as (_editor: unknown, monacoInstance: typeof monaco) => void)({}, monaco);
+
+    expect(monaco.languages.typescript.javascriptDefaults.addExtraLib).toHaveBeenCalledWith(
+      expect.stringContaining('declare const ctx: ComponentGetValueEventContext'),
+      'inmemory://event-scripts/event-api.d.ts',
+    );
+
+    rerender(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value=""
+        targetType="component"
+        eventName="beforePrint"
+        onChange={() => undefined}
+      />,
+    );
+
+    expect(firstExtraLibDisposable.dispose).toHaveBeenCalledTimes(1);
+    expect(monaco.languages.typescript.javascriptDefaults.addExtraLib).toHaveBeenLastCalledWith(
+      expect.stringContaining('declare const ctx: ComponentEventContext'),
+      'inmemory://event-scripts/event-api.d.ts',
+    );
+    expect(secondExtraLibDisposable.dispose).not.toHaveBeenCalled();
+  });
+
+  it('uses latest completion items from an already registered provider', () => {
+    const { rerender } = render(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value=""
+        targetType="component"
+        eventName="beforePrint"
+        helperItems={[{ label: 'ctx.hide', insertText: 'ctx.hide?.();' }]}
+        onChange={() => undefined}
+      />,
+    );
+
+    const props = monacoEditorMock.lastProps;
+    (props?.onMount as (_editor: unknown, monacoInstance: typeof monaco) => void)({}, monaco);
+    const provider = vi.mocked(monaco.languages.registerCompletionItemProvider).mock.calls[0]?.[1];
+    expect(provider).toBeDefined();
+
+    rerender(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value=""
+        targetType="component"
+        eventName="beforePrint"
+        helperItems={[{ label: 'ctx.show', insertText: 'ctx.show?.();' }]}
+        onChange={() => undefined}
+      />,
+    );
+
+    expect(provider!.provideCompletionItems()).toEqual({
+      suggestions: [expect.objectContaining({ label: 'ctx.show', insertText: 'ctx.show?.();' })],
+    });
+  });
+
+  it('disposes the completion provider and event api extra lib on unmount', () => {
+    const extraLibDisposable = createDisposable();
+    const completionDisposable = createDisposable();
+    monaco.languages.typescript.javascriptDefaults.addExtraLib.mockReturnValueOnce(extraLibDisposable);
+    monaco.languages.registerCompletionItemProvider.mockReturnValueOnce(completionDisposable);
+
+    const { unmount } = render(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value=""
+        targetType="component"
+        eventName="beforePrint"
+        onChange={() => undefined}
+      />,
+    );
+
+    const props = monacoEditorMock.lastProps;
+    (props?.onMount as (_editor: unknown, monacoInstance: typeof monaco) => void)({}, monaco);
+
+    unmount();
+
+    expect(completionDisposable.dispose).toHaveBeenCalledTimes(1);
+    expect(extraLibDisposable.dispose).toHaveBeenCalledTimes(1);
+  });
+
+  it('uses fallback script target when ES2020 is unavailable', () => {
+    const monacoWithoutScriptTarget = {
+      ...monaco,
+      languages: {
+        ...monaco.languages,
+        typescript: {
+          ...monaco.languages.typescript,
+          ScriptTarget: {},
+        },
+      },
+    };
+
+    render(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value=""
+        targetType="component"
+        eventName="beforePrint"
+        onChange={() => undefined}
+      />,
+    );
+
+    const props = monacoEditorMock.lastProps;
+    (props?.beforeMount as (monacoInstance: typeof monacoWithoutScriptTarget) => void)(monacoWithoutScriptTarget);
+
+    expect(monaco.languages.typescript.javascriptDefaults.setCompilerOptions).toHaveBeenCalledWith(
+      expect.objectContaining({ target: 7 }),
+    );
   });
 });
