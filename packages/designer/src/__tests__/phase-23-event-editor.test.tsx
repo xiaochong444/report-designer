@@ -1,9 +1,19 @@
 /* @vitest-environment jsdom */
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { DesignerI18nProvider } from '../i18n';
 import { EventEditorDialog } from '../components/events/EventEditorDialog';
+
+vi.mock('@monaco-editor/react', () => ({
+  default: (props: Record<string, unknown>) => (
+    <textarea
+      aria-label={props['aria-label'] as string}
+      value={props.value as string}
+      onChange={(event) => (props.onChange as (value: string | undefined) => void)(event.target.value)}
+    />
+  ),
+}));
 
 describe('phase 23 event editor', () => {
   it('shows localized report events and saves a script', () => {

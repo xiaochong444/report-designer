@@ -2,6 +2,8 @@
 import React from 'react';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { DesignerI18nProvider } from '../i18n';
+import { EventEditorDialog } from '../components/events/EventEditorDialog';
 import { EventScriptEditor } from '../components/events/EventScriptEditor';
 import {
   buildEventEditorExtraLib,
@@ -393,5 +395,49 @@ describe('phase 24 monaco event editor helpers', () => {
     expect(monaco.languages.typescript.javascriptDefaults.setCompilerOptions).toHaveBeenCalledWith(
       expect.objectContaining({ target: 7 }),
     );
+  });
+
+  it('integrates script editing, localized helper groups, and get value examples in the dialog', () => {
+    let saved: unknown;
+
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{}}
+          onCancel={() => undefined}
+          onSave={(events) => { saved = events; }}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    expect(screen.getByText('Context helpers')).toBeInTheDocument();
+    expect(screen.getByText('Set event value')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Set event value'));
+    expect(screen.getByLabelText('Script')).toHaveValue('ctx.setValue?.("");');
+
+    fireEvent.click(screen.getByText('Apply'));
+    expect(saved).toMatchObject({
+      getValue: { enabled: true, script: 'ctx.setValue?.("");' },
+    });
+  });
+
+  it('renders Chinese dialog helper groups and examples', () => {
+    render(
+      <DesignerI18nProvider locale="zh-CN">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{}}
+          onCancel={() => undefined}
+          onSave={() => undefined}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    expect(screen.getByText('上下文辅助')).toBeInTheDocument();
+    expect(screen.getByText('设置事件值')).toBeInTheDocument();
   });
 });

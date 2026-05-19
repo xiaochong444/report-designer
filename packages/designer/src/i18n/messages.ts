@@ -253,6 +253,10 @@ export type DesignerMessageKey =
   | 'events.enabled'
   | 'events.off'
   | 'events.helper'
+  | 'events.editorLoading'
+  | 'events.contextHelpers'
+  | 'events.examples'
+  | 'events.typeWarnings'
   | 'events.fields'
   | 'events.components'
   | 'events.validationPassed'
@@ -266,7 +270,29 @@ export type DesignerMessageKey =
   | 'events.beforeRow'
   | 'events.afterRow'
   | 'events.getValue'
-  | 'events.afterPrint';
+  | 'events.afterPrint'
+  | 'events.helper.log.info'
+  | 'events.helper.log.warning'
+  | 'events.helper.log.error'
+  | 'events.helper.flow.hide'
+  | 'events.helper.flow.cancel'
+  | 'events.helper.value.setValue'
+  | 'events.helper.mutation.bindText'
+  | 'events.helper.mutation.getComponent'
+  | 'events.helper.mutation.setComponentProperty'
+  | 'events.helper.dynamic.createText'
+  | 'events.helper.dynamic.createImage'
+  | 'events.helper.dynamic.createBarcode'
+  | 'events.example.setValue'
+  | 'events.example.setValue.detail'
+  | 'events.example.hideComponent'
+  | 'events.example.hideComponent.detail'
+  | 'events.example.readRow'
+  | 'events.example.readRow.detail'
+  | 'events.example.reportState'
+  | 'events.example.reportState.detail'
+  | 'events.example.logMessage'
+  | 'events.example.logMessage.detail';
 
 export type DesignerMessages = Record<DesignerMessageKey, string>;
 
@@ -524,6 +550,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.enabled': '启用',
     'events.off': '关闭',
     'events.helper': '辅助',
+    'events.editorLoading': '正在加载脚本编辑器',
+    'events.contextHelpers': '上下文辅助',
+    'events.examples': '示例',
+    'events.typeWarnings': '类型警告',
     'events.fields': '字段',
     'events.components': '组件',
     'events.validationPassed': '校验通过',
@@ -538,6 +568,28 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.afterRow': '行后',
     'events.getValue': '取值',
     'events.afterPrint': '打印后',
+    'events.helper.log.info': '记录普通信息',
+    'events.helper.log.warning': '记录警告信息',
+    'events.helper.log.error': '记录错误信息',
+    'events.helper.flow.hide': '隐藏当前组件',
+    'events.helper.flow.cancel': '取消当前事件',
+    'events.helper.value.setValue': '设置事件值',
+    'events.helper.mutation.bindText': '绑定文本组件表达式',
+    'events.helper.mutation.getComponent': '获取组件',
+    'events.helper.mutation.setComponentProperty': '设置组件属性',
+    'events.helper.dynamic.createText': '创建文本组件',
+    'events.helper.dynamic.createImage': '创建图片组件',
+    'events.helper.dynamic.createBarcode': '创建条码组件',
+    'events.example.setValue': '设置事件值',
+    'events.example.setValue.detail': '为取值事件写入返回值',
+    'events.example.hideComponent': '隐藏组件',
+    'events.example.hideComponent.detail': '在运行时隐藏当前组件',
+    'events.example.readRow': '读取当前行',
+    'events.example.readRow.detail': '读取带区事件的当前数据行',
+    'events.example.reportState': '写入报表状态',
+    'events.example.reportState.detail': '在报表事件中记录可复用状态',
+    'events.example.logMessage': '记录日志',
+    'events.example.logMessage.detail': '向事件日志写入调试信息',
   },
   'en-US': {
     'common.cancel': 'Cancel',
@@ -792,6 +844,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.enabled': 'Enabled',
     'events.off': 'Off',
     'events.helper': 'Helpers',
+    'events.editorLoading': 'Loading script editor',
+    'events.contextHelpers': 'Context helpers',
+    'events.examples': 'Examples',
+    'events.typeWarnings': 'Type warnings',
     'events.fields': 'Fields',
     'events.components': 'Components',
     'events.validationPassed': 'Validation passed',
@@ -806,5 +862,27 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.afterRow': 'After Row',
     'events.getValue': 'Get Value',
     'events.afterPrint': 'After Print',
+    'events.helper.log.info': 'Write an info log entry',
+    'events.helper.log.warning': 'Write a warning log entry',
+    'events.helper.log.error': 'Write an error log entry',
+    'events.helper.flow.hide': 'Hide the current component',
+    'events.helper.flow.cancel': 'Cancel the current event',
+    'events.helper.value.setValue': 'Set the event value',
+    'events.helper.mutation.bindText': 'Bind a text component expression',
+    'events.helper.mutation.getComponent': 'Get a component',
+    'events.helper.mutation.setComponentProperty': 'Set a component property',
+    'events.helper.dynamic.createText': 'Create a text component',
+    'events.helper.dynamic.createImage': 'Create an image component',
+    'events.helper.dynamic.createBarcode': 'Create a barcode component',
+    'events.example.setValue': 'Set event value',
+    'events.example.setValue.detail': 'Write the return value for a get value event',
+    'events.example.hideComponent': 'Hide component',
+    'events.example.hideComponent.detail': 'Hide the current component at runtime',
+    'events.example.readRow': 'Read current row',
+    'events.example.readRow.detail': 'Read the current data row in a band event',
+    'events.example.reportState': 'Write report state',
+    'events.example.reportState.detail': 'Store reusable state in a report event',
+    'events.example.logMessage': 'Log message',
+    'events.example.logMessage.detail': 'Write debug information to the event log',
   },
 };
