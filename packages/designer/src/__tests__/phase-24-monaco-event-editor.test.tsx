@@ -71,6 +71,21 @@ const monaco = {
   },
 };
 
+const dataContext = {
+  activeDataSourceId: 'employees',
+  dataSources: [
+    {
+      id: 'employees',
+      name: 'Employees',
+      fields: [
+        { name: 'salary', type: 'number' as const },
+        { name: 'unit-price', type: 'number' as const },
+      ],
+    },
+  ],
+  parameters: [{ id: 'amount_field', name: 'amountField', type: 'string' as const }],
+};
+
 describe('phase 24 monaco event editor helpers', () => {
   beforeEach(() => {
     monacoEditorMock.lastProps = undefined;
@@ -88,6 +103,15 @@ describe('phase 24 monaco event editor helpers', () => {
 
     expect(extraLib).toContain('declare const ctx: ComponentGetValueEventContext');
     expect(extraLib).toContain('interface ComponentGetValueEventContext');
+    expect(extraLib.match(/declare const ctx:/g)).toHaveLength(1);
+  });
+
+  it('adds typed event data declarations to the selected event ctx extra lib', () => {
+    const extraLib = buildEventEditorExtraLib('component', 'getValue', dataContext);
+
+    expect(extraLib).toContain('declare const ctx: ComponentGetValueEventContext & EventEditorTypedContext');
+    expect(extraLib).toContain('salary: number;');
+    expect(extraLib).toContain('amountField?: string;');
     expect(extraLib.match(/declare const ctx:/g)).toHaveLength(1);
   });
 
@@ -133,6 +157,46 @@ describe('phase 24 monaco event editor helpers', () => {
       kind: monaco.CompletionItemKind.Function,
       insertTextRules: monaco.CompletionItemInsertTextRule.InsertAsSnippet,
     });
+  });
+
+  it('adds row, data source, and parameter completions before dictionary fields', () => {
+    const items = buildEventScriptCompletions(
+      {
+        helperItems: [{ label: 'ctx.hide', insertText: 'ctx.hide?.();', detail: 'Hide component' }],
+        dataContext,
+        dictionaryItems: [{ key: 'Orders.Amount', title: 'Orders.Amount' }],
+      },
+      monaco,
+    );
+
+    expect(items.map(item => item.label)).toEqual(expect.arrayContaining([
+      'ctx.row.salary',
+      'ctx.row["unit-price"]',
+      'ctx.data.employees',
+      'ctx.parameters.amountField',
+    ]));
+    expect(items.find(item => item.label === 'ctx.row.salary')).toMatchObject({
+      kind: monaco.CompletionItemKind.Field,
+      insertText: 'ctx.row.salary',
+    });
+    expect(items.find(item => item.label === 'ctx.row["unit-price"]')).toMatchObject({
+      kind: monaco.CompletionItemKind.Field,
+      insertText: 'ctx.row["unit-price"]',
+    });
+    expect(items.find(item => item.label === 'ctx.data.employees')).toMatchObject({
+      kind: monaco.CompletionItemKind.Variable,
+      insertText: 'ctx.data.employees',
+    });
+    expect(items.find(item => item.label === 'ctx.parameters.amountField')).toMatchObject({
+      kind: monaco.CompletionItemKind.Variable,
+      insertText: 'ctx.parameters.amountField',
+    });
+    expect(items.findIndex(item => item.label === 'ctx.hide')).toBeLessThan(
+      items.findIndex(item => item.label === 'ctx.row.salary'),
+    );
+    expect(items.findIndex(item => item.label === 'ctx.parameters.amountField')).toBeLessThan(
+      items.findIndex(item => item.label === 'Orders.Amount'),
+    );
   });
 
   it('supports Monaco instances that expose completion constants through languages', () => {
@@ -266,6 +330,30 @@ describe('phase 24 monaco event editor helpers', () => {
     });
   });
 
+  it('adds typed event data declarations to the editor extra lib during mount', () => {
+    render(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value=""
+        targetType="component"
+        eventName="getValue"
+        dataContext={dataContext}
+        onChange={() => undefined}
+      />,
+    );
+
+    const props = monacoEditorMock.lastProps;
+    expect(props).toBeDefined();
+
+    (props?.beforeMount as (monacoInstance: typeof monaco) => void)(monaco);
+    (props?.onMount as (_editor: unknown, monacoInstance: typeof monaco) => void)({}, monaco);
+
+    expect(monaco.languages.typescript.javascriptDefaults.addExtraLib).toHaveBeenCalledWith(
+      expect.stringContaining('EventEditorTypedContext'),
+      'inmemory://event-scripts/event-api.d.ts',
+    );
+  });
+
   it('refreshes the event api extra lib when the selected event changes', () => {
     const firstExtraLibDisposable = createDisposable();
     const secondExtraLibDisposable = createDisposable();
@@ -304,6 +392,60 @@ describe('phase 24 monaco event editor helpers', () => {
     expect(firstExtraLibDisposable.dispose).toHaveBeenCalledTimes(1);
     expect(monaco.languages.typescript.javascriptDefaults.addExtraLib).toHaveBeenLastCalledWith(
       expect.stringContaining('declare const ctx: ComponentEventContext'),
+      'inmemory://event-scripts/event-api.d.ts',
+    );
+    expect(secondExtraLibDisposable.dispose).not.toHaveBeenCalled();
+  });
+
+  it('refreshes the event api extra lib when data context changes', () => {
+    const firstExtraLibDisposable = createDisposable();
+    const secondExtraLibDisposable = createDisposable();
+    monaco.languages.typescript.javascriptDefaults.addExtraLib
+      .mockReturnValueOnce(firstExtraLibDisposable)
+      .mockReturnValueOnce(secondExtraLibDisposable);
+
+    const { rerender } = render(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value=""
+        targetType="component"
+        eventName="getValue"
+        dataContext={dataContext}
+        onChange={() => undefined}
+      />,
+    );
+
+    const firstProps = monacoEditorMock.lastProps;
+    (firstProps?.onMount as (_editor: unknown, monacoInstance: typeof monaco) => void)({}, monaco);
+
+    expect(monaco.languages.typescript.javascriptDefaults.addExtraLib).toHaveBeenCalledWith(
+      expect.stringContaining('salary: number;'),
+      'inmemory://event-scripts/event-api.d.ts',
+    );
+
+    rerender(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value=""
+        targetType="component"
+        eventName="getValue"
+        dataContext={{
+          ...dataContext,
+          dataSources: [
+            {
+              id: 'employees',
+              name: 'Employees',
+              fields: [{ name: 'department', type: 'string' as const }],
+            },
+          ],
+        }}
+        onChange={() => undefined}
+      />,
+    );
+
+    expect(firstExtraLibDisposable.dispose).toHaveBeenCalledTimes(1);
+    expect(monaco.languages.typescript.javascriptDefaults.addExtraLib).toHaveBeenLastCalledWith(
+      expect.stringContaining('department: string;'),
       'inmemory://event-scripts/event-api.d.ts',
     );
     expect(secondExtraLibDisposable.dispose).not.toHaveBeenCalled();

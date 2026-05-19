@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Editor from '@monaco-editor/react';
-import type { EventEditorTargetType } from '@report-designer/core';
+import type { EventEditorDataContractInput, EventEditorTargetType } from '@report-designer/core';
 import {
   buildEventEditorExtraLib,
   buildEventScriptCompletions,
@@ -23,6 +23,7 @@ export interface EventScriptEditorProps {
   targetType: EventEditorTargetType;
   eventName: string;
   helperItems?: EventCompletionTextItem[];
+  dataContext?: EventEditorDataContractInput;
   dictionaryItems?: EventCompletionTreeItem[];
   componentItems?: EventCompletionTreeItem[];
   exampleItems?: EventCompletionTextItem[];
@@ -62,6 +63,7 @@ export function EventScriptEditor({
   targetType,
   eventName,
   helperItems,
+  dataContext,
   dictionaryItems,
   componentItems,
   exampleItems,
@@ -86,11 +88,12 @@ export function EventScriptEditor({
   const completionInput = useMemo(
     () => ({
       helperItems,
+      dataContext,
       dictionaryItems,
       componentItems,
       exampleItems,
     }),
-    [componentItems, dictionaryItems, exampleItems, helperItems],
+    [componentItems, dataContext, dictionaryItems, exampleItems, helperItems],
   );
   const latestCompletionInputRef = useRef(completionInput);
 
@@ -107,11 +110,11 @@ export function EventScriptEditor({
 
       disposeEventApiExtraLib();
       extraLibDisposableRef.current = javascriptDefaults.addExtraLib(
-        buildEventEditorExtraLib(targetType, eventName),
+        buildEventEditorExtraLib(targetType, eventName, dataContext),
         EVENT_API_EXTRA_LIB_PATH,
       );
     },
-    [disposeEventApiExtraLib, eventName, targetType],
+    [dataContext, disposeEventApiExtraLib, eventName, targetType],
   );
 
   useEffect(() => {

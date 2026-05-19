@@ -1,7 +1,9 @@
 import {
   EVENT_SCRIPT_DTS,
+  buildEventEditorDataDts,
   eventEditorHelpers,
   getEventEditorContextType,
+  type EventEditorDataContractInput,
   type EventEditorTargetType,
 } from '@report-designer/core';
 
@@ -20,6 +22,7 @@ export interface EventCompletionTextItem {
 
 export interface EventCompletionInput {
   helperItems?: EventCompletionTextItem[];
+  dataContext?: EventEditorDataContractInput;
   dictionaryItems?: EventCompletionTreeItem[];
   componentItems?: EventCompletionTreeItem[];
   exampleItems?: EventCompletionTextItem[];
@@ -55,16 +58,24 @@ export interface EventCompletionItem {
 export const getEventScriptModelPath = (targetType: EventEditorTargetType, eventName: string): string =>
   `inmemory://event-scripts/${targetType}/${eventName}.js`;
 
-export function buildEventEditorExtraLib(targetType: EventEditorTargetType, eventName: string): string {
+export function buildEventEditorExtraLib(
+  targetType: EventEditorTargetType,
+  eventName: string,
+  dataContext?: EventEditorDataContractInput,
+): string {
   const contextType = getEventEditorContextType(targetType, eventName);
-  const ctxDeclaration = `declare const ctx: ${contextType};`;
+  const ctxType = dataContext ? `${contextType} & EventEditorTypedContext` : contextType;
+  const ctxDeclaration = `declare const ctx: ${ctxType};`;
   const ctxDeclarationPattern = /declare\s+const\s+ctx\s*:\s*[^;]+;/;
+  const eventScriptDts = dataContext
+    ? `${EVENT_SCRIPT_DTS.trimEnd()}\n\n${buildEventEditorDataDts(dataContext)}`
+    : EVENT_SCRIPT_DTS;
 
-  if (ctxDeclarationPattern.test(EVENT_SCRIPT_DTS)) {
-    return EVENT_SCRIPT_DTS.replace(ctxDeclarationPattern, ctxDeclaration);
+  if (ctxDeclarationPattern.test(eventScriptDts)) {
+    return eventScriptDts.replace(ctxDeclarationPattern, ctxDeclaration);
   }
 
-  return `${EVENT_SCRIPT_DTS.trimEnd()}\n\n${ctxDeclaration}\n`;
+  return `${eventScriptDts.trimEnd()}\n\n${ctxDeclaration}\n`;
 }
 
 export function buildEventScriptCompletions(
@@ -77,6 +88,7 @@ export function buildEventScriptCompletions(
     ...mapTextItems(input.helperItems, constants.CompletionItemKind.Function, {
       insertTextRules: constants.CompletionItemInsertTextRule.InsertAsSnippet,
     }),
+    ...mapDataContextItems(input.dataContext, constants),
     ...flattenTreeItems(input.dictionaryItems).map(item => ({
       label: item.title,
       detail: item.key,
@@ -139,6 +151,82 @@ function getCompletionConstants(monaco: MonacoCompletionConstants): Required<Mon
     CompletionItemInsertTextRule: insertTextRule,
     languages: source,
   };
+}
+
+function mapDataContextItems(
+  dataContext: EventEditorDataContractInput | undefined,
+  constants: Required<MonacoCompletionConstants>,
+): EventCompletionItem[] {
+  if (!dataContext) {
+    return [];
+  }
+
+  const activeDataSource = dataContext.dataSources.find(source => source.id === dataContext.activeDataSourceId);
+  const activeFields = activeDataSource?.schema ?? activeDataSource?.fields ?? [];
+  const fieldItems = activeFields.flatMap(field => {
+    const fieldAccess = toPropertyAccess(field.name);
+    const optionalFieldAccess = toOptionalPropertyAccess(field.name);
+    return [
+      {
+        label: `ctx.row${fieldAccess}`,
+        detail: activeDataSource?.name || activeDataSource?.id,
+        kind: constants.CompletionItemKind.Field,
+        insertText: `ctx.row${fieldAccess}`,
+      },
+      {
+        label: `ctx.row${optionalFieldAccess}`,
+        detail: activeDataSource?.name || activeDataSource?.id,
+        kind: constants.CompletionItemKind.Field,
+        insertText: `ctx.row${optionalFieldAccess}`,
+      },
+    ];
+  });
+  const dataSourceItems = dataContext.dataSources.map(source => {
+    const sourceAccess = toPropertyAccess(source.id);
+    return {
+      label: `ctx.data${sourceAccess}`,
+      detail: source.name || source.id,
+      kind: constants.CompletionItemKind.Variable,
+      insertText: `ctx.data${sourceAccess}`,
+    };
+  });
+  const parameterItems = dataContext.parameters.flatMap(parameter => {
+    const parameterName = parameter.name || parameter.id;
+    const parameterAccess = toPropertyAccess(parameterName);
+    const optionalParameterAccess = toOptionalPropertyAccess(parameterName);
+    return [
+      {
+        label: `ctx.parameters${parameterAccess}`,
+        detail: parameter.id,
+        kind: constants.CompletionItemKind.Variable,
+        insertText: `ctx.parameters${parameterAccess}`,
+      },
+      {
+        label: `ctx.parameters${optionalParameterAccess}`,
+        detail: parameter.id,
+        kind: constants.CompletionItemKind.Variable,
+        insertText: `ctx.parameters${optionalParameterAccess}`,
+      },
+    ];
+  });
+
+  return [...fieldItems, ...dataSourceItems, ...parameterItems];
+}
+
+function toPropertyAccess(propertyName: string): string {
+  if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(propertyName)) {
+    return `.${propertyName}`;
+  }
+
+  return `[${JSON.stringify(propertyName)}]`;
+}
+
+function toOptionalPropertyAccess(propertyName: string): string {
+  if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(propertyName)) {
+    return `?.${propertyName}`;
+  }
+
+  return `?.[${JSON.stringify(propertyName)}]`;
 }
 
 function mapTextItems(
