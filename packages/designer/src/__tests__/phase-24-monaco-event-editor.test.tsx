@@ -177,11 +177,11 @@ describe('phase 24 monaco event editor helpers', () => {
     ]));
     expect(items.find(item => item.label === 'ctx.row.salary')).toMatchObject({
       kind: monaco.CompletionItemKind.Field,
-      insertText: 'ctx.row.salary',
+      insertText: 'ctx.row?.salary',
     });
     expect(items.find(item => item.label === 'ctx.row["unit-price"]')).toMatchObject({
       kind: monaco.CompletionItemKind.Field,
-      insertText: 'ctx.row["unit-price"]',
+      insertText: 'ctx.row?.["unit-price"]',
     });
     expect(items.find(item => item.label === 'ctx.data.employees')).toMatchObject({
       kind: monaco.CompletionItemKind.Variable,
@@ -189,14 +189,50 @@ describe('phase 24 monaco event editor helpers', () => {
     });
     expect(items.find(item => item.label === 'ctx.parameters.amountField')).toMatchObject({
       kind: monaco.CompletionItemKind.Variable,
-      insertText: 'ctx.parameters.amountField',
+      insertText: 'ctx.parameters?.amountField',
     });
+    expect(items.filter(item => item.label.startsWith('ctx.row'))).toHaveLength(2);
+    expect(items.filter(item => item.label.startsWith('ctx.parameters'))).toHaveLength(1);
     expect(items.findIndex(item => item.label === 'ctx.hide')).toBeLessThan(
       items.findIndex(item => item.label === 'ctx.row.salary'),
     );
     expect(items.findIndex(item => item.label === 'ctx.parameters.amountField')).toBeLessThan(
       items.findIndex(item => item.label === 'Orders.Amount'),
     );
+  });
+
+  it('uses bracket access for invalid data source and parameter completion inserts', () => {
+    const items = buildEventScriptCompletions(
+      {
+        dataContext: {
+          activeDataSourceId: 'order-lines',
+          dataSources: [
+            {
+              id: 'order-lines',
+              name: 'Order Lines',
+              fields: [{ name: 'unit-price', type: 'number' as const }],
+            },
+          ],
+          parameters: [{ id: 'amount-field', name: 'amount-field', type: 'number' as const }],
+        },
+      },
+      monaco,
+    );
+
+    expect(items.find(item => item.label === 'ctx.row["unit-price"]')).toMatchObject({
+      kind: monaco.CompletionItemKind.Field,
+      insertText: 'ctx.row?.["unit-price"]',
+    });
+    expect(items.find(item => item.label === 'ctx.data["order-lines"]')).toMatchObject({
+      kind: monaco.CompletionItemKind.Variable,
+      insertText: 'ctx.data["order-lines"]',
+    });
+    expect(items.find(item => item.label === 'ctx.parameters["amount-field"]')).toMatchObject({
+      kind: monaco.CompletionItemKind.Variable,
+      insertText: 'ctx.parameters?.["amount-field"]',
+    });
+    expect(items.filter(item => item.label.startsWith('ctx.row'))).toHaveLength(1);
+    expect(items.filter(item => item.label.startsWith('ctx.parameters'))).toHaveLength(1);
   });
 
   it('supports Monaco instances that expose completion constants through languages', () => {

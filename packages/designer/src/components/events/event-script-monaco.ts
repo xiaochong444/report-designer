@@ -163,23 +163,15 @@ function mapDataContextItems(
 
   const activeDataSource = dataContext.dataSources.find(source => source.id === dataContext.activeDataSourceId);
   const activeFields = activeDataSource?.schema ?? activeDataSource?.fields ?? [];
-  const fieldItems = activeFields.flatMap(field => {
+  const fieldItems = activeFields.map(field => {
     const fieldAccess = toPropertyAccess(field.name);
     const optionalFieldAccess = toOptionalPropertyAccess(field.name);
-    return [
-      {
-        label: `ctx.row${fieldAccess}`,
-        detail: activeDataSource?.name || activeDataSource?.id,
-        kind: constants.CompletionItemKind.Field,
-        insertText: `ctx.row${fieldAccess}`,
-      },
-      {
-        label: `ctx.row${optionalFieldAccess}`,
-        detail: activeDataSource?.name || activeDataSource?.id,
-        kind: constants.CompletionItemKind.Field,
-        insertText: `ctx.row${optionalFieldAccess}`,
-      },
-    ];
+    return {
+      label: `ctx.row${fieldAccess}`,
+      detail: activeDataSource?.name || activeDataSource?.id,
+      kind: constants.CompletionItemKind.Field,
+      insertText: `ctx.row${optionalFieldAccess}`,
+    };
   });
   const dataSourceItems = dataContext.dataSources.map(source => {
     const sourceAccess = toPropertyAccess(source.id);
@@ -190,24 +182,16 @@ function mapDataContextItems(
       insertText: `ctx.data${sourceAccess}`,
     };
   });
-  const parameterItems = dataContext.parameters.flatMap(parameter => {
+  const parameterItems = dataContext.parameters.map(parameter => {
     const parameterName = parameter.name || parameter.id;
     const parameterAccess = toPropertyAccess(parameterName);
     const optionalParameterAccess = toOptionalPropertyAccess(parameterName);
-    return [
-      {
-        label: `ctx.parameters${parameterAccess}`,
-        detail: parameter.id,
-        kind: constants.CompletionItemKind.Variable,
-        insertText: `ctx.parameters${parameterAccess}`,
-      },
-      {
-        label: `ctx.parameters${optionalParameterAccess}`,
-        detail: parameter.id,
-        kind: constants.CompletionItemKind.Variable,
-        insertText: `ctx.parameters${optionalParameterAccess}`,
-      },
-    ];
+    return {
+      label: `ctx.parameters${parameterAccess}`,
+      detail: parameter.id,
+      kind: constants.CompletionItemKind.Variable,
+      insertText: `ctx.parameters${optionalParameterAccess}`,
+    };
   });
 
   return [...fieldItems, ...dataSourceItems, ...parameterItems];
