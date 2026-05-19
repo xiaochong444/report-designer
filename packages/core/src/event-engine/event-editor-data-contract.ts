@@ -31,7 +31,8 @@ export function buildEventEditorDataDts(input: EventEditorDataContractInput): st
     return `  ${toEventEditorPropertyName(dataSource.id)}: ${toEventEditorTypeName(dataSource.id)}[];`;
   });
   const parameters = input.parameters.map((parameter) => {
-    return `  ${toEventEditorPropertyName(parameter.id)}?: ${toTypeScriptType(parameter.type)};`;
+    const parameterName = parameter.name || parameter.id;
+    return `  ${toEventEditorPropertyName(parameterName)}?: ${toTypeScriptType(parameter.type)};`;
   });
 
   return [

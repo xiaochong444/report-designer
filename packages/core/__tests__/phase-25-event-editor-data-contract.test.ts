@@ -59,8 +59,8 @@ describe('phase 25 event editor data contract', () => {
     const dts = buildEventEditorDataDts({
       dataSources: [],
       parameters: [
-        { id: 'amountField', name: 'Amount Field', type: 'string' },
-        { id: 'showDetails', name: 'Show Details', type: 'boolean' },
+        { id: 'amount_field', name: 'amountField', type: 'string' },
+        { id: 'showDetails', name: '', type: 'boolean' },
       ],
     });
 
