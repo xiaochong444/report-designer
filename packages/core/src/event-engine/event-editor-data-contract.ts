@@ -11,7 +11,7 @@ type EventEditorField = NonNullable<DataSource['fields']>[number];
 const VALID_IDENTIFIER_PATTERN = /^[A-Za-z_$][A-Za-z0-9_$]*$/;
 
 export function toEventEditorTypeName(dataSourceId: string): string {
-  const normalizedId = dataSourceId.replace(/[^A-Za-z0-9_$]/g, '_').replace(/^[^A-Za-z_$]/, '_');
+  const normalizedId = dataSourceId.replace(/[^A-Za-z0-9_$]/g, '_').replace(/^(\d)/, '_$1');
   return `EventDataSource_${normalizedId || 'DataSource'}`;
 }
 

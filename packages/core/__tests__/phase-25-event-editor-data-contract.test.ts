@@ -68,4 +68,31 @@ describe('phase 25 event editor data contract', () => {
     expect(dts).toContain('showDetails?: boolean;');
     expect(dts).toContain('row?: Record<string, unknown>;');
   });
+
+  it('prefers schema fields, supports empty sources, and preserves leading digits in type names', () => {
+    const dts = buildEventEditorDataDts({
+      activeDataSourceId: '123-orders',
+      dataSources: [
+        {
+          id: '123-orders',
+          name: 'Orders',
+          fields: [{ name: 'fromFields', type: 'string' }],
+          schema: [{ name: 'fromSchema', type: 'number' }],
+        },
+        {
+          id: 'empty',
+          name: 'Empty',
+          fields: [],
+        },
+      ],
+      parameters: [],
+    });
+
+    expect(toEventEditorTypeName('123-orders')).toBe('EventDataSource__123_orders');
+    expect(dts).toContain('interface EventDataSource__123_orders');
+    expect(dts).toContain('fromSchema: number;');
+    expect(dts).not.toContain('fromFields');
+    expect(dts).toContain('interface EventDataSource_empty {\n  [key: string]: unknown;\n}');
+    expect(dts).toContain('row?: EventDataSource__123_orders;');
+  });
 });
