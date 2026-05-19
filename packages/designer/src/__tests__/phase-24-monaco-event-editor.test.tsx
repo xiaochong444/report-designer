@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DesignerI18nProvider } from '../i18n';
 import { EventEditorDialog } from '../components/events/EventEditorDialog';
@@ -439,5 +439,116 @@ describe('phase 24 monaco event editor helpers', () => {
 
     expect(screen.getByText('上下文辅助')).toBeInTheDocument();
     expect(screen.getByText('设置事件值')).toBeInTheDocument();
+  });
+
+  it('filters side tree helpers, fields, and components from the search box', () => {
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{}}
+          dictionaryItems={[{ key: 'Orders.Amount', title: 'Orders.Amount' }]}
+          componentItems={[{ key: 'TotalLabel', title: 'TotalLabel' }]}
+          onCancel={() => undefined}
+          onSave={() => undefined}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'Amount' } });
+    expect(screen.getByText('Orders.Amount')).toBeInTheDocument();
+    expect(screen.queryByText('TotalLabel')).not.toBeInTheDocument();
+    expect(screen.queryByText(/ctx\.hide/)).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'Total' } });
+    expect(screen.getByText('TotalLabel')).toBeInTheDocument();
+    expect(screen.queryByText('Orders.Amount')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'ctx.hide' } });
+    expect(screen.getByText(/ctx\.hide/)).toBeInTheDocument();
+    expect(screen.queryByText('Orders.Amount')).not.toBeInTheDocument();
+    expect(screen.queryByText('TotalLabel')).not.toBeInTheDocument();
+  });
+
+  it('allows applying when editor diagnostics only contain warnings', () => {
+    let saved: unknown;
+
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{ getValue: { enabled: true, script: 'ctx.setValue?.("ok");' } }}
+          onCancel={() => undefined}
+          onSave={(events) => { saved = events; }}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    act(() => {
+      (monacoEditorMock.lastProps?.onValidate as (markers: Array<{ severity: number; startLineNumber: number; message: string }>) => void)([
+        { severity: 4, startLineNumber: 1, message: 'Unused value' },
+      ]);
+    });
+
+    expect(screen.getByText('Type warnings')).toBeInTheDocument();
+    fireEvent.click(screen.getByText('Apply'));
+
+    expect(saved).toMatchObject({
+      getValue: { enabled: true, script: 'ctx.setValue?.("ok");' },
+    });
+  });
+
+  it('blocks applying on blocking diagnostics until script edits clear them', () => {
+    let saved: unknown;
+
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{ getValue: { enabled: true, script: 'ctx.setValue?.("old");' } }}
+          onCancel={() => undefined}
+          onSave={(events) => { saved = events; }}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    act(() => {
+      (monacoEditorMock.lastProps?.onValidate as (markers: Array<{ severity: number; startLineNumber: number; message: string }>) => void)([
+        { severity: 8, startLineNumber: 1, message: 'Unexpected token' },
+      ]);
+    });
+
+    fireEvent.click(screen.getByText('Apply'));
+    expect(saved).toBeUndefined();
+    expect(screen.getByText('Line 1: Unexpected token')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('Script'), { target: { value: 'ctx.setValue?.("new");' } });
+    fireEvent.click(screen.getByText('Apply'));
+
+    expect(saved).toMatchObject({
+      getValue: { enabled: true, script: 'ctx.setValue?.("new");' },
+    });
+  });
+
+  it('inserts namespaced field keys as fields instead of helper snippets', () => {
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{}}
+          dictionaryItems={[{ key: 'helper:ctx.hide', title: 'Conflicting field' }]}
+          onCancel={() => undefined}
+          onSave={() => undefined}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    fireEvent.click(screen.getByText('Conflicting field'));
+
+    expect(screen.getByLabelText('Script')).toHaveValue('{helper:ctx.hide}');
   });
 });

@@ -21,8 +21,12 @@ export interface EventTreeItem {
   children?: EventTreeItem[];
 }
 
-interface SideTreeItem extends EventTreeItem {
+interface SideTreeItem {
+  key: string;
+  title: string;
   insertText?: string;
+  searchText?: string;
+  children?: SideTreeItem[];
 }
 
 const EMPTY_DIAGNOSTICS: EventScriptEditorDiagnostics = { blocking: [], warnings: [] };
@@ -52,6 +56,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   const [drafts, setDrafts] = useState<EventMap<string>>(() => ({ ...(events ?? {}) }));
   const [errors, setErrors] = useState<string[]>([]);
   const [editorDiagnostics, setEditorDiagnostics] = useState<EventScriptEditorDiagnostics>(EMPTY_DIAGNOSTICS);
+  const [search, setSearch] = useState('');
 
   React.useEffect(() => {
     if (!open) return;
@@ -76,26 +81,43 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
     key: name,
     title: t(`events.${name}`),
   }));
+  const fieldTreeItems = useMemo(
+    () => namespaceTreeItems(dictionaryItems, 'field', rawKey => `{${rawKey}}`),
+    [dictionaryItems],
+  );
+  const componentTreeItems = useMemo(
+    () => namespaceTreeItems(componentItems, 'component', rawKey => rawKey),
+    [componentItems],
+  );
   const helperTreeItems: SideTreeItem[] = helperItems.map(item => ({
     key: `helper:${item.label}`,
     title: item.detail ? `${item.label} - ${item.detail}` : item.label,
     insertText: item.insertText ?? item.label,
+    searchText: [item.label, item.detail, item.insertText].filter(Boolean).join(' '),
   }));
   const exampleTreeItems: SideTreeItem[] = exampleItems.map((item, index) => ({
     key: `example:${index}`,
     title: item.label,
     insertText: item.insertText ?? item.label,
+    searchText: [item.label, item.detail, item.insertText].filter(Boolean).join(' '),
   }));
   const sideTree: SideTreeItem[] = [
-    { key: 'fields', title: t('events.fields'), children: dictionaryItems },
-    { key: 'components', title: t('events.components'), children: componentItems },
-    { key: 'context-helpers', title: t('events.contextHelpers'), children: helperTreeItems },
-    { key: 'examples', title: t('events.examples'), children: exampleTreeItems },
+    { key: 'root:fields', title: t('events.fields'), children: fieldTreeItems },
+    { key: 'root:components', title: t('events.components'), children: componentTreeItems },
+    { key: 'root:context-helpers', title: t('events.contextHelpers'), children: helperTreeItems },
+    { key: 'root:examples', title: t('events.examples'), children: exampleTreeItems },
   ];
-  const insertItems = [...helperTreeItems, ...exampleTreeItems];
+  const filteredSideTree = useMemo(() => filterSideTree(sideTree, search), [search, sideTree]);
+  const expandedSideTreeKeys = useMemo(() => collectTreeKeys(filteredSideTree), [filteredSideTree]);
+  const insertTextByKey = useMemo(() => buildInsertTextMap(sideTree), [sideTree]);
 
   const updateDraft = (event: EventScript) => {
     setDrafts(current => updateEventMap(current, active, event));
+  };
+
+  const clearEditorFeedback = () => {
+    setErrors([]);
+    setEditorDiagnostics(EMPTY_DIAGNOSTICS);
   };
 
   const validate = () => {
@@ -113,10 +135,16 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   };
 
   const appendSnippet = (snippet: string) => {
+    clearEditorFeedback();
     updateDraft({
       ...activeDraft,
       script: activeDraft.script ? `${activeDraft.script}\n${snippet}` : snippet,
     });
+  };
+
+  const updateScript = (script: string) => {
+    clearEditorFeedback();
+    updateDraft({ ...activeDraft, script });
   };
 
   return (
@@ -140,8 +168,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
             onSelect={(keys) => {
               const next = String(keys[0] ?? active) as DesignerEventName;
               setActive(next);
-              setErrors([]);
-              setEditorDiagnostics(EMPTY_DIAGNOSTICS);
+              clearEditorFeedback();
             }}
           />
         </div>
@@ -163,7 +190,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
             componentItems={componentItems}
             exampleItems={exampleItems}
             loadingText={t('events.editorLoading')}
-            onChange={(script) => updateDraft({ ...activeDraft, script })}
+            onChange={updateScript}
             onDiagnostics={setEditorDiagnostics}
           />
           {errors.length > 0 ? (
@@ -179,17 +206,22 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
           )}
         </Space>
         <div style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 8, overflow: 'auto', maxHeight: 450 }}>
-          <Input.Search placeholder={t('common.search')} size="small" style={{ marginBottom: 8 }} />
+          <Input.Search
+            placeholder={t('common.search')}
+            size="small"
+            value={search}
+            style={{ marginBottom: 8 }}
+            onChange={(event) => setSearch(event.target.value)}
+          />
           <Tree
-            defaultExpandAll
-            treeData={sideTree}
+            autoExpandParent
+            expandedKeys={expandedSideTreeKeys}
+            treeData={filteredSideTree}
             onSelect={(keys) => {
               const key = String(keys[0] ?? '');
-              const insertItem = insertItems.find(item => item.key === key);
-              if (insertItem?.insertText) {
-                appendSnippet(insertItem.insertText);
-              } else if (key && !['fields', 'components', 'context-helpers', 'examples'].includes(key)) {
-                appendSnippet(key.includes('.') ? `{${key}}` : key);
+              const insertText = insertTextByKey.get(key);
+              if (insertText) {
+                appendSnippet(insertText);
               }
             }}
           />
@@ -198,3 +230,63 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
     </Modal>
   );
 };
+
+function namespaceTreeItems(
+  items: EventTreeItem[],
+  namespace: 'field' | 'component',
+  buildInsertText: (rawKey: string) => string,
+): SideTreeItem[] {
+  return items.map(item => {
+    const children = item.children?.length
+      ? namespaceTreeItems(item.children, namespace, buildInsertText)
+      : undefined;
+    const insertText = children ? undefined : buildInsertText(item.key);
+
+    return {
+      key: `${namespace}:${item.key}`,
+      title: item.title,
+      insertText,
+      searchText: [item.key, item.title, insertText].filter(Boolean).join(' '),
+      children,
+    };
+  });
+}
+
+function filterSideTree(items: SideTreeItem[], query: string): SideTreeItem[] {
+  const normalizedQuery = query.trim().toLocaleLowerCase();
+  if (!normalizedQuery) {
+    return items;
+  }
+
+  return items.flatMap(item => {
+    const selfMatches = [item.key, item.title, item.insertText, item.searchText]
+      .filter(Boolean)
+      .some(value => String(value).toLocaleLowerCase().includes(normalizedQuery));
+
+    if (selfMatches) {
+      return [item];
+    }
+
+    const children = filterSideTree(item.children ?? [], query);
+    return children.length ? [{ ...item, children }] : [];
+  });
+}
+
+function collectTreeKeys(items: SideTreeItem[]): string[] {
+  return items.flatMap(item => [item.key, ...collectTreeKeys(item.children ?? [])]);
+}
+
+function buildInsertTextMap(items: SideTreeItem[]): Map<string, string> {
+  const result = new Map<string, string>();
+
+  for (const item of items) {
+    if (item.insertText) {
+      result.set(item.key, item.insertText);
+    }
+    for (const [key, insertText] of buildInsertTextMap(item.children ?? [])) {
+      result.set(key, insertText);
+    }
+  }
+
+  return result;
+}
