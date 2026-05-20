@@ -418,7 +418,7 @@ export interface ReportTemplate {
   styles: ReportStyle[];
   conditionalFormats: ConditionalFormat[];
   parameters: ReportParameter[];
-  fonts: ReportFont[];
+  fonts?: ReportFont[];
   events?: EventMap<ReportEventName>;
 }
 

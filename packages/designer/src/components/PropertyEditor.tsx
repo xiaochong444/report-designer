@@ -12,6 +12,7 @@ import {
   UploadOutlined,
 } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
+import { getReportFontOptions } from '@report-designer/core';
 import type { BorderConfig, ReportTemplate, TableComponent, TextFormatConfig } from '@report-designer/core';
 import type { CSSProperties } from 'react';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
@@ -124,6 +125,7 @@ export const PropertyEditor: React.FC = () => {
   };
 
   const format = (comp.format ?? { type: 'none' }) as TextFormatConfig;
+  const reportFontOptions = getReportFontOptions(template.fonts);
 
   // ---- Padding helpers ----
   const padding = comp.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
@@ -352,9 +354,11 @@ export const PropertyEditor: React.FC = () => {
                     showSearch
                     allowClear
                     options={[
-                      'Arial', 'Times New Roman', 'Courier New', 'Verdana', 'Tahoma', 'Georgia',
-                      'Microsoft YaHei', 'SimSun', 'SimHei', 'KaiTi',
-                    ].map(f => ({ value: f, label: <span style={{ fontFamily: f }}>{f}</span> }))}
+                      ...reportFontOptions.map(fontOption => ({
+                        value: fontOption.value,
+                        label: <span style={{ fontFamily: fontOption.fontFamily }}>{fontOption.label}</span>,
+                      })),
+                    ]}
                   />
                 </Form.Item>
                 <Form.Item label={t('fontSize')}>

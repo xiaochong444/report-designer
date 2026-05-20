@@ -235,6 +235,13 @@ export type DesignerMessageKey =
   | 'pageSettings.right'
   | 'pageSettings.bottom'
   | 'pageSettings.left'
+  | 'pageSettings.fonts'
+  | 'pageSettings.addFont'
+  | 'pageSettings.removeFont'
+  | 'pageSettings.fontName'
+  | 'pageSettings.fontFamily'
+  | 'pageSettings.fontFallback'
+  | 'pageSettings.fontUrl'
   | 'dataBand.dataSource'
   | 'dataBand.sort.title'
   | 'dataBand.sort.addRule'
@@ -532,6 +539,13 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.right': '右',
     'pageSettings.bottom': '下',
     'pageSettings.left': '左',
+    'pageSettings.fonts': '字体',
+    'pageSettings.addFont': '添加字体',
+    'pageSettings.removeFont': '删除字体',
+    'pageSettings.fontName': '字体名称',
+    'pageSettings.fontFamily': 'CSS 字体族',
+    'pageSettings.fontFallback': '备用字体',
+    'pageSettings.fontUrl': '字体地址',
     'dataBand.dataSource': '数据源',
     'dataBand.sort.title': '排序',
     'dataBand.sort.addRule': '添加排序规则',
@@ -826,6 +840,13 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.right': 'Right',
     'pageSettings.bottom': 'Bottom',
     'pageSettings.left': 'Left',
+    'pageSettings.fonts': 'Fonts',
+    'pageSettings.addFont': 'Add font',
+    'pageSettings.removeFont': 'Remove font',
+    'pageSettings.fontName': 'Font name',
+    'pageSettings.fontFamily': 'CSS font family',
+    'pageSettings.fontFallback': 'Fallback font',
+    'pageSettings.fontUrl': 'Font URL',
     'dataBand.dataSource': 'Data source',
     'dataBand.sort.title': 'Sorting',
     'dataBand.sort.addRule': 'Add sort rule',
