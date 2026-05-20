@@ -1,4 +1,5 @@
 import type { Band, DataField, DataSource, ReportTemplate } from './types';
+import { normalizeReportFonts } from '../fonts';
 import { mapDataField } from './types';
 
 export function normalizeTemplate(template: ReportTemplate): ReportTemplate {
@@ -11,6 +12,7 @@ export function normalizeTemplate(template: ReportTemplate): ReportTemplate {
     })),
     dataSources: template.dataSources.map(normalizeDataSource),
     parameters: template.parameters ?? [],
+    fonts: normalizeReportFonts(template.fonts),
   };
 }
 

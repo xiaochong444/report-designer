@@ -1,3 +1,4 @@
+import { DEFAULT_REPORT_FONTS } from '../fonts';
 import type { Band, ReportStyle, ReportTemplate, Page } from './types';
 
 let idCounter = 0;
@@ -168,5 +169,6 @@ export function createDefaultTemplate(name = '未命名报表'): ReportTemplate 
     styles: createDefaultTextStyles(),
     conditionalFormats: [],
     parameters: [],
+    fonts: DEFAULT_REPORT_FONTS,
   };
 }

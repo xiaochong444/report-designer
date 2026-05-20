@@ -19,6 +19,21 @@ export interface FontConfig {
   color: string;
 }
 
+export interface ReportFont {
+  id: string;
+  name: string;
+  family: string;
+  fallback?: string;
+  source?: {
+    url?: string;
+    dataUrl?: string;
+    format?: 'woff2' | 'woff' | 'truetype' | 'opentype';
+  };
+  builtin?: boolean;
+}
+
+export type RichTextDocument = Record<string, unknown>;
+
 export interface BorderConfig {
   style: 'none' | 'solid' | 'dashed' | 'dotted' | 'double';
   width: number;
@@ -249,6 +264,7 @@ export interface CheckboxComponent extends ReportComponent {
 export interface RichtextComponent extends ReportComponent {
   type: 'richtext';
   html: Expression;
+  document?: RichTextDocument;
 }
 
 export interface SubreportComponent extends ReportComponent {
@@ -402,6 +418,7 @@ export interface ReportTemplate {
   styles: ReportStyle[];
   conditionalFormats: ConditionalFormat[];
   parameters: ReportParameter[];
+  fonts: ReportFont[];
   events?: EventMap<ReportEventName>;
 }
 
