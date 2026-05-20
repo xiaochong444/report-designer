@@ -1,8 +1,9 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import type { ReportComponent, Band, PanelComponent, TableComponent } from '@report-designer/core';
+import { sanitizeRichHtml, type ReportComponent, type Band, type PanelComponent, type ReportFont, type RichTextDocument, type TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
 import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
+import { RichTextInlineEditor } from './richtext/RichTextInlineEditor';
 
 const MM_TO_PX = 3.78;
 const SNAP_THRESHOLD = 5;
@@ -863,6 +864,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
                 labelIndex={bandLabelIndexes[band.id] ?? 1}
                 isSelected={band.id === selectedBandId}
                 selectedIds={selectedComponentIds}
+                fonts={template.fonts}
                 onUpdateComponent={updateComponent} currentPageId={currentPageId} />
             ))}
           </div>
@@ -1144,10 +1146,12 @@ const ContextMenuItem: React.FC<{
 
 const BandView: React.FC<{
   band: Band; visualY: number; labelIndex: number; isSelected: boolean; selectedIds: string[];
+  fonts?: ReportFont[];
   onUpdateComponent: (pageId: string, bandId: string, compId: string, updates: Record<string, any>, prev?: Record<string, any>) => void;
   currentPageId: string;
-}> = ({ band, visualY, labelIndex, isSelected, selectedIds, onUpdateComponent, currentPageId }) => {
+}> = ({ band, visualY, labelIndex, isSelected, selectedIds, fonts, onUpdateComponent, currentPageId }) => {
   const [editId, setEditId] = useState<string | null>(null);
+  const [editKind, setEditKind] = useState<'text' | 'richtext' | null>(null);
   const [editText, setEditText] = useState('');
   const selectBand = useDesignerStore((state) => state.selectBand);
   const selectComponents = useDesignerStore((state) => state.selectComponents);
@@ -1209,12 +1213,28 @@ const BandView: React.FC<{
           .map(comp => (
           <ComponentView key={comp.id} component={comp} bandId={band.id}
             selected={selectedIds.includes(comp.id)} editing={editId === comp.id}
+            editingKind={editId === comp.id ? editKind : null}
             editText={editText}
-            onStartEdit={() => { setEditId(comp.id); setEditText((comp as any).text || ''); }}
+            fonts={fonts}
+            onStartTextEdit={() => { setEditId(comp.id); setEditKind('text'); setEditText((comp as any).text || ''); }}
+            onStartRichTextEdit={() => { setEditId(comp.id); setEditKind('richtext'); }}
             onFinishEdit={(text) => {
               onUpdateComponent(currentPageId, band.id, comp.id, { text }, { text: (comp as any).text });
               setEditId(null);
+              setEditKind(null);
             }}
+            onFinishRichText={(value) => {
+              onUpdateComponent(
+                currentPageId,
+                band.id,
+                comp.id,
+                { html: value.html, document: value.document },
+                { html: (comp as any).html, document: (comp as any).document },
+              );
+              setEditId(null);
+              setEditKind(null);
+            }}
+            onCancelEdit={() => { setEditId(null); setEditKind(null); }}
             onEditTextChange={setEditText} />
         ))}
       </div>
@@ -1239,11 +1259,30 @@ const BandResizeHandle: React.FC<{ bandId: string }> = ({ bandId }) => (
 const ComponentView: React.FC<{
   component: ReportComponent; bandId: string;
   selected: boolean; editing: boolean; editText: string;
-  onStartEdit: () => void; onFinishEdit: (text: string) => void;
+  editingKind: 'text' | 'richtext' | null;
+  fonts?: ReportFont[];
+  onStartTextEdit: () => void; onStartRichTextEdit: () => void;
+  onFinishEdit: (text: string) => void;
+  onFinishRichText: (value: { html: string; document: RichTextDocument }) => void;
+  onCancelEdit: () => void;
   onEditTextChange: (t: string) => void;
-}> = ({ component, bandId, selected, editing, editText, onStartEdit, onFinishEdit, onEditTextChange }) => {
+}> = ({
+  component,
+  bandId,
+  selected,
+  editing,
+  editText,
+  editingKind,
+  fonts,
+  onStartTextEdit,
+  onStartRichTextEdit,
+  onFinishEdit,
+  onFinishRichText,
+  onCancelEdit,
+  onEditTextChange,
+}) => {
   const inputRef = useRef<HTMLInputElement>(null);
-  React.useEffect(() => { if (editing) setTimeout(() => inputRef.current?.focus(), 0); }, [editing]);
+  React.useEffect(() => { if (editing && editingKind === 'text') setTimeout(() => inputRef.current?.focus(), 0); }, [editing, editingKind]);
 
   const x = safeCssNumber(mmToPx(component.x));
   const y = safeCssNumber(mmToPx(component.y));
@@ -1257,7 +1296,11 @@ const ComponentView: React.FC<{
       borderRadius: 2,
     }}>
       <div data-component-id={component.id}
-        onDoubleClick={(e) => { e.stopPropagation(); if (component.type === 'text') onStartEdit(); }}
+        onDoubleClick={(e) => {
+          e.stopPropagation();
+          if (component.type === 'text') onStartTextEdit();
+          if (component.type === 'richtext') onStartRichTextEdit();
+        }}
         style={{
           position: 'absolute', inset: 0,
           boxSizing: 'border-box', cursor: editing ? 'text' : 'grab',
@@ -1266,13 +1309,21 @@ const ComponentView: React.FC<{
           zIndex: selected ? 100 : 10,
           ...getCompStyle(component),
         }}>
-        {editing ? (
+        {editing && editingKind === 'text' ? (
           <input ref={inputRef} value={editText}
             onChange={(e) => onEditTextChange(e.target.value)}
             onKeyDown={(e) => { if (e.key === 'Enter') onFinishEdit(editText); if (e.key === 'Escape') onFinishEdit(editText); }}
             onBlur={() => onFinishEdit(editText)}
             onPointerDown={(e) => e.stopPropagation()}
             style={{ width: '100%', height: '100%', border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'inherit', color: 'inherit' }} />
+        ) : editing && editingKind === 'richtext' && component.type === 'richtext' ? (
+          <RichTextInlineEditor
+            html={String((component as any).html ?? '')}
+            document={(component as any).document}
+            fonts={fonts}
+            onSave={onFinishRichText}
+            onCancel={onCancelEdit}
+          />
         ) : getCompContent(component)}
       </div>
 
@@ -1531,10 +1582,6 @@ const PanelChildPreview: React.FC<{ component: ReportComponent }> = ({ component
     {getCompContent(component)}
   </div>
 );
-
-function sanitizeRichHtml(value: string): string {
-  return value.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
-}
 
 function readDesignBoolean(value: unknown): boolean {
   if (typeof value === 'boolean') return value;

@@ -242,6 +242,22 @@ export type DesignerMessageKey =
   | 'pageSettings.fontFamily'
   | 'pageSettings.fontFallback'
   | 'pageSettings.fontUrl'
+  | 'richText.font'
+  | 'richText.fontSize'
+  | 'richText.bold'
+  | 'richText.italic'
+  | 'richText.underline'
+  | 'richText.strike'
+  | 'richText.textColor'
+  | 'richText.alignLeft'
+  | 'richText.alignCenter'
+  | 'richText.alignRight'
+  | 'richText.bulletList'
+  | 'richText.orderedList'
+  | 'richText.clearFormat'
+  | 'richText.save'
+  | 'richText.cancel'
+  | 'richText.editor'
   | 'dataBand.dataSource'
   | 'dataBand.sort.title'
   | 'dataBand.sort.addRule'
@@ -546,6 +562,22 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.fontFamily': 'CSS 字体族',
     'pageSettings.fontFallback': '备用字体',
     'pageSettings.fontUrl': '字体地址',
+    'richText.font': '富文本字体',
+    'richText.fontSize': '富文本字号',
+    'richText.bold': '加粗',
+    'richText.italic': '斜体',
+    'richText.underline': '下划线',
+    'richText.strike': '删除线',
+    'richText.textColor': '文字颜色',
+    'richText.alignLeft': '左对齐',
+    'richText.alignCenter': '居中',
+    'richText.alignRight': '右对齐',
+    'richText.bulletList': '项目符号',
+    'richText.orderedList': '编号列表',
+    'richText.clearFormat': '清除格式',
+    'richText.save': '保存富文本',
+    'richText.cancel': '取消富文本',
+    'richText.editor': '富文本编辑器',
     'dataBand.dataSource': '数据源',
     'dataBand.sort.title': '排序',
     'dataBand.sort.addRule': '添加排序规则',
@@ -847,6 +879,22 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.fontFamily': 'CSS font family',
     'pageSettings.fontFallback': 'Fallback font',
     'pageSettings.fontUrl': 'Font URL',
+    'richText.font': 'Rich text font',
+    'richText.fontSize': 'Rich text font size',
+    'richText.bold': 'Bold',
+    'richText.italic': 'Italic',
+    'richText.underline': 'Underline',
+    'richText.strike': 'Strike',
+    'richText.textColor': 'Text color',
+    'richText.alignLeft': 'Align left',
+    'richText.alignCenter': 'Align center',
+    'richText.alignRight': 'Align right',
+    'richText.bulletList': 'Bullet list',
+    'richText.orderedList': 'Numbered list',
+    'richText.clearFormat': 'Clear format',
+    'richText.save': 'Save rich text',
+    'richText.cancel': 'Cancel rich text',
+    'richText.editor': 'Rich text editor',
     'dataBand.dataSource': 'Data source',
     'dataBand.sort.title': 'Sorting',
     'dataBand.sort.addRule': 'Add sort rule',

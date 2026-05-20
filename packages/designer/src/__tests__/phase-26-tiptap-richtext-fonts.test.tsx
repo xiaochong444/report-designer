@@ -2,12 +2,74 @@
 import React from 'react';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it } from 'vitest';
-import type { ReportFont, TextComponent } from '@report-designer/core';
+import { describe, expect, it, vi } from 'vitest';
+import type { ReportFont, RichtextComponent, TextComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
+import { Designer } from '../components/Designer';
 import { PropertyEditor } from '../components/PropertyEditor';
 import { DesignerPropertyPanel } from '../components/panels/DesignerPropertyPanel';
 import { useDesignerStore } from '../store/designer-store';
+
+const tiptapMock = vi.hoisted(() => ({
+  lastEditor: undefined as any,
+}));
+
+vi.mock('@tiptap/react', async () => {
+  const ReactModule = await import('react');
+
+  const createEditor = (options: { content?: string; onUpdate?: (payload: { editor: any }) => void }) => {
+    const editor: any = {
+      text: typeof options.content === 'string' ? options.content.replace(/<[^>]+>/g, '') : 'Old rich text',
+      getHTML: vi.fn(() => `<p>${editor.text}</p><script>alert(1)</script>`),
+      getJSON: vi.fn(() => ({
+        type: 'doc',
+        content: [
+          {
+            type: 'paragraph',
+            content: [{ type: 'text', text: editor.text }],
+          },
+        ],
+      })),
+      isActive: vi.fn(() => false),
+      commands: {
+        setContent: vi.fn((next: string) => {
+          editor.text = next;
+          options.onUpdate?.({ editor });
+        }),
+      },
+      chain: vi.fn(() => editor.chainApi),
+      can: vi.fn(() => editor.chainApi),
+      chainApi: {
+        focus: vi.fn(() => editor.chainApi),
+        setFontFamily: vi.fn(() => editor.chainApi),
+        setFontSize: vi.fn(() => editor.chainApi),
+        setColor: vi.fn(() => editor.chainApi),
+        setTextAlign: vi.fn(() => editor.chainApi),
+        toggleBold: vi.fn(() => editor.chainApi),
+        toggleItalic: vi.fn(() => editor.chainApi),
+        toggleUnderline: vi.fn(() => editor.chainApi),
+        toggleStrike: vi.fn(() => editor.chainApi),
+        toggleBulletList: vi.fn(() => editor.chainApi),
+        toggleOrderedList: vi.fn(() => editor.chainApi),
+        unsetAllMarks: vi.fn(() => editor.chainApi),
+        clearNodes: vi.fn(() => editor.chainApi),
+        run: vi.fn(() => true),
+      },
+    };
+    tiptapMock.lastEditor = editor;
+    return editor;
+  };
+
+  return {
+    useEditor: vi.fn(createEditor),
+    EditorContent: ({ editor }: { editor: any }) => ReactModule.createElement('textarea', {
+      'aria-label': '富文本编辑器',
+      'data-testid': 'richtext-editor-content',
+      value: editor?.text ?? '',
+      onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => editor?.commands.setContent(event.target.value),
+    }),
+  };
+});
 
 function createText(id = 'font-text'): TextComponent {
   return {
@@ -27,6 +89,19 @@ function createText(id = 'font-text'): TextComponent {
     backgroundColor: 'transparent',
     canGrow: false,
     canShrink: false,
+  };
+}
+
+function createRichText(): RichtextComponent {
+  return {
+    id: 'rich-1',
+    type: 'richtext',
+    name: 'Rich1',
+    x: 0,
+    y: 0,
+    width: 70,
+    height: 20,
+    html: '<p>Old rich text</p>',
   };
 }
 
@@ -98,5 +173,43 @@ describe('phase 26 report font registry and rich text editor shell', () => {
       expect(useDesignerStore.getState().template.fonts?.some(font => !font.builtin)).toBe(true);
     });
     expect(screen.getByDisplayValue('Custom Font')).toBeInTheDocument();
+  });
+
+  it('opens a rich text inline editor with report fonts and saves html plus document', async () => {
+    const template = createDefaultTemplate('Phase 26 Rich Text');
+    template.fonts = [
+      ...(template.fonts ?? []),
+      {
+        id: 'brand-song',
+        name: 'Brand Song',
+        family: 'BrandSong',
+        fallback: 'serif',
+      },
+    ];
+    const dataBand = template.pages[0].bands.find(band => band.type === 'data');
+    if (!dataBand) throw new Error('Missing data band');
+    const component = createRichText();
+    dataBand.components = [component];
+
+    render(<Designer template={template} locale="zh-CN" />);
+
+    fireEvent.doubleClick(await screen.findByTestId('designer-component-richtext-content'));
+
+    expect(await screen.findByTestId('richtext-inline-editor')).toBeInTheDocument();
+    openSelect('富文本字体');
+    expect(await screen.findByText('Brand Song')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('富文本编辑器'), { target: { value: '新的富文本内容' } });
+    fireEvent.click(screen.getByRole('button', { name: '保存富文本' }));
+
+    await waitFor(() => {
+      const saved = useDesignerStore
+        .getState()
+        .template.pages[0].bands.flatMap(band => band.components)
+        .find(item => item.id === component.id) as RichtextComponent | undefined;
+      expect(saved?.html).toContain('新的富文本内容');
+      expect(saved?.html).not.toContain('<script>');
+      expect(saved?.document).toMatchObject({ type: 'doc' });
+    });
   });
 });
