@@ -50,7 +50,7 @@ export const Viewer: React.FC<ViewerProps> = ({ template, data, className, subre
       </div>
 
       <Content style={{ overflow: 'auto', backgroundColor: '#e8e8e8', padding: 24 }}>
-        <RenderDocumentView document={document} zoom={zoom} />
+        <RenderDocumentView document={document} zoom={zoom} currentPage={currentPage} />
       </Content>
     </Layout>
   );

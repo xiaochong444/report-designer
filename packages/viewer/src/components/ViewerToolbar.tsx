@@ -52,6 +52,7 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
       <Space>
         <Tooltip title="Previous Page">
           <Button
+            aria-label="Previous Page"
             icon={<LeftOutlined />}
             size="small"
             disabled={currentPage <= 1}
@@ -59,6 +60,7 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
           />
         </Tooltip>
         <Select
+          aria-label="Current Page"
           size="small"
           value={currentPage}
           style={{ width: 80 }}
@@ -70,6 +72,7 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
         />
         <Tooltip title="Next Page">
           <Button
+            aria-label="Next Page"
             icon={<RightOutlined />}
             size="small"
             disabled={currentPage >= totalPages}

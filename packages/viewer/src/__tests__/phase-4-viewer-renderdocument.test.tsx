@@ -1,7 +1,7 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { Viewer } from '../components/Viewer';
 import { RenderDocumentView } from '../renderers/dom/RenderDocumentView';
@@ -16,6 +16,23 @@ describe('Phase 4 RenderDocument viewer', () => {
     expect(screen.getAllByTestId('render-document-page')).toHaveLength(2);
     expect(screen.getAllByText('Employees')).toHaveLength(2);
     expect(screen.getByText('Employee 1')).toBeInTheDocument();
+  });
+
+  it('scrolls the preview workspace to the selected page when paging from the toolbar', async () => {
+    const { template, data } = makeViewerTemplate(4);
+    const scrollIntoView = vi.fn();
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+      configurable: true,
+      value: scrollIntoView,
+    });
+
+    render(<Viewer template={template} data={data} />);
+    scrollIntoView.mockClear();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Next Page' }));
+
+    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
+    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'smooth' });
   });
 
   it('passes local subreport registry entries into preview rendering', () => {

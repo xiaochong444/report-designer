@@ -9,24 +9,44 @@ interface RenderDocumentViewProps {
 }
 
 export const RenderDocumentView: React.FC<RenderDocumentViewProps> = ({ document, zoom, currentPage }) => {
-  const pages = currentPage ? document.pages.filter((page) => page.pageNumber === currentPage) : document.pages;
   const fontCss = React.useMemo(() => buildReportFontCss(document.fonts), [document.fonts]);
+  const pageRefs = React.useRef(new Map<number, HTMLDivElement>());
+  const previousPageRef = React.useRef<number | undefined>(currentPage);
+
+  React.useEffect(() => {
+    if (!currentPage || previousPageRef.current === currentPage) return;
+    previousPageRef.current = currentPage;
+    pageRefs.current.get(currentPage)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [currentPage]);
 
   return (
     <div data-testid="render-document" style={{ display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center' }}>
       {fontCss ? <style data-report-font-registry>{fontCss}</style> : null}
-      {pages.map((page) => (
-        <RenderPageView key={page.id} page={page} zoom={zoom} />
+      {document.pages.map((page) => (
+        <RenderPageView
+          key={page.id}
+          page={page}
+          zoom={zoom}
+          ref={(node) => {
+            if (node) {
+              pageRefs.current.set(page.pageNumber, node);
+            } else {
+              pageRefs.current.delete(page.pageNumber);
+            }
+          }}
+        />
       ))}
     </div>
   );
 };
 
-const RenderPageView: React.FC<{ page: RenderPage; zoom: number }> = ({ page, zoom }) => {
+const RenderPageView = React.forwardRef<HTMLDivElement, { page: RenderPage; zoom: number }>(({ page, zoom }, ref) => {
   const scale = zoom / 100;
   return (
     <div
+      ref={ref}
       data-testid="render-document-page"
+      data-page-number={page.pageNumber}
       style={{
         width: page.width * MM_TO_PX * scale,
         height: page.height * MM_TO_PX * scale,
@@ -55,4 +75,6 @@ const RenderPageView: React.FC<{ page: RenderPage; zoom: number }> = ({ page, zo
       ))}
     </div>
   );
-};
+});
+
+RenderPageView.displayName = 'RenderPageView';
