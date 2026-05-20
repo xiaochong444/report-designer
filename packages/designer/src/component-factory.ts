@@ -66,9 +66,9 @@ export function createDefaultComponent(type: string, xMm: number, yMm: number): 
     case 'shape':
       return { id, type: 'shape', x, y, width: 30, height: 30, shapeType: 'rectangle', fillColor: 'transparent', borderColor: '#000000', borderWidth: 0.2, borderStyle: 'solid' } as ReportComponent;
     case 'pagenumber':
-      return { id, type: 'pagenumber', x, y, width: 30, height: 15, format: '1/N', font: defaultFont(), textAlign: 'center' } as ReportComponent;
+      return { id, type: 'pagenumber', x, y, width: 30, height: 15, format: '1/N', font: defaultFont(), textAlign: 'center', verticalAlign: 'middle' } as ReportComponent;
     case 'datetime':
-      return { id, type: 'datetime', x, y, width: 50, height: 15, format: 'yyyy-MM-dd', font: defaultFont(), textAlign: 'left' } as ReportComponent;
+      return { id, type: 'datetime', x, y, width: 50, height: 15, format: 'yyyy-MM-dd', font: defaultFont(), textAlign: 'left', verticalAlign: 'middle' } as ReportComponent;
     default:
       return createDefaultComponent('text', x, y);
   }

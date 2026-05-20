@@ -305,6 +305,7 @@ export interface PageNumberComponent extends ReportComponent {
   format: '1' | '1/N' | 'Page 1 of N' | 'Page 1';
   font: FontConfig;
   textAlign: TextAlign;
+  verticalAlign?: VerticalAlign;
 }
 
 export interface DateTimeComponent extends ReportComponent {
@@ -312,6 +313,7 @@ export interface DateTimeComponent extends ReportComponent {
   format: string;
   font: FontConfig;
   textAlign: TextAlign;
+  verticalAlign?: VerticalAlign;
 }
 
 export type ReportComponentUnion =

@@ -1532,15 +1532,34 @@ function getCompContent(comp: ReportComponent): React.ReactNode {
     }
     case 'pagenumber': {
       const t = comp as any;
-      return <div data-testid="designer-component-pagenumber-content" style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2, textAlign: t.textAlign || 'center', ...getFontStyle(t.font) }}>{designPageNumberText(t.format)}</div>;
+      return <div data-testid="designer-component-pagenumber-content" style={{ ...textLikePreviewStyle(t, 'center') }}>{designPageNumberText(t.format)}</div>;
     }
     case 'datetime': {
       const t = comp as any;
-      return <div data-testid="designer-component-datetime-content" style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2, textAlign: t.textAlign || 'left', ...getFontStyle(t.font) }}>{formatDesignDateTime(new Date(), t.format || 'yyyy-MM-dd')}</div>;
+      return <div data-testid="designer-component-datetime-content" style={{ ...textLikePreviewStyle(t, 'left') }}>{formatDesignDateTime(new Date(), t.format || 'yyyy-MM-dd')}</div>;
     }
     default:
       return '';
   }
+}
+
+function textLikePreviewStyle(component: { font?: unknown; textAlign?: string; verticalAlign?: string }, fallbackAlign: 'left' | 'center' | 'right'): React.CSSProperties {
+  return {
+    width: '100%',
+    height: '100%',
+    overflow: 'hidden',
+    lineHeight: 1.2,
+    textAlign: (component.textAlign as React.CSSProperties['textAlign']) || fallbackAlign,
+    display: 'flex',
+    alignItems: verticalAlignToFlex(component.verticalAlign),
+    ...getFontStyle(component.font),
+  };
+}
+
+function verticalAlignToFlex(value?: string): React.CSSProperties['alignItems'] {
+  if (value === 'top') return 'flex-start';
+  if (value === 'bottom') return 'flex-end';
+  return 'center';
 }
 
 const PanelChildrenPreview: React.FC<{ panel: ReportComponent & { components?: ReportComponent[] } }> = ({ panel }) => {

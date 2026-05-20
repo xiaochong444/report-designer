@@ -14,6 +14,7 @@ import type {
   Page,
   PageNumberComponent,
   PanelComponent,
+  BorderConfig,
   ReportComponent,
   ReportTemplate,
   ReportStyle,
@@ -152,6 +153,7 @@ function layoutComponent(
         backgroundColor: effective.backgroundColor,
         textAlign: effective.textAlign,
         verticalAlign: effective.verticalAlign,
+        padding: effective.padding,
       },
     };
   }
@@ -167,6 +169,7 @@ function layoutComponent(
       height: component.height,
       src: resolveTemplateValue(imageComponent.src, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
       fitMode: imageComponent.fitMode,
+      style: buildBaseRenderStyle(component),
     };
   }
 
@@ -180,6 +183,7 @@ function layoutComponent(
       width: component.width,
       height: component.height,
       html: resolveRichText(richTextComponent, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
+      style: buildBaseRenderStyle(component),
     };
   }
 
@@ -195,6 +199,7 @@ function layoutComponent(
       value: resolveTemplateValue(barcodeComponent.value, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
       format: barcodeComponent.format,
       showText: barcodeComponent.showText,
+      style: buildBaseRenderStyle(component),
     };
   }
 
@@ -211,6 +216,7 @@ function layoutComponent(
       label: checkboxComponent.label
         ? resolveTemplateValue(checkboxComponent.label, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {})
         : undefined,
+      style: buildBaseRenderStyle(component),
     };
   }
 
@@ -261,9 +267,10 @@ function layoutComponent(
       height: component.height,
       content: pageNumberContent(pageNumberComponent.format),
       style: {
+        ...buildBaseRenderStyle(component),
         font: pageNumberComponent.font,
         textAlign: pageNumberComponent.textAlign,
-        verticalAlign: 'middle',
+        verticalAlign: pageNumberComponent.verticalAlign ?? 'middle',
       },
     };
   }
@@ -279,9 +286,10 @@ function layoutComponent(
       height: component.height,
       content: formatDateTime(new Date(), dateTimeComponent.format),
       style: {
+        ...buildBaseRenderStyle(component),
         font: dateTimeComponent.font,
         textAlign: dateTimeComponent.textAlign,
-        verticalAlign: 'middle',
+        verticalAlign: dateTimeComponent.verticalAlign ?? 'middle',
       },
     };
   }
@@ -309,7 +317,8 @@ function layoutComponent(
       children,
       overflow,
       style: {
-        backgroundColor: panelComponent.backgroundColor,
+        ...buildBaseRenderStyle(component),
+        backgroundColor: panelComponent.backgroundColor ?? component.backgroundColor,
         border: panelComponent.border,
       },
     };
@@ -347,6 +356,16 @@ function layoutComponent(
     width: component.width,
     height: component.height,
   };
+}
+
+function buildBaseRenderStyle(component: ReportComponent) {
+  const border = (component as { border?: BorderConfig }).border;
+  const style = {
+    backgroundColor: component.backgroundColor,
+    border,
+    padding: component.padding,
+  };
+  return Object.values(style).some(value => value !== undefined) ? style : undefined;
 }
 
 function createSubreportPlaceholder(component: SubreportComponent, x: number, y: number): RenderComponentBox {

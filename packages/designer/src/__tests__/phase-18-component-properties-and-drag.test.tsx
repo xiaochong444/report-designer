@@ -251,8 +251,8 @@ describe('Phase 18 component properties and canvas drag drop', () => {
       { component: { id: 'rich-1', type: 'richtext', name: 'Rich1', x: 0, y: 0, width: 60, height: 20, html: '<b>{Note}</b>' } as ReportComponent, expectedLabels: ['富文本内容'] },
       { component: { id: 'line-1', type: 'line', name: 'Line1', x: 0, y: 0, width: 40, height: 10, startX: 0, startY: 0, endX: 40, endY: 0, lineColor: '#000000', lineWidth: 0.2, lineStyle: 'solid' } as ReportComponent, expectedLabels: ['颜色', '起点 X', '终点 Y'] },
       { component: { id: 'shape-1', type: 'shape', name: 'Shape1', x: 0, y: 0, width: 30, height: 20, shapeType: 'rectangle', fillColor: '#ffffff', borderColor: '#000000', borderWidth: 0.2, borderStyle: 'solid' } as ReportComponent, expectedLabels: ['形状类型', '填充色', '边框色'] },
-      { component: { id: 'page-1', type: 'pagenumber', name: 'PageNumber1', x: 0, y: 0, width: 30, height: 8, format: '1/N', font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' }, textAlign: 'center' } as ReportComponent, expectedLabels: ['格式', '水平对齐'] },
-      { component: { id: 'date-1', type: 'datetime', name: 'DateTime1', x: 0, y: 0, width: 40, height: 8, format: 'yyyy-MM-dd', font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' }, textAlign: 'left' } as ReportComponent, expectedLabels: ['格式', '水平对齐'] },
+      { component: { id: 'page-1', type: 'pagenumber', name: 'PageNumber1', x: 0, y: 0, width: 30, height: 8, format: '1/N', font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' }, textAlign: 'center' } as ReportComponent, expectedLabels: ['格式', '水平对齐', '垂直对齐'] },
+      { component: { id: 'date-1', type: 'datetime', name: 'DateTime1', x: 0, y: 0, width: 40, height: 8, format: 'yyyy-MM-dd', font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' }, textAlign: 'left' } as ReportComponent, expectedLabels: ['格式', '水平对齐', '垂直对齐'] },
     ];
 
     for (const item of cases) {

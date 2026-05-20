@@ -180,4 +180,43 @@ describe('phase 27 component property model', () => {
     expect(screen.getByLabelText('字体系列')).toBeInTheDocument();
     expect(await within(document.body).findByText('Brand Song')).toBeInTheDocument();
   });
+
+  it('edits page number and date time vertical alignment from their property groups', () => {
+    loadSelectedComponent({
+      id: 'page-1',
+      type: 'pagenumber',
+      name: 'PageNumber1',
+      x: 0,
+      y: 0,
+      width: 30,
+      height: 8,
+      format: '1/N',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'center',
+      verticalAlign: 'middle',
+    } as ReportComponent);
+    render(<PropertyEditor />);
+
+    fireEvent.click(screen.getByRole('button', { name: '底部对齐' }));
+    expect(selectedComponent().verticalAlign).toBe('bottom');
+
+    cleanup();
+    loadSelectedComponent({
+      id: 'date-1',
+      type: 'datetime',
+      name: 'DateTime1',
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 8,
+      format: 'yyyy-MM-dd',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'left',
+      verticalAlign: 'middle',
+    } as ReportComponent);
+    render(<PropertyEditor />);
+
+    fireEvent.click(screen.getByRole('button', { name: '顶部对齐' }));
+    expect(selectedComponent().verticalAlign).toBe('top');
+  });
 });

@@ -1,4 +1,4 @@
-import type { BorderConfig, FontConfig, ReportFont } from '../template-model/types';
+import type { BorderConfig, FontConfig, Padding, ReportFont } from '../template-model/types';
 import type { EventLogEntry } from '../event-engine/types';
 
 export interface RenderDocument {
@@ -34,6 +34,7 @@ export interface RenderStyle {
   backgroundColor?: string;
   textAlign?: 'left' | 'center' | 'right';
   verticalAlign?: 'top' | 'middle' | 'bottom';
+  padding?: Padding;
 }
 
 export interface RenderComponentBase {

@@ -745,6 +745,17 @@ export const PropertyEditor: React.FC = () => {
                     }}
                   />
                 </Form.Item>
+                <Form.Item label={t('verticalAlign')}>
+                  <VerticalAlignButtons
+                    value={comp.verticalAlign || 'middle'}
+                    onChange={(value) => handleChange('verticalAlign', value)}
+                    labels={{
+                      top: t('verticalTop'),
+                      middle: t('verticalMiddle'),
+                      bottom: t('verticalBottom'),
+                    }}
+                  />
+                </Form.Item>
               </Form>
             ),
           } : null,
@@ -771,6 +782,17 @@ export const PropertyEditor: React.FC = () => {
                       left: t('alignLeft'),
                       center: t('alignCenter'),
                       right: t('alignRight'),
+                    }}
+                  />
+                </Form.Item>
+                <Form.Item label={t('verticalAlign')}>
+                  <VerticalAlignButtons
+                    value={comp.verticalAlign || 'middle'}
+                    onChange={(value) => handleChange('verticalAlign', value)}
+                    labels={{
+                      top: t('verticalTop'),
+                      middle: t('verticalMiddle'),
+                      bottom: t('verticalBottom'),
                     }}
                   />
                 </Form.Item>
