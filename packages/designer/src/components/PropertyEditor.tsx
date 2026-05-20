@@ -58,7 +58,7 @@ export const PropertyEditor: React.FC = () => {
     return { component: null, bandId: null };
   }, [template, currentPageId, selectedComponentIds]);
 
-  const [exprModalOpen, setExprModalOpen] = useState(false);
+  const [expressionTarget, setExpressionTarget] = useState<{ field: string; label: string } | null>(null);
   const [eventEditorOpen, setEventEditorOpen] = useState(false);
   const unitStep = getUnitStep(reportUnit);
   const fineUnitStep = getUnitStep(reportUnit, 'fine');
@@ -95,6 +95,10 @@ export const PropertyEditor: React.FC = () => {
   const handleChange = (field: string, value: any) => {
     if (!component || !bandId || !currentPageId) return;
     updateComponent(currentPageId, bandId, component.id, { [field]: value }, { [field]: (component as any)[field] });
+  };
+
+  const openFieldExpressionEditor = (field: string, label: string) => {
+    setExpressionTarget({ field, label });
   };
 
   // ---- Border helpers ----
@@ -134,6 +138,7 @@ export const PropertyEditor: React.FC = () => {
   };
 
   const isTextComponent = component.type === 'text';
+  const supportsFontProperties = component.type === 'text' || component.type === 'pagenumber' || component.type === 'datetime';
   const isTextStyleLocked = (pathOrPrefix: string) => (
     isTextComponent ? hasTextStyleBinding(component as { styleBindings?: string[] }, pathOrPrefix) : false
   );
@@ -238,10 +243,10 @@ export const PropertyEditor: React.FC = () => {
                       placeholder={t('textContentPlaceholder')}
                     />
                     <Button
-                      aria-label={t('openExpressionEditor')}
-                      title={t('openExpressionEditor')}
+                      aria-label={t('openExpressionEditorFor', { field: t('textContent') })}
+                      title={t('openExpressionEditorFor', { field: t('textContent') })}
                       icon={<EditOutlined />}
-                      onClick={() => setExprModalOpen(true)}
+                      onClick={() => openFieldExpressionEditor('text', t('textContent'))}
                       style={{ width: 32 }}
                     />
                   </Space.Compact>
@@ -334,11 +339,19 @@ export const PropertyEditor: React.FC = () => {
                   />
                 </Form.Item>
               </Form>
-            ) : <ComponentContentProperties component={component} comp={comp} onChange={handleChange} t={t} />,
+            ) : (
+              <ComponentContentProperties
+                component={component}
+                comp={comp}
+                onChange={handleChange}
+                onOpenExpressionEditor={openFieldExpressionEditor}
+                t={t}
+              />
+            ),
           },
 
           // ---- 字体 ----
-          {
+          supportsFontProperties ? {
             key: 'font',
             label: t('font'),
             children: (
@@ -428,7 +441,7 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
               </Form>
             ),
-          },
+          } : null,
 
           // ---- 边框 ----
           {
@@ -796,10 +809,12 @@ export const PropertyEditor: React.FC = () => {
         }}
       />
       <ExpressionEditor
-        open={exprModalOpen}
-        value={comp.text || ''}
-        onChange={(v) => handleChange('text', v)}
-        onClose={() => setExprModalOpen(false)}
+        open={Boolean(expressionTarget)}
+        value={expressionTarget ? String(comp[expressionTarget.field] ?? '') : ''}
+        onChange={(v) => {
+          if (expressionTarget) handleChange(expressionTarget.field, v);
+        }}
+        onClose={() => setExpressionTarget(null)}
       />
     </div>
   );
@@ -809,8 +824,9 @@ const ComponentContentProperties: React.FC<{
   component: { type: string };
   comp: any;
   onChange: (field: string, value: any) => void;
+  onOpenExpressionEditor: (field: string, label: string) => void;
   t: ReturnType<typeof createPropertyT>;
-}> = ({ component, comp, onChange, t }) => {
+}> = ({ component, comp, onChange, onOpenExpressionEditor, t }) => {
   switch (component.type) {
     case 'image': {
       const uploadInputId = `rd-image-upload-${comp.id ?? 'selected'}`;
@@ -827,15 +843,22 @@ const ComponentContentProperties: React.FC<{
       return (
         <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
           <Form.Item label={t('imageUrlOrBase64')}>
-            <Input.TextArea
-              aria-label={t('imageUrlOrBase64')}
-              value={comp.src || ''}
-              onChange={(event) => onChange('src', event.target.value)}
-              size="small"
-              autoSize={false}
-              rows={3}
-              placeholder={t('imageUrlOrBase64Placeholder')}
-            />
+            <Space.Compact style={{ width: '100%' }}>
+              <Input.TextArea
+                aria-label={t('imageUrlOrBase64')}
+                value={comp.src || ''}
+                onChange={(event) => onChange('src', event.target.value)}
+                size="small"
+                autoSize={false}
+                rows={3}
+                placeholder={t('imageUrlOrBase64Placeholder')}
+              />
+              <ExpressionFieldButton
+                label={t('imageUrlOrBase64')}
+                t={t}
+                onClick={() => onOpenExpressionEditor('src', t('imageUrlOrBase64'))}
+              />
+            </Space.Compact>
           </Form.Item>
           <Form.Item label={t('uploadImage')}>
             <input
@@ -872,13 +895,20 @@ const ComponentContentProperties: React.FC<{
       return (
         <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
           <Form.Item label={t('barcodeContent')}>
-            <Input
-              aria-label={t('barcodeContent')}
-              value={comp.value || ''}
-              onChange={(event) => onChange('value', event.target.value)}
-              size="small"
-              placeholder={t('expressionLikePlaceholder')}
-            />
+            <Space.Compact style={{ width: '100%' }}>
+              <Input
+                aria-label={t('barcodeContent')}
+                value={comp.value || ''}
+                onChange={(event) => onChange('value', event.target.value)}
+                size="small"
+                placeholder={t('expressionLikePlaceholder')}
+              />
+              <ExpressionFieldButton
+                label={t('barcodeContent')}
+                t={t}
+                onClick={() => onOpenExpressionEditor('value', t('barcodeContent'))}
+              />
+            </Space.Compact>
           </Form.Item>
           <Form.Item label={t('barcodeFormat')}>
             <Select
@@ -904,36 +934,57 @@ const ComponentContentProperties: React.FC<{
       return (
         <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
           <Form.Item label={t('checkedExpression')}>
-            <Input
-              aria-label={t('checkedExpression')}
-              value={comp.checked || ''}
-              onChange={(event) => onChange('checked', event.target.value)}
-              size="small"
-              placeholder={t('expressionLikePlaceholder')}
-            />
+            <Space.Compact style={{ width: '100%' }}>
+              <Input
+                aria-label={t('checkedExpression')}
+                value={comp.checked || ''}
+                onChange={(event) => onChange('checked', event.target.value)}
+                size="small"
+                placeholder={t('expressionLikePlaceholder')}
+              />
+              <ExpressionFieldButton
+                label={t('checkedExpression')}
+                t={t}
+                onClick={() => onOpenExpressionEditor('checked', t('checkedExpression'))}
+              />
+            </Space.Compact>
           </Form.Item>
           <Form.Item label={t('labelText')}>
-            <Input
-              aria-label={t('labelText')}
-              value={comp.label || ''}
-              onChange={(event) => onChange('label', event.target.value)}
-              size="small"
-            />
+            <Space.Compact style={{ width: '100%' }}>
+              <Input
+                aria-label={t('labelText')}
+                value={comp.label || ''}
+                onChange={(event) => onChange('label', event.target.value)}
+                size="small"
+              />
+              <ExpressionFieldButton
+                label={t('labelText')}
+                t={t}
+                onClick={() => onOpenExpressionEditor('label', t('labelText'))}
+              />
+            </Space.Compact>
           </Form.Item>
         </Form>
       );
     case 'richtext':
       return (
         <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-          <Form.Item label={t('htmlContent')}>
-            <Input.TextArea
-              aria-label={t('htmlContent')}
-              value={comp.html || ''}
-              onChange={(event) => onChange('html', event.target.value)}
-              autoSize={false}
-              rows={5}
-              placeholder="<p>{Data.Field}</p>"
-            />
+          <Form.Item label={t('richTextContent')}>
+            <Space.Compact style={{ width: '100%' }}>
+              <Input.TextArea
+                aria-label={t('richTextContent')}
+                value={comp.html || ''}
+                onChange={(event) => onChange('html', event.target.value)}
+                autoSize={false}
+                rows={5}
+                placeholder="<p>{Data.Field}</p>"
+              />
+              <ExpressionFieldButton
+                label={t('richTextContent')}
+                t={t}
+                onClick={() => onOpenExpressionEditor('html', t('richTextContent'))}
+              />
+            </Space.Compact>
           </Form.Item>
         </Form>
       );
@@ -971,6 +1022,23 @@ const ComponentContentProperties: React.FC<{
     default:
       return <div style={{ padding: 8, color: '#999', fontSize: 12 }}>{t('noContentProperties')}</div>;
   }
+};
+
+const ExpressionFieldButton: React.FC<{
+  label: string;
+  onClick: () => void;
+  t: ReturnType<typeof createPropertyT>;
+}> = ({ label, onClick, t }) => {
+  const title = t('openExpressionEditorFor', { field: label });
+  return (
+    <Button
+      aria-label={title}
+      title={title}
+      icon={<EditOutlined />}
+      onClick={onClick}
+      style={{ width: 32 }}
+    />
+  );
 };
 
 function readImageAsDataUrl(file: File): Promise<string> {
@@ -1031,6 +1099,7 @@ const propertyEditorMessages = {
     textContent: '文本内容',
     textContentPlaceholder: '普通文本或 {DataSource.Field}',
     openExpressionEditor: '打开表达式编辑器',
+    openExpressionEditorFor: '打开表达式编辑器：{field}',
     expressionLikePlaceholder: '普通值或 {DataSource.Field}',
     textStyle: '文本样式',
     chooseStyle: '选择样式集',
@@ -1058,7 +1127,7 @@ const propertyEditorMessages = {
     showText: '显示文本',
     checkedExpression: '选中表达式',
     labelText: '标签文本',
-    htmlContent: 'HTML 内容',
+    richTextContent: '富文本内容',
     localTemplateKey: '本地模板键/名称',
     localTemplateKeyPlaceholder: '例如：invoice-detail',
     parameters: '参数',
@@ -1147,6 +1216,7 @@ const propertyEditorMessages = {
     textContent: 'Text content',
     textContentPlaceholder: 'Plain text or {DataSource.Field}',
     openExpressionEditor: 'Open expression editor',
+    openExpressionEditorFor: 'Open expression editor: {field}',
     expressionLikePlaceholder: 'Plain value or {DataSource.Field}',
     textStyle: 'Text style',
     chooseStyle: 'Select style',
@@ -1174,7 +1244,7 @@ const propertyEditorMessages = {
     showText: 'Show text',
     checkedExpression: 'Checked expression',
     labelText: 'Label text',
-    htmlContent: 'HTML content',
+    richTextContent: 'Rich Text Content',
     localTemplateKey: 'Local template key/name',
     localTemplateKeyPlaceholder: 'For example: invoice-detail',
     parameters: 'Parameters',

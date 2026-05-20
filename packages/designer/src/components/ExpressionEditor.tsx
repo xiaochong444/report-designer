@@ -71,7 +71,7 @@ function makeTreeNode(
   options?: { insertValue?: string; searchText?: string; children?: TreeNodeMeta[] },
 ): TreeNodeMeta {
   return {
-    key,
+    key: safeTreeKey(key),
     searchText: options?.searchText ?? label.toLowerCase(),
     insertValue: options?.insertValue,
     title: (
@@ -82,6 +82,10 @@ function makeTreeNode(
     ),
     children: options?.children,
   };
+}
+
+function safeTreeKey(key: string) {
+  return key.replace(/[^A-Za-z0-9_-]/g, '_');
 }
 
 function filterTreeNodes(nodes: TreeNodeMeta[], query: string): TreeNodeMeta[] {
