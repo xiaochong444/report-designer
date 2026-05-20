@@ -1,8 +1,9 @@
-import type { BorderConfig, FontConfig } from '../template-model/types';
+import type { BorderConfig, FontConfig, ReportFont } from '../template-model/types';
 import type { EventLogEntry } from '../event-engine/types';
 
 export interface RenderDocument {
   pages: RenderPage[];
+  fonts?: ReportFont[];
   eventLogs?: EventLogEntry[];
 }
 

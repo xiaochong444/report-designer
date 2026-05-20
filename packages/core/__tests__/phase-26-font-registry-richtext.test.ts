@@ -2,9 +2,11 @@ import { describe, expect, it } from 'vitest';
 import {
   buildReportFontCss,
   DEFAULT_REPORT_FONTS,
+  createDefaultTemplate,
   getReportFontOptions,
   normalizeReportFonts,
   normalizeTemplate,
+  renderReport,
   sanitizeRichHtml,
   type ReportTemplate,
 } from '../src';
@@ -68,5 +70,23 @@ describe('phase 26 font registry and rich text', () => {
     expect(html).not.toContain('position');
     expect(html).not.toContain('javascript:');
     expect(html).toContain('href="https://example.com"');
+  });
+
+  it('carries normalized report fonts into the render document', () => {
+    const report = createDefaultTemplate('Font Render Report');
+    report.fonts = [
+      ...(report.fonts ?? []),
+      {
+        id: 'brand-song',
+        name: 'Brand Song',
+        family: 'BrandSong',
+        fallback: 'serif',
+        source: { url: '/fonts/brand-song.woff2', format: 'woff2' },
+      },
+    ];
+
+    const document = renderReport(report, {}, { suppressEvents: true });
+
+    expect(document.fonts?.map(font => font.family)).toEqual(expect.arrayContaining(['BrandSong', 'SimSun']));
   });
 });

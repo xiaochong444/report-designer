@@ -1,5 +1,5 @@
 import React from 'react';
-import type { RenderDocument, RenderPage } from '@report-designer/core';
+import { buildReportFontCss, type RenderDocument, type RenderPage } from '@report-designer/core';
 import { RenderComponent, MM_TO_PX } from './renderComponent';
 
 interface RenderDocumentViewProps {
@@ -10,9 +10,11 @@ interface RenderDocumentViewProps {
 
 export const RenderDocumentView: React.FC<RenderDocumentViewProps> = ({ document, zoom, currentPage }) => {
   const pages = currentPage ? document.pages.filter((page) => page.pageNumber === currentPage) : document.pages;
+  const fontCss = React.useMemo(() => buildReportFontCss(document.fonts), [document.fonts]);
 
   return (
     <div data-testid="render-document" style={{ display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center' }}>
+      {fontCss ? <style data-report-font-registry>{fontCss}</style> : null}
       {pages.map((page) => (
         <RenderPageView key={page.id} page={page} zoom={zoom} />
       ))}

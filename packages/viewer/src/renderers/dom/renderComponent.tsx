@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
-import type { RenderBarcode, RenderCheckbox, RenderComponentBox, RenderImage, RenderLine, RenderRichText, RenderShape, RenderText } from '@report-designer/core';
+import { sanitizeRichHtml, type RenderBarcode, type RenderCheckbox, type RenderComponentBox, type RenderImage, type RenderLine, type RenderRichText, type RenderShape, type RenderText } from '@report-designer/core';
 
 export const MM_TO_PX = 96 / 25.4;
 type RenderTextStyle = NonNullable<RenderText['style']> & {
@@ -111,10 +111,6 @@ function textContentStyle(component: RenderText): React.CSSProperties {
     textAlign: component.style?.textAlign ?? 'left',
     whiteSpace: 'inherit',
   };
-}
-
-function sanitizeRichHtml(value: string): string {
-  return value.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
 }
 
 function verticalAlignToFlex(value?: 'top' | 'middle' | 'bottom'): React.CSSProperties['alignItems'] {

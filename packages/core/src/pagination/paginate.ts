@@ -111,13 +111,13 @@ function renderReportInternal(
     const modeEvent: ReportEventName = eventRuntime.mode === 'preview' ? 'beforePreview' : 'beforePrint';
     const modeExecution = runReportEvent(normalizedTemplate, modeEvent, eventRuntime);
     if (modeExecution.canceled) {
-      return { pages: [], eventLogs: eventRuntime.log.entries };
+      return { pages: [], fonts: normalizedTemplate.fonts, eventLogs: eventRuntime.log.entries };
     }
 
     for (const eventName of ['beforeRender', 'beforeData'] as const) {
       const execution = runReportEvent(normalizedTemplate, eventName, eventRuntime);
       if (execution.canceled) {
-        return { pages: [], eventLogs: eventRuntime.log.entries };
+        return { pages: [], fonts: normalizedTemplate.fonts, eventLogs: eventRuntime.log.entries };
       }
     }
   }
@@ -132,7 +132,7 @@ function renderReportInternal(
     ...options,
     eventRuntime: options.suppressEvents ? undefined : eventRuntime,
   });
-  const document = applyPageNumberPass({ pages, eventLogs: eventRuntime.log.entries });
+  const document = applyPageNumberPass({ pages, fonts: normalizedTemplate.fonts, eventLogs: eventRuntime.log.entries });
   if (!options.suppressEvents) {
     runReportEvent(normalizedTemplate, 'afterRender', eventRuntime);
   }

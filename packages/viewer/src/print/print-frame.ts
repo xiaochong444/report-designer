@@ -1,4 +1,4 @@
-import type { RenderComponentBox, RenderDocument, RenderLine } from '@report-designer/core';
+import { buildReportFontCss, sanitizeRichHtml, type RenderComponentBox, type RenderDocument, type RenderLine } from '@report-designer/core';
 
 type RenderTextStyle = NonNullable<Extract<RenderComponentBox, { type: 'text' }>['style']> & {
   padding?: { top: number; right: number; bottom: number; left: number };
@@ -7,6 +7,7 @@ type RenderTextStyle = NonNullable<Extract<RenderComponentBox, { type: 'text' }>
 export function buildPrintHtml(document: RenderDocument): string {
   const firstPage = document.pages[0];
   const pageCss = firstPage ? `${firstPage.width}mm ${firstPage.height}mm` : '210mm 297mm';
+  const fontCss = buildReportFontCss(document.fonts);
   const pages = document.pages.map((page) => `
     <div class="rd-print-page" style="width:${page.width}mm;height:${page.height}mm;">
       ${page.items.map((band) => `
@@ -23,6 +24,7 @@ export function buildPrintHtml(document: RenderDocument): string {
   <meta charset="utf-8" />
   <style>
     @page { size: ${pageCss}; margin: 0; }
+    ${fontCss}
     html, body { margin: 0; padding: 0; }
     .rd-print-page { position: relative; page-break-after: always; overflow: hidden; background: #fff; }
     .rd-print-band, .rd-print-component { position: absolute; box-sizing: border-box; }
@@ -170,10 +172,6 @@ function escapeHtml(value: string): string {
 
 function escapeAttribute(value: string): string {
   return escapeHtml(value).replaceAll("'", '&#39;');
-}
-
-function sanitizeRichHtml(value: string): string {
-  return value.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, '');
 }
 
 function lineDashArray(style?: string): string {
