@@ -4,6 +4,7 @@ import { useDesignerStore } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
 import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
 import { RichTextInlineEditor } from './richtext/RichTextInlineEditor';
+import { useDesignerI18n } from '../i18n';
 
 const MM_TO_PX = 3.78;
 const SNAP_THRESHOLD = 5;
@@ -1052,7 +1053,7 @@ const zoomBtnStyle: React.CSSProperties = {
 
 // ---- Context Menu Component ----
 
-const ContextMenu: React.FC<{
+interface ContextMenuProps {
   x: number; y: number;
   hasSelection: boolean; hasClipboard: boolean;
   selectedType?: ReportComponent['type'];
@@ -1063,7 +1064,9 @@ const ContextMenu: React.FC<{
   onInsertTableRow: () => void; onDeleteTableRow: () => void; onToggleTableBorder: () => void;
   onMergeTableCellRight: () => void; onSplitTableCell: () => void; onClearTableCell: () => void;
   onEqualizeTableColumns: () => void; onEqualizeTableRows: () => void;
-}> = ({
+}
+
+const ContextMenu: React.FC<ContextMenuProps> = ({
   x,
   y,
   hasSelection,
@@ -1087,40 +1090,43 @@ const ContextMenu: React.FC<{
   onClearTableCell,
   onEqualizeTableColumns,
   onEqualizeTableRows,
-}) => (
-  <div style={{
-    position: 'absolute', left: x, top: y,
-    backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: 4,
-    boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 10000,
-    minWidth: 210, padding: '4px 0',
-  }}>
-    <ContextMenuItem label="复制" shortcut="Ctrl+C" disabled={!hasSelection} onClick={onCopy} />
-    <ContextMenuItem label="剪切" shortcut="Ctrl+X" disabled={!hasSelection} onClick={onCut} />
-    <ContextMenuItem label="粘贴" shortcut="Ctrl+V" disabled={!hasClipboard} onClick={onPaste} />
-    <ContextMenuItem label="复制一份" shortcut="Ctrl+D" disabled={!hasSelection} onClick={onDuplicate} />
-    <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
-    <ContextMenuItem label="置于顶层" shortcut="Ctrl+Alt+↑" disabled={!hasSelection} onClick={onBringToFront} />
-    <ContextMenuItem label="置于底层" shortcut="Ctrl+Alt+↓" disabled={!hasSelection} onClick={onSendToBack} />
-    {selectedType === 'table' && (
-      <>
-        <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
-        <ContextMenuItem label="插入列到右侧" onClick={onInsertTableColumn} />
-        <ContextMenuItem label="删除列" onClick={onDeleteTableColumn} />
-        <ContextMenuItem label="插入行到下方" onClick={onInsertTableRow} />
-        <ContextMenuItem label="删除行" onClick={onDeleteTableRow} />
-        <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
-        <ContextMenuItem label="合并右侧单元格" disabled={!tableCell} onClick={onMergeTableCellRight} />
-        <ContextMenuItem label="拆分单元格" disabled={!tableCell} onClick={onSplitTableCell} />
-        <ContextMenuItem label="清空单元格" disabled={!tableCell} onClick={onClearTableCell} />
-        <ContextMenuItem label="均分列宽" onClick={onEqualizeTableColumns} />
-        <ContextMenuItem label="均分行高" onClick={onEqualizeTableRows} />
-        <ContextMenuItem label="切换表格边框" onClick={onToggleTableBorder} />
-      </>
-    )}
-    <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
-    <ContextMenuItem label="删除" shortcut="Del" disabled={!hasSelection} onClick={onDelete} danger />
-  </div>
-);
+}) => {
+  const { t } = useDesignerI18n();
+  return (
+    <div style={{
+      position: 'absolute', left: x, top: y,
+      backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: 4,
+      boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 10000,
+      minWidth: 210, padding: '4px 0',
+    }}>
+      <ContextMenuItem label={t('contextMenu.copy')} shortcut="Ctrl+C" disabled={!hasSelection} onClick={onCopy} />
+      <ContextMenuItem label={t('contextMenu.cut')} shortcut="Ctrl+X" disabled={!hasSelection} onClick={onCut} />
+      <ContextMenuItem label={t('contextMenu.paste')} shortcut="Ctrl+V" disabled={!hasClipboard} onClick={onPaste} />
+      <ContextMenuItem label={t('contextMenu.duplicate')} shortcut="Ctrl+D" disabled={!hasSelection} onClick={onDuplicate} />
+      <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
+      <ContextMenuItem label={t('contextMenu.bringToFront')} shortcut="Ctrl+Alt+↑" disabled={!hasSelection} onClick={onBringToFront} />
+      <ContextMenuItem label={t('contextMenu.sendToBack')} shortcut="Ctrl+Alt+↓" disabled={!hasSelection} onClick={onSendToBack} />
+      {selectedType === 'table' && (
+        <>
+          <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
+          <ContextMenuItem label={t('contextMenu.table.insertColumnRight')} onClick={onInsertTableColumn} />
+          <ContextMenuItem label={t('contextMenu.table.deleteColumn')} onClick={onDeleteTableColumn} />
+          <ContextMenuItem label={t('contextMenu.table.insertRowBelow')} onClick={onInsertTableRow} />
+          <ContextMenuItem label={t('contextMenu.table.deleteRow')} onClick={onDeleteTableRow} />
+          <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
+          <ContextMenuItem label={t('contextMenu.table.mergeRight')} disabled={!tableCell} onClick={onMergeTableCellRight} />
+          <ContextMenuItem label={t('contextMenu.table.splitCell')} disabled={!tableCell} onClick={onSplitTableCell} />
+          <ContextMenuItem label={t('contextMenu.table.clearCell')} disabled={!tableCell} onClick={onClearTableCell} />
+          <ContextMenuItem label={t('contextMenu.table.equalizeColumns')} onClick={onEqualizeTableColumns} />
+          <ContextMenuItem label={t('contextMenu.table.equalizeRows')} onClick={onEqualizeTableRows} />
+          <ContextMenuItem label={t('contextMenu.table.toggleBorder')} onClick={onToggleTableBorder} />
+        </>
+      )}
+      <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
+      <ContextMenuItem label={t('contextMenu.delete')} shortcut="Del" disabled={!hasSelection} onClick={onDelete} danger />
+    </div>
+  );
+};
 
 const ContextMenuItem: React.FC<{
   label: string; shortcut?: string; disabled?: boolean; danger?: boolean;

@@ -217,6 +217,23 @@ export type DesignerMessageKey =
   | 'selection.component'
   | 'selection.components'
   | 'selection.band'
+  | 'contextMenu.copy'
+  | 'contextMenu.cut'
+  | 'contextMenu.paste'
+  | 'contextMenu.duplicate'
+  | 'contextMenu.bringToFront'
+  | 'contextMenu.sendToBack'
+  | 'contextMenu.delete'
+  | 'contextMenu.table.insertColumnRight'
+  | 'contextMenu.table.deleteColumn'
+  | 'contextMenu.table.insertRowBelow'
+  | 'contextMenu.table.deleteRow'
+  | 'contextMenu.table.mergeRight'
+  | 'contextMenu.table.splitCell'
+  | 'contextMenu.table.clearCell'
+  | 'contextMenu.table.equalizeColumns'
+  | 'contextMenu.table.equalizeRows'
+  | 'contextMenu.table.toggleBorder'
   | 'pageSettings.title'
   | 'pageSettings.noPage'
   | 'pageSettings.page'
@@ -537,6 +554,23 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'selection.component': '组件',
     'selection.components': '{count} 个组件',
     'selection.band': '带区',
+    'contextMenu.copy': '复制',
+    'contextMenu.cut': '剪切',
+    'contextMenu.paste': '粘贴',
+    'contextMenu.duplicate': '复制一份',
+    'contextMenu.bringToFront': '置于顶层',
+    'contextMenu.sendToBack': '置于底层',
+    'contextMenu.delete': '删除',
+    'contextMenu.table.insertColumnRight': '插入列到右侧',
+    'contextMenu.table.deleteColumn': '删除列',
+    'contextMenu.table.insertRowBelow': '插入行到下方',
+    'contextMenu.table.deleteRow': '删除行',
+    'contextMenu.table.mergeRight': '合并右侧单元格',
+    'contextMenu.table.splitCell': '拆分单元格',
+    'contextMenu.table.clearCell': '清空单元格',
+    'contextMenu.table.equalizeColumns': '均分列宽',
+    'contextMenu.table.equalizeRows': '均分行高',
+    'contextMenu.table.toggleBorder': '切换表格边框',
     'pageSettings.title': '页面设置',
     'pageSettings.noPage': '未选择页面',
     'pageSettings.page': '页面',
@@ -854,6 +888,23 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'selection.component': 'Component',
     'selection.components': '{count} components',
     'selection.band': 'Band',
+    'contextMenu.copy': 'Copy',
+    'contextMenu.cut': 'Cut',
+    'contextMenu.paste': 'Paste',
+    'contextMenu.duplicate': 'Duplicate',
+    'contextMenu.bringToFront': 'Bring to Front',
+    'contextMenu.sendToBack': 'Send to Back',
+    'contextMenu.delete': 'Delete',
+    'contextMenu.table.insertColumnRight': 'Insert Column Right',
+    'contextMenu.table.deleteColumn': 'Delete Column',
+    'contextMenu.table.insertRowBelow': 'Insert Row Below',
+    'contextMenu.table.deleteRow': 'Delete Row',
+    'contextMenu.table.mergeRight': 'Merge Cell Right',
+    'contextMenu.table.splitCell': 'Split Cell',
+    'contextMenu.table.clearCell': 'Clear Cell',
+    'contextMenu.table.equalizeColumns': 'Distribute Columns',
+    'contextMenu.table.equalizeRows': 'Distribute Rows',
+    'contextMenu.table.toggleBorder': 'Toggle Table Border',
     'pageSettings.title': 'Page Settings',
     'pageSettings.noPage': 'No page selected',
     'pageSettings.page': 'Page',

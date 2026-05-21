@@ -6,6 +6,7 @@ import '@testing-library/jest-dom/vitest';
 import type { ReportComponent, TableComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { Canvas } from '../components/Canvas';
+import { DesignerI18nProvider } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 
 function tableComponent(overrides: Partial<TableComponent> = {}): TableComponent {
@@ -108,5 +109,21 @@ describe('Phase 8 table cell context menu', () => {
     const merged = screen.getByTestId('designer-table-cell-1-0');
     expect(merged.style.gridColumn).toBe('span 2');
     expect(screen.queryByTestId('designer-table-cell-1-1')).not.toBeInTheDocument();
+  });
+
+  it('localizes table context menu actions to English', () => {
+    loadWith(tableComponent());
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <Canvas />
+      </DesignerI18nProvider>,
+    );
+
+    openCellMenu(1, 1);
+
+    expect(screen.getByText('Insert Column Right')).toBeInTheDocument();
+    expect(screen.getByText('Merge Cell Right')).toBeInTheDocument();
+    expect(screen.getByText('Distribute Columns')).toBeInTheDocument();
+    expect(screen.queryByText('插入列到右侧')).not.toBeInTheDocument();
   });
 });
