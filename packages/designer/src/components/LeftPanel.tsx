@@ -499,7 +499,7 @@ const PageTree: React.FC = () => {
       ),
       children: template.pages.map((page, pageIndex) => {
         const bandTypeCounters: Partial<Record<BandType, number>> = {};
-        const pageName = `Page${pageIndex + 1}`;
+        const pageName = page.name || `Page${pageIndex + 1}`;
         const pageMatches = matchesSearch([pageName, page.id], normalizedSearchTerm);
         return {
           key: page.id,

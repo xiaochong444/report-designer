@@ -72,6 +72,16 @@ describe('Phase 10 page properties', () => {
     expect(pageProperties).not.toHaveTextContent('Millimeter');
   });
 
+  it('edits the page display name and reflects it in the report tree', () => {
+    render(<Designer template={createDefaultTemplate('页面名称')} />);
+
+    const pageProperties = screen.getByTestId('designer-page-properties');
+    const nameInput = within(pageProperties).getByLabelText('页面名称');
+    fireEvent.change(nameInput, { target: { value: '封面页' } });
+
+    expect(within(screen.getByTestId('designer-left-panel')).getByText('封面页')).toBeInTheDocument();
+  });
+
   it('localizes the page setup dialog to Chinese by default', async () => {
     render(<Designer template={createDefaultTemplate('页面设置弹窗')} />);
 

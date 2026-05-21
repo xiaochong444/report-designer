@@ -400,6 +400,7 @@ export type PageOrientation = 'portrait' | 'landscape';
 
 export interface Page {
   id: string;
+  name?: string;
   width: number;
   height: number;
   margins: Margins;

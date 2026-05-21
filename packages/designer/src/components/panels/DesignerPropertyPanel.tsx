@@ -145,6 +145,13 @@ const PageProperties: React.FC = () => {
             label: t('pageSettings.page'),
             children: (
               <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+                <Form.Item label={t('pageSettings.pageName')}>
+                  <Input
+                    aria-label={t('pageSettings.pageName')}
+                    value={page.name ?? ''}
+                    onChange={event => updatePage({ name: event.target.value })}
+                  />
+                </Form.Item>
                 <Form.Item label={t('pageSettings.paperType')}>
                   <Select
                     aria-label={t('pageSettings.paperType')}
