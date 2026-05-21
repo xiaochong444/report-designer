@@ -11,7 +11,15 @@ import { useDesignerStore } from '../store/designer-store';
 
 function loadWith(component: ReportComponent) {
   const template = createDefaultTemplate('Shortcut Contract');
-  template.dataSources = [{ id: 'employees', name: 'employees', type: 'json', schema: [{ name: 'name', type: 'string' }] }];
+  template.dataSources = [{
+    id: 'employees',
+    name: 'employees',
+    type: 'json',
+    schema: [
+      { name: 'name', type: 'string' },
+      { name: 'salary', type: 'number' },
+    ],
+  }];
   template.pages[0].bands.find(band => band.type === 'data')!.components.push(component);
   useDesignerStore.getState().loadTemplate(template);
   useDesignerStore.getState().selectComponents([component.id]);
@@ -110,5 +118,45 @@ describe('Phase 7 designer shortcuts and table context menu', () => {
     const table = selectedComponent();
     expect(table.columnCount).toBe(3);
     expect(table.columns).toHaveLength(3);
+  });
+
+  it('edits table row heights and column definitions from the property panel', () => {
+    loadWith({
+      id: 'table-3',
+      type: 'table',
+      x: 10,
+      y: 10,
+      width: 80,
+      height: 30,
+      dataSource: 'employees',
+      columns: [{ id: 'col-1', header: 'Name', field: 'name', width: 40, cellType: 'text' }],
+      rowCount: 2,
+      columnCount: 1,
+      headerRowsCount: 1,
+      footerRowsCount: 0,
+      canBreak: true,
+      headerHeight: 8,
+      rowHeight: 8,
+      showBorder: true,
+    } as ReportComponent);
+
+    render(<PropertyEditor />);
+    fireEvent.change(screen.getByLabelText('表头高度'), { target: { value: '12' } });
+    fireEvent.change(screen.getByLabelText('明细行高'), { target: { value: '9' } });
+    fireEvent.change(screen.getByLabelText('交替行样式'), { target: { value: 'zebra' } });
+    fireEvent.change(screen.getByLabelText('第 1 列标题'), { target: { value: 'Employee' } });
+    fireEvent.change(screen.getByLabelText('第 1 列字段'), { target: { value: 'salary' } });
+    fireEvent.change(screen.getByLabelText('第 1 列宽度'), { target: { value: '55' } });
+
+    const table = selectedComponent();
+    expect(table.headerHeight).toBe(12);
+    expect(table.rowHeight).toBe(9);
+    expect(table.alternateRowStyle).toBe('zebra');
+    expect(table.columns[0]).toMatchObject({
+      header: 'Employee',
+      field: 'salary',
+      width: 55,
+      cellType: 'text',
+    });
   });
 });

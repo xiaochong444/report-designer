@@ -12,6 +12,11 @@ function normalizePositive(value: number | undefined, fallback: number): number 
   return Math.max(1, next);
 }
 
+function normalizePositiveMm(value: number | undefined, fallback: number): number {
+  const next = Number.isFinite(value) ? roundMm(value as number) : fallback;
+  return Math.max(0.1, next);
+}
+
 function roundMm(value: number): number {
   return Math.round(value * 10) / 10;
 }
@@ -115,13 +120,18 @@ export function setTableStructure(table: TableComponent, structure: {
   columnCount?: number;
   headerRowsCount?: number;
   footerRowsCount?: number;
+  headerHeight?: number;
+  rowHeight?: number;
+  alternateRowStyle?: string;
   canBreak?: boolean;
   showBorder?: boolean;
   dataSource?: string;
+  columns?: TableComponent['columns'];
 }): TableComponent {
   const normalized = normalizeTable(table);
   const rowCount = normalizePositive(structure.rowCount, normalized.rowCount ?? 3);
-  const columnCount = normalizePositive(structure.columnCount, normalized.columnCount ?? normalized.columns.length);
+  const baseColumns = structure.columns ?? normalized.columns;
+  const columnCount = normalizePositive(structure.columnCount, structure.columns?.length ?? normalized.columnCount ?? normalized.columns.length);
   const headerRowsCount = Math.max(0, Math.min(rowCount, structure.headerRowsCount ?? normalized.headerRowsCount ?? 1));
   const footerRowsCount = Math.max(0, Math.min(rowCount - headerRowsCount, structure.footerRowsCount ?? normalized.footerRowsCount ?? 0));
 
@@ -130,7 +140,10 @@ export function setTableStructure(table: TableComponent, structure: {
     ...('canBreak' in structure ? { canBreak: structure.canBreak } : {}),
     ...('showBorder' in structure ? { showBorder: structure.showBorder } : {}),
     ...('dataSource' in structure ? { dataSource: structure.dataSource || '' } : {}),
-    columns: resizeColumns(normalized.columns, columnCount, normalized.width),
+    ...('headerHeight' in structure ? { headerHeight: normalizePositiveMm(structure.headerHeight, normalized.headerHeight) } : {}),
+    ...('rowHeight' in structure ? { rowHeight: normalizePositiveMm(structure.rowHeight, normalized.rowHeight) } : {}),
+    ...('alternateRowStyle' in structure ? { alternateRowStyle: structure.alternateRowStyle } : {}),
+    columns: resizeColumns(baseColumns, columnCount, normalized.width),
     columnCount,
     rowCount,
     headerRowsCount,

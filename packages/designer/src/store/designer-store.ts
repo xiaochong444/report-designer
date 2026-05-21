@@ -11,6 +11,7 @@ import type {
   ReportEventName,
   ReportStyle,
   ReportTemplate,
+  TableColumn,
   TableComponent,
   TextComponent,
 } from '@report-designer/core';
@@ -112,9 +113,13 @@ export interface DesignerState {
     columnCount?: number;
     headerRowsCount?: number;
     footerRowsCount?: number;
+    headerHeight?: number;
+    rowHeight?: number;
+    alternateRowStyle?: string;
     canBreak?: boolean;
     showBorder?: boolean;
     dataSource?: string;
+    columns?: TableColumn[];
   }) => void;
   applySelectedStyle: (styleId: string | undefined) => void;
   createTextStyle: (style?: Partial<ReportStyle> & { name?: string }) => string;

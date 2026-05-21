@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
 import { getReportFontOptions } from '@report-designer/core';
-import type { BorderConfig, ReportTemplate, TableComponent, TextFormatConfig } from '@report-designer/core';
+import type { BorderConfig, DataSource, ReportTemplate, TableColumn, TableComponent, TextFormatConfig } from '@report-designer/core';
 import type { CSSProperties } from 'react';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { ExpressionEditor } from './ExpressionEditor';
@@ -590,6 +590,7 @@ export const PropertyEditor: React.FC = () => {
               <TablePropertyPanel
                 table={normalizeTable(component as TableComponent)}
                 dataSources={dataSources}
+                dataSourceDefinitions={template.dataSources}
                 onChange={updateSelectedTable}
                 t={t}
               />
@@ -1188,6 +1189,23 @@ const propertyEditorMessages = {
     rowCount: '行数',
     headerRowsCount: '表头行数',
     footerRowsCount: '表尾行数',
+    headerHeight: '表头高度',
+    rowHeight: '明细行高',
+    alternateRowStyle: '交替行样式',
+    tableColumns: '列定义',
+    tableColumn: '第 {index} 列',
+    tableColumnHeader: '标题',
+    tableColumnField: '字段',
+    tableColumnWidth: '宽度',
+    tableColumnType: '类型',
+    tableColumnHeaderAria: '第 {index} 列标题',
+    tableColumnFieldAria: '第 {index} 列字段',
+    tableColumnWidthAria: '第 {index} 列宽度',
+    tableColumnTypeAria: '第 {index} 列类型',
+    tableCellTypeText: '文本',
+    tableCellTypeImage: '图片',
+    tableCellTypeBarcode: '条码',
+    tableCellTypeCheckbox: '复选框',
     canBreak: '允许跨页',
     showBorder: '显示边框',
     color: '颜色',
@@ -1305,6 +1323,23 @@ const propertyEditorMessages = {
     rowCount: 'Rows',
     headerRowsCount: 'Header rows',
     footerRowsCount: 'Footer rows',
+    headerHeight: 'Header height',
+    rowHeight: 'Detail row height',
+    alternateRowStyle: 'Alternate row style',
+    tableColumns: 'Columns',
+    tableColumn: 'Column {index}',
+    tableColumnHeader: 'Header',
+    tableColumnField: 'Field',
+    tableColumnWidth: 'Width',
+    tableColumnType: 'Type',
+    tableColumnHeaderAria: 'Column {index} header',
+    tableColumnFieldAria: 'Column {index} field',
+    tableColumnWidthAria: 'Column {index} width',
+    tableColumnTypeAria: 'Column {index} type',
+    tableCellTypeText: 'Text',
+    tableCellTypeImage: 'Image',
+    tableCellTypeBarcode: 'Barcode',
+    tableCellTypeCheckbox: 'Checkbox',
     canBreak: 'Can break',
     showBorder: 'Show border',
     color: 'Color',
@@ -1439,91 +1474,205 @@ const VerticalAlignGlyph: React.FC<{ position: VerticalAlignment }> = ({ positio
 const TablePropertyPanel: React.FC<{
   table: TableComponent;
   dataSources: string[];
+  dataSourceDefinitions: DataSource[];
   t: ReturnType<typeof createPropertyT>;
   onChange: (updates: {
     rowCount?: number;
     columnCount?: number;
     headerRowsCount?: number;
     footerRowsCount?: number;
+    headerHeight?: number;
+    rowHeight?: number;
+    alternateRowStyle?: string;
     canBreak?: boolean;
     showBorder?: boolean;
     dataSource?: string;
+    columns?: TableColumn[];
   }) => void;
-}> = ({ table, dataSources, onChange, t }) => (
-  <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-    <Form.Item label={t('dataSource')}>
-      <Select
-        aria-label={t('tableDataSource')}
-        value={table.dataSource || undefined}
-        onChange={(value) => onChange({ dataSource: value })}
-        size="small"
-        style={{ width: '100%' }}
-        allowClear
-        placeholder={t('chooseDataSource')}
-        options={dataSources.map(source => ({ value: source, label: source }))}
-      />
-    </Form.Item>
-    <Form.Item label={t('columnCount')}>
-      <InputNumber
-        aria-label={t('columnCount')}
-        value={table.columnCount ?? table.columns.length}
-        onChange={(value) => onChange({ columnCount: value ?? 1 })}
-        size="small"
-        style={{ width: '100%' }}
-        min={1}
-        step={1}
-      />
-    </Form.Item>
-    <Form.Item label={t('rowCount')}>
-      <InputNumber
-        aria-label={t('rowCount')}
-        value={table.rowCount ?? 3}
-        onChange={(value) => onChange({ rowCount: value ?? 1 })}
-        size="small"
-        style={{ width: '100%' }}
-        min={1}
-        step={1}
-      />
-    </Form.Item>
-    <Form.Item label={t('headerRowsCount')}>
-      <InputNumber
-        aria-label={t('headerRowsCount')}
-        value={table.headerRowsCount ?? 1}
-        onChange={(value) => onChange({ headerRowsCount: value ?? 0 })}
-        size="small"
-        style={{ width: '100%' }}
-        min={0}
-        max={table.rowCount ?? 3}
-        step={1}
-      />
-    </Form.Item>
-    <Form.Item label={t('footerRowsCount')}>
-      <InputNumber
-        aria-label={t('footerRowsCount')}
-        value={table.footerRowsCount ?? 0}
-        onChange={(value) => onChange({ footerRowsCount: value ?? 0 })}
-        size="small"
-        style={{ width: '100%' }}
-        min={0}
-        max={table.rowCount ?? 3}
-        step={1}
-      />
-    </Form.Item>
-    <Form.Item label={t('canBreak')}>
-      <Switch
-        aria-label={t('canBreak')}
-        size="small"
-        checked={table.canBreak ?? true}
-        onChange={(checked) => onChange({ canBreak: checked })}
-      />
-    </Form.Item>
-    <Form.Item label={t('showBorder')}>
-      <Switch
-        aria-label={t('showBorder')}
-        size="small"
-        checked={table.showBorder}
-        onChange={(checked) => onChange({ showBorder: checked })}
-      />
-    </Form.Item>
-  </Form>
-);
+}> = ({ table, dataSources, dataSourceDefinitions, onChange, t }) => {
+  const source = dataSourceDefinitions.find(item => item.name === table.dataSource || item.id === table.dataSource);
+  const fieldOptions = (source?.schema ?? source?.fields ?? []).map(field => ({
+    value: field.name,
+    label: field.label || field.name,
+  }));
+  const cellTypeOptions: Array<{ value: TableColumn['cellType']; label: string }> = [
+    { value: 'text', label: t('tableCellTypeText') },
+    { value: 'image', label: t('tableCellTypeImage') },
+    { value: 'barcode', label: t('tableCellTypeBarcode') },
+    { value: 'checkbox', label: t('tableCellTypeCheckbox') },
+  ];
+  const updateColumn = (index: number, updates: Partial<TableColumn>) => {
+    onChange({
+      columns: table.columns.map((column, columnIndex) => (
+        columnIndex === index ? { ...column, ...updates } : column
+      )),
+    });
+  };
+
+  return (
+    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+      <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+        <Form.Item label={t('dataSource')}>
+          <Select
+            aria-label={t('tableDataSource')}
+            value={table.dataSource || undefined}
+            onChange={(value) => onChange({ dataSource: value })}
+            size="small"
+            style={{ width: '100%' }}
+            allowClear
+            placeholder={t('chooseDataSource')}
+            options={dataSources.map(sourceName => ({ value: sourceName, label: sourceName }))}
+          />
+        </Form.Item>
+        <Form.Item label={t('columnCount')}>
+          <InputNumber
+            aria-label={t('columnCount')}
+            value={table.columnCount ?? table.columns.length}
+            onChange={(value) => onChange({ columnCount: value ?? 1 })}
+            size="small"
+            style={{ width: '100%' }}
+            min={1}
+            step={1}
+          />
+        </Form.Item>
+        <Form.Item label={t('rowCount')}>
+          <InputNumber
+            aria-label={t('rowCount')}
+            value={table.rowCount ?? 3}
+            onChange={(value) => onChange({ rowCount: value ?? 1 })}
+            size="small"
+            style={{ width: '100%' }}
+            min={1}
+            step={1}
+          />
+        </Form.Item>
+        <Form.Item label={t('headerRowsCount')}>
+          <InputNumber
+            aria-label={t('headerRowsCount')}
+            value={table.headerRowsCount ?? 1}
+            onChange={(value) => onChange({ headerRowsCount: value ?? 0 })}
+            size="small"
+            style={{ width: '100%' }}
+            min={0}
+            max={table.rowCount ?? 3}
+            step={1}
+          />
+        </Form.Item>
+        <Form.Item label={t('footerRowsCount')}>
+          <InputNumber
+            aria-label={t('footerRowsCount')}
+            value={table.footerRowsCount ?? 0}
+            onChange={(value) => onChange({ footerRowsCount: value ?? 0 })}
+            size="small"
+            style={{ width: '100%' }}
+            min={0}
+            max={table.rowCount ?? 3}
+            step={1}
+          />
+        </Form.Item>
+        <Form.Item label={t('headerHeight')}>
+          <InputNumber
+            aria-label={t('headerHeight')}
+            value={table.headerHeight}
+            onChange={(value) => onChange({ headerHeight: value ?? table.headerHeight })}
+            size="small"
+            style={{ width: '100%' }}
+            min={0.1}
+            step={0.1}
+          />
+        </Form.Item>
+        <Form.Item label={t('rowHeight')}>
+          <InputNumber
+            aria-label={t('rowHeight')}
+            value={table.rowHeight}
+            onChange={(value) => onChange({ rowHeight: value ?? table.rowHeight })}
+            size="small"
+            style={{ width: '100%' }}
+            min={0.1}
+            step={0.1}
+          />
+        </Form.Item>
+        <Form.Item label={t('alternateRowStyle')}>
+          <Input
+            aria-label={t('alternateRowStyle')}
+            value={table.alternateRowStyle ?? ''}
+            onChange={(event) => onChange({ alternateRowStyle: event.target.value })}
+            size="small"
+            allowClear
+          />
+        </Form.Item>
+        <Form.Item label={t('canBreak')}>
+          <Switch
+            aria-label={t('canBreak')}
+            size="small"
+            checked={table.canBreak ?? true}
+            onChange={(checked) => onChange({ canBreak: checked })}
+          />
+        </Form.Item>
+        <Form.Item label={t('showBorder')}>
+          <Switch
+            aria-label={t('showBorder')}
+            size="small"
+            checked={table.showBorder}
+            onChange={(checked) => onChange({ showBorder: checked })}
+          />
+        </Form.Item>
+      </Form>
+
+      <Divider style={{ margin: '4px 0' }} />
+      <Typography.Text strong>{t('tableColumns')}</Typography.Text>
+      <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+        {table.columns.map((column, index) => (
+          <div key={column.id} style={{ border: '1px solid #f0f0f0', borderRadius: 4, padding: 8 }}>
+            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 6 }}>
+              {t('tableColumn', { index: index + 1 })}
+            </Typography.Text>
+            <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+              <Form.Item label={t('tableColumnHeader')}>
+                <Input
+                  aria-label={t('tableColumnHeaderAria', { index: index + 1 })}
+                  value={column.header}
+                  onChange={(event) => updateColumn(index, { header: event.target.value })}
+                  size="small"
+                />
+              </Form.Item>
+              <Form.Item label={t('tableColumnField')}>
+                <Input
+                  aria-label={t('tableColumnFieldAria', { index: index + 1 })}
+                  value={column.field}
+                  onChange={(event) => updateColumn(index, { field: event.target.value })}
+                  size="small"
+                  list={`table-column-fields-${column.id}`}
+                />
+                <datalist id={`table-column-fields-${column.id}`}>
+                  {fieldOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+                </datalist>
+              </Form.Item>
+              <Form.Item label={t('tableColumnWidth')}>
+                <InputNumber
+                  aria-label={t('tableColumnWidthAria', { index: index + 1 })}
+                  value={column.width}
+                  onChange={(value) => updateColumn(index, { width: value ?? column.width })}
+                  size="small"
+                  style={{ width: '100%' }}
+                  min={0.1}
+                  step={0.1}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableColumnType')}>
+                <Select
+                  aria-label={t('tableColumnTypeAria', { index: index + 1 })}
+                  value={column.cellType}
+                  onChange={(value) => updateColumn(index, { cellType: value })}
+                  size="small"
+                  style={{ width: '100%' }}
+                  options={cellTypeOptions}
+                />
+              </Form.Item>
+            </Form>
+          </div>
+        ))}
+      </Space>
+    </Space>
+  );
+};
