@@ -108,4 +108,19 @@ describe('Phase 10 page properties', () => {
     expect(within(dialog).getByRole('button', { name: /应\s*用/ })).toBeInTheDocument();
     expect(within(dialog).queryByText('Page Setup')).not.toBeInTheDocument();
   });
+
+  it('edits page name and background from the page setup dialog', async () => {
+    render(<Designer template={createDefaultTemplate('页面设置弹窗编辑')} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '页面布局' }));
+    fireEvent.click(screen.getByRole('button', { name: /页面设置/ }));
+
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(within(dialog).getByLabelText('页面名称'), { target: { value: '明细页' } });
+    fireEvent.change(within(dialog).getByLabelText('背景色'), { target: { value: '#fff7e6' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: /应\s*用/ }));
+
+    expect(within(screen.getByTestId('designer-left-panel')).getByText('明细页')).toBeInTheDocument();
+    expect(screen.getByTestId('designer-page-sheet')).toHaveStyle({ backgroundColor: '#fff7e6' });
+  });
 });

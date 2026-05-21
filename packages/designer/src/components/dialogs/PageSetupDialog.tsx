@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, InputNumber, Modal, Radio, Select, Space } from 'antd';
+import { Button, ColorPicker, Input, InputNumber, Modal, Radio, Select, Space } from 'antd';
 import type { Margins, PageOrientation } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { useDesignerI18n } from '../../i18n';
@@ -27,6 +27,8 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
   const [orientation, setOrientation] = useState<PageOrientation>(page?.orientation ?? 'portrait');
   const [width, setWidth] = useState(page?.width ?? 210);
   const [height, setHeight] = useState(page?.height ?? 297);
+  const [pageName, setPageName] = useState(page?.name ?? '');
+  const [backgroundColor, setBackgroundColor] = useState(page?.backgroundColor ?? '#ffffff');
   const [margins, setMargins] = useState<Margins>(page?.margins ?? { top: 20, right: 20, bottom: 20, left: 20 });
   const [paperType, setPaperType] = useState<PaperType>(page ? detectPaperType(page.width, page.height) : 'A4');
 
@@ -35,6 +37,8 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
     setOrientation(page.orientation);
     setWidth(page.width);
     setHeight(page.height);
+    setPageName(page.name ?? '');
+    setBackgroundColor(page.backgroundColor ?? '#ffffff');
     setMargins(page.margins);
     setPaperType(detectPaperType(page.width, page.height));
   }, [open, page]);
@@ -74,6 +78,8 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
       orientation,
       width,
       height,
+      name: pageName,
+      backgroundColor,
       margins,
     });
     onClose();
@@ -95,6 +101,23 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
       ]}
     >
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
+        <DialogTextField
+          label={t('pageSettings.pageName')}
+          ariaLabel={t('pageSettings.pageName')}
+          value={pageName}
+          onChange={setPageName}
+        />
+        <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', alignItems: 'center', gap: 8 }}>
+          <span>{t('pageSettings.backgroundColor')}</span>
+          <Space.Compact style={{ width: '100%' }}>
+            <ColorPicker value={backgroundColor} onChange={color => setBackgroundColor(color.toHexString())} />
+            <Input
+              aria-label={t('pageSettings.backgroundColor')}
+              value={backgroundColor}
+              onChange={event => setBackgroundColor(event.target.value)}
+            />
+          </Space.Compact>
+        </div>
         <DialogSelectField
           label={t('pageSettings.paperType')}
           ariaLabel={t('pageSettings.paperType')}
@@ -142,6 +165,18 @@ const DialogNumberField: React.FC<{
   <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', alignItems: 'center', gap: 8 }}>
     <span>{label}</span>
     <InputNumber min={min} max={max} step={step} disabled={disabled} value={value} onChange={onChange} style={{ width: '100%' }} />
+  </div>
+);
+
+const DialogTextField: React.FC<{
+  label: string;
+  ariaLabel: string;
+  value: string;
+  onChange: (value: string) => void;
+}> = ({ label, ariaLabel, value, onChange }) => (
+  <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', alignItems: 'center', gap: 8 }}>
+    <span>{label}</span>
+    <Input aria-label={ariaLabel} value={value} onChange={event => onChange(event.target.value)} />
   </div>
 );
 

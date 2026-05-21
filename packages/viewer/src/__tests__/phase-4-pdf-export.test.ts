@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { PDFPage } from 'pdf-lib';
+import { vi } from 'vitest';
 import { exportRenderDocumentToPDF } from '../export/pdf/export-render-document';
 import { barcodePattern, dataUrlToUint8Array, stripHtmlToPdfText } from '../export/pdf/pdf-component-rendering';
 import { makeRenderDocument } from './phase-4-helpers';
@@ -8,6 +10,22 @@ describe('Phase 4 PDF export', () => {
     const bytes = await exportRenderDocumentToPDF(makeRenderDocument());
 
     expect(bytes.byteLength).toBeGreaterThan(500);
+  });
+
+  it('draws the page background before page content when exporting PDF', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].backgroundColor = '#fff7e6';
+    const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+
+    await exportRenderDocumentToPDF(document);
+
+    expect(drawRectangle).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      x: 0,
+      y: 0,
+      width: expect.closeTo(595.275, 2),
+      height: expect.closeTo(841.89, 2),
+    }));
+    drawRectangle.mockRestore();
   });
 
   it('provides deterministic browser-compatible helpers for component PDF rendering', () => {
