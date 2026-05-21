@@ -6,9 +6,10 @@ interface RenderDocumentViewProps {
   document: RenderDocument;
   zoom: number;
   currentPage?: number;
+  scrollContainerRef?: React.RefObject<HTMLElement | null>;
 }
 
-export const RenderDocumentView: React.FC<RenderDocumentViewProps> = ({ document, zoom, currentPage }) => {
+export const RenderDocumentView: React.FC<RenderDocumentViewProps> = ({ document, zoom, currentPage, scrollContainerRef }) => {
   const fontCss = React.useMemo(() => buildReportFontCss(document.fonts), [document.fonts]);
   const pageRefs = React.useRef(new Map<number, HTMLDivElement>());
   const previousPageRef = React.useRef<number | undefined>(currentPage);
@@ -16,8 +17,20 @@ export const RenderDocumentView: React.FC<RenderDocumentViewProps> = ({ document
   React.useEffect(() => {
     if (!currentPage || previousPageRef.current === currentPage) return;
     previousPageRef.current = currentPage;
-    pageRefs.current.get(currentPage)?.scrollIntoView({ block: 'start', behavior: 'smooth' });
-  }, [currentPage]);
+    const pageNode = pageRefs.current.get(currentPage);
+    if (!pageNode) return;
+    const scrollContainer = scrollContainerRef?.current;
+    if (scrollContainer?.scrollTo) {
+      const pageRect = pageNode.getBoundingClientRect();
+      const containerRect = scrollContainer.getBoundingClientRect();
+      scrollContainer.scrollTo({
+        top: scrollContainer.scrollTop + pageRect.top - containerRect.top,
+        behavior: 'smooth',
+      });
+      return;
+    }
+    pageNode.scrollIntoView({ block: 'start', behavior: 'smooth' });
+  }, [currentPage, scrollContainerRef]);
 
   return (
     <div data-testid="render-document" style={{ display: 'flex', flexDirection: 'column', gap: 24, alignItems: 'center' }}>

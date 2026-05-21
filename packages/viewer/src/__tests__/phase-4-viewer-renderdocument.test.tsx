@@ -21,18 +21,26 @@ describe('Phase 4 RenderDocument viewer', () => {
   it('scrolls the preview workspace to the selected page when paging from the toolbar', async () => {
     const { template, data } = makeViewerTemplate(4);
     const scrollIntoView = vi.fn();
+    const scrollTo = vi.fn();
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
       configurable: true,
       value: scrollIntoView,
     });
+    Object.defineProperty(HTMLElement.prototype, 'scrollTo', {
+      configurable: true,
+      value: scrollTo,
+    });
 
     render(<Viewer template={template} data={data} />);
     scrollIntoView.mockClear();
+    scrollTo.mockClear();
 
     fireEvent.click(screen.getByRole('button', { name: 'Next Page' }));
 
-    await waitFor(() => expect(scrollIntoView).toHaveBeenCalledTimes(1));
-    expect(scrollIntoView).toHaveBeenCalledWith({ block: 'start', behavior: 'smooth' });
+    expect(screen.getByTestId('viewer-preview-scroll')).toBeInTheDocument();
+    await waitFor(() => expect(scrollTo).toHaveBeenCalledTimes(1));
+    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ behavior: 'smooth' }));
+    expect(scrollIntoView).not.toHaveBeenCalled();
   });
 
   it('passes local subreport registry entries into preview rendering', () => {

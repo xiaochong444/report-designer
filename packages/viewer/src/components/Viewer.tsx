@@ -17,6 +17,7 @@ interface ViewerProps {
 export const Viewer: React.FC<ViewerProps> = ({ template, data, className, subreports }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(100);
+  const previewScrollRef = React.useRef<HTMLElement | null>(null);
 
   const document = useMemo(
     () => renderReport(template, data, { subreports, mode: 'preview' }),
@@ -49,8 +50,12 @@ export const Viewer: React.FC<ViewerProps> = ({ template, data, className, subre
         />
       </div>
 
-      <Content style={{ overflow: 'auto', backgroundColor: '#e8e8e8', padding: 24 }}>
-        <RenderDocumentView document={document} zoom={zoom} currentPage={currentPage} />
+      <Content
+        ref={previewScrollRef}
+        data-testid="viewer-preview-scroll"
+        style={{ overflow: 'auto', backgroundColor: '#e8e8e8', padding: 24 }}
+      >
+        <RenderDocumentView document={document} zoom={zoom} currentPage={currentPage} scrollContainerRef={previewScrollRef} />
       </Content>
     </Layout>
   );
