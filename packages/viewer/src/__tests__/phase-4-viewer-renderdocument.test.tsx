@@ -125,6 +125,40 @@ describe('Phase 4 RenderDocument viewer', () => {
     expect(screen.getByTestId('render-component-shape')).toBeInTheDocument();
   });
 
+  it('renders table components in the DOM renderer', () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push({
+      id: 'table1',
+      type: 'table',
+      x: 80,
+      y: 80,
+      width: 80,
+      height: 24,
+      columns: [
+        { id: 'name', header: 'Name', field: 'name', width: 50, cellType: 'text' },
+        { id: 'salary', header: 'Salary', field: 'salary', width: 30, cellType: 'text' },
+      ],
+      rows: [
+        [
+          { row: 0, column: 0, content: 'Name', isHeader: true, height: 8, rowSpan: 1, colSpan: 1 },
+          { row: 0, column: 1, content: 'Salary', isHeader: true, height: 8, rowSpan: 1, colSpan: 1 },
+        ],
+        [
+          { row: 1, column: 0, content: 'Alice', field: 'name', height: 8, rowSpan: 1, colSpan: 1 },
+          { row: 1, column: 1, content: '98000', field: 'salary', height: 8, rowSpan: 1, colSpan: 1 },
+        ],
+      ],
+      showBorder: true,
+      style: {},
+    } as any);
+
+    render(<RenderDocumentView document={document} zoom={100} />);
+
+    expect(screen.getByTestId('render-component-table')).toBeInTheDocument();
+    expect(screen.getByText('Alice')).toBeInTheDocument();
+    expect(screen.getByText('98000')).toBeInTheDocument();
+  });
+
   it('applies text alignment to the inner text content instead of only the absolute box', () => {
     const document = makeRenderDocument();
     const textComponent = document.pages[0].items[0].components[0];

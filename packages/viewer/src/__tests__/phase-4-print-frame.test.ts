@@ -136,6 +136,41 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('<rect');
   });
 
+  it('prints table components from the render document', () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push({
+      id: 'table1',
+      type: 'table',
+      x: 10,
+      y: 10,
+      width: 80,
+      height: 24,
+      columns: [
+        { id: 'name', header: 'Name', field: 'name', width: 50, cellType: 'text' },
+        { id: 'salary', header: 'Salary', field: 'salary', width: 30, cellType: 'text' },
+      ],
+      rows: [
+        [
+          { row: 0, column: 0, content: 'Name', isHeader: true, height: 8, rowSpan: 1, colSpan: 1 },
+          { row: 0, column: 1, content: 'Salary', isHeader: true, height: 8, rowSpan: 1, colSpan: 1 },
+        ],
+        [
+          { row: 1, column: 0, content: 'Alice', field: 'name', height: 8, rowSpan: 1, colSpan: 1 },
+          { row: 1, column: 1, content: '98000', field: 'salary', height: 8, rowSpan: 1, colSpan: 1 },
+        ],
+      ],
+      showBorder: true,
+      style: {},
+    } as any);
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('class="rd-print-component rd-print-table"');
+    expect(html).toContain('grid-template-columns:50mm 30mm');
+    expect(html).toContain('Alice');
+    expect(html).toContain('98000');
+  });
+
   it('applies centered print text alignment to a full-width text content box', () => {
     const document = makeRenderDocument();
     const component = document.pages[0].items[0].components[0];

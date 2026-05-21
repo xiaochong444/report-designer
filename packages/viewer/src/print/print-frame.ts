@@ -85,6 +85,9 @@ function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY
   if (component.type === 'checkbox' && 'checked' in component) {
     return `<div class="rd-print-component rd-print-checkbox" ${dataAttribute} style="${style}display:flex;align-items:center;gap:1.5mm;"><span style="width:3.2mm;height:3.2mm;border:0.2mm solid #333;display:inline-flex;align-items:center;justify-content:center;font-size:3mm;line-height:1;">${component.checked ? '&#10003;' : ''}</span>${component.label ? `<span>${escapeHtml(component.label)}</span>` : ''}</div>`;
   }
+  if (component.type === 'table' && 'rows' in component && 'columns' in component) {
+    return renderTableHtml(component, dataAttribute, style);
+  }
   if (component.type === 'line') {
     const line = component as RenderLine;
     return `<svg class="rd-print-component rd-print-line" ${dataAttribute} style="${style}" viewBox="0 0 ${Math.max(1, line.width)} ${Math.max(1, line.height)}" preserveAspectRatio="none"><line x1="${line.startX ?? 0}" y1="${line.startY ?? line.height / 2}" x2="${line.endX ?? line.width}" y2="${line.endY ?? line.height / 2}" stroke="${escapeAttribute(line.lineColor ?? '#000000')}" stroke-width="${Math.max(0.2, line.lineWidth ?? 0.2)}" stroke-dasharray="${lineDashArray(line.lineStyle)}" /></svg>`;
@@ -93,6 +96,40 @@ function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY
     return `<svg class="rd-print-component rd-print-shape" ${dataAttribute} style="${style}" viewBox="0 0 ${Math.max(1, component.width)} ${Math.max(1, component.height)}" preserveAspectRatio="none">${shapeSvg(component)}</svg>`;
   }
   return `<div class="rd-print-component" ${dataAttribute} style="${style}"></div>`;
+}
+
+function renderTableHtml(component: RenderComponentBox, dataAttribute: string, style: string): string {
+  if (!('rows' in component) || !('columns' in component)) return '';
+  const columns = component.columns as Array<{ width: number }>;
+  const rows = component.rows as Array<Array<{ row: number; column: number; content: string; rowSpan: number; colSpan: number; height: number; isHeader?: boolean; isFooter?: boolean }>>;
+  const border = 'showBorder' in component && component.showBorder ? '0.2mm solid #8c8c8c' : '0.2mm dashed #d9d9d9';
+  const gridStyle = [
+    style,
+    'display:grid',
+    `grid-template-columns:${columns.map(column => `${roundCss(column.width)}mm`).join(' ')}`,
+    `grid-template-rows:${rows.map(row => `${roundCss(row[0]?.height ?? 8)}mm`).join(' ')}`,
+    `border:${border}`,
+    'background-color:#fff',
+    'overflow:hidden',
+  ].join(';');
+  const cells = rows.flatMap(row => row.map(cell => {
+    const declarations = [
+      cell.colSpan > 1 ? `grid-column:span ${cell.colSpan}` : undefined,
+      cell.rowSpan > 1 ? `grid-row:span ${cell.rowSpan}` : undefined,
+      cell.column + cell.colSpan >= columns.length ? undefined : `border-right:${border}`,
+      cell.row + cell.rowSpan >= rows.length ? undefined : `border-bottom:${border}`,
+      cell.isHeader ? 'background-color:#f0f5ff' : cell.isFooter ? 'background-color:#fff7e6' : undefined,
+      'box-sizing:border-box',
+      'overflow:hidden',
+      'white-space:nowrap',
+      'text-overflow:ellipsis',
+      'padding:1mm 1.5mm',
+      'font-size:10px',
+      'line-height:1.2',
+    ].filter(Boolean).join(';');
+    return `<div class="rd-print-table-cell" style="${declarations};">${escapeHtml(cell.content)}</div>`;
+  })).join('');
+  return `<div class="rd-print-component rd-print-table" ${dataAttribute} style="${gridStyle};">${cells}</div>`;
 }
 
 function buildComponentStyle(component: RenderComponentBox, bandX: number, bandY: number): string {

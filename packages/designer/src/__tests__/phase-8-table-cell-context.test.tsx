@@ -111,6 +111,28 @@ describe('Phase 8 table cell context menu', () => {
     expect(screen.queryByTestId('designer-table-cell-1-1')).not.toBeInTheDocument();
   });
 
+  it('renders table column widths and row heights from table properties on the canvas', () => {
+    loadWith(tableComponent({
+      width: 90,
+      height: 26,
+      columns: [
+        { id: 'c1', header: 'Name', field: 'name', width: 10, cellType: 'text' },
+        { id: 'c2', header: 'Title', field: 'title', width: 20, cellType: 'text' },
+        { id: 'c3', header: 'Team', field: 'team', width: 60, cellType: 'text' },
+      ],
+      rowCount: 3,
+      columnCount: 3,
+      headerHeight: 6,
+      rowHeight: 10,
+    }));
+
+    render(<Canvas />);
+
+    const grid = screen.getByTestId('designer-table-grid');
+    expect(grid.style.gridTemplateColumns).toBe('38px 76px 227px');
+    expect(grid.style.gridTemplateRows).toBe('23px 38px 38px');
+  });
+
   it('localizes table context menu actions to English', () => {
     loadWith(tableComponent());
     render(

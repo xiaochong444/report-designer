@@ -1649,6 +1649,13 @@ const TablePreview: React.FC<{ table: TableComponent }> = ({ table }) => {
   const headerRowsCount = normalized.headerRowsCount ?? 1;
   const footerRowsCount = normalized.footerRowsCount ?? 0;
   const cellBorder = normalized.showBorder ? '1px solid #8c8c8c' : '1px dashed #d9d9d9';
+  const columnTemplate = normalized.columns
+    .slice(0, columnCount)
+    .map(column => `${safeCssNumber(mmToPx(column.width))}px`)
+    .join(' ');
+  const rowTemplate = Array.from({ length: rowCount }, (_, row) => (
+    `${safeCssNumber(mmToPx(row < headerRowsCount ? normalized.headerHeight : normalized.rowHeight))}px`
+  )).join(' ');
   const coveredCells = new Set<string>();
 
   for (const cell of normalized.cells ?? []) {
@@ -1711,8 +1718,8 @@ const TablePreview: React.FC<{ table: TableComponent }> = ({ table }) => {
         width: '100%',
         height: '100%',
         display: 'grid',
-        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
-        gridTemplateRows: `repeat(${rowCount}, minmax(0, 1fr))`,
+        gridTemplateColumns: columnTemplate || `repeat(${columnCount}, minmax(0, 1fr))`,
+        gridTemplateRows: rowTemplate || `repeat(${rowCount}, minmax(0, 1fr))`,
         border: cellBorder,
         boxSizing: 'border-box',
         backgroundColor: '#fff',

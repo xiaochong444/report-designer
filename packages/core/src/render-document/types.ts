@@ -1,4 +1,4 @@
-import type { BorderConfig, FontConfig, Padding, ReportFont } from '../template-model/types';
+import type { BorderConfig, FontConfig, Padding, ReportFont, TableColumn } from '../template-model/types';
 import type { EventLogEntry } from '../event-engine/types';
 
 export interface RenderDocument {
@@ -101,6 +101,25 @@ export interface RenderBarcode extends RenderComponentBase {
   showText?: boolean;
 }
 
+export interface RenderTableCell {
+  row: number;
+  column: number;
+  content: string;
+  field?: string;
+  rowSpan: number;
+  colSpan: number;
+  height: number;
+  isHeader?: boolean;
+  isFooter?: boolean;
+}
+
+export interface RenderTable extends RenderComponentBase {
+  type: 'table';
+  columns: TableColumn[];
+  rows: RenderTableCell[][];
+  showBorder: boolean;
+}
+
 export interface RenderPanel extends RenderContainerBase {
   type: 'panel';
 }
@@ -119,6 +138,7 @@ export type RenderComponentBox =
   | RenderShape
   | RenderCheckbox
   | RenderBarcode
+  | RenderTable
   | RenderPanel
   | RenderSubreport
   | RenderComponentBase;

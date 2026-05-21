@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import JsBarcode from 'jsbarcode';
-import { sanitizeRichHtml, type RenderBarcode, type RenderCheckbox, type RenderComponentBox, type RenderImage, type RenderLine, type RenderRichText, type RenderShape, type RenderText } from '@report-designer/core';
+import { sanitizeRichHtml, type RenderBarcode, type RenderCheckbox, type RenderComponentBox, type RenderImage, type RenderLine, type RenderRichText, type RenderShape, type RenderTable, type RenderText } from '@report-designer/core';
 
 export const MM_TO_PX = 96 / 25.4;
 type RenderTextStyle = NonNullable<RenderText['style']> & {
@@ -56,6 +56,8 @@ export const RenderComponent: React.FC<RenderComponentProps> = ({ component, zoo
       return <CheckboxComponent component={component as RenderCheckbox} style={style} scale={scale} dataProps={dataProps} />;
     case 'barcode':
       return <BarcodeComponent component={component as RenderBarcode} style={style} dataProps={dataProps} />;
+    case 'table':
+      return <TableComponent component={component as RenderTable} style={style} scale={scale} dataProps={dataProps} />;
     default:
       return <div data-testid="render-component-unknown" {...dataProps} style={style} />;
   }
@@ -186,6 +188,49 @@ const BarcodeComponent: React.FC<{ component: RenderBarcode; style: React.CSSPro
     <div data-testid="render-component-barcode" {...dataProps} style={{ ...style, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <svg ref={ref} style={{ width: '100%', height: component.showText ? '75%' : '100%' }} />
       {component.showText ? <div style={{ fontSize: 10, lineHeight: '1.1', textAlign: 'center' }}>{component.value}</div> : null}
+    </div>
+  );
+};
+
+const TableComponent: React.FC<{ component: RenderTable; style: React.CSSProperties; scale: number; dataProps: Record<string, string> }> = ({ component, style, scale, dataProps }) => {
+  const border = component.showBorder ? `${Math.max(1, 0.2 * MM_TO_PX * scale)}px solid #8c8c8c` : '1px dashed #d9d9d9';
+  const rows = component.rows ?? [];
+  return (
+    <div
+      data-testid="render-component-table"
+      {...dataProps}
+      style={{
+        ...style,
+        display: 'grid',
+        gridTemplateColumns: component.columns.map(column => `${column.width * MM_TO_PX * scale}px`).join(' '),
+        gridTemplateRows: rows.map(row => `${(row[0]?.height ?? 8) * MM_TO_PX * scale}px`).join(' '),
+        overflow: 'hidden',
+        border,
+        backgroundColor: '#fff',
+      }}
+    >
+      {rows.flatMap(row => row.map(cell => (
+        <div
+          key={`${cell.row}-${cell.column}`}
+          style={{
+            gridColumn: cell.colSpan > 1 ? `span ${cell.colSpan}` : undefined,
+            gridRow: cell.rowSpan > 1 ? `span ${cell.rowSpan}` : undefined,
+            borderRight: cell.column + cell.colSpan >= component.columns.length ? undefined : border,
+            borderBottom: cell.row + cell.rowSpan >= rows.length ? undefined : border,
+            backgroundColor: cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined,
+            color: '#111',
+            fontSize: 10 * 1.333 * scale,
+            lineHeight: 1.2,
+            padding: `${1 * MM_TO_PX * scale}px ${1.5 * MM_TO_PX * scale}px`,
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+            boxSizing: 'border-box',
+          }}
+        >
+          {cell.content}
+        </div>
+      )))}
     </div>
   );
 };

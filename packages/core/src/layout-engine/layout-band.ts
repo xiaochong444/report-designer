@@ -21,6 +21,8 @@ import type {
   RichtextComponent,
   ShapeComponent,
   SubreportComponent,
+  TableCell,
+  TableComponent,
   TextComponent,
 } from '../template-model/types';
 import { formatValue } from '../text-format';
@@ -220,6 +222,10 @@ function layoutComponent(
     };
   }
 
+  if (component.type === 'table') {
+    return layoutTable(component as TableComponent, options);
+  }
+
   if (component.type === 'line') {
     const lineComponent = component as LineComponent;
     return {
@@ -358,6 +364,35 @@ function layoutComponent(
   };
 }
 
+function layoutTable(component: TableComponent, options: LayoutBandOptions): RenderComponentBox {
+  const columnCount = Math.max(1, component.columnCount ?? component.columns.length);
+  const rowCount = Math.max(1, component.rowCount ?? 1);
+  const columns = normalizeTableColumns(component, columnCount);
+  const headerRowsCount = Math.max(0, Math.min(rowCount, component.headerRowsCount ?? 1));
+  const footerRowsCount = Math.max(0, Math.min(rowCount - headerRowsCount, component.footerRowsCount ?? 0));
+  const rows = buildTableRows(component, columns, {
+    rowCount,
+    headerRowsCount,
+    footerRowsCount,
+    rowsByBand: options.rowsByBand ?? {},
+    pageRowsByBand: options.pageRowsByBand ?? {},
+    context: options.context,
+  });
+
+  return {
+    id: component.id,
+    type: 'table',
+    x: options.x + component.x,
+    y: options.y + component.y,
+    width: component.width,
+    height: component.height,
+    columns,
+    rows,
+    showBorder: component.showBorder,
+    style: buildBaseRenderStyle(component),
+  };
+}
+
 function buildBaseRenderStyle(component: ReportComponent) {
   const border = (component as { border?: BorderConfig }).border;
   const style = {
@@ -388,6 +423,129 @@ function hasContainerOverflow(children: RenderComponentBox[], x: number, y: numb
     || child.x + child.width > x + width
     || child.y + child.height > y + height
   ));
+}
+
+function normalizeTableColumns(component: TableComponent, count: number): TableComponent['columns'] {
+  const width = Math.round((component.width / Math.max(1, count)) * 10) / 10;
+  return Array.from({ length: count }, (_, index) => {
+    const column = component.columns[index];
+    return {
+      id: column?.id || `col_${index + 1}`,
+      header: column?.header || `Column ${index + 1}`,
+      field: column?.field || '',
+      width: column?.width || width,
+      cellType: column?.cellType || 'text',
+    };
+  });
+}
+
+function buildTableRows(
+  component: TableComponent,
+  columns: TableComponent['columns'],
+  options: {
+    rowCount: number;
+    headerRowsCount: number;
+    footerRowsCount: number;
+    rowsByBand: Record<string, Record<string, unknown>[]>;
+    pageRowsByBand: Record<string, Record<string, unknown>[]>;
+    context: RenderContext;
+  },
+) {
+  const sourceRows = tableSourceRows(component, options.context, options.rowsByBand);
+  const covered = tableCoveredCells(component.cells, options.rowCount, columns.length);
+  const rows = [];
+  for (let row = 0; row < options.rowCount; row += 1) {
+    const renderedRow = [];
+    const isHeader = row < options.headerRowsCount;
+    const isFooter = row >= options.rowCount - options.footerRowsCount;
+    const detailIndex = Math.max(0, row - options.headerRowsCount);
+    const rowContext: RenderContext = {
+      ...options.context,
+      row: sourceRows[detailIndex] ?? options.context.row,
+      rowIndex: detailIndex,
+      dataSourceId: component.dataSource || options.context.dataSourceId,
+    };
+
+    for (let column = 0; column < columns.length; column += 1) {
+      if (covered.has(`${row}-${column}`)) continue;
+      const customCell = component.cells?.find(cell => cell.row === row && cell.column === column);
+      const rowSpan = Math.max(1, Math.min(customCell?.rowSpan ?? 1, options.rowCount - row));
+      const colSpan = Math.max(1, Math.min(customCell?.colSpan ?? 1, columns.length - column));
+      const content = tableCellContent({
+        cell: customCell,
+        column: columns[column],
+        isHeader,
+        isFooter,
+        context: rowContext,
+        rowsByBand: options.rowsByBand,
+        pageRowsByBand: options.pageRowsByBand,
+      });
+      renderedRow.push({
+        row,
+        column,
+        content,
+        field: columns[column]?.field,
+        rowSpan,
+        colSpan,
+        height: isHeader ? component.headerHeight : component.rowHeight,
+        isHeader,
+        isFooter,
+      });
+    }
+    rows.push(renderedRow);
+  }
+  return rows;
+}
+
+function tableSourceRows(
+  component: TableComponent,
+  context: RenderContext,
+  rowsByBand: Record<string, Record<string, unknown>[]>,
+): Record<string, unknown>[] {
+  if (component.dataSource) {
+    return context.rowsByBand?.[component.dataSource] ?? rowsByBand[component.dataSource] ?? [];
+  }
+  return context.row ? [context.row] : [];
+}
+
+function tableCoveredCells(cells: TableCell[] | undefined, rowCount: number, columnCount: number): Set<string> {
+  const covered = new Set<string>();
+  for (const cell of cells ?? []) {
+    const rowSpan = Math.max(1, Math.min(cell.rowSpan ?? 1, rowCount - cell.row));
+    const colSpan = Math.max(1, Math.min(cell.colSpan ?? 1, columnCount - cell.column));
+    for (let row = cell.row; row < cell.row + rowSpan; row += 1) {
+      for (let column = cell.column; column < cell.column + colSpan; column += 1) {
+        if (row === cell.row && column === cell.column) continue;
+        covered.add(`${row}-${column}`);
+      }
+    }
+  }
+  return covered;
+}
+
+function tableCellContent(options: {
+  cell?: TableCell;
+  column: TableComponent['columns'][number];
+  isHeader: boolean;
+  isFooter: boolean;
+  context: RenderContext;
+  rowsByBand: Record<string, Record<string, unknown>[]>;
+  pageRowsByBand: Record<string, Record<string, unknown>[]>;
+}): string {
+  if (options.cell?.text) {
+    return resolveTemplateValue(options.cell.text, options.context, options.rowsByBand, options.pageRowsByBand);
+  }
+  if (options.isHeader) {
+    return options.column.header;
+  }
+  if (options.isFooter) {
+    return '';
+  }
+  if (!options.column.field) {
+    return '';
+  }
+  const value = options.context.row?.[options.column.field] ?? options.context.row?.[`${options.context.dataSourceId}.${options.column.field}`];
+  return value == null ? '' : String(value);
 }
 
 function resolveTemplateBoolean(
