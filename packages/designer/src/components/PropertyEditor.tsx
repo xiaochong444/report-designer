@@ -149,7 +149,7 @@ export const PropertyEditor: React.FC = () => {
   return (
     <div style={{ padding: 8 }}>
       <Collapse
-        defaultActiveKey={['general', 'position', 'text', 'font', 'border', 'appearance', 'events', 'table', 'line', 'shape', 'pagenumber', 'datetime']}
+        defaultActiveKey={['general', 'position', 'behavior', 'text', 'font', 'border', 'appearance', 'events', 'table', 'line', 'shape', 'pagenumber', 'datetime']}
         size="small"
         items={[
           // ---- 基本信息 ----
@@ -221,6 +221,33 @@ export const PropertyEditor: React.FC = () => {
                     step={unitStep}
                     min={formatUnitValue(1, reportUnit)}
                   />
+                </Form.Item>
+              </Form>
+            ),
+          },
+
+          {
+            key: 'behavior',
+            label: t('behavior'),
+            children: (
+              <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+                <Form.Item label={t('visibleExpression')}>
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Input
+                      aria-label={t('visibleExpression')}
+                      value={comp.visible || ''}
+                      onChange={(event) => handleChange('visible', event.target.value)}
+                      size="small"
+                      placeholder={t('visibleExpressionPlaceholder')}
+                    />
+                    <Button
+                      aria-label={t('openExpressionEditorFor', { field: t('visibleExpression') })}
+                      title={t('openExpressionEditorFor', { field: t('visibleExpression') })}
+                      icon={<EditOutlined />}
+                      onClick={() => openFieldExpressionEditor('visible', t('visibleExpression'))}
+                      style={{ width: 32 }}
+                    />
+                  </Space.Compact>
                 </Form.Item>
               </Form>
             ),
@@ -1105,6 +1132,7 @@ const propertyEditorMessages = {
     selectedComponents: '已选择 {count} 个组件',
     general: '基本信息',
     position: '位置与尺寸',
+    behavior: '行为',
     text: '文本内容',
     font: '字体',
     border: '边框',
@@ -1119,6 +1147,8 @@ const propertyEditorMessages = {
     componentName: '组件名称',
     width: '宽度',
     height: '高度',
+    visibleExpression: '可见表达式',
+    visibleExpressionPlaceholder: '留空表示始终可见，例如 {Parameters.ShowTitle}',
     textContent: '文本内容',
     textContentPlaceholder: '普通文本或 {DataSource.Field}',
     openExpressionEditor: '打开表达式编辑器',
@@ -1239,6 +1269,7 @@ const propertyEditorMessages = {
     selectedComponents: '{count} components selected',
     general: 'General',
     position: 'Position and Size',
+    behavior: 'Behavior',
     text: 'Text Content',
     font: 'Font',
     border: 'Border',
@@ -1253,6 +1284,8 @@ const propertyEditorMessages = {
     componentName: 'Component name',
     width: 'Width',
     height: 'Height',
+    visibleExpression: 'Visible expression',
+    visibleExpressionPlaceholder: 'Leave empty to always show, for example {Parameters.ShowTitle}',
     textContent: 'Text content',
     textContentPlaceholder: 'Plain text or {DataSource.Field}',
     openExpressionEditor: 'Open expression editor',

@@ -72,6 +72,10 @@ export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBo
 }
 
 function layoutComponentWithEvents(component: ReportComponent, band: Band, options: LayoutBandOptions): RenderComponentBox | undefined {
+  if (!isComponentVisible(component, options)) {
+    return undefined;
+  }
+
   if (!options.eventRuntime) {
     return layoutComponent(component, band, options);
   }
@@ -127,6 +131,19 @@ function runComponentEvent(
     eventLogs: eventRuntime.log,
     runtimeState: eventRuntime.runtime,
   });
+}
+
+function isComponentVisible(component: ReportComponent, options: LayoutBandOptions): boolean {
+  if (!component.visible || component.visible.trim() === '') {
+    return true;
+  }
+
+  return resolveTemplateBoolean(
+    component.visible,
+    options.context,
+    options.rowsByBand ?? {},
+    options.pageRowsByBand ?? {},
+  );
 }
 
 function layoutComponent(

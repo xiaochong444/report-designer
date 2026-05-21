@@ -78,6 +78,57 @@ describe('phase 27 component property model', () => {
     expect(selectedComponent().label).toBe('{Orders.StatusText}');
   });
 
+  it('edits the common visible expression from the component behavior group', () => {
+    loadSelectedComponent({
+      id: 'text-visible-1',
+      type: 'text',
+      name: 'VisibleText',
+      x: 0,
+      y: 0,
+      width: 60,
+      height: 10,
+      text: 'Visible',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    } as ReportComponent);
+
+    render(<PropertyEditor />);
+
+    const visibleInput = screen.getByLabelText('可见表达式');
+    fireEvent.change(visibleInput, { target: { value: '{Parameters.ShowTitle}' } });
+
+    expect(selectedComponent().visible).toBe('{Parameters.ShowTitle}');
+  });
+
+  it('edits the common visible expression through the shared expression editor', async () => {
+    loadSelectedComponent({
+      id: 'text-visible-editor-1',
+      type: 'text',
+      name: 'VisibleTextEditor',
+      x: 0,
+      y: 0,
+      width: 60,
+      height: 10,
+      text: 'Visible',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    } as ReportComponent);
+
+    render(<PropertyEditor />);
+
+    await editExpression('打开表达式编辑器：可见表达式', '{Parameters.ShowVisible}');
+
+    expect(selectedComponent().visible).toBe('{Parameters.ShowVisible}');
+  });
+
   it('uses user-facing rich text content wording in properties', () => {
     loadSelectedComponent({
       id: 'rich-1',

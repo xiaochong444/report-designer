@@ -190,6 +190,7 @@ export interface ReportComponent {
   padding?: Padding;
   style?: string;
   conditionalFormat?: string;
+  visible?: Expression;
   conditions?: ConditionRule[];
   events?: EventMap<ComponentEventName>;
   anchor?: string;
