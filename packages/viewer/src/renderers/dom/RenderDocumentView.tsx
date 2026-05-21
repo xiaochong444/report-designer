@@ -63,7 +63,7 @@ const RenderPageView = React.forwardRef<HTMLDivElement, { page: RenderPage; zoom
       style={{
         width: page.width * MM_TO_PX * scale,
         height: page.height * MM_TO_PX * scale,
-        background: '#fff',
+        background: page.backgroundColor ?? '#fff',
         boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
         position: 'relative',
         flex: '0 0 auto',

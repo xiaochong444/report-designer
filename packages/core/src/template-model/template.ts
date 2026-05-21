@@ -155,6 +155,7 @@ export function createDefaultTemplate(name = '未命名报表'): ReportTemplate 
     id: pageId,
     width: 210,
     height: 297,
+    backgroundColor: '#ffffff',
     margins: { top: 20, right: 20, bottom: 20, left: 20 },
     orientation: 'portrait',
     bands,

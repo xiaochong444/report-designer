@@ -72,6 +72,17 @@ describe('Phase 10 page properties', () => {
     expect(pageProperties).not.toHaveTextContent('Millimeter');
   });
 
+  it('shows page background color and applies it to the design canvas', () => {
+    const template = createDefaultTemplate('页面背景');
+    template.pages[0].backgroundColor = '#fff7e6';
+
+    render(<Designer template={template} />);
+
+    const pageProperties = screen.getByTestId('designer-page-properties');
+    expect(within(pageProperties).getByLabelText('背景色')).toBeInTheDocument();
+    expect(screen.getByTestId('designer-page-sheet')).toHaveStyle({ backgroundColor: '#fff7e6' });
+  });
+
   it('edits the page display name and reflects it in the report tree', () => {
     render(<Designer template={createDefaultTemplate('页面名称')} />);
 

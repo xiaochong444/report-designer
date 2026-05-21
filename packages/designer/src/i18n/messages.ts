@@ -238,6 +238,7 @@ export type DesignerMessageKey =
   | 'pageSettings.noPage'
   | 'pageSettings.page'
   | 'pageSettings.pageName'
+  | 'pageSettings.backgroundColor'
   | 'pageSettings.paperType'
   | 'pageSettings.reportUnit'
   | 'pageSettings.custom'
@@ -576,6 +577,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.noPage': '未选择页面',
     'pageSettings.page': '页面',
     'pageSettings.pageName': '页面名称',
+    'pageSettings.backgroundColor': '背景色',
     'pageSettings.paperType': '纸张类型',
     'pageSettings.reportUnit': '报表单位',
     'pageSettings.custom': '自定义',
@@ -911,6 +913,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.noPage': 'No page selected',
     'pageSettings.page': 'Page',
     'pageSettings.pageName': 'Page name',
+    'pageSettings.backgroundColor': 'Background color',
     'pageSettings.paperType': 'Paper type',
     'pageSettings.reportUnit': 'Report unit',
     'pageSettings.custom': 'Custom',

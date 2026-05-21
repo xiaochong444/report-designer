@@ -166,6 +166,7 @@ export function paginate(
       totalPages: 0,
       width: templatePage.width,
       height: templatePage.height,
+      backgroundColor: templatePage.backgroundColor,
       items: [],
     };
     pages.push(currentPage);

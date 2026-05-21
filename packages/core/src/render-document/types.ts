@@ -13,6 +13,7 @@ export interface RenderPage {
   totalPages: number;
   width: number;
   height: number;
+  backgroundColor?: string;
   items: RenderBandBox[];
 }
 

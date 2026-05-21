@@ -9,7 +9,7 @@ export function buildPrintHtml(document: RenderDocument): string {
   const pageCss = firstPage ? `${firstPage.width}mm ${firstPage.height}mm` : '210mm 297mm';
   const fontCss = buildReportFontCss(document.fonts);
   const pages = document.pages.map((page) => `
-    <div class="rd-print-page" style="width:${page.width}mm;height:${page.height}mm;">
+    <div class="rd-print-page" style="width:${page.width}mm;height:${page.height}mm;background-color:${escapeAttribute(page.backgroundColor ?? '#fff')};">
       ${page.items.map((band) => `
         <div class="rd-print-band" style="left:${band.x}mm;top:${band.y}mm;width:${band.width}mm;height:${band.height}mm;">
           ${band.components.map(component => renderComponentHtml(component, band.x, band.y)).join('')}

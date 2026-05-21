@@ -826,7 +826,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
           onContextMenu={(e) => e.preventDefault()}
           style={{
             width: safeCssNumber(rawPageWidthPx), height: safeCssNumber(rawPageHeightPx),
-            backgroundColor: 'white', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
+            backgroundColor: currentPage.backgroundColor ?? '#ffffff', boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
             position: 'relative', marginLeft: RULER_SIZE, marginTop: RULER_SIZE, overflow: 'hidden',
             transform: `scale(${zoom})`,
             transformOrigin: 'top left',

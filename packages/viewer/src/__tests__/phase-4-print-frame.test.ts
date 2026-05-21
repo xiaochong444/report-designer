@@ -24,6 +24,15 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('padding:0mm 0mm 0mm 0mm');
   });
 
+  it('prints the page background color from the render document', () => {
+    const document = makeRenderDocument();
+    document.pages[0].backgroundColor = '#fff7e6';
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('class="rd-print-page" style="width:210mm;height:297mm;background-color:#fff7e6;"');
+  });
+
   it('renders component coordinates relative to their containing band', () => {
     const html = buildPrintHtml(makeRenderDocument());
 

@@ -403,6 +403,7 @@ export interface Page {
   name?: string;
   width: number;
   height: number;
+  backgroundColor?: string;
   margins: Margins;
   orientation: PageOrientation;
   bands: Band[];

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Collapse, Form, Input, InputNumber, Select, Space, Typography } from 'antd';
+import { Button, Collapse, ColorPicker, Form, Input, InputNumber, Select, Space, Typography } from 'antd';
 import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
 import { normalizeReportFonts } from '@report-designer/core';
 import type { Margins, Page, ReportFont } from '@report-designer/core';
@@ -151,6 +151,19 @@ const PageProperties: React.FC = () => {
                     value={page.name ?? ''}
                     onChange={event => updatePage({ name: event.target.value })}
                   />
+                </Form.Item>
+                <Form.Item label={t('pageSettings.backgroundColor')}>
+                  <Space.Compact style={{ width: '100%' }}>
+                    <ColorPicker
+                      value={page.backgroundColor ?? '#ffffff'}
+                      onChange={color => updatePage({ backgroundColor: color.toHexString() })}
+                    />
+                    <Input
+                      aria-label={t('pageSettings.backgroundColor')}
+                      value={page.backgroundColor ?? '#ffffff'}
+                      onChange={event => updatePage({ backgroundColor: event.target.value })}
+                    />
+                  </Space.Compact>
                 </Form.Item>
                 <Form.Item label={t('pageSettings.paperType')}>
                   <Select
