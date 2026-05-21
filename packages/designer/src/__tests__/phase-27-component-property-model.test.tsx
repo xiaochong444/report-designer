@@ -129,6 +129,32 @@ describe('phase 27 component property model', () => {
     expect(selectedComponent().visible).toBe('{Parameters.ShowVisible}');
   });
 
+  it('edits the common printable expression from the component behavior group', async () => {
+    loadSelectedComponent({
+      id: 'text-printable-1',
+      type: 'text',
+      name: 'PrintableText',
+      x: 0,
+      y: 0,
+      width: 60,
+      height: 10,
+      text: 'Printable',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    } as ReportComponent);
+
+    render(<PropertyEditor />);
+
+    fireEvent.change(screen.getByLabelText('可打印表达式'), { target: { value: '{Parameters.PrintTitle}' } });
+    await editExpression('打开表达式编辑器：可打印表达式', '{Parameters.PrintTitle2}');
+
+    expect(selectedComponent().printableExpression).toBe('{Parameters.PrintTitle2}');
+  });
+
   it('uses user-facing rich text content wording in properties', () => {
     loadSelectedComponent({
       id: 'rich-1',

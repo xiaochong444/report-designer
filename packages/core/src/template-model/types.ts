@@ -191,6 +191,7 @@ export interface ReportComponent {
   style?: string;
   conditionalFormat?: string;
   visible?: Expression;
+  printableExpression?: Expression;
   conditions?: ConditionRule[];
   events?: EventMap<ComponentEventName>;
   anchor?: string;

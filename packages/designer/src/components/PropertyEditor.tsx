@@ -249,6 +249,24 @@ export const PropertyEditor: React.FC = () => {
                     />
                   </Space.Compact>
                 </Form.Item>
+                <Form.Item label={t('printableExpression')}>
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Input
+                      aria-label={t('printableExpression')}
+                      value={comp.printableExpression || ''}
+                      onChange={(event) => handleChange('printableExpression', event.target.value)}
+                      size="small"
+                      placeholder={t('printableExpressionPlaceholder')}
+                    />
+                    <Button
+                      aria-label={t('openExpressionEditorFor', { field: t('printableExpression') })}
+                      title={t('openExpressionEditorFor', { field: t('printableExpression') })}
+                      icon={<EditOutlined />}
+                      onClick={() => openFieldExpressionEditor('printableExpression', t('printableExpression'))}
+                      style={{ width: 32 }}
+                    />
+                  </Space.Compact>
+                </Form.Item>
               </Form>
             ),
           },
@@ -1149,6 +1167,8 @@ const propertyEditorMessages = {
     height: '高度',
     visibleExpression: '可见表达式',
     visibleExpressionPlaceholder: '留空表示始终可见，例如 {Parameters.ShowTitle}',
+    printableExpression: '可打印表达式',
+    printableExpressionPlaceholder: '留空表示始终打印，例如 {Parameters.PrintTitle}',
     textContent: '文本内容',
     textContentPlaceholder: '普通文本或 {DataSource.Field}',
     openExpressionEditor: '打开表达式编辑器',
@@ -1286,6 +1306,8 @@ const propertyEditorMessages = {
     height: 'Height',
     visibleExpression: 'Visible expression',
     visibleExpressionPlaceholder: 'Leave empty to always show, for example {Parameters.ShowTitle}',
+    printableExpression: 'Printable expression',
+    printableExpressionPlaceholder: 'Leave empty to always print, for example {Parameters.PrintTitle}',
     textContent: 'Text content',
     textContentPlaceholder: 'Plain text or {DataSource.Field}',
     openExpressionEditor: 'Open expression editor',

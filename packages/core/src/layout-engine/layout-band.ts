@@ -72,7 +72,7 @@ export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBo
 }
 
 function layoutComponentWithEvents(component: ReportComponent, band: Band, options: LayoutBandOptions): RenderComponentBox | undefined {
-  if (!isComponentVisible(component, options)) {
+  if (!isComponentRenderable(component, options)) {
     return undefined;
   }
 
@@ -133,13 +133,16 @@ function runComponentEvent(
   });
 }
 
-function isComponentVisible(component: ReportComponent, options: LayoutBandOptions): boolean {
-  if (!component.visible || component.visible.trim() === '') {
-    return true;
-  }
+function isComponentRenderable(component: ReportComponent, options: LayoutBandOptions): boolean {
+  if (!resolveOptionalBoolean(component.visible, options)) return false;
+  if (!resolveOptionalBoolean(component.printableExpression, options)) return false;
+  return true;
+}
 
+function resolveOptionalBoolean(value: string | undefined, options: LayoutBandOptions): boolean {
+  if (!value || value.trim() === '') return true;
   return resolveTemplateBoolean(
-    component.visible,
+    value,
     options.context,
     options.rowsByBand ?? {},
     options.pageRowsByBand ?? {},

@@ -36,4 +36,20 @@ describe('Phase 30 component visibility', () => {
 
     expect(texts).toEqual(['Shown']);
   });
+
+  it('skips components when their printable expression resolves to false', () => {
+    const template = makeTemplate([
+      band('title', 'reportTitle', {
+        components: [
+          textComponent({ id: 'shown', text: 'Shown' }),
+          textComponent({ id: 'not-printable', text: 'Not printable', printableExpression: '{Parameters.CanPrintTitle}' } as any),
+        ],
+      }),
+    ]);
+
+    const rendered = renderReport(template, {}, { parameters: { CanPrintTitle: false } });
+    const texts = rendered.pages[0].items[0].components.map(component => (component as any).content);
+
+    expect(texts).toEqual(['Shown']);
+  });
 });
