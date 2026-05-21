@@ -249,6 +249,24 @@ export const PropertyEditor: React.FC = () => {
                     />
                   </Space.Compact>
                 </Form.Item>
+                <Form.Item label={t('enabledExpression')}>
+                  <Space.Compact style={{ width: '100%' }}>
+                    <Input
+                      aria-label={t('enabledExpression')}
+                      value={comp.enabledExpression || ''}
+                      onChange={(event) => handleChange('enabledExpression', event.target.value)}
+                      size="small"
+                      placeholder={t('enabledExpressionPlaceholder')}
+                    />
+                    <Button
+                      aria-label={t('openExpressionEditorFor', { field: t('enabledExpression') })}
+                      title={t('openExpressionEditorFor', { field: t('enabledExpression') })}
+                      icon={<EditOutlined />}
+                      onClick={() => openFieldExpressionEditor('enabledExpression', t('enabledExpression'))}
+                      style={{ width: 32 }}
+                    />
+                  </Space.Compact>
+                </Form.Item>
                 <Form.Item label={t('printableExpression')}>
                   <Space.Compact style={{ width: '100%' }}>
                     <Input
@@ -1167,6 +1185,8 @@ const propertyEditorMessages = {
     height: '高度',
     visibleExpression: '可见表达式',
     visibleExpressionPlaceholder: '留空表示始终可见，例如 {Parameters.ShowTitle}',
+    enabledExpression: '启用表达式',
+    enabledExpressionPlaceholder: '留空表示始终启用，例如 {Parameters.EnableTitle}',
     printableExpression: '可打印表达式',
     printableExpressionPlaceholder: '留空表示始终打印，例如 {Parameters.PrintTitle}',
     textContent: '文本内容',
@@ -1306,6 +1326,8 @@ const propertyEditorMessages = {
     height: 'Height',
     visibleExpression: 'Visible expression',
     visibleExpressionPlaceholder: 'Leave empty to always show, for example {Parameters.ShowTitle}',
+    enabledExpression: 'Enabled expression',
+    enabledExpressionPlaceholder: 'Leave empty to always enable, for example {Parameters.EnableTitle}',
     printableExpression: 'Printable expression',
     printableExpressionPlaceholder: 'Leave empty to always print, for example {Parameters.PrintTitle}',
     textContent: 'Text content',

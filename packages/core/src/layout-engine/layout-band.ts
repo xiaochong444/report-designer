@@ -134,6 +134,7 @@ function runComponentEvent(
 }
 
 function isComponentRenderable(component: ReportComponent, options: LayoutBandOptions): boolean {
+  if (!resolveOptionalBoolean(component.enabledExpression, options)) return false;
   if (!resolveOptionalBoolean(component.visible, options)) return false;
   if (!resolveOptionalBoolean(component.printableExpression, options)) return false;
   return true;
