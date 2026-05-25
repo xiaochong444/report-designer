@@ -12,6 +12,7 @@ import type {
   ReportStyle,
   ReportTemplate,
   TableColumn,
+  TableCell,
   TableComponent,
   TextComponent,
 } from '@report-designer/core';
@@ -38,7 +39,17 @@ import {
   mergeTableCellRight,
   setTableStructure,
   splitTableCell,
+  normalizeTable,
 } from '../table/table-structure';
+
+export interface TableCellSelection {
+  tableId: string;
+  bandId: string;
+  startRow: number;
+  startColumn: number;
+  endRow: number;
+  endColumn: number;
+}
 
 export interface DesignerState {
   template: ReportTemplate;
@@ -48,6 +59,7 @@ export interface DesignerState {
   conditionalFormatLibraryOpen: boolean;
   selectedComponentIds: string[];
   selectedBandId: string | null;
+  selectedTableCell: TableCellSelection | null;
   dataSources: Record<string, any[]>;
   dispatcher: CommandDispatcher;
   clipboard: ReportComponent[];
@@ -71,6 +83,7 @@ export interface DesignerState {
   closeConditionalFormatLibrary: () => void;
   selectComponents: (componentIds: string[]) => void;
   selectBand: (bandId: string | null) => void;
+  selectTableCell: (selection: TableCellSelection | null) => void;
   setDataSources: (data: Record<string, any[]>) => void;
   setReportUnit: (unit: ReportUnit) => void;
   setZoom: (zoom: number) => void;
@@ -121,6 +134,7 @@ export interface DesignerState {
     dataSource?: string;
     columns?: TableColumn[];
   }) => void;
+  updateSelectedTableCell: (updates: Partial<Pick<TableCell, 'text' | 'rowSpan' | 'colSpan'>>) => void;
   applySelectedStyle: (styleId: string | undefined) => void;
   createTextStyle: (style?: Partial<ReportStyle> & { name?: string }) => string;
   duplicateTextStyle: (styleId: string) => string | undefined;
@@ -177,6 +191,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     conditionalFormatLibraryOpen: false,
     selectedComponentIds: [],
     selectedBandId: null,
+    selectedTableCell: null,
     dataSources: {},
     dispatcher,
     clipboard: [],
@@ -193,6 +208,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       conditionalFormatLibraryOpen: false,
       selectedComponentIds: [],
       selectedBandId: null,
+      selectedTableCell: null,
       reportUnit: 'mm',
       zoom: 1,
     });
@@ -264,9 +280,15 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
 
   closeConditionalFormatLibrary: () => set({ conditionalFormatLibraryOpen: false }),
 
-  selectComponents: (componentIds) => set({ selectedComponentIds: componentIds }),
+  selectComponents: (componentIds) => set({ selectedComponentIds: componentIds, selectedTableCell: null }),
 
-  selectBand: (bandId) => set({ selectedBandId: bandId }),
+  selectBand: (bandId) => set({ selectedBandId: bandId, selectedTableCell: null }),
+
+  selectTableCell: (selection) => set({
+    selectedTableCell: selection ? normalizeTableCellSelection(selection) : null,
+    selectedComponentIds: selection ? [selection.tableId] : get().selectedComponentIds,
+    selectedBandId: selection ? null : get().selectedBandId,
+  }),
 
   setDataSources: (data) => set({ dataSources: data }),
 
@@ -816,6 +838,13 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       if (comp.type !== 'table') return comp;
       return setTableStructure(comp as TableComponent, updates);
     });
+    set({ template: newTemplate });
+  },
+
+  updateSelectedTableCell: (updates) => {
+    const { template, currentPageId, selectedTableCell } = get();
+    if (!selectedTableCell) return;
+    const newTemplate = updateTableCellInTemplate(template, currentPageId, selectedTableCell, updates);
     set({ template: newTemplate });
   },
 
@@ -1450,5 +1479,58 @@ function mapSelectedComponents(
         })),
       };
     }),
+  };
+}
+
+function normalizeTableCellSelection(selection: TableCellSelection): TableCellSelection {
+  const startRow = Math.min(selection.startRow, selection.endRow);
+  const endRow = Math.max(selection.startRow, selection.endRow);
+  const startColumn = Math.min(selection.startColumn, selection.endColumn);
+  const endColumn = Math.max(selection.startColumn, selection.endColumn);
+  return { ...selection, startRow, startColumn, endRow, endColumn };
+}
+
+function updateTableCellInTemplate(
+  template: ReportTemplate,
+  pageId: string,
+  selection: TableCellSelection,
+  updates: Partial<Pick<TableCell, 'text' | 'rowSpan' | 'colSpan'>>,
+): ReportTemplate {
+  const normalizedSelection = normalizeTableCellSelection(selection);
+  return {
+    ...template,
+    pages: template.pages.map(page => {
+      if (page.id !== pageId) return page;
+      return {
+        ...page,
+        bands: page.bands.map(band => {
+          if (band.id !== normalizedSelection.bandId) return band;
+          return {
+            ...band,
+            components: band.components.map(component => {
+              if (component.id !== normalizedSelection.tableId || component.type !== 'table') return component;
+              return updateTableCell(component as TableComponent, normalizedSelection, updates);
+            }),
+          };
+        }),
+      };
+    }),
+  };
+}
+
+function updateTableCell(
+  table: TableComponent,
+  selection: TableCellSelection,
+  updates: Partial<Pick<TableCell, 'text' | 'rowSpan' | 'colSpan'>>,
+): TableComponent {
+  const normalized = normalizeTable(table);
+  const row = selection.startRow;
+  const column = selection.startColumn;
+  const existing = normalized.cells?.find(cell => cell.row === row && cell.column === column) ?? { row, column };
+  const nextCell = { ...existing, ...updates };
+  const cells = (normalized.cells ?? []).filter(cell => !(cell.row === row && cell.column === column));
+  return {
+    ...normalized,
+    cells: [...cells, nextCell].sort((a, b) => a.row - b.row || a.column - b.column),
   };
 }

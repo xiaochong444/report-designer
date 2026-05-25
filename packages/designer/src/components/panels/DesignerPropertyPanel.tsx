@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Checkbox, Collapse, ColorPicker, Form, Input, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
 import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, DeleteOutlined, PlusOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { createDefaultPageBorder, createDefaultPageWatermark, normalizeReportFonts } from '@report-designer/core';
-import type { Margins, Page, PageBorder, PageWatermark, ReportFont } from '@report-designer/core';
+import type { Margins, Page, PageBorder, PageWatermark, ReportFont, TableCell, TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import {
   detectPaperType,
@@ -25,8 +25,10 @@ export const DesignerPropertyPanel: React.FC = () => {
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
   const selectedBandId = useDesignerStore(s => s.selectedBandId);
+  const selectedTableCell = useDesignerStore(s => s.selectedTableCell);
 
   const selectedType = React.useMemo(() => {
+    if (selectedTableCell) return t('selection.tableCell');
     if (selectedComponentIds.length === 1) {
       const page = template.pages.find(p => p.id === currentPageId);
       const component = page?.bands.flatMap(b => b.components).find(c => c.id === selectedComponentIds[0]);
@@ -35,24 +37,93 @@ export const DesignerPropertyPanel: React.FC = () => {
     if (selectedComponentIds.length > 1) return t('selection.components', { count: selectedComponentIds.length });
     if (selectedBandId) return t('selection.band');
     return t('pageSettings.title');
-  }, [currentPageId, selectedBandId, selectedComponentIds, t, template]);
+  }, [currentPageId, selectedBandId, selectedComponentIds, selectedTableCell, t, template]);
 
-  const showBandProperties = selectedBandId && selectedComponentIds.length === 0;
-  const showPageProperties = selectedComponentIds.length === 0 && !selectedBandId;
+  const showTableCellProperties = Boolean(selectedTableCell);
+  const showBandProperties = selectedBandId && selectedComponentIds.length === 0 && !showTableCellProperties;
+  const showPageProperties = selectedComponentIds.length === 0 && !selectedBandId && !showTableCellProperties;
 
   return (
     <aside className="rd-property-grid" data-testid="designer-property-grid">
       <div className="rd-panel-title">{selectedType}</div>
       <div className="rd-property-grid-body">
+        {showTableCellProperties ? <TableCellProperties /> : null}
         {showBandProperties ? (
           <div className="rd-property-grid-band">
             <BandPropertyGrid />
           </div>
         ) : null}
         {showPageProperties ? <PageProperties /> : null}
-        {!showBandProperties && !showPageProperties ? <PropertyEditor /> : null}
+        {!showTableCellProperties && !showBandProperties && !showPageProperties ? <PropertyEditor /> : null}
       </div>
     </aside>
+  );
+};
+
+const TableCellProperties: React.FC = () => {
+  const { t } = useDesignerI18n();
+  const template = useDesignerStore(s => s.template);
+  const currentPageId = useDesignerStore(s => s.currentPageId);
+  const selectedTableCell = useDesignerStore(s => s.selectedTableCell);
+  const updateSelectedTableCell = useDesignerStore(s => s.updateSelectedTableCell);
+  const page = template.pages.find(item => item.id === currentPageId);
+  const table = page?.bands
+    .find(band => band.id === selectedTableCell?.bandId)
+    ?.components.find(component => component.id === selectedTableCell?.tableId && component.type === 'table') as TableComponent | undefined;
+  const cell = table?.cells?.find(item => item.row === selectedTableCell?.startRow && item.column === selectedTableCell?.startColumn);
+  const selectionText = selectedTableCell
+    ? `${selectedTableCell.startRow + 1}:${selectedTableCell.startColumn + 1} - ${selectedTableCell.endRow + 1}:${selectedTableCell.endColumn + 1}`
+    : '';
+
+  if (!selectedTableCell || !table) return null;
+
+  const updateCell = (updates: Partial<Pick<TableCell, 'text' | 'rowSpan' | 'colSpan'>>) => {
+    updateSelectedTableCell(updates);
+  };
+
+  return (
+    <div className="rd-property-grid-band" data-testid="designer-table-cell-properties">
+      <Collapse
+        size="small"
+        defaultActiveKey={['cell']}
+        items={[{
+          key: 'cell',
+          label: t('tableCell.properties'),
+          children: (
+            <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+              <Form.Item label={t('tableCell.range')}>
+                <Input aria-label={t('tableCell.range')} value={selectionText} disabled />
+              </Form.Item>
+              <Form.Item label={t('tableCell.text')}>
+                <Input
+                  aria-label={t('tableCell.text')}
+                  value={cell?.text ?? ''}
+                  onChange={event => updateCell({ text: event.target.value })}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableCell.rowSpan')}>
+                <InputNumber
+                  aria-label={t('tableCell.rowSpan')}
+                  value={cell?.rowSpan ?? 1}
+                  min={1}
+                  style={{ width: '100%' }}
+                  onChange={value => updateCell({ rowSpan: Number(value ?? 1) })}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableCell.colSpan')}>
+                <InputNumber
+                  aria-label={t('tableCell.colSpan')}
+                  value={cell?.colSpan ?? 1}
+                  min={1}
+                  style={{ width: '100%' }}
+                  onChange={value => updateCell({ colSpan: Number(value ?? 1) })}
+                />
+              </Form.Item>
+            </Form>
+          ),
+        }]}
+      />
+    </div>
   );
 };
 

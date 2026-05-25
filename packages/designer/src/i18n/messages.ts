@@ -217,6 +217,7 @@ export type DesignerMessageKey =
   | 'selection.component'
   | 'selection.components'
   | 'selection.band'
+  | 'selection.tableCell'
   | 'contextMenu.copy'
   | 'contextMenu.cut'
   | 'contextMenu.paste'
@@ -234,6 +235,11 @@ export type DesignerMessageKey =
   | 'contextMenu.table.equalizeColumns'
   | 'contextMenu.table.equalizeRows'
   | 'contextMenu.table.toggleBorder'
+  | 'tableCell.properties'
+  | 'tableCell.range'
+  | 'tableCell.text'
+  | 'tableCell.rowSpan'
+  | 'tableCell.colSpan'
   | 'pageSettings.title'
   | 'pageSettings.noPage'
   | 'pageSettings.page'
@@ -578,6 +584,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'selection.component': '组件',
     'selection.components': '{count} 个组件',
     'selection.band': '带区',
+    'selection.tableCell': '表格单元格',
     'contextMenu.copy': '复制',
     'contextMenu.cut': '剪切',
     'contextMenu.paste': '粘贴',
@@ -595,6 +602,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.equalizeColumns': '均分列宽',
     'contextMenu.table.equalizeRows': '均分行高',
     'contextMenu.table.toggleBorder': '切换表格边框',
+    'tableCell.properties': '单元格属性',
+    'tableCell.range': '范围',
+    'tableCell.text': '文本内容',
+    'tableCell.rowSpan': '合并行数',
+    'tableCell.colSpan': '合并列数',
     'pageSettings.title': '页面设置',
     'pageSettings.noPage': '未选择页面',
     'pageSettings.page': '页面',
@@ -936,6 +948,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'selection.component': 'Component',
     'selection.components': '{count} components',
     'selection.band': 'Band',
+    'selection.tableCell': 'Table Cell',
     'contextMenu.copy': 'Copy',
     'contextMenu.cut': 'Cut',
     'contextMenu.paste': 'Paste',
@@ -953,6 +966,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.equalizeColumns': 'Distribute Columns',
     'contextMenu.table.equalizeRows': 'Distribute Rows',
     'contextMenu.table.toggleBorder': 'Toggle Table Border',
+    'tableCell.properties': 'Cell Properties',
+    'tableCell.range': 'Range',
+    'tableCell.text': 'Text Content',
+    'tableCell.rowSpan': 'Row Span',
+    'tableCell.colSpan': 'Column Span',
     'pageSettings.title': 'Page Settings',
     'pageSettings.noPage': 'No page selected',
     'pageSettings.page': 'Page',

@@ -1,6 +1,7 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { sanitizeRichHtml, type ReportComponent, type Band, type PageBorder, type PageWatermark, type PanelComponent, type ReportFont, type RichTextDocument, type TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
+import type { TableCellSelection } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
 import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
 import { RichTextInlineEditor } from './richtext/RichTextInlineEditor';
@@ -153,9 +154,11 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
   const selectedBandId = useDesignerStore(s => s.selectedBandId);
+  const selectedTableCell = useDesignerStore(s => s.selectedTableCell);
   const storeClipboard = useDesignerStore(s => s.clipboard);
   const selectComponents = useDesignerStore(s => s.selectComponents);
   const selectBand = useDesignerStore(s => s.selectBand);
+  const selectTableCell = useDesignerStore(s => s.selectTableCell);
   const moveComponent = useDesignerStore(s => s.moveComponent);
   const moveComponentSilent = useDesignerStore(s => s.moveComponentSilent);
   const updateComponent = useDesignerStore(s => s.updateComponent);
@@ -276,8 +279,11 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     if (!cellEl) return null;
     const row = Number(cellEl.dataset.tableRow);
     const column = Number(cellEl.dataset.tableColumn);
+    const tableId = cellEl.dataset.tableId;
+    const bandId = cellEl.dataset.bandId;
     if (!Number.isInteger(row) || !Number.isInteger(column)) return null;
-    return { row, column };
+    if (!tableId || !bandId) return null;
+    return { tableId, bandId, row, column };
   }, []);
 
   // ---- Mouse down ----
@@ -338,6 +344,27 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       e.preventDefault();
       e.stopPropagation();
 
+      const tableCell = findTableCellAtPoint(e.clientX, e.clientY);
+      if (tableCell && ch.compId === tableCell.tableId) {
+        const previous = useDesignerStore.getState().selectedTableCell;
+        const nextSelection = e.shiftKey && previous?.tableId === tableCell.tableId
+          ? {
+              ...previous,
+              endRow: tableCell.row,
+              endColumn: tableCell.column,
+            }
+          : {
+              tableId: tableCell.tableId,
+              bandId: tableCell.bandId,
+              startRow: tableCell.row,
+              startColumn: tableCell.column,
+              endRow: tableCell.row,
+              endColumn: tableCell.column,
+            };
+        selectTableCell(nextSelection);
+        return;
+      }
+
       // Clear band selection when selecting a component
       selectBand(null);
 
@@ -384,7 +411,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     modeRef.current = m;
     setMode(m);
     setSelBox({ x: sx, y: sy, w: 0, h: 0 });
-  }, [flat, bands, selectedComponentIds, selectComponents, selectBand, findComponentAtPoint, findTableCellAtPoint, findResizeHandleAtPoint, findBandResizeAtPoint, zoom]);
+  }, [flat, bands, selectedComponentIds, selectComponents, selectBand, selectTableCell, findComponentAtPoint, findTableCellAtPoint, findResizeHandleAtPoint, findBandResizeAtPoint, zoom]);
 
   // ---- Global mouse move/up ----
 
@@ -866,6 +893,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
                 labelIndex={bandLabelIndexes[band.id] ?? 1}
                 isSelected={band.id === selectedBandId}
                 selectedIds={selectedComponentIds}
+                selectedTableCell={selectedTableCell}
                 fonts={template.fonts}
                 onUpdateComponent={updateComponent} currentPageId={currentPageId} />
             ))}
@@ -1154,10 +1182,11 @@ const ContextMenuItem: React.FC<{
 
 const BandView: React.FC<{
   band: Band; visualY: number; labelIndex: number; isSelected: boolean; selectedIds: string[];
+  selectedTableCell: TableCellSelection | null;
   fonts?: ReportFont[];
   onUpdateComponent: (pageId: string, bandId: string, compId: string, updates: Record<string, any>, prev?: Record<string, any>) => void;
   currentPageId: string;
-}> = ({ band, visualY, labelIndex, isSelected, selectedIds, fonts, onUpdateComponent, currentPageId }) => {
+}> = ({ band, visualY, labelIndex, isSelected, selectedIds, selectedTableCell, fonts, onUpdateComponent, currentPageId }) => {
   const [editId, setEditId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<'text' | 'richtext' | null>(null);
   const [editText, setEditText] = useState('');
@@ -1222,6 +1251,7 @@ const BandView: React.FC<{
           .map(comp => (
           <ComponentView key={comp.id} component={comp} bandId={band.id}
             selected={selectedIds.includes(comp.id)} editing={editId === comp.id}
+            selectedTableCell={selectedTableCell?.tableId === comp.id ? selectedTableCell : null}
             editingKind={editId === comp.id ? editKind : null}
             editText={editText}
             fonts={fonts}
@@ -1334,6 +1364,7 @@ const BandResizeHandle: React.FC<{ bandId: string }> = ({ bandId }) => (
 const ComponentView: React.FC<{
   component: ReportComponent; bandId: string;
   selected: boolean; editing: boolean; editText: string;
+  selectedTableCell: TableCellSelection | null;
   editingKind: 'text' | 'richtext' | null;
   fonts?: ReportFont[];
   onStartTextEdit: () => void; onStartRichTextEdit: () => void;
@@ -1347,6 +1378,7 @@ const ComponentView: React.FC<{
   selected,
   editing,
   editText,
+  selectedTableCell,
   editingKind,
   fonts,
   onStartTextEdit,
@@ -1399,7 +1431,7 @@ const ComponentView: React.FC<{
             onSave={onFinishRichText}
             onCancel={onCancelEdit}
           />
-        ) : getCompContent(component)}
+        ) : getCompContent(component, bandId, selectedTableCell)}
       </div>
 
       {selected && !editing && RESIZE_HANDLES.map(handle => (
@@ -1490,7 +1522,7 @@ function getFontStyle(font: any): React.CSSProperties {
   };
 }
 
-function getCompContent(comp: ReportComponent): React.ReactNode {
+function getCompContent(comp: ReportComponent, bandId: string, selectedTableCell: TableCellSelection | null): React.ReactNode {
   switch (comp.type) {
     case 'text':
       return <div style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2 }}>{(comp as any).text || ''}</div>;
@@ -1549,7 +1581,7 @@ function getCompContent(comp: ReportComponent): React.ReactNode {
       );
     }
     case 'table':
-      return <TablePreview table={comp as TableComponent} />;
+      return <TablePreview table={comp as TableComponent} bandId={bandId} selectedTableCell={selectedTableCell} />;
     case 'richtext':
       return (
         <div
@@ -1673,7 +1705,7 @@ const PanelChildPreview: React.FC<{ component: ReportComponent }> = ({ component
       ...getCompStyle(component),
     }}
   >
-    {getCompContent(component)}
+    {getCompContent(component, '', null)}
   </div>
 );
 
@@ -1711,7 +1743,7 @@ function formatDesignDateTime(date: Date, pattern: string): string {
   return pattern.replace(/yyyy|MM|dd|HH|mm|ss/g, token => parts[token] ?? token);
 }
 
-const TablePreview: React.FC<{ table: TableComponent }> = ({ table }) => {
+const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTableCell: TableCellSelection | null }> = ({ table, bandId, selectedTableCell }) => {
   const normalized = normalizeTable(table);
   const rowCount = normalized.rowCount ?? 3;
   const columnCount = normalized.columnCount ?? normalized.columns.length;
@@ -1748,12 +1780,22 @@ const TablePreview: React.FC<{ table: TableComponent }> = ({ table }) => {
     const colSpan = customCell ? Math.max(1, Math.min(customCell.colSpan ?? 1, columnCount - column)) : 1;
     const isHeader = row < headerRowsCount;
     const isFooter = row >= rowCount - footerRowsCount;
+    const isSelected = Boolean(
+      selectedTableCell
+      && selectedTableCell.tableId === normalized.id
+      && row >= selectedTableCell.startRow
+      && row <= selectedTableCell.endRow
+      && column >= selectedTableCell.startColumn
+      && column <= selectedTableCell.endColumn,
+    );
     const label = customCell?.text
       ?? (isHeader ? normalized.columns[column]?.header || `Header ${column + 1}` : '');
 
     cells.push(
       <div
         key={`${row}-${column}`}
+        data-table-id={normalized.id}
+        data-band-id={bandId}
         data-table-row={row}
         data-table-column={column}
         data-testid={`designer-table-cell-${row}-${column}`}
@@ -1764,8 +1806,10 @@ const TablePreview: React.FC<{ table: TableComponent }> = ({ table }) => {
           minHeight: 0,
           borderRight: column + colSpan >= columnCount ? 'none' : cellBorder,
           borderBottom: row + rowSpan >= rowCount ? 'none' : cellBorder,
-          backgroundColor: isHeader ? '#f0f5ff' : isFooter ? '#fff7e6' : '#fff',
+          backgroundColor: isSelected ? '#e6f4ff' : isHeader ? '#f0f5ff' : isFooter ? '#fff7e6' : '#fff',
           color: isHeader || isFooter ? '#333' : '#999',
+          outline: isSelected ? '2px solid #1677ff' : undefined,
+          outlineOffset: -2,
           fontSize: 10,
           lineHeight: 1.2,
           padding: '2px 3px',
