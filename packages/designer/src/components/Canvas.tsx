@@ -1305,7 +1305,7 @@ const PageBorderOverlay: React.FC<{ pageBorder?: PageBorder }> = ({ pageBorder }
         borderBottom: pageBorder.sides.bottom ? border : 'none',
         borderLeft: pageBorder.sides.left ? border : 'none',
         pointerEvents: 'none',
-        zIndex: 4,
+        zIndex: 25,
       }}
     />
   );
