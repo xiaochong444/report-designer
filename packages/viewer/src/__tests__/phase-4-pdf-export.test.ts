@@ -28,7 +28,7 @@ describe('Phase 4 PDF export', () => {
     drawRectangle.mockRestore();
   });
 
-  it('draws page appearance around content in deterministic PDF layer order', async () => {
+  it('draws behind watermark after background and before page content when exporting PDF', async () => {
     const document = makeRenderDocument();
     document.pages[0].backgroundColor = '#fff7e6';
     document.pages[0].watermark = {
@@ -66,16 +66,67 @@ describe('Phase 4 PDF export', () => {
     const watermarkCallIndex = drawText.mock.calls.findIndex(([text]) => text === 'Internal');
     const itemCallIndex = drawText.mock.calls.findIndex(([text]) => text === 'Hello PDF');
     expect(watermarkCallIndex).toBeGreaterThanOrEqual(0);
-    expect(itemCallIndex).toBeGreaterThan(watermarkCallIndex);
+    expect(itemCallIndex).toBeGreaterThanOrEqual(0);
     expect(drawText.mock.calls[watermarkCallIndex]?.[1]).toEqual(expect.objectContaining({
       size: expect.closeTo(102.047, 2),
       opacity: 0.25,
       rotate: expect.any(Object),
     }));
+    const backgroundOrder = drawRectangle.mock.invocationCallOrder[0];
+    const watermarkOrder = drawText.mock.invocationCallOrder[watermarkCallIndex];
+    const itemOrder = drawText.mock.invocationCallOrder[itemCallIndex];
     const borderLineCalls = drawLine.mock.calls.filter(([options]) => Math.abs((options.thickness ?? 0) - 1.134) < 0.01);
     expect(borderLineCalls).toHaveLength(3);
     const firstBorderLineOrder = drawLine.mock.invocationCallOrder.find((_, index) => Math.abs((drawLine.mock.calls[index]?.[0].thickness ?? 0) - 1.134) < 0.01);
-    expect(firstBorderLineOrder).toBeGreaterThan(drawText.mock.invocationCallOrder[itemCallIndex]);
+    expect(backgroundOrder).toBeLessThan(watermarkOrder);
+    expect(watermarkOrder).toBeLessThan(itemOrder);
+    expect(itemOrder).toBeLessThan(firstBorderLineOrder ?? 0);
+
+    drawRectangle.mockRestore();
+    drawText.mockRestore();
+    drawLine.mockRestore();
+  });
+
+  it('draws foreground watermark after page content and before page border when exporting PDF', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].backgroundColor = '#fff7e6';
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Internal',
+      fontFamily: 'SimSun',
+      fontSize: 36,
+      color: '#ff4d4f',
+      opacity: 0.25,
+      angle: -30,
+      horizontalAlign: 'center',
+      verticalAlign: 'middle',
+      showBehind: false,
+    };
+    document.pages[0].pageBorder = {
+      enabled: true,
+      style: 'dashed',
+      width: 0.4,
+      color: '#1677ff',
+      sides: { top: true, right: false, bottom: true, left: true },
+      offset: 5,
+    };
+    const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+    const drawLine = vi.spyOn(PDFPage.prototype, 'drawLine');
+
+    await exportRenderDocumentToPDF(document);
+
+    const watermarkCallIndex = drawText.mock.calls.findIndex(([text]) => text === 'Internal');
+    const itemCallIndex = drawText.mock.calls.findIndex(([text]) => text === 'Hello PDF');
+    expect(watermarkCallIndex).toBeGreaterThanOrEqual(0);
+    expect(itemCallIndex).toBeGreaterThanOrEqual(0);
+    const backgroundOrder = drawRectangle.mock.invocationCallOrder[0];
+    const itemOrder = drawText.mock.invocationCallOrder[itemCallIndex];
+    const watermarkOrder = drawText.mock.invocationCallOrder[watermarkCallIndex];
+    const firstBorderLineOrder = drawLine.mock.invocationCallOrder.find((_, index) => Math.abs((drawLine.mock.calls[index]?.[0].thickness ?? 0) - 1.134) < 0.01);
+    expect(backgroundOrder).toBeLessThan(itemOrder);
+    expect(itemOrder).toBeLessThan(watermarkOrder);
+    expect(watermarkOrder).toBeLessThan(firstBorderLineOrder ?? 0);
 
     drawRectangle.mockRestore();
     drawText.mockRestore();
