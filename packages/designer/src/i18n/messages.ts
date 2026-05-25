@@ -38,8 +38,26 @@ export type DesignerMessageKey =
   | 'ribbon.openTemplate'
   | 'ribbon.saveTemplate'
   | 'ribbon.copy'
+  | 'ribbon.cut'
   | 'ribbon.paste'
+  | 'ribbon.duplicate'
   | 'ribbon.deleteSelected'
+  | 'ribbon.arrange'
+  | 'ribbon.bringToFront'
+  | 'ribbon.sendToBack'
+  | 'ribbon.alignLeft'
+  | 'ribbon.alignCenter'
+  | 'ribbon.alignRight'
+  | 'ribbon.alignTop'
+  | 'ribbon.alignMiddle'
+  | 'ribbon.alignBottom'
+  | 'ribbon.distribute'
+  | 'ribbon.distributeHorizontal'
+  | 'ribbon.distributeVertical'
+  | 'ribbon.sizeTools'
+  | 'ribbon.sameWidth'
+  | 'ribbon.sameHeight'
+  | 'ribbon.sameSize'
   | 'ribbon.allBorders'
   | 'ribbon.styleDesigner'
   | 'ribbon.conditionalFormats'
@@ -442,8 +460,26 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.openTemplate': '打开 JSON 模板',
     'ribbon.saveTemplate': '保存 JSON 模板',
     'ribbon.copy': '复制',
+    'ribbon.cut': '剪切',
     'ribbon.paste': '粘贴',
+    'ribbon.duplicate': '复制一份',
     'ribbon.deleteSelected': '删除选中对象',
+    'ribbon.arrange': '排列',
+    'ribbon.bringToFront': '置于顶层',
+    'ribbon.sendToBack': '置于底层',
+    'ribbon.alignLeft': '左对齐',
+    'ribbon.alignCenter': '水平居中',
+    'ribbon.alignRight': '右对齐',
+    'ribbon.alignTop': '上对齐',
+    'ribbon.alignMiddle': '垂直居中',
+    'ribbon.alignBottom': '下对齐',
+    'ribbon.distribute': '分布',
+    'ribbon.distributeHorizontal': '水平分布',
+    'ribbon.distributeVertical': '垂直分布',
+    'ribbon.sizeTools': '尺寸',
+    'ribbon.sameWidth': '等宽',
+    'ribbon.sameHeight': '等高',
+    'ribbon.sameSize': '等尺寸',
     'ribbon.allBorders': '全部边框',
     'ribbon.styleDesigner': '样式设计器',
     'ribbon.conditionalFormats': '条件格式',
@@ -843,8 +879,26 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.openTemplate': 'Open JSON template',
     'ribbon.saveTemplate': 'Save JSON template',
     'ribbon.copy': 'Copy',
+    'ribbon.cut': 'Cut',
     'ribbon.paste': 'Paste',
+    'ribbon.duplicate': 'Duplicate',
     'ribbon.deleteSelected': 'Delete selected objects',
+    'ribbon.arrange': 'Arrange',
+    'ribbon.bringToFront': 'Bring to Front',
+    'ribbon.sendToBack': 'Send to Back',
+    'ribbon.alignLeft': 'Align Left',
+    'ribbon.alignCenter': 'Align Center',
+    'ribbon.alignRight': 'Align Right',
+    'ribbon.alignTop': 'Align Top',
+    'ribbon.alignMiddle': 'Align Middle',
+    'ribbon.alignBottom': 'Align Bottom',
+    'ribbon.distribute': 'Distribute',
+    'ribbon.distributeHorizontal': 'Distribute Horizontal',
+    'ribbon.distributeVertical': 'Distribute Vertical',
+    'ribbon.sizeTools': 'Size',
+    'ribbon.sameWidth': 'Same Width',
+    'ribbon.sameHeight': 'Same Height',
+    'ribbon.sameSize': 'Same Size',
     'ribbon.allBorders': 'All borders',
     'ribbon.styleDesigner': 'Style Designer',
     'ribbon.conditionalFormats': 'Conditional Formats',

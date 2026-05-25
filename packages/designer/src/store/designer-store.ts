@@ -227,6 +227,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       selectedBandId: null,
       selectedTableCell: null,
       pendingEventEditorTarget: null,
+      clipboard: [],
       reportUnit: 'mm',
       zoom: 1,
     });

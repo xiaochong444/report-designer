@@ -4,10 +4,16 @@ import {
   AlignCenterOutlined,
   AlignLeftOutlined,
   AlignRightOutlined,
+  ArrowDownOutlined,
+  ArrowUpOutlined,
   AppstoreOutlined,
   PartitionOutlined,
   BorderOuterOutlined,
   CheckSquareOutlined,
+  ColumnHeightOutlined,
+  ColumnWidthOutlined,
+  CopyOutlined,
+  CompressOutlined,
   DeleteOutlined,
   FileAddOutlined,
   FolderOpenOutlined,
@@ -19,11 +25,15 @@ import {
   SaveOutlined,
   SettingOutlined,
   TableOutlined,
+  ScissorOutlined,
   UndoOutlined,
   RedoOutlined,
   DatabaseOutlined,
   ApartmentOutlined,
   GroupOutlined,
+  VerticalAlignBottomOutlined,
+  VerticalAlignMiddleOutlined,
+  VerticalAlignTopOutlined,
 } from '@ant-design/icons';
 import type { BorderConfig, FontConfig, Margins, Page, ReportComponent, TextComponent } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
@@ -67,12 +77,18 @@ export const DesignerRibbon: React.FC = () => {
     canRedo,
     deleteSelected,
     copySelected,
+    cutSelected,
+    duplicateSelected,
     pasteClipboard,
     getClipboard,
     setFontBold,
     setFontSize,
     setTextAlign,
     setBorderAll,
+    alignComponents,
+    sizeComponents,
+    bringToFront,
+    sendToBack,
     addPage,
     getSelectedFont,
     getSelectedTextAlign,
@@ -86,6 +102,10 @@ export const DesignerRibbon: React.FC = () => {
   const mode = useDesignerStore(s => s.mode);
   const fontInfo = getSelectedFont();
   const textAlign = getSelectedTextAlign();
+  const hasSelection = selectedCount > 0;
+  const hasMultiSelection = selectedCount >= 2;
+  const hasDistributableSelection = selectedCount >= 3;
+  const hasClipboard = getClipboard().length > 0;
 
   useEffect(() => {
     if (mode === 'preview') {
@@ -340,11 +360,16 @@ export const DesignerRibbon: React.FC = () => {
         </RibbonGroup>
 
         <RibbonGroup title={t('ribbon.clipboard')}>
-          <Button size="small" onClick={copySelected} disabled={selectedCount === 0}>{t('ribbon.copy')}</Button>
-          <Button size="small" onClick={pasteClipboard} disabled={getClipboard().length === 0}>{t('ribbon.paste')}</Button>
-          <Tooltip title={t('ribbon.deleteSelected')}>
-            <Button size="small" danger icon={<DeleteOutlined />} onClick={deleteSelected} disabled={selectedCount === 0} />
-          </Tooltip>
+          <RibbonButton label={t('ribbon.copy')} icon={<CopyOutlined aria-hidden />} onClick={copySelected} disabled={!hasSelection} />
+          <RibbonButton label={t('ribbon.cut')} icon={<ScissorOutlined aria-hidden />} onClick={cutSelected} disabled={!hasSelection} />
+          <RibbonButton label={t('ribbon.paste')} icon={<SaveOutlined aria-hidden rotate={90} />} onClick={pasteClipboard} disabled={!hasClipboard} />
+          <RibbonButton label={t('ribbon.duplicate')} icon={<CopyOutlined aria-hidden />} onClick={duplicateSelected} disabled={!hasSelection} />
+          <RibbonButton label={t('ribbon.deleteSelected')} icon={<DeleteOutlined aria-hidden />} onClick={deleteSelected} disabled={!hasSelection} danger />
+        </RibbonGroup>
+
+        <RibbonGroup title={t('ribbon.arrange')}>
+          <RibbonButton label={t('ribbon.bringToFront')} icon={<ArrowUpOutlined aria-hidden />} onClick={bringToFront} disabled={!hasSelection} />
+          <RibbonButton label={t('ribbon.sendToBack')} icon={<ArrowDownOutlined aria-hidden />} onClick={sendToBack} disabled={!hasSelection} />
         </RibbonGroup>
 
         <RibbonGroup title={t('ribbon.font')}>
@@ -363,12 +388,29 @@ export const DesignerRibbon: React.FC = () => {
         </RibbonGroup>
 
         <RibbonGroup title={t('ribbon.align')}>
-          <Button size="small" icon={<AlignLeftOutlined />} disabled={textAlign === null} type={textAlign === 'left' ? 'primary' : 'default'} onClick={() => setTextAlign('left')} />
-          <Button size="small" icon={<AlignCenterOutlined />} disabled={textAlign === null} type={textAlign === 'center' ? 'primary' : 'default'} onClick={() => setTextAlign('center')} />
-          <Button size="small" icon={<AlignRightOutlined />} disabled={textAlign === null} type={textAlign === 'right' ? 'primary' : 'default'} onClick={() => setTextAlign('right')} />
+          <RibbonButton label={t('ribbon.alignLeft')} icon={<AlignLeftOutlined aria-hidden />} onClick={() => alignComponents('left')} disabled={!hasMultiSelection} />
+          <RibbonButton label={t('ribbon.alignCenter')} icon={<AlignCenterOutlined aria-hidden />} onClick={() => alignComponents('center-h')} disabled={!hasMultiSelection} />
+          <RibbonButton label={t('ribbon.alignRight')} icon={<AlignRightOutlined aria-hidden />} onClick={() => alignComponents('right')} disabled={!hasMultiSelection} />
+          <RibbonButton label={t('ribbon.alignTop')} icon={<VerticalAlignTopOutlined aria-hidden />} onClick={() => alignComponents('top')} disabled={!hasMultiSelection} />
+          <RibbonButton label={t('ribbon.alignMiddle')} icon={<VerticalAlignMiddleOutlined aria-hidden />} onClick={() => alignComponents('center-v')} disabled={!hasMultiSelection} />
+          <RibbonButton label={t('ribbon.alignBottom')} icon={<VerticalAlignBottomOutlined aria-hidden />} onClick={() => alignComponents('bottom')} disabled={!hasMultiSelection} />
+          <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.left')}`} size="small" icon={<AlignLeftOutlined aria-hidden />} disabled={textAlign === null} type={textAlign === 'left' ? 'primary' : 'default'} onClick={() => setTextAlign('left')} />
+          <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.center')}`} size="small" icon={<AlignCenterOutlined aria-hidden />} disabled={textAlign === null} type={textAlign === 'center' ? 'primary' : 'default'} onClick={() => setTextAlign('center')} />
+          <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.right')}`} size="small" icon={<AlignRightOutlined aria-hidden />} disabled={textAlign === null} type={textAlign === 'right' ? 'primary' : 'default'} onClick={() => setTextAlign('right')} />
           <Tooltip title={t('ribbon.allBorders')}>
-            <Button size="small" icon={<BorderOuterOutlined />} disabled={selectedCount === 0} onClick={() => setBorderAll(true)} />
+            <Button aria-label={t('ribbon.allBorders')} size="small" icon={<BorderOuterOutlined aria-hidden />} disabled={selectedCount === 0} onClick={() => setBorderAll(true)} />
           </Tooltip>
+        </RibbonGroup>
+
+        <RibbonGroup title={t('ribbon.distribute')}>
+          <RibbonButton label={t('ribbon.distributeHorizontal')} icon={<ColumnWidthOutlined aria-hidden />} onClick={() => alignComponents('distribute-h')} disabled={!hasDistributableSelection} />
+          <RibbonButton label={t('ribbon.distributeVertical')} icon={<ColumnHeightOutlined aria-hidden />} onClick={() => alignComponents('distribute-v')} disabled={!hasDistributableSelection} />
+        </RibbonGroup>
+
+        <RibbonGroup title={t('ribbon.sizeTools')}>
+          <RibbonButton label={t('ribbon.sameWidth')} icon={<ColumnWidthOutlined aria-hidden />} onClick={() => sizeComponents('same-width')} disabled={!hasMultiSelection} />
+          <RibbonButton label={t('ribbon.sameHeight')} icon={<ColumnHeightOutlined aria-hidden />} onClick={() => sizeComponents('same-height')} disabled={!hasMultiSelection} />
+          <RibbonButton label={t('ribbon.sameSize')} icon={<CompressOutlined aria-hidden />} onClick={() => sizeComponents('same-size')} disabled={!hasMultiSelection} />
         </RibbonGroup>
 
         <RibbonGroup title={t('ribbon.styles')}>
@@ -420,4 +462,23 @@ const RibbonGroup: React.FC<React.PropsWithChildren<{ title: string }>> = ({ tit
     <span className="rd-ribbon-divider" />
     <div className="rd-ribbon-group-title">{title}</div>
   </div>
+);
+
+const RibbonButton: React.FC<{
+  label: string;
+  icon: React.ReactNode;
+  disabled?: boolean;
+  danger?: boolean;
+  onClick: () => void;
+}> = ({ label, icon, disabled, danger, onClick }) => (
+  <Tooltip title={label}>
+    <Button
+      aria-label={label}
+      size="small"
+      icon={icon}
+      disabled={disabled}
+      danger={danger}
+      onClick={onClick}
+    />
+  </Tooltip>
 );
