@@ -258,8 +258,25 @@ export type DesignerMessageKey =
   | 'contextMenu.table.setHeaderRow'
   | 'contextMenu.table.setFooterRow'
   | 'bandProperties.name'
+  | 'bandProperties.id'
+  | 'bandProperties.basic'
+  | 'bandProperties.data'
+  | 'bandProperties.group'
+  | 'bandProperties.events'
   | 'bandProperties.height'
   | 'bandProperties.behavior'
+  | 'bandProperties.enabled'
+  | 'bandProperties.visibleExpression'
+  | 'bandProperties.printOn'
+  | 'bandProperties.printOn.allPages'
+  | 'bandProperties.printOn.firstPage'
+  | 'bandProperties.printOn.exceptFirstPage'
+  | 'bandProperties.printOn.lastPage'
+  | 'bandProperties.printOn.oddPages'
+  | 'bandProperties.printOn.evenPages'
+  | 'bandProperties.filterExpression'
+  | 'bandProperties.groupName'
+  | 'bandProperties.groupExpression'
   | 'bandProperties.printOnAllPages'
   | 'bandProperties.keepTogether'
   | 'bandProperties.canBreak'
@@ -690,8 +707,25 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.setHeaderRow': '设为表头行',
     'contextMenu.table.setFooterRow': '设为表尾行',
     'bandProperties.name': '名称',
+    'bandProperties.id': '标识',
+    'bandProperties.basic': '基础',
+    'bandProperties.data': '数据',
+    'bandProperties.group': '分组',
+    'bandProperties.events': '事件',
     'bandProperties.height': '高度',
     'bandProperties.behavior': '分页/打印行为',
+    'bandProperties.enabled': '启用',
+    'bandProperties.visibleExpression': '可见表达式',
+    'bandProperties.printOn': '打印页面',
+    'bandProperties.printOn.allPages': '所有页面',
+    'bandProperties.printOn.firstPage': '第一页',
+    'bandProperties.printOn.exceptFirstPage': '除第一页外',
+    'bandProperties.printOn.lastPage': '最后一页',
+    'bandProperties.printOn.oddPages': '奇数页',
+    'bandProperties.printOn.evenPages': '偶数页',
+    'bandProperties.filterExpression': '过滤表达式',
+    'bandProperties.groupName': '分组名称',
+    'bandProperties.groupExpression': '分组表达式',
     'bandProperties.printOnAllPages': '每页重复打印',
     'bandProperties.keepTogether': '保持整体',
     'bandProperties.canBreak': '允许跨页',
@@ -1119,8 +1153,25 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.setHeaderRow': 'Set Header Row',
     'contextMenu.table.setFooterRow': 'Set Footer Row',
     'bandProperties.name': 'Name',
+    'bandProperties.id': 'Id',
+    'bandProperties.basic': 'Basic',
+    'bandProperties.data': 'Data',
+    'bandProperties.group': 'Group',
+    'bandProperties.events': 'Events',
     'bandProperties.height': 'Height',
     'bandProperties.behavior': 'Pagination / Print Behavior',
+    'bandProperties.enabled': 'Enabled',
+    'bandProperties.visibleExpression': 'Visible Expression',
+    'bandProperties.printOn': 'Print On',
+    'bandProperties.printOn.allPages': 'All Pages',
+    'bandProperties.printOn.firstPage': 'First Page',
+    'bandProperties.printOn.exceptFirstPage': 'Except First Page',
+    'bandProperties.printOn.lastPage': 'Last Page',
+    'bandProperties.printOn.oddPages': 'Odd Pages',
+    'bandProperties.printOn.evenPages': 'Even Pages',
+    'bandProperties.filterExpression': 'Filter Expression',
+    'bandProperties.groupName': 'Group Name',
+    'bandProperties.groupExpression': 'Group Expression',
     'bandProperties.printOnAllPages': 'Repeat on Each Page',
     'bandProperties.keepTogether': 'Keep Together',
     'bandProperties.canBreak': 'Can Break',

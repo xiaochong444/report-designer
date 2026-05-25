@@ -1,10 +1,10 @@
 import React from 'react';
 import { Button, Collapse, Form, Input, InputNumber, Select, Space, Switch, Typography } from 'antd';
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined } from '@ant-design/icons';
-import type { DataBandOptions, DataField } from '@report-designer/core';
+import type { BandPrintOn, DataBandOptions, DataField, GroupBandOptions } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../../page-settings';
-import { useDesignerI18n } from '../../i18n';
+import { useDesignerI18n, type DesignerMessageKey } from '../../i18n';
 import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDialog';
 import { buildEventEditorDataContext } from '../events/event-editor-utils';
 
@@ -34,6 +34,8 @@ export const BandPropertyGrid: React.FC = () => {
   const currentDataSource = template.dataSources.find(source => source.id === dataSourceId);
   const sortFields = getSortFields(currentDataSource?.schema?.length ? currentDataSource.schema : currentDataSource?.fields);
   const sortRules = band.dataBand?.sort ?? [];
+  const isDataBand = band.type === 'data' || band.type === 'hierarchicalData';
+  const isGroupBand = band.type === 'groupHeader' || band.type === 'groupFooter';
   const behavior = {
     enabled: true,
     printOn: 'allPages' as const,
@@ -82,6 +84,19 @@ export const BandPropertyGrid: React.FC = () => {
     }));
   };
 
+  const updateBandGroup = (updater: (group: GroupBandOptions) => GroupBandOptions) => {
+    updateTemplate(current => ({
+      ...current,
+      pages: current.pages.map(item => item.id === page.id ? {
+        ...item,
+        bands: item.bands.map(nextBand => nextBand.id === band.id ? {
+          ...nextBand,
+          group: updater(nextBand.group ?? {}),
+        } : nextBand),
+      } : item),
+    }));
+  };
+
   const updateSortRules = (sort: NonNullable<DataBandOptions['sort']>) => {
     updateBandDataBand(dataBand => ({
       ...dataBand,
@@ -91,14 +106,6 @@ export const BandPropertyGrid: React.FC = () => {
 
   return (
     <Space orientation="vertical" size={10} style={{ width: '100%' }}>
-      <Typography.Text type="secondary">{t('bandProperties.name')}</Typography.Text>
-      <Input value={band.id} readOnly />
-      <Button size="small" onClick={() => {
-        setEventEditorTarget(null);
-        setEventEditorOpen(true);
-      }}>
-        {t('events.edit')}
-      </Button>
       <EventEditorDialog
         open={eventEditorOpen}
         targetType="band"
@@ -118,115 +125,185 @@ export const BandPropertyGrid: React.FC = () => {
           setEventEditorTarget(null);
         }}
       />
-      <Select
-        aria-label={t('dataBand.dataSource')}
-        value={dataSourceId}
-        placeholder={t('dataBand.dataSource')}
-        allowClear
-        options={template.dataSources.map(source => ({ value: source.id, label: source.name || source.id }))}
-        onChange={value => updateBandDataBand(dataBand => ({
-          ...dataBand,
-          dataSourceId: value,
-          sort: [],
-        }))}
-      />
-      {(band.type === 'data' || band.type === 'hierarchicalData') && (
-        <Space data-testid="databand-sort-rules" orientation="vertical" size={8} style={{ width: '100%' }}>
-          <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-            <Typography.Text type="secondary">{t('dataBand.sort.title')}</Typography.Text>
-            <Button
-              size="small"
-              onClick={() => {
-                const field = sortFields[0]?.value;
-                if (field) {
-                  updateSortRules([...sortRules, { field, direction: 'asc' }]);
-                }
-              }}
-              disabled={sortFields.length === 0}
-            >
-              {t('dataBand.sort.addRule')}
-            </Button>
-          </Space>
-          {sortRules.map((rule, index) => (
-            <Space.Compact key={`${index}-${rule.field}`} style={{ width: '100%' }}>
-              <Select
-                aria-label={t('dataBand.sort.fieldAria', { index: index + 1 })}
-                value={rule.field}
-                options={sortFields}
-                style={{ flex: 1, minWidth: 0 }}
-                onChange={value => {
-                  const nextRules = [...sortRules];
-                  nextRules[index] = { ...nextRules[index], field: value };
-                  updateSortRules(nextRules);
-                }}
-              />
-              <Button
-                aria-label={t('dataBand.sort.ascending')}
-                type={rule.direction === 'asc' ? 'primary' : 'default'}
-                onClick={() => {
-                  const nextRules = [...sortRules];
-                  nextRules[index] = { ...nextRules[index], direction: 'asc' };
-                  updateSortRules(nextRules);
-                }}
-              >
-                <ArrowUpOutlined />
-              </Button>
-              <Button
-                aria-label={t('dataBand.sort.descending')}
-                type={rule.direction === 'desc' ? 'primary' : 'default'}
-                onClick={() => {
-                  const nextRules = [...sortRules];
-                  nextRules[index] = { ...nextRules[index], direction: 'desc' };
-                  updateSortRules(nextRules);
-                }}
-              >
-                <ArrowDownOutlined />
-              </Button>
-              <Button
-                aria-label={t('dataBand.sort.moveUp', { index: index + 1 })}
-                disabled={index === 0}
-                onClick={() => updateSortRules(moveRule(sortRules, index, index - 1))}
-              >
-                <ArrowUpOutlined />
-              </Button>
-              <Button
-                aria-label={t('dataBand.sort.moveDown', { index: index + 1 })}
-                disabled={index === sortRules.length - 1}
-                onClick={() => updateSortRules(moveRule(sortRules, index, index + 1))}
-              >
-                <ArrowDownOutlined />
-              </Button>
-              <Button
-                aria-label={t('dataBand.sort.deleteRule', { index: index + 1 })}
-                onClick={() => updateSortRules(sortRules.filter((_, nextIndex) => nextIndex !== index))}
-              >
-                <DeleteOutlined />
-              </Button>
-            </Space.Compact>
-          ))}
-          {sortFields.length === 0 && (
-            <Typography.Text type="secondary">{t('dataBand.sort.noFields')}</Typography.Text>
-          )}
-        </Space>
-      )}
-      <Typography.Text type="secondary">{t('bandProperties.height')}</Typography.Text>
-      <InputNumber
-        aria-label={t('bandProperties.height')}
-        value={formatUnitValue(band.height, reportUnit)}
-        min={bandMin}
-        max={bandMax}
-        step={unitStep}
-        style={{ width: '100%' }}
-        onChange={value => updateBand({ height: parseUnitValue(value, reportUnit, band.height) })}
-      />
       <Collapse
         size="small"
-        defaultActiveKey={['behavior']}
-        items={[{
+        defaultActiveKey={['basic', isDataBand ? 'data' : '', isGroupBand ? 'group' : '', 'behavior', 'events'].filter(Boolean)}
+        items={[
+          {
+            key: 'basic',
+            label: t('bandProperties.basic'),
+            children: (
+              <Form layout="vertical" size="small">
+                <Form.Item label={t('bandProperties.id')}>
+                  <Input aria-label={t('bandProperties.id')} value={band.id} readOnly />
+                </Form.Item>
+                <Form.Item label={t('bandProperties.name')}>
+                  <Input aria-label={t('bandProperties.name')} value={band.name ?? ''} onChange={event => updateBand({ name: event.target.value })} />
+                </Form.Item>
+                <Form.Item label={t('bandProperties.height')}>
+                  <InputNumber
+                    aria-label={t('bandProperties.height')}
+                    value={formatUnitValue(band.height, reportUnit)}
+                    min={bandMin}
+                    max={bandMax}
+                    step={unitStep}
+                    style={{ width: '100%' }}
+                    onChange={value => updateBand({ height: parseUnitValue(value, reportUnit, band.height) })}
+                  />
+                </Form.Item>
+              </Form>
+            ),
+          },
+          ...(isDataBand ? [{
+            key: 'data',
+            label: t('bandProperties.data'),
+            children: (
+              <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+                <Select
+                  aria-label={t('dataBand.dataSource')}
+                  value={dataSourceId}
+                  placeholder={t('dataBand.dataSource')}
+                  allowClear
+                  options={template.dataSources.map(source => ({ value: source.id, label: source.name || source.id }))}
+                  onChange={value => updateBandDataBand(dataBand => ({
+                    ...dataBand,
+                    dataSourceId: value,
+                    sort: [],
+                  }))}
+                />
+                <Input
+                  aria-label={t('bandProperties.filterExpression')}
+                  value={band.dataBand?.filterExpression ?? ''}
+                  placeholder="{Orders.Amount} > 0"
+                  onChange={event => updateBandDataBand(dataBand => ({ ...dataBand, filterExpression: event.target.value }))}
+                />
+                <Space data-testid="databand-sort-rules" orientation="vertical" size={8} style={{ width: '100%' }}>
+                  <Space style={{ width: '100%', justifyContent: 'space-between' }}>
+                    <Typography.Text type="secondary">{t('dataBand.sort.title')}</Typography.Text>
+                    <Button
+                      size="small"
+                      onClick={() => {
+                        const field = sortFields[0]?.value;
+                        if (field) {
+                          updateSortRules([...sortRules, { field, direction: 'asc' }]);
+                        }
+                      }}
+                      disabled={sortFields.length === 0}
+                    >
+                      {t('dataBand.sort.addRule')}
+                    </Button>
+                  </Space>
+                  {sortRules.map((rule, index) => (
+                    <Space.Compact key={`${index}-${rule.field}`} style={{ width: '100%' }}>
+                      <Select
+                        aria-label={t('dataBand.sort.fieldAria', { index: index + 1 })}
+                        value={rule.field}
+                        options={sortFields}
+                        style={{ flex: 1, minWidth: 0 }}
+                        onChange={value => {
+                          const nextRules = [...sortRules];
+                          nextRules[index] = { ...nextRules[index], field: value };
+                          updateSortRules(nextRules);
+                        }}
+                      />
+                      <Button
+                        aria-label={t('dataBand.sort.ascending')}
+                        type={rule.direction === 'asc' ? 'primary' : 'default'}
+                        onClick={() => {
+                          const nextRules = [...sortRules];
+                          nextRules[index] = { ...nextRules[index], direction: 'asc' };
+                          updateSortRules(nextRules);
+                        }}
+                      >
+                        <ArrowUpOutlined />
+                      </Button>
+                      <Button
+                        aria-label={t('dataBand.sort.descending')}
+                        type={rule.direction === 'desc' ? 'primary' : 'default'}
+                        onClick={() => {
+                          const nextRules = [...sortRules];
+                          nextRules[index] = { ...nextRules[index], direction: 'desc' };
+                          updateSortRules(nextRules);
+                        }}
+                      >
+                        <ArrowDownOutlined />
+                      </Button>
+                      <Button
+                        aria-label={t('dataBand.sort.moveUp', { index: index + 1 })}
+                        disabled={index === 0}
+                        onClick={() => updateSortRules(moveRule(sortRules, index, index - 1))}
+                      >
+                        <ArrowUpOutlined />
+                      </Button>
+                      <Button
+                        aria-label={t('dataBand.sort.moveDown', { index: index + 1 })}
+                        disabled={index === sortRules.length - 1}
+                        onClick={() => updateSortRules(moveRule(sortRules, index, index + 1))}
+                      >
+                        <ArrowDownOutlined />
+                      </Button>
+                      <Button
+                        aria-label={t('dataBand.sort.deleteRule', { index: index + 1 })}
+                        onClick={() => updateSortRules(sortRules.filter((_, nextIndex) => nextIndex !== index))}
+                      >
+                        <DeleteOutlined />
+                      </Button>
+                    </Space.Compact>
+                  ))}
+                  {sortFields.length === 0 && (
+                    <Typography.Text type="secondary">{t('dataBand.sort.noFields')}</Typography.Text>
+                  )}
+                </Space>
+              </Space>
+            ),
+          }] : []),
+          ...(isGroupBand ? [{
+            key: 'group',
+            label: t('bandProperties.group'),
+            children: (
+              <Form layout="vertical" size="small">
+                <Form.Item label={t('bandProperties.groupName')}>
+                  <Input
+                    aria-label={t('bandProperties.groupName')}
+                    value={band.group?.name ?? ''}
+                    onChange={event => updateBandGroup(group => ({ ...group, name: event.target.value }))}
+                  />
+                </Form.Item>
+                <Form.Item label={t('bandProperties.groupExpression')}>
+                  <Input
+                    aria-label={t('bandProperties.groupExpression')}
+                    value={band.group?.conditionExpression ?? ''}
+                    placeholder="{Orders.CustomerId}"
+                    onChange={event => updateBandGroup(group => ({ ...group, conditionExpression: event.target.value }))}
+                  />
+                </Form.Item>
+              </Form>
+            ),
+          }] : []),
+          {
           key: 'behavior',
           label: t('bandProperties.behavior'),
           children: (
             <Form layout="horizontal" size="small" labelCol={{ span: 12 }} wrapperCol={{ span: 12 }}>
+              <Form.Item label={t('bandProperties.enabled')}>
+                <Switch aria-label={t('bandProperties.enabled')} checked={behavior.enabled} onChange={enabled => updateBehavior({ enabled })} />
+              </Form.Item>
+              <Form.Item label={t('bandProperties.visibleExpression')} labelCol={{ span: 24 }} wrapperCol={{ span: 24 }}>
+                <Input
+                  aria-label={t('bandProperties.visibleExpression')}
+                  value={behavior.visibleExpression ?? ''}
+                  placeholder="{Parameters.ShowDetails}"
+                  onChange={event => updateBehavior({ visibleExpression: event.target.value })}
+                />
+              </Form.Item>
+              <Form.Item label={t('bandProperties.printOn')} labelCol={{ span: 24 }} wrapperCol={{ span: 24 }}>
+                <Select
+                  aria-label={t('bandProperties.printOn')}
+                  value={behavior.printOn}
+                  options={printOnOptions(t)}
+                  onChange={(printOn: BandPrintOn) => updateBehavior({ printOn })}
+                />
+              </Form.Item>
               <Form.Item label={t('bandProperties.printOnAllPages')}>
                 <Switch aria-label={t('bandProperties.printOnAllPages')} checked={behavior.printOnAllPages} onChange={printOnAllPages => updateBehavior({ printOnAllPages })} />
               </Form.Item>
@@ -254,11 +331,34 @@ export const BandPropertyGrid: React.FC = () => {
               </Form.Item>
             </Form>
           ),
+        },
+        {
+          key: 'events',
+          label: t('bandProperties.events'),
+          children: (
+            <Button size="small" onClick={() => {
+              setEventEditorTarget(null);
+              setEventEditorOpen(true);
+            }}>
+              {t('events.edit')}
+            </Button>
+          ),
         }]}
       />
     </Space>
   );
 };
+
+function printOnOptions(t: (key: DesignerMessageKey) => string): Array<{ value: BandPrintOn; label: string }> {
+  return [
+    { value: 'allPages', label: t('bandProperties.printOn.allPages') },
+    { value: 'firstPage', label: t('bandProperties.printOn.firstPage') },
+    { value: 'exceptFirstPage', label: t('bandProperties.printOn.exceptFirstPage') },
+    { value: 'lastPage', label: t('bandProperties.printOn.lastPage') },
+    { value: 'oddPages', label: t('bandProperties.printOn.oddPages') },
+    { value: 'evenPages', label: t('bandProperties.printOn.evenPages') },
+  ];
+}
 
 function buildDictionaryEventItems(template: { dataSources: Array<{ id: string; name?: string; fields?: DataField[]; schema?: DataField[] }> }): EventTreeItem[] {
   return template.dataSources.map(source => ({
