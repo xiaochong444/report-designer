@@ -1,18 +1,44 @@
-import type { Band, DataField, DataSource, ReportTemplate } from './types';
+import type { Band, DataField, DataSource, Page, PageBorder, PageWatermark, ReportTemplate } from './types';
 import { normalizeReportFonts } from '../fonts';
 import { mapDataField } from './types';
+import { createDefaultPageBorder, createDefaultPageWatermark } from './template';
 
 export function normalizeTemplate(template: ReportTemplate): ReportTemplate {
   return {
     ...template,
     version: '2.0',
-    pages: template.pages.map(page => ({
-      ...page,
-      bands: page.bands.map(normalizeBand),
-    })),
+    pages: template.pages.map(normalizePage),
     dataSources: template.dataSources.map(normalizeDataSource),
     parameters: template.parameters ?? [],
     fonts: normalizeReportFonts(template.fonts),
+  };
+}
+
+function normalizePage(page: Page): Page {
+  return {
+    ...page,
+    watermark: normalizePageWatermark(page.watermark),
+    pageBorder: normalizePageBorder(page.pageBorder),
+    bands: page.bands.map(normalizeBand),
+  };
+}
+
+function normalizePageWatermark(watermark: Page['watermark']): PageWatermark {
+  return {
+    ...createDefaultPageWatermark(),
+    ...watermark,
+  };
+}
+
+function normalizePageBorder(pageBorder: Page['pageBorder']): PageBorder {
+  const defaults = createDefaultPageBorder();
+  return {
+    ...defaults,
+    ...pageBorder,
+    sides: {
+      ...defaults.sides,
+      ...pageBorder?.sides,
+    },
   };
 }
 

@@ -3,7 +3,7 @@ import type { LogicalBandItem, RenderContext } from '../band-planner';
 import { layoutBand } from '../layout-engine/layout-band';
 import type { LayoutEventRuntime } from '../layout-engine/layout-band';
 import type { RenderBandBox, RenderComponentBox, RenderDocument, RenderPage } from '../render-document/types';
-import type { Band, Page, ReportTemplate, SubreportComponent } from '../template-model/types';
+import type { Band, Page, PageBorder, PageWatermark, ReportTemplate, SubreportComponent } from '../template-model/types';
 import { normalizeTemplate } from '../template-model';
 import { evalExpression } from '../expression-engine/evaluator';
 import { applyPageNumberPass } from './page-number-pass';
@@ -167,8 +167,8 @@ export function paginate(
       width: templatePage.width,
       height: templatePage.height,
       backgroundColor: templatePage.backgroundColor,
-      watermark: templatePage.watermark,
-      pageBorder: templatePage.pageBorder,
+      watermark: clonePageWatermark(templatePage.watermark),
+      pageBorder: clonePageBorder(templatePage.pageBorder),
       items: [],
     };
     pages.push(currentPage);
@@ -286,6 +286,16 @@ export function paginate(
   }
 
   return pages;
+}
+
+function clonePageWatermark(watermark: Page['watermark']): PageWatermark | undefined {
+  return watermark ? { ...watermark } : undefined;
+}
+
+function clonePageBorder(pageBorder: Page['pageBorder']): PageBorder | undefined {
+  return pageBorder
+    ? { ...pageBorder, sides: { ...pageBorder.sides } }
+    : undefined;
 }
 
 function renderFixedBand(

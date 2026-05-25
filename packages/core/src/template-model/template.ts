@@ -67,6 +67,14 @@ const DEFAULT_PAGE_BORDER: PageBorder = {
   offset: 0,
 };
 
+export function createDefaultPageWatermark(): PageWatermark {
+  return { ...DEFAULT_PAGE_WATERMARK };
+}
+
+export function createDefaultPageBorder(): PageBorder {
+  return { ...DEFAULT_PAGE_BORDER, sides: { ...DEFAULT_PAGE_BORDER.sides } };
+}
+
 function createDefaultTextStyles(): ReportStyle[] {
   return [
     {
@@ -177,8 +185,8 @@ export function createDefaultTemplate(name = '未命名报表'): ReportTemplate 
     width: 210,
     height: 297,
     backgroundColor: '#ffffff',
-    watermark: { ...DEFAULT_PAGE_WATERMARK },
-    pageBorder: { ...DEFAULT_PAGE_BORDER, sides: { ...DEFAULT_PAGE_BORDER.sides } },
+    watermark: createDefaultPageWatermark(),
+    pageBorder: createDefaultPageBorder(),
     margins: { top: 20, right: 20, bottom: 20, left: 20 },
     orientation: 'portrait',
     bands,
