@@ -114,6 +114,7 @@ export interface RenderTableCell {
   height: number;
   isHeader?: boolean;
   isFooter?: boolean;
+  style?: RenderStyle;
 }
 
 export interface RenderTable extends RenderComponentBase {

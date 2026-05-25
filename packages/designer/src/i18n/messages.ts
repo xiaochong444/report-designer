@@ -244,6 +244,19 @@ export type DesignerMessageKey =
   | 'tableCell.text'
   | 'tableCell.rowSpan'
   | 'tableCell.colSpan'
+  | 'tableCell.appearance'
+  | 'tableCell.backgroundColor'
+  | 'tableCell.textAlign'
+  | 'tableCell.verticalAlign'
+  | 'tableCell.borderStyle'
+  | 'tableCell.borderColor'
+  | 'tableCell.borderWidth'
+  | 'tableCell.padding'
+  | 'tableCell.paddingTop'
+  | 'tableCell.paddingRight'
+  | 'tableCell.paddingBottom'
+  | 'tableCell.paddingLeft'
+  | 'tableCell.format'
   | 'pageSettings.title'
   | 'pageSettings.noPage'
   | 'pageSettings.page'
@@ -615,6 +628,19 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableCell.text': '文本内容',
     'tableCell.rowSpan': '合并行数',
     'tableCell.colSpan': '合并列数',
+    'tableCell.appearance': '外观',
+    'tableCell.backgroundColor': '背景色',
+    'tableCell.textAlign': '水平对齐',
+    'tableCell.verticalAlign': '垂直对齐',
+    'tableCell.borderStyle': '边框样式',
+    'tableCell.borderColor': '边框颜色',
+    'tableCell.borderWidth': '边框宽度',
+    'tableCell.padding': '内边距',
+    'tableCell.paddingTop': '上',
+    'tableCell.paddingRight': '右',
+    'tableCell.paddingBottom': '下',
+    'tableCell.paddingLeft': '左',
+    'tableCell.format': '格式',
     'pageSettings.title': '页面设置',
     'pageSettings.noPage': '未选择页面',
     'pageSettings.page': '页面',
@@ -983,6 +1009,19 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableCell.text': 'Text Content',
     'tableCell.rowSpan': 'Row Span',
     'tableCell.colSpan': 'Column Span',
+    'tableCell.appearance': 'Appearance',
+    'tableCell.backgroundColor': 'Background Color',
+    'tableCell.textAlign': 'Horizontal Align',
+    'tableCell.verticalAlign': 'Vertical Align',
+    'tableCell.borderStyle': 'Border Style',
+    'tableCell.borderColor': 'Border Color',
+    'tableCell.borderWidth': 'Border Width',
+    'tableCell.padding': 'Padding',
+    'tableCell.paddingTop': 'Top',
+    'tableCell.paddingRight': 'Right',
+    'tableCell.paddingBottom': 'Bottom',
+    'tableCell.paddingLeft': 'Left',
+    'tableCell.format': 'Format',
     'pageSettings.title': 'Page Settings',
     'pageSettings.noPage': 'No page selected',
     'pageSettings.page': 'Page',

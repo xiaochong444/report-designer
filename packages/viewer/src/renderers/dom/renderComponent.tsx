@@ -6,6 +6,9 @@ export const MM_TO_PX = 96 / 25.4;
 type RenderTextStyle = NonNullable<RenderText['style']> & {
   padding?: { top: number; right: number; bottom: number; left: number };
 };
+type StyledRenderTableCell = RenderTable['rows'][number][number] & {
+  style?: RenderTable['style'];
+};
 
 interface RenderComponentProps {
   component: RenderComponentBox;
@@ -216,21 +219,7 @@ const TableComponent: React.FC<{ component: RenderTable; style: React.CSSPropert
       {rows.flatMap(row => row.map(cell => (
         <div
           key={`${cell.row}-${cell.column}`}
-          style={{
-            gridColumn: cell.colSpan > 1 ? `span ${cell.colSpan}` : undefined,
-            gridRow: cell.rowSpan > 1 ? `span ${cell.rowSpan}` : undefined,
-            borderRight: cell.column + cell.colSpan >= component.columns.length ? undefined : border,
-            borderBottom: cell.row + cell.rowSpan >= rows.length ? undefined : border,
-            backgroundColor: cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined,
-            color: '#111',
-            fontSize: 10 * 1.333 * scale,
-            lineHeight: 1.2,
-            padding: `${1 * MM_TO_PX * scale}px ${1.5 * MM_TO_PX * scale}px`,
-            overflow: 'hidden',
-            whiteSpace: 'nowrap',
-            textOverflow: 'ellipsis',
-            boxSizing: 'border-box',
-          }}
+          style={tableCellStyle(cell, rows.length, component.columns.length, border, scale)}
         >
           {cell.content}
         </div>
@@ -238,6 +227,38 @@ const TableComponent: React.FC<{ component: RenderTable; style: React.CSSPropert
     </div>
   );
 };
+
+function tableCellStyle(cell: StyledRenderTableCell, rowCount: number, columnCount: number, gridBorder: string, scale: number): React.CSSProperties {
+  const border = cell.style?.border;
+  return {
+    gridColumn: cell.colSpan > 1 ? `span ${cell.colSpan}` : undefined,
+    gridRow: cell.rowSpan > 1 ? `span ${cell.rowSpan}` : undefined,
+    borderRight: border?.sides.right ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : cell.column + cell.colSpan >= columnCount ? undefined : gridBorder,
+    borderBottom: border?.sides.bottom ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : cell.row + cell.rowSpan >= rowCount ? undefined : gridBorder,
+    borderTop: border?.sides.top ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
+    borderLeft: border?.sides.left ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
+    backgroundColor: cell.style?.backgroundColor ?? (cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined),
+    color: '#111',
+    fontSize: 10 * 1.333 * scale,
+    lineHeight: 1.2,
+    paddingTop: `${(cell.style?.padding?.top ?? 1) * MM_TO_PX * scale}px`,
+    paddingRight: `${(cell.style?.padding?.right ?? 1.5) * MM_TO_PX * scale}px`,
+    paddingBottom: `${(cell.style?.padding?.bottom ?? 1) * MM_TO_PX * scale}px`,
+    paddingLeft: `${(cell.style?.padding?.left ?? 1.5) * MM_TO_PX * scale}px`,
+    textAlign: cell.style?.textAlign,
+    alignContent: verticalAlignToContent(cell.style?.verticalAlign),
+    overflow: 'hidden',
+    whiteSpace: 'nowrap',
+    textOverflow: 'ellipsis',
+    boxSizing: 'border-box',
+  };
+}
+
+function verticalAlignToContent(value?: 'top' | 'middle' | 'bottom'): React.CSSProperties['alignContent'] {
+  if (value === 'middle') return 'center';
+  if (value === 'bottom') return 'end';
+  return undefined;
+}
 
 function lineDashArray(style?: 'solid' | 'dashed' | 'dotted'): string | undefined {
   if (style === 'dashed') return '6 4';

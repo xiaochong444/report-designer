@@ -254,6 +254,12 @@ export interface TableCell {
   text?: Expression;
   rowSpan?: number;
   colSpan?: number;
+  backgroundColor?: string;
+  border?: BorderConfig;
+  padding?: Padding;
+  textAlign?: TextAlign;
+  verticalAlign?: VerticalAlign;
+  format?: TextFormatConfig;
 }
 
 export interface TableComponent extends ReportComponent {

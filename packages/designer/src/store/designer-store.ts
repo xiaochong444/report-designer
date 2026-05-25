@@ -134,7 +134,7 @@ export interface DesignerState {
     dataSource?: string;
     columns?: TableColumn[];
   }) => void;
-  updateSelectedTableCell: (updates: Partial<Pick<TableCell, 'text' | 'rowSpan' | 'colSpan'>>) => void;
+  updateSelectedTableCell: (updates: Partial<TableCell>) => void;
   applySelectedStyle: (styleId: string | undefined) => void;
   createTextStyle: (style?: Partial<ReportStyle> & { name?: string }) => string;
   duplicateTextStyle: (styleId: string) => string | undefined;
@@ -1494,7 +1494,7 @@ function updateTableCellInTemplate(
   template: ReportTemplate,
   pageId: string,
   selection: TableCellSelection,
-  updates: Partial<Pick<TableCell, 'text' | 'rowSpan' | 'colSpan'>>,
+  updates: Partial<TableCell>,
 ): ReportTemplate {
   const normalizedSelection = normalizeTableCellSelection(selection);
   return {
@@ -1521,7 +1521,7 @@ function updateTableCellInTemplate(
 function updateTableCell(
   table: TableComponent,
   selection: TableCellSelection,
-  updates: Partial<Pick<TableCell, 'text' | 'rowSpan' | 'colSpan'>>,
+  updates: Partial<TableCell>,
 ): TableComponent {
   const normalized = normalizeTable(table);
   const row = selection.startRow;

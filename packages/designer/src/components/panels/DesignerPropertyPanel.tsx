@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Checkbox, Collapse, ColorPicker, Form, Input, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
 import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, DeleteOutlined, PlusOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { createDefaultPageBorder, createDefaultPageWatermark, normalizeReportFonts } from '@report-designer/core';
-import type { Margins, Page, PageBorder, PageWatermark, ReportFont, TableCell, TableComponent } from '@report-designer/core';
+import type { BorderConfig, Margins, Padding, Page, PageBorder, PageWatermark, ReportFont, TableCell, TableComponent, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import {
   detectPaperType,
@@ -18,6 +18,7 @@ import { BandPropertyGrid } from '../properties/BandPropertyGrid';
 import { PropertyEditor } from '../PropertyEditor';
 import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDialog';
 import { buildEventEditorDataContext } from '../events/event-editor-utils';
+import { TextFormatEditor } from '../TextFormatEditor';
 
 export const DesignerPropertyPanel: React.FC = () => {
   const { t } = useDesignerI18n();
@@ -71,21 +72,36 @@ const TableCellProperties: React.FC = () => {
     .find(band => band.id === selectedTableCell?.bandId)
     ?.components.find(component => component.id === selectedTableCell?.tableId && component.type === 'table') as TableComponent | undefined;
   const cell = table?.cells?.find(item => item.row === selectedTableCell?.startRow && item.column === selectedTableCell?.startColumn);
+  const border = cell?.border ?? DEFAULT_CELL_BORDER;
+  const padding = cell?.padding ?? DEFAULT_CELL_PADDING;
+  const format = cell?.format ?? DEFAULT_CELL_FORMAT;
   const selectionText = selectedTableCell
     ? `${selectedTableCell.startRow + 1}:${selectedTableCell.startColumn + 1} - ${selectedTableCell.endRow + 1}:${selectedTableCell.endColumn + 1}`
     : '';
 
   if (!selectedTableCell || !table) return null;
 
-  const updateCell = (updates: Partial<Pick<TableCell, 'text' | 'rowSpan' | 'colSpan'>>) => {
+  const updateCell = (updates: Partial<TableCell>) => {
     updateSelectedTableCell(updates);
+  };
+  const updateBorder = (updates: Partial<BorderConfig>) => {
+    updateCell({
+      border: {
+        ...border,
+        ...updates,
+        sides: { ...border.sides, ...(updates.sides ?? {}) },
+      },
+    });
+  };
+  const updatePadding = (field: keyof Padding, value?: number | string | null) => {
+    updateCell({ padding: { ...padding, [field]: Number(value ?? padding[field]) } });
   };
 
   return (
     <div className="rd-property-grid-band" data-testid="designer-table-cell-properties">
       <Collapse
         size="small"
-        defaultActiveKey={['cell']}
+        defaultActiveKey={['cell', 'appearance', 'format']}
         items={[{
           key: 'cell',
           label: t('tableCell.properties'),
@@ -121,11 +137,110 @@ const TableCellProperties: React.FC = () => {
               </Form.Item>
             </Form>
           ),
+        }, {
+          key: 'appearance',
+          label: t('tableCell.appearance'),
+          children: (
+            <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+              <Form.Item label={t('tableCell.backgroundColor')}>
+                <ColorPicker
+                  aria-label={t('tableCell.backgroundColor')}
+                  value={cell?.backgroundColor ?? '#ffffff'}
+                  allowClear
+                  onChange={color => updateCell({ backgroundColor: color.toHexString() })}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableCell.textAlign')}>
+                <Segmented
+                  aria-label={t('tableCell.textAlign')}
+                  block
+                  value={cell?.textAlign ?? 'left'}
+                  options={[
+                    { value: 'left', icon: <AlignLeftOutlined />, label: '' },
+                    { value: 'center', icon: <AlignCenterOutlined />, label: '' },
+                    { value: 'right', icon: <AlignRightOutlined />, label: '' },
+                  ]}
+                  onChange={value => updateCell({ textAlign: value as TableCell['textAlign'] })}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableCell.verticalAlign')}>
+                <Segmented
+                  aria-label={t('tableCell.verticalAlign')}
+                  block
+                  value={cell?.verticalAlign ?? 'top'}
+                  options={[
+                    { value: 'top', icon: <VerticalAlignTopOutlined />, label: '' },
+                    { value: 'middle', icon: <VerticalAlignMiddleOutlined />, label: '' },
+                    { value: 'bottom', icon: <VerticalAlignBottomOutlined />, label: '' },
+                  ]}
+                  onChange={value => updateCell({ verticalAlign: value as TableCell['verticalAlign'] })}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableCell.borderStyle')}>
+                <Select
+                  aria-label={t('tableCell.borderStyle')}
+                  value={border.style}
+                  options={[
+                    { value: 'none', label: t('common.default') },
+                    { value: 'solid', label: t('pageSettings.borderSolid') },
+                    { value: 'dashed', label: t('pageSettings.borderDashed') },
+                    { value: 'dotted', label: t('pageSettings.borderDotted') },
+                    { value: 'double', label: t('pageSettings.borderDouble') },
+                  ]}
+                  onChange={style => updateBorder({ style })}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableCell.borderColor')}>
+                <ColorPicker
+                  aria-label={t('tableCell.borderColor')}
+                  value={border.color}
+                  onChange={color => updateBorder({ color: color.toHexString() })}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableCell.borderWidth')}>
+                <InputNumber
+                  aria-label={t('tableCell.borderWidth')}
+                  value={border.width}
+                  min={0}
+                  step={0.1}
+                  style={{ width: '100%' }}
+                  onChange={value => updateBorder({ width: Number(value ?? border.width) })}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableCell.padding')}>
+                <Space.Compact style={{ width: '100%' }}>
+                  <InputNumber aria-label={t('tableCell.paddingTop')} value={padding.top} min={0} onChange={value => updatePadding('top', value)} />
+                  <InputNumber aria-label={t('tableCell.paddingRight')} value={padding.right} min={0} onChange={value => updatePadding('right', value)} />
+                  <InputNumber aria-label={t('tableCell.paddingBottom')} value={padding.bottom} min={0} onChange={value => updatePadding('bottom', value)} />
+                  <InputNumber aria-label={t('tableCell.paddingLeft')} value={padding.left} min={0} onChange={value => updatePadding('left', value)} />
+                </Space.Compact>
+              </Form.Item>
+            </Form>
+          ),
+        }, {
+          key: 'format',
+          label: t('tableCell.format'),
+          children: (
+            <TextFormatEditor
+              value={format}
+              onChange={(value: TextFormatConfig) => updateCell({ format: value })}
+            />
+          ),
         }]}
       />
     </div>
   );
 };
+
+const DEFAULT_CELL_BORDER: BorderConfig = {
+  style: 'none',
+  width: 0,
+  color: '#000000',
+  sides: { top: true, right: true, bottom: true, left: true },
+};
+
+const DEFAULT_CELL_PADDING = { top: 1, right: 1.5, bottom: 1, left: 1.5 };
+const DEFAULT_CELL_FORMAT: TextFormatConfig = { type: 'none' };
 
 const PageProperties: React.FC = () => {
   const { t } = useDesignerI18n();

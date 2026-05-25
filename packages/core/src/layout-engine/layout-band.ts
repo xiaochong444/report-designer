@@ -511,6 +511,7 @@ function buildTableRows(
         height: isHeader ? component.headerHeight : component.rowHeight,
         isHeader,
         isFooter,
+        style: tableCellStyle(customCell),
       });
     }
     rows.push(renderedRow);
@@ -554,7 +555,8 @@ function tableCellContent(options: {
   pageRowsByBand: Record<string, Record<string, unknown>[]>;
 }): string {
   if (options.cell?.text) {
-    return resolveTemplateValue(options.cell.text, options.context, options.rowsByBand, options.pageRowsByBand);
+    const value = resolveTemplateValue(options.cell.text, options.context, options.rowsByBand, options.pageRowsByBand);
+    return formatValue(value, options.cell.format);
   }
   if (options.isHeader) {
     return options.column.header;
@@ -566,7 +568,19 @@ function tableCellContent(options: {
     return '';
   }
   const value = options.context.row?.[options.column.field] ?? options.context.row?.[`${options.context.dataSourceId}.${options.column.field}`];
-  return value == null ? '' : String(value);
+  return formatValue(value, options.cell?.format);
+}
+
+function tableCellStyle(cell?: TableCell) {
+  if (!cell) return undefined;
+  const style = {
+    backgroundColor: cell.backgroundColor,
+    border: cell.border,
+    padding: cell.padding,
+    textAlign: cell.textAlign,
+    verticalAlign: cell.verticalAlign,
+  };
+  return Object.values(style).some(value => value !== undefined) ? style : undefined;
 }
 
 function resolveTemplateBoolean(

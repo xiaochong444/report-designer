@@ -151,7 +151,7 @@ function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY
 function renderTableHtml(component: RenderComponentBox, dataAttribute: string, style: string): string {
   if (!('rows' in component) || !('columns' in component)) return '';
   const columns = component.columns as Array<{ width: number }>;
-  const rows = component.rows as Array<Array<{ row: number; column: number; content: string; rowSpan: number; colSpan: number; height: number; isHeader?: boolean; isFooter?: boolean }>>;
+  const rows = component.rows as Array<Array<{ row: number; column: number; content: string; rowSpan: number; colSpan: number; height: number; isHeader?: boolean; isFooter?: boolean; style?: RenderComponentBox['style'] }>>;
   const border = 'showBorder' in component && component.showBorder ? '0.2mm solid #8c8c8c' : '0.2mm dashed #d9d9d9';
   const gridStyle = [
     style,
@@ -166,20 +166,36 @@ function renderTableHtml(component: RenderComponentBox, dataAttribute: string, s
     const declarations = [
       cell.colSpan > 1 ? `grid-column:span ${cell.colSpan}` : undefined,
       cell.rowSpan > 1 ? `grid-row:span ${cell.rowSpan}` : undefined,
-      cell.column + cell.colSpan >= columns.length ? undefined : `border-right:${border}`,
-      cell.row + cell.rowSpan >= rows.length ? undefined : `border-bottom:${border}`,
-      cell.isHeader ? 'background-color:#f0f5ff' : cell.isFooter ? 'background-color:#fff7e6' : undefined,
+      tableCellBorderCss(cell, columns.length, rows.length, border),
+      cell.style?.backgroundColor ? `background-color:${cell.style.backgroundColor}` : cell.isHeader ? 'background-color:#f0f5ff' : cell.isFooter ? 'background-color:#fff7e6' : undefined,
       'box-sizing:border-box',
       'overflow:hidden',
       'white-space:nowrap',
       'text-overflow:ellipsis',
-      'padding:1mm 1.5mm',
+      `padding:${paddingCssValue(cell.style?.padding ?? { top: 1, right: 1.5, bottom: 1, left: 1.5 })}`,
+      cell.style?.textAlign ? `text-align:${cell.style.textAlign}` : undefined,
+      cell.style?.verticalAlign ? `align-content:${cell.style.verticalAlign === 'middle' ? 'center' : cell.style.verticalAlign === 'bottom' ? 'end' : 'start'}` : undefined,
       'font-size:10px',
       'line-height:1.2',
     ].filter(Boolean).join(';');
     return `<div class="rd-print-table-cell" style="${declarations};">${escapeHtml(cell.content)}</div>`;
   })).join('');
   return `<div class="rd-print-component rd-print-table" ${dataAttribute} style="${gridStyle};">${cells}</div>`;
+}
+
+function tableCellBorderCss(
+  cell: { row: number; column: number; rowSpan: number; colSpan: number; style?: RenderComponentBox['style'] },
+  columnCount: number,
+  rowCount: number,
+  fallbackBorder: string,
+): string {
+  const border = cell.style?.border;
+  const declarations = [];
+  declarations.push(border?.sides.top ? `border-top:${border.width}mm ${border.style} ${border.color}` : undefined);
+  declarations.push(border?.sides.right ? `border-right:${border.width}mm ${border.style} ${border.color}` : cell.column + cell.colSpan >= columnCount ? undefined : `border-right:${fallbackBorder}`);
+  declarations.push(border?.sides.bottom ? `border-bottom:${border.width}mm ${border.style} ${border.color}` : cell.row + cell.rowSpan >= rowCount ? undefined : `border-bottom:${fallbackBorder}`);
+  declarations.push(border?.sides.left ? `border-left:${border.width}mm ${border.style} ${border.color}` : undefined);
+  return declarations.filter(Boolean).join(';');
 }
 
 function buildComponentStyle(component: RenderComponentBox, bandX: number, bandY: number): string {

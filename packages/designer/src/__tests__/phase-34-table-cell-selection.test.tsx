@@ -107,4 +107,26 @@ describe('phase 34 table cell selection', () => {
       .find(component => component.id === 'table-1') as TableComponent;
     expect(table.cells).toContainEqual({ row: 1, column: 1, text: 'Total' });
   });
+
+  it('updates selected table cell appearance from the property panel', () => {
+    loadWith(tableComponent());
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 1);
+    fireEvent.change(screen.getByLabelText('边框宽度'), { target: { value: '0.4' } });
+    fireEvent.change(screen.getByLabelText('上'), { target: { value: '2' } });
+
+    const table = useDesignerStore.getState().template.pages[0].bands
+      .flatMap(band => band.components)
+      .find(component => component.id === 'table-1') as TableComponent;
+    expect(table.cells?.find(cell => cell.row === 1 && cell.column === 1)).toMatchObject({
+      border: { width: 0.4 },
+      padding: { top: 2 },
+    });
+  });
 });
