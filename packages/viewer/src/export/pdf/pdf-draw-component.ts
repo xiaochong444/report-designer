@@ -107,16 +107,57 @@ function drawLine(page: PDFPage, line: RenderLine, x: number, y: number, width: 
 
 function drawShape(page: PDFPage, shape: RenderShape, x: number, y: number, width: number, height: number): void {
   const borderWidth = Math.max(0.5, (shape.borderWidth ?? 0.2) * MM_TO_PT);
+  const borderDashArray = pdfBorderDashArray(shape.borderStyle);
   const options = {
-    color: shape.fillColor ? parsePdfColor(shape.fillColor) : undefined,
+    color: pdfFillColor(shape.fillColor),
     borderColor: parsePdfColor(shape.borderColor ?? '#000000'),
     borderWidth,
+    borderDashArray,
   };
   if (shape.shapeType === 'ellipse') {
     page.drawEllipse({ x: x + width / 2, y: y + height / 2, xScale: width / 2, yScale: height / 2, ...options });
     return;
   }
+  if (shape.shapeType === 'triangle') {
+    page.drawSvgPath(trianglePath(width, height), { x, y, ...options });
+    return;
+  }
+  if (shape.shapeType === 'roundRect') {
+    page.drawSvgPath(roundRectPath(width, height, Math.min(width, height) * 0.15), { x, y, ...options });
+    return;
+  }
   page.drawRectangle({ x, y, width, height, ...options });
+}
+
+function pdfFillColor(color?: string) {
+  if (!color || color.toLowerCase() === 'transparent') return undefined;
+  return parsePdfColor(color);
+}
+
+function pdfBorderDashArray(style?: string): number[] | undefined {
+  if (style === 'dashed') return [6, 4];
+  if (style === 'dotted') return [1, 3];
+  return undefined;
+}
+
+function trianglePath(width: number, height: number): string {
+  return `M ${width / 2} ${height} L ${width} 0 L 0 0 Z`;
+}
+
+function roundRectPath(width: number, height: number, radius: number): string {
+  const r = Math.max(0, Math.min(radius, width / 2, height / 2));
+  return [
+    `M ${r} 0`,
+    `L ${width - r} 0`,
+    `C ${width} 0 ${width} 0 ${width} ${r}`,
+    `L ${width} ${height - r}`,
+    `C ${width} ${height} ${width} ${height} ${width - r} ${height}`,
+    `L ${r} ${height}`,
+    `C 0 ${height} 0 ${height} 0 ${height - r}`,
+    `L 0 ${r}`,
+    `C 0 0 0 0 ${r} 0`,
+    'Z',
+  ].join(' ');
 }
 
 async function drawImage(pdfDoc: PDFDocument, page: PDFPage, image: RenderImage, x: number, y: number, width: number, height: number): Promise<void> {

@@ -407,4 +407,56 @@ describe('Phase 4 PDF export', () => {
 
     expect(bytes.byteLength).toBeGreaterThan(900);
   });
+
+  it('draws PDF shape variants with matching fill and border styles', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push(
+      {
+        id: 'shape-triangle',
+        type: 'shape',
+        x: 30,
+        y: 30,
+        width: 24,
+        height: 18,
+        shapeType: 'triangle',
+        fillColor: 'transparent',
+        borderColor: '#1677ff',
+        borderWidth: 0.4,
+        borderStyle: 'dashed',
+        style: {},
+      },
+      {
+        id: 'shape-round',
+        type: 'shape',
+        x: 60,
+        y: 30,
+        width: 24,
+        height: 18,
+        shapeType: 'roundRect',
+        fillColor: '#fff1b8',
+        borderColor: '#fa8c16',
+        borderWidth: 0.4,
+        borderStyle: 'dotted',
+        style: {},
+      },
+    );
+    const drawSvgPath = vi.spyOn(PDFPage.prototype, 'drawSvgPath');
+    const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+
+    await exportRenderDocumentToPDF(document);
+
+    const triangleCall = drawSvgPath.mock.calls.find(([, options]) => JSON.stringify(options?.borderDashArray) === '[6,4]');
+    expect(triangleCall?.[1]).toEqual(expect.objectContaining({
+      color: undefined,
+      borderDashArray: [6, 4],
+    }));
+    const roundRectCall = drawSvgPath.mock.calls.find(([path, options]) => path.includes('C') && JSON.stringify(options?.borderDashArray) === '[1,3]');
+    expect(roundRectCall?.[1]).toEqual(expect.objectContaining({
+      borderDashArray: [1, 3],
+    }));
+    expect(drawRectangle.mock.calls.some(([options]) => options?.color?.red === 0 && options?.color?.green === 0 && options?.color?.blue === 0)).toBe(false);
+
+    drawSvgPath.mockRestore();
+    drawRectangle.mockRestore();
+  });
 });
