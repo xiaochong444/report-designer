@@ -1,11 +1,13 @@
 import React from 'react';
-import { Alert, Drawer, Flex, Tag, Typography } from 'antd';
+import { AimOutlined } from '@ant-design/icons';
+import { Alert, Button, Drawer, Flex, Tag, Tooltip, Typography } from 'antd';
 import type { EventLogEntry } from '@report-designer/core';
 
 interface EventLogPanelProps {
   open: boolean;
   logs: EventLogEntry[];
   onClose: () => void;
+  onSelect?: (entry: EventLogEntry) => void;
 }
 
 const ownerLabel: Record<EventLogEntry['ownerType'], string> = {
@@ -20,7 +22,7 @@ const tagColor: Record<EventLogEntry['level'], string> = {
   error: 'red',
 };
 
-export const EventLogPanel: React.FC<EventLogPanelProps> = ({ logs, onClose, open }) => (
+export const EventLogPanel: React.FC<EventLogPanelProps> = ({ logs, onClose, onSelect, open }) => (
   <Drawer
     title="Event Logs"
     open={open}
@@ -39,16 +41,28 @@ export const EventLogPanel: React.FC<EventLogPanelProps> = ({ logs, onClose, ope
             style={{ borderBottom: '1px solid #f0f0f0', paddingBottom: 8 }}
           >
             <Flex vertical gap={4} style={{ width: '100%' }}>
-              <Flex wrap gap={6} align="center">
-                <Tag color={tagColor[entry.level]}>{entry.level.toUpperCase()}</Tag>
-                <Typography.Text type="secondary">
-                  {ownerLabel[entry.ownerType]} {entry.ownerId}
-                </Typography.Text>
-                <Typography.Text type="secondary">{entry.eventName}</Typography.Text>
-                {entry.line ? (
+              <Flex wrap gap={6} align="center" justify="space-between">
+                <Flex wrap gap={6} align="center">
+                  <Tag color={tagColor[entry.level]}>{entry.level.toUpperCase()}</Tag>
                   <Typography.Text type="secondary">
-                    Line {entry.line}{entry.column ? `:${entry.column}` : ''}
+                    {ownerLabel[entry.ownerType]} {entry.ownerId}
                   </Typography.Text>
+                  <Typography.Text type="secondary">{entry.eventName}</Typography.Text>
+                  {entry.line ? (
+                    <Typography.Text type="secondary">
+                      Line {entry.line}{entry.column ? `:${entry.column}` : ''}
+                    </Typography.Text>
+                  ) : null}
+                </Flex>
+                {onSelect ? (
+                  <Tooltip title="Open Event">
+                    <Button
+                      aria-label="Open Event"
+                      size="small"
+                      icon={<AimOutlined />}
+                      onClick={() => onSelect(entry)}
+                    />
+                  </Tooltip>
                 ) : null}
               </Flex>
               <Typography.Text>{entry.message}</Typography.Text>

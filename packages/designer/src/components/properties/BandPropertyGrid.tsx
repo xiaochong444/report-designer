@@ -16,7 +16,10 @@ export const BandPropertyGrid: React.FC = () => {
   const updateTemplate = useDesignerStore(s => s.updateTemplate);
   const replaceBandEvents = useDesignerStore(s => s.replaceBandEvents);
   const reportUnit = useDesignerStore(s => s.reportUnit);
+  const pendingEventEditorTarget = useDesignerStore(s => s.pendingEventEditorTarget);
+  const consumeEventEditorTarget = useDesignerStore(s => s.consumeEventEditorTarget);
   const [eventEditorOpen, setEventEditorOpen] = React.useState(false);
+  const [eventEditorTarget, setEventEditorTarget] = React.useState<typeof pendingEventEditorTarget>(null);
   const page = template.pages.find(item => item.id === currentPageId) ?? template.pages[0];
   const band = page?.bands.find(item => item.id === selectedBandId);
 
@@ -41,6 +44,16 @@ export const BandPropertyGrid: React.FC = () => {
     printAtBottom: band.type === 'pageFooter',
     ...band.behavior,
   };
+  const pendingTarget = pendingEventEditorTarget?.ownerType === 'band' && pendingEventEditorTarget.ownerId === band?.id
+    ? pendingEventEditorTarget
+    : null;
+
+  React.useEffect(() => {
+    if (!pendingTarget) return;
+    setEventEditorTarget(pendingTarget);
+    setEventEditorOpen(true);
+    consumeEventEditorTarget(pendingTarget.requestId);
+  }, [consumeEventEditorTarget, pendingTarget]);
 
   const updateBand = (updates: Partial<typeof band>) => {
     updateTemplate(current => ({
@@ -80,20 +93,29 @@ export const BandPropertyGrid: React.FC = () => {
     <Space orientation="vertical" size={10} style={{ width: '100%' }}>
       <Typography.Text type="secondary">{t('bandProperties.name')}</Typography.Text>
       <Input value={band.id} readOnly />
-      <Button size="small" onClick={() => setEventEditorOpen(true)}>
+      <Button size="small" onClick={() => {
+        setEventEditorTarget(null);
+        setEventEditorOpen(true);
+      }}>
         {t('events.edit')}
       </Button>
       <EventEditorDialog
         open={eventEditorOpen}
         targetType="band"
         events={band.events}
+        initialEventName={eventEditorTarget?.eventName}
+        initialCursor={eventEditorTarget ? { line: eventEditorTarget.line, column: eventEditorTarget.column } : undefined}
         dataContext={buildEventEditorDataContext(template, { targetType: 'band', bandId: band.id })}
         dictionaryItems={buildDictionaryEventItems(template)}
         componentItems={buildComponentEventItems(template)}
-        onCancel={() => setEventEditorOpen(false)}
+        onCancel={() => {
+          setEventEditorOpen(false);
+          setEventEditorTarget(null);
+        }}
         onSave={(events) => {
           replaceBandEvents(page.id, band.id, events);
           setEventEditorOpen(false);
+          setEventEditorTarget(null);
         }}
       />
       <Select

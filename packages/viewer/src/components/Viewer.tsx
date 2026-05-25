@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Layout } from 'antd';
-import { renderReport, type RenderReportOptions, type ReportTemplate } from '@report-designer/core';
+import { renderReport, type EventLogEntry, type RenderReportOptions, type ReportTemplate } from '@report-designer/core';
 import { ViewerToolbar } from './ViewerToolbar';
 import { downloadPDF, exportToPDF, printReport } from '../export';
 import { RenderDocumentView } from '../renderers/dom/RenderDocumentView';
@@ -13,9 +13,10 @@ interface ViewerProps {
   data: Record<string, any[]>;
   className?: string;
   subreports?: RenderReportOptions['subreports'];
+  onEventLogSelect?: (entry: EventLogEntry) => void;
 }
 
-export const Viewer: React.FC<ViewerProps> = ({ template, data, className, subreports }) => {
+export const Viewer: React.FC<ViewerProps> = ({ template, data, className, onEventLogSelect, subreports }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(100);
   const [eventLogOpen, setEventLogOpen] = useState(false);
@@ -65,6 +66,7 @@ export const Viewer: React.FC<ViewerProps> = ({ template, data, className, subre
         open={eventLogOpen}
         logs={document.eventLogs ?? []}
         onClose={() => setEventLogOpen(false)}
+        onSelect={onEventLogSelect}
       />
     </Layout>
   );

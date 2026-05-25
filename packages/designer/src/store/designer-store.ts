@@ -51,6 +51,19 @@ export interface TableCellSelection {
   endColumn: number;
 }
 
+export interface DesignerEventNavigationTarget {
+  ownerType: 'report' | 'band' | 'component';
+  ownerId: string;
+  eventName: string;
+  line?: number;
+  column?: number;
+  nonce?: number;
+}
+
+export interface PendingEventEditorTarget extends DesignerEventNavigationTarget {
+  requestId: number;
+}
+
 export interface DesignerState {
   template: ReportTemplate;
   currentPageId: string;
@@ -60,6 +73,7 @@ export interface DesignerState {
   selectedComponentIds: string[];
   selectedBandId: string | null;
   selectedTableCell: TableCellSelection | null;
+  pendingEventEditorTarget: PendingEventEditorTarget | null;
   dataSources: Record<string, any[]>;
   dispatcher: CommandDispatcher;
   clipboard: ReportComponent[];
@@ -84,6 +98,8 @@ export interface DesignerState {
   selectComponents: (componentIds: string[]) => void;
   selectBand: (bandId: string | null) => void;
   selectTableCell: (selection: TableCellSelection | null) => void;
+  openEventEditorTarget: (target: DesignerEventNavigationTarget) => void;
+  consumeEventEditorTarget: (requestId: number) => void;
   setDataSources: (data: Record<string, any[]>) => void;
   setReportUnit: (unit: ReportUnit) => void;
   setZoom: (zoom: number) => void;
@@ -192,6 +208,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     selectedComponentIds: [],
     selectedBandId: null,
     selectedTableCell: null,
+    pendingEventEditorTarget: null,
     dataSources: {},
     dispatcher,
     clipboard: [],
@@ -209,6 +226,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       selectedComponentIds: [],
       selectedBandId: null,
       selectedTableCell: null,
+      pendingEventEditorTarget: null,
       reportUnit: 'mm',
       zoom: 1,
     });
@@ -289,6 +307,19 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     selectedComponentIds: selection ? [selection.tableId] : get().selectedComponentIds,
     selectedBandId: selection ? null : get().selectedBandId,
   }),
+
+  openEventEditorTarget: (target) => set(state => ({
+    pendingEventEditorTarget: {
+      ...target,
+      requestId: target.nonce ?? Date.now(),
+    },
+  })),
+
+  consumeEventEditorTarget: (requestId) => set(state => (
+    state.pendingEventEditorTarget?.requestId === requestId
+      ? { pendingEventEditorTarget: null }
+      : {}
+  )),
 
   setDataSources: (data) => set({ dataSources: data }),
 

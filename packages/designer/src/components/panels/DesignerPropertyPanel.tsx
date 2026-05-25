@@ -251,7 +251,10 @@ const PageProperties: React.FC = () => {
   const reportUnit = useDesignerStore(s => s.reportUnit);
   const setReportUnit = useDesignerStore(s => s.setReportUnit);
   const replaceReportEvents = useDesignerStore(s => s.replaceReportEvents);
+  const pendingEventEditorTarget = useDesignerStore(s => s.pendingEventEditorTarget);
+  const consumeEventEditorTarget = useDesignerStore(s => s.consumeEventEditorTarget);
   const [eventEditorOpen, setEventEditorOpen] = React.useState(false);
+  const [eventEditorTarget, setEventEditorTarget] = React.useState<typeof pendingEventEditorTarget>(null);
   const page = template.pages.find(item => item.id === currentPageId) ?? template.pages[0];
 
   if (!page) {
@@ -327,6 +330,16 @@ const PageProperties: React.FC = () => {
   const removeFont = (fontId: string) => {
     updateFonts(reportFonts.filter(font => font.id !== fontId || font.builtin));
   };
+  const pendingTarget = pendingEventEditorTarget?.ownerType === 'report'
+    ? pendingEventEditorTarget
+    : null;
+
+  React.useEffect(() => {
+    if (!pendingTarget) return;
+    setEventEditorTarget(pendingTarget);
+    setEventEditorOpen(true);
+    consumeEventEditorTarget(pendingTarget.requestId);
+  }, [consumeEventEditorTarget, pendingTarget]);
 
   return (
     <div className="rd-property-grid-band" data-testid="designer-page-properties">
@@ -464,20 +477,29 @@ const PageProperties: React.FC = () => {
                 <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
                   {Object.keys(template.events ?? {}).length} {t('events.title')}
                 </Typography.Text>
-                <Button size="small" onClick={() => setEventEditorOpen(true)}>
+                <Button size="small" onClick={() => {
+                  setEventEditorTarget(null);
+                  setEventEditorOpen(true);
+                }}>
                   {t('events.edit')}
                 </Button>
                 <EventEditorDialog
                   open={eventEditorOpen}
                   targetType="report"
                   events={template.events}
+                  initialEventName={eventEditorTarget?.eventName}
+                  initialCursor={eventEditorTarget ? { line: eventEditorTarget.line, column: eventEditorTarget.column } : undefined}
                   dataContext={buildEventEditorDataContext(template, { targetType: 'report' })}
                   dictionaryItems={buildDictionaryEventItems(template)}
                   componentItems={buildComponentEventItems(template)}
-                  onCancel={() => setEventEditorOpen(false)}
+                  onCancel={() => {
+                    setEventEditorOpen(false);
+                    setEventEditorTarget(null);
+                  }}
                   onSave={(events) => {
                     replaceReportEvents(events);
                     setEventEditorOpen(false);
+                    setEventEditorTarget(null);
                   }}
                 />
               </>

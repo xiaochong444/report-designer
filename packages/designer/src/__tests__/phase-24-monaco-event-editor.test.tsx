@@ -299,6 +299,34 @@ describe('phase 24 monaco event editor helpers', () => {
     });
   });
 
+  it('places the Monaco cursor on an initial script location', () => {
+    const editor = {
+      setPosition: vi.fn(),
+      revealLineInCenter: vi.fn(),
+      focus: vi.fn(),
+    };
+
+    render(
+      <EventScriptEditor
+        ariaLabel="Script"
+        value={'ctx.log.info("start");\nthrow new Error("line boom");'}
+        targetType="band"
+        eventName="beforePrint"
+        initialCursor={{ line: 2, column: 3 }}
+        onChange={() => undefined}
+      />,
+    );
+
+    const props = monacoEditorMock.lastProps;
+    expect(props).toBeDefined();
+
+    (props?.onMount as (_editor: typeof editor, monacoInstance: typeof monaco) => void)(editor, monaco);
+
+    expect(editor.setPosition).toHaveBeenCalledWith({ lineNumber: 2, column: 3 });
+    expect(editor.revealLineInCenter).toHaveBeenCalledWith(2);
+    expect(editor.focus).toHaveBeenCalledTimes(1);
+  });
+
   it('wires event script editor lifecycle props into Monaco configuration and diagnostics', () => {
     const onDiagnostics = vi.fn();
     const helperItems = [{ label: 'ctx.hide', insertText: 'ctx.hide?.();', detail: 'Hide component' }];
@@ -599,6 +627,31 @@ describe('phase 24 monaco event editor helpers', () => {
     fireEvent.click(screen.getByText('Apply'));
     expect(saved).toMatchObject({
       getValue: { enabled: true, script: 'ctx.setValue?.("");' },
+    });
+  });
+
+  it('opens the requested event and forwards the initial script cursor', () => {
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{
+            getValue: { enabled: true, script: 'ctx.setValue?.("old");' },
+            beforePrint: { enabled: true, script: 'ctx.log.info("start");\nthrow new Error("line boom");' },
+          }}
+          initialEventName="beforePrint"
+          initialCursor={{ line: 2, column: 4 }}
+          onCancel={() => undefined}
+          onSave={() => undefined}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    expect(screen.getByLabelText('Script')).toHaveValue('ctx.log.info("start");\nthrow new Error("line boom");');
+    expect(monacoEditorMock.lastProps).toMatchObject({
+      path: 'inmemory://event-scripts/component/beforePrint.js',
+      value: 'ctx.log.info("start");\nthrow new Error("line boom");',
     });
   });
 

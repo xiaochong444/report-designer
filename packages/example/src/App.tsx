@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Button, Layout, Select, Typography } from 'antd';
-import type { ReportTemplate } from '@report-designer/core';
-import { Designer, type DesignerLocale } from '@report-designer/designer';
+import type { EventLogEntry, ReportTemplate } from '@report-designer/core';
+import { Designer, type DesignerEventNavigationTarget, type DesignerLocale } from '@report-designer/designer';
 import { Viewer } from '@report-designer/viewer';
 import { sampleReports } from './templates';
 
@@ -29,6 +29,7 @@ function App() {
   const [sampleKey, setSampleKey] = useState(sampleReports[0].key);
   const [viewMode, setViewMode] = useState<ViewMode>('preview');
   const [locale, setLocale] = useState<DesignerLocale>('zh-CN');
+  const [eventNavigationTarget, setEventNavigationTarget] = useState<DesignerEventNavigationTarget | undefined>();
   const [designerDrafts, setDesignerDrafts] = useState<Record<string, ReportTemplate>>({});
   const [previewDrafts, setPreviewDrafts] = useState<Record<string, ReportTemplate>>({});
   const labels = exampleMessages[locale];
@@ -47,6 +48,17 @@ function App() {
       [selected.key]: next,
     }));
   }, [selected.key]);
+  const handleEventLogSelect = useCallback((entry: EventLogEntry) => {
+    setEventNavigationTarget({
+      ownerType: entry.ownerType,
+      ownerId: entry.ownerId,
+      eventName: entry.eventName,
+      line: entry.line,
+      column: entry.column,
+      nonce: Date.now(),
+    });
+    setViewMode('designer');
+  }, []);
 
   return (
     <Layout style={{ height: '100vh', minWidth: 900, background: '#eef1f5' }}>
@@ -96,13 +108,19 @@ function App() {
       </Header>
       <Content style={{ minHeight: 0 }}>
         {viewMode === 'preview' ? (
-          <Viewer template={previewTemplate} data={selected.data} subreports={'subreports' in selected ? selected.subreports : undefined} />
+          <Viewer
+            template={previewTemplate}
+            data={selected.data}
+            subreports={'subreports' in selected ? selected.subreports : undefined}
+            onEventLogSelect={handleEventLogSelect}
+          />
         ) : (
           <Designer
             key={selected.key}
             template={designerTemplate}
             data={selected.data}
             locale={locale}
+            eventNavigationTarget={eventNavigationTarget}
             onTemplateChange={handleDesignerTemplateChange}
           />
         )}

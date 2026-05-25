@@ -46,6 +46,8 @@ export const PropertyEditor: React.FC = () => {
   const openTextStyleLibrary = useDesignerStore(s => s.openTextStyleLibrary);
   const openConditionalFormatLibrary = useDesignerStore(s => s.openConditionalFormatLibrary);
   const reportUnit = useDesignerStore(s => s.reportUnit);
+  const pendingEventEditorTarget = useDesignerStore(s => s.pendingEventEditorTarget);
+  const consumeEventEditorTarget = useDesignerStore(s => s.consumeEventEditorTarget);
 
   const { component, bandId } = useMemo(() => {
     if (selectedComponentIds.length !== 1) return { component: null, bandId: null };
@@ -60,8 +62,19 @@ export const PropertyEditor: React.FC = () => {
 
   const [expressionTarget, setExpressionTarget] = useState<{ field: string; label: string } | null>(null);
   const [eventEditorOpen, setEventEditorOpen] = useState(false);
+  const [eventEditorTarget, setEventEditorTarget] = useState<typeof pendingEventEditorTarget>(null);
   const unitStep = getUnitStep(reportUnit);
   const fineUnitStep = getUnitStep(reportUnit, 'fine');
+  const pendingTarget = pendingEventEditorTarget?.ownerType === 'component' && pendingEventEditorTarget.ownerId === component?.id
+    ? pendingEventEditorTarget
+    : null;
+
+  React.useEffect(() => {
+    if (!pendingTarget) return;
+    setEventEditorTarget(pendingTarget);
+    setEventEditorOpen(true);
+    consumeEventEditorTarget(pendingTarget.requestId);
+  }, [consumeEventEditorTarget, pendingTarget]);
 
   if (selectedComponentIds.length === 0) {
     return (
@@ -871,7 +884,10 @@ export const PropertyEditor: React.FC = () => {
             label: globalT('events.title'),
             children: (
               <Space orientation="vertical" style={{ width: '100%' }}>
-                <Button block size="small" icon={<EditOutlined />} onClick={() => setEventEditorOpen(true)}>
+                <Button block size="small" icon={<EditOutlined />} onClick={() => {
+                  setEventEditorTarget(null);
+                  setEventEditorOpen(true);
+                }}>
                   {globalT('events.edit')}
                 </Button>
                 <Typography.Text type="secondary" style={{ fontSize: 12 }}>
@@ -887,13 +903,19 @@ export const PropertyEditor: React.FC = () => {
         open={eventEditorOpen}
         targetType="component"
         events={component.events}
+        initialEventName={eventEditorTarget?.eventName}
+        initialCursor={eventEditorTarget ? { line: eventEditorTarget.line, column: eventEditorTarget.column } : undefined}
         dataContext={buildEventEditorDataContext(template, { targetType: 'component', componentId: component.id })}
         dictionaryItems={dictionaryItems}
         componentItems={componentItems}
-        onCancel={() => setEventEditorOpen(false)}
+        onCancel={() => {
+          setEventEditorOpen(false);
+          setEventEditorTarget(null);
+        }}
         onSave={(events) => {
           replaceComponentEvents(currentPageId, bandId, component.id, events);
           setEventEditorOpen(false);
+          setEventEditorTarget(null);
         }}
       />
       <ExpressionEditor

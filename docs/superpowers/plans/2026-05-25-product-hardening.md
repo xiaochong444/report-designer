@@ -583,9 +583,9 @@ Capture error line and column when available. Keep runtime errors isolated to ev
 
 Add a compact panel in viewer that lists logs for the last rendered document. Use severity tags, object name, event name, message, and line/column.
 
-- [ ] **Step 5: Implement editor error navigation**
+- [x] **Step 5: Implement editor error navigation**
 
-Deferred: this pass implements runtime line/column capture and viewer-side log display. Opening the designer editor from viewer logs requires a cross-package navigation contract and should be handled in the next event-editor integration pass.
+Viewer event logs can now call a host navigation callback. The example app switches back to the designer, selects the logged report/Band/component owner, opens the matching event editor, and places Monaco at the logged line and column.
 
 When an event error is opened from the log, open the event editor and place Monaco cursor on the logged line and column.
 

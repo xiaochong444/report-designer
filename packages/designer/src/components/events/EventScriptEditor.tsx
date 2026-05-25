@@ -27,6 +27,7 @@ export interface EventScriptEditorProps {
   dictionaryItems?: EventCompletionTreeItem[];
   componentItems?: EventCompletionTreeItem[];
   exampleItems?: EventCompletionTextItem[];
+  initialCursor?: { line?: number; column?: number };
   loadingText?: string;
   onChange: (value: string) => void;
   onDiagnostics?: (diagnostics: EventScriptEditorDiagnostics) => void;
@@ -54,6 +55,12 @@ interface MonacoLike {
   };
 }
 
+interface MonacoEditorLike {
+  setPosition?: (position: { lineNumber: number; column: number }) => void;
+  revealLineInCenter?: (lineNumber: number) => void;
+  focus?: () => void;
+}
+
 const EVENT_API_EXTRA_LIB_PATH = 'inmemory://event-scripts/event-api.d.ts';
 const FALLBACK_SCRIPT_TARGET_ES2020 = 7;
 
@@ -67,11 +74,13 @@ export function EventScriptEditor({
   dictionaryItems,
   componentItems,
   exampleItems,
+  initialCursor,
   loadingText,
   onChange,
   onDiagnostics,
 }: EventScriptEditorProps) {
   const monacoRef = useRef<MonacoLike | undefined>(undefined);
+  const editorRef = useRef<MonacoEditorLike | undefined>(undefined);
   const extraLibDisposableRef = useRef<Disposable | undefined>(undefined);
   const completionDisposableRef = useRef<Disposable | undefined>(undefined);
 
@@ -100,6 +109,22 @@ export function EventScriptEditor({
   useEffect(() => {
     latestCompletionInputRef.current = completionInput;
   }, [completionInput]);
+
+  const focusInitialCursor = useCallback(() => {
+    const line = initialCursor?.line;
+    if (!line || line < 1) {
+      return;
+    }
+
+    const column = initialCursor?.column && initialCursor.column > 0 ? initialCursor.column : 1;
+    editorRef.current?.setPosition?.({ lineNumber: line, column });
+    editorRef.current?.revealLineInCenter?.(line);
+    editorRef.current?.focus?.();
+  }, [initialCursor?.column, initialCursor?.line]);
+
+  useEffect(() => {
+    focusInitialCursor();
+  }, [focusInitialCursor]);
 
   const registerEventApiExtraLib = useCallback(
     (monaco: MonacoLike) => {
@@ -149,9 +174,11 @@ export function EventScriptEditor({
   );
 
   const onMount = useCallback(
-    (_editor: unknown, monaco: MonacoLike) => {
+    (editor: MonacoEditorLike, monaco: MonacoLike) => {
+      editorRef.current = editor;
       monacoRef.current = monaco;
       registerEventApiExtraLib(monaco);
+      focusInitialCursor();
       disposeCompletionProvider();
 
       const registerCompletionItemProvider = monaco.languages?.registerCompletionItemProvider;

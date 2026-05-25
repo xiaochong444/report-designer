@@ -35,6 +35,8 @@ interface EventEditorDialogProps {
   open: boolean;
   targetType: EventTargetType;
   events?: EventMap<string>;
+  initialEventName?: string;
+  initialCursor?: { line?: number; column?: number };
   dataContext?: EventEditorDataContractInput;
   dictionaryItems?: EventTreeItem[];
   componentItems?: EventTreeItem[];
@@ -47,13 +49,18 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   dataContext,
   dictionaryItems = [],
   events,
+  initialCursor,
+  initialEventName,
   onCancel,
   onSave,
   open,
   targetType,
 }) => {
   const { t } = useDesignerI18n();
-  const initialEvent = useMemo(() => chooseInitialEvent(targetType, events), [events, targetType]);
+  const initialEvent = useMemo(
+    () => chooseDialogInitialEvent(targetType, events, initialEventName),
+    [events, initialEventName, targetType],
+  );
   const [active, setActive] = useState<DesignerEventName>(initialEvent);
   const [drafts, setDrafts] = useState<EventMap<string>>(() => ({ ...(events ?? {}) }));
   const [errors, setErrors] = useState<string[]>([]);
@@ -62,12 +69,12 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
 
   React.useEffect(() => {
     if (!open) return;
-    const nextActive = chooseInitialEvent(targetType, events);
+    const nextActive = chooseDialogInitialEvent(targetType, events, initialEventName);
     setActive(nextActive);
     setDrafts({ ...(events ?? {}) });
     setErrors([]);
     setEditorDiagnostics(EMPTY_DIAGNOSTICS);
-  }, [events, open, targetType]);
+  }, [events, initialEventName, open, targetType]);
 
   const activeDraft = normalizeEvent(drafts[active]);
   const translateMessageKey = (key: string) => t(key as DesignerMessageKey);
@@ -192,6 +199,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
             dictionaryItems={dictionaryItems}
             componentItems={componentItems}
             exampleItems={exampleItems}
+            initialCursor={initialCursor}
             loadingText={t('events.editorLoading')}
             onChange={updateScript}
             onDiagnostics={setEditorDiagnostics}
@@ -253,6 +261,18 @@ function namespaceTreeItems(
       children,
     };
   });
+}
+
+function chooseDialogInitialEvent(
+  targetType: EventTargetType,
+  events: EventMap<string> | undefined,
+  initialEventName: string | undefined,
+): DesignerEventName {
+  if (initialEventName && eventNamesByTarget[targetType].includes(initialEventName as DesignerEventName)) {
+    return initialEventName as DesignerEventName;
+  }
+
+  return chooseInitialEvent(targetType, events);
 }
 
 function filterSideTree(items: SideTreeItem[], query: string): SideTreeItem[] {

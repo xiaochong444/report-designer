@@ -44,7 +44,7 @@ function makeStyledTextDocument(): RenderDocument {
   };
 
   component.textAlign = 'center';
-  component.font = { family: 'Legacy Style' };
+  component.font = { family: 'Previous Style' };
   component.styleBindings = ['textAlign', 'font.family'];
 
   return document;

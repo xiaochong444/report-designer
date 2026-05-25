@@ -58,6 +58,23 @@ describe('phase 36 event log panel', () => {
     expect(screen.getAllByText(/beforePrint/).length).toBeGreaterThan(0);
     expect(screen.getByText(/Line 2/)).toBeInTheDocument();
   });
+
+  it('selects an event log entry for editor navigation', () => {
+    const onEventLogSelect = vi.fn();
+
+    render(<Viewer template={eventLogTemplate()} data={{}} onEventLogSelect={onEventLogSelect} />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Event Logs' }));
+    fireEvent.click(screen.getAllByRole('button', { name: 'Open Event' }).at(-1)!);
+
+    expect(onEventLogSelect).toHaveBeenCalledWith(expect.objectContaining({
+      ownerType: 'band',
+      ownerId: 'title-band',
+      eventName: 'beforePrint',
+      line: 2,
+      message: 'line boom',
+    }));
+  });
 });
 
 function eventLogTemplate(): ReportTemplate {
