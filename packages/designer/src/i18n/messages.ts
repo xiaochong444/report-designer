@@ -226,8 +226,10 @@ export type DesignerMessageKey =
   | 'contextMenu.sendToBack'
   | 'contextMenu.delete'
   | 'contextMenu.table.insertColumnRight'
+  | 'contextMenu.table.insertColumnLeft'
   | 'contextMenu.table.deleteColumn'
   | 'contextMenu.table.insertRowBelow'
+  | 'contextMenu.table.insertRowAbove'
   | 'contextMenu.table.deleteRow'
   | 'contextMenu.table.mergeRight'
   | 'contextMenu.table.splitCell'
@@ -235,6 +237,8 @@ export type DesignerMessageKey =
   | 'contextMenu.table.equalizeColumns'
   | 'contextMenu.table.equalizeRows'
   | 'contextMenu.table.toggleBorder'
+  | 'contextMenu.table.setHeaderRow'
+  | 'contextMenu.table.setFooterRow'
   | 'tableCell.properties'
   | 'tableCell.range'
   | 'tableCell.text'
@@ -593,8 +597,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.sendToBack': '置于底层',
     'contextMenu.delete': '删除',
     'contextMenu.table.insertColumnRight': '插入列到右侧',
+    'contextMenu.table.insertColumnLeft': '插入列到左侧',
     'contextMenu.table.deleteColumn': '删除列',
     'contextMenu.table.insertRowBelow': '插入行到下方',
+    'contextMenu.table.insertRowAbove': '插入行到上方',
     'contextMenu.table.deleteRow': '删除行',
     'contextMenu.table.mergeRight': '合并右侧单元格',
     'contextMenu.table.splitCell': '拆分单元格',
@@ -602,6 +608,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.equalizeColumns': '均分列宽',
     'contextMenu.table.equalizeRows': '均分行高',
     'contextMenu.table.toggleBorder': '切换表格边框',
+    'contextMenu.table.setHeaderRow': '设为表头行',
+    'contextMenu.table.setFooterRow': '设为表尾行',
     'tableCell.properties': '单元格属性',
     'tableCell.range': '范围',
     'tableCell.text': '文本内容',
@@ -957,8 +965,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.sendToBack': 'Send to Back',
     'contextMenu.delete': 'Delete',
     'contextMenu.table.insertColumnRight': 'Insert Column Right',
+    'contextMenu.table.insertColumnLeft': 'Insert Column Left',
     'contextMenu.table.deleteColumn': 'Delete Column',
     'contextMenu.table.insertRowBelow': 'Insert Row Below',
+    'contextMenu.table.insertRowAbove': 'Insert Row Above',
     'contextMenu.table.deleteRow': 'Delete Row',
     'contextMenu.table.mergeRight': 'Merge Cell Right',
     'contextMenu.table.splitCell': 'Split Cell',
@@ -966,6 +976,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.equalizeColumns': 'Distribute Columns',
     'contextMenu.table.equalizeRows': 'Distribute Rows',
     'contextMenu.table.toggleBorder': 'Toggle Table Border',
+    'contextMenu.table.setHeaderRow': 'Set Header Row',
+    'contextMenu.table.setFooterRow': 'Set Footer Row',
     'tableCell.properties': 'Cell Properties',
     'tableCell.range': 'Range',
     'tableCell.text': 'Text Content',

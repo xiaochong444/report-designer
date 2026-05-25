@@ -925,10 +925,25 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             onDuplicate={() => { duplicateSelected(); setContextMenu(null); }}
             onBringToFront={() => { useDesignerStore.getState().bringToFront(); setContextMenu(null); }}
             onSendToBack={() => { useDesignerStore.getState().sendToBack(); setContextMenu(null); }}
-            onInsertTableColumn={() => { useDesignerStore.getState().insertSelectedTableColumn(contextMenu.tableCell?.column); setContextMenu(null); }}
+            onInsertTableColumnLeft={() => { useDesignerStore.getState().insertSelectedTableColumn((contextMenu.tableCell?.column ?? 0) - 1); setContextMenu(null); }}
+            onInsertTableColumnRight={() => { useDesignerStore.getState().insertSelectedTableColumn(contextMenu.tableCell?.column); setContextMenu(null); }}
             onDeleteTableColumn={() => { useDesignerStore.getState().deleteSelectedTableColumn(contextMenu.tableCell?.column); setContextMenu(null); }}
-            onInsertTableRow={() => { useDesignerStore.getState().insertSelectedTableRow(contextMenu.tableCell?.row); setContextMenu(null); }}
+            onInsertTableRowAbove={() => { useDesignerStore.getState().insertSelectedTableRow((contextMenu.tableCell?.row ?? 0) - 1); setContextMenu(null); }}
+            onInsertTableRowBelow={() => { useDesignerStore.getState().insertSelectedTableRow(contextMenu.tableCell?.row); setContextMenu(null); }}
             onDeleteTableRow={() => { useDesignerStore.getState().deleteSelectedTableRow(contextMenu.tableCell?.row); setContextMenu(null); }}
+            onSetHeaderRow={() => {
+              if (contextMenu.tableCell) {
+                useDesignerStore.getState().updateSelectedTable({ headerRowsCount: contextMenu.tableCell.row + 1 });
+              }
+              setContextMenu(null);
+            }}
+            onSetFooterRow={() => {
+              const table = flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]))?.comp as TableComponent | undefined;
+              if (table?.type === 'table' && contextMenu.tableCell) {
+                useDesignerStore.getState().updateSelectedTable({ footerRowsCount: Math.max(0, (table.rowCount ?? 1) - contextMenu.tableCell.row) });
+              }
+              setContextMenu(null);
+            }}
             onMergeTableCellRight={() => {
               if (contextMenu.tableCell) {
                 useDesignerStore.getState().mergeSelectedTableCellRight(contextMenu.tableCell.row, contextMenu.tableCell.column);
@@ -1090,8 +1105,9 @@ interface ContextMenuProps {
   tableCell?: { row: number; column: number };
   onCopy: () => void; onCut: () => void; onPaste: () => void; onDuplicate: () => void; onDelete: () => void;
   onBringToFront: () => void; onSendToBack: () => void;
-  onInsertTableColumn: () => void; onDeleteTableColumn: () => void;
-  onInsertTableRow: () => void; onDeleteTableRow: () => void; onToggleTableBorder: () => void;
+  onInsertTableColumnLeft: () => void; onInsertTableColumnRight: () => void; onDeleteTableColumn: () => void;
+  onInsertTableRowAbove: () => void; onInsertTableRowBelow: () => void; onDeleteTableRow: () => void; onToggleTableBorder: () => void;
+  onSetHeaderRow: () => void; onSetFooterRow: () => void;
   onMergeTableCellRight: () => void; onSplitTableCell: () => void; onClearTableCell: () => void;
   onEqualizeTableColumns: () => void; onEqualizeTableRows: () => void;
 }
@@ -1110,11 +1126,15 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onDelete,
   onBringToFront,
   onSendToBack,
-  onInsertTableColumn,
+  onInsertTableColumnLeft,
+  onInsertTableColumnRight,
   onDeleteTableColumn,
-  onInsertTableRow,
+  onInsertTableRowAbove,
+  onInsertTableRowBelow,
   onDeleteTableRow,
   onToggleTableBorder,
+  onSetHeaderRow,
+  onSetFooterRow,
   onMergeTableCellRight,
   onSplitTableCell,
   onClearTableCell,
@@ -1139,14 +1159,18 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       {selectedType === 'table' && (
         <>
           <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
-          <ContextMenuItem label={t('contextMenu.table.insertColumnRight')} onClick={onInsertTableColumn} />
+          <ContextMenuItem label={t('contextMenu.table.insertColumnLeft')} onClick={onInsertTableColumnLeft} />
+          <ContextMenuItem label={t('contextMenu.table.insertColumnRight')} onClick={onInsertTableColumnRight} />
           <ContextMenuItem label={t('contextMenu.table.deleteColumn')} onClick={onDeleteTableColumn} />
-          <ContextMenuItem label={t('contextMenu.table.insertRowBelow')} onClick={onInsertTableRow} />
+          <ContextMenuItem label={t('contextMenu.table.insertRowAbove')} onClick={onInsertTableRowAbove} />
+          <ContextMenuItem label={t('contextMenu.table.insertRowBelow')} onClick={onInsertTableRowBelow} />
           <ContextMenuItem label={t('contextMenu.table.deleteRow')} onClick={onDeleteTableRow} />
           <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
           <ContextMenuItem label={t('contextMenu.table.mergeRight')} disabled={!tableCell} onClick={onMergeTableCellRight} />
           <ContextMenuItem label={t('contextMenu.table.splitCell')} disabled={!tableCell} onClick={onSplitTableCell} />
           <ContextMenuItem label={t('contextMenu.table.clearCell')} disabled={!tableCell} onClick={onClearTableCell} />
+          <ContextMenuItem label={t('contextMenu.table.setHeaderRow')} disabled={!tableCell} onClick={onSetHeaderRow} />
+          <ContextMenuItem label={t('contextMenu.table.setFooterRow')} disabled={!tableCell} onClick={onSetFooterRow} />
           <ContextMenuItem label={t('contextMenu.table.equalizeColumns')} onClick={onEqualizeTableColumns} />
           <ContextMenuItem label={t('contextMenu.table.equalizeRows')} onClick={onEqualizeTableRows} />
           <ContextMenuItem label={t('contextMenu.table.toggleBorder')} onClick={onToggleTableBorder} />
