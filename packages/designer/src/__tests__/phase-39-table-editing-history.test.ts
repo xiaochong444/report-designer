@@ -136,6 +136,28 @@ describe('phase 39 table editing history', () => {
     });
   });
 
+  it('clamps cell spans and removes cells covered by property edits', () => {
+    useDesignerStore.getState().selectTableCell({
+      tableId: 'table-1',
+      bandId: loadTable(),
+      startRow: 1,
+      startColumn: 1,
+      endRow: 1,
+      endColumn: 1,
+    });
+
+    useDesignerStore.getState().updateSelectedTableCell({ rowSpan: 5, colSpan: 5 });
+
+    expect(selectedTable().cells).toContainEqual({
+      row: 1,
+      column: 1,
+      text: 'Subtotal',
+      rowSpan: 2,
+      colSpan: 2,
+    });
+    expect(selectedTable().cells).not.toContainEqual(expect.objectContaining({ row: 2, column: 2, text: 'Tail' }));
+  });
+
   it('records column insertion and deletion as undoable commands', () => {
     expectSingleUndoRedo(() => {
       useDesignerStore.getState().insertSelectedTableColumn(0);

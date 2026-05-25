@@ -1653,7 +1653,9 @@ function updateTableCell(
     for (let column = normalizedSelection.startColumn; column <= normalizedSelection.endColumn; column += 1) {
       selectedKeys.add(`${row}-${column}`);
       const existing = normalized.cells?.find(cell => cell.row === row && cell.column === column) ?? { row, column };
-      nextCells.push({ ...existing, ...updates });
+      const nextCell = clampTableCellSpan({ ...existing, ...updates }, existing, updates, normalized);
+      nextCells.push(nextCell);
+      markCoveredTableCells(nextCell, selectedKeys);
     }
   }
   const cells = (normalized.cells ?? []).filter(cell => !selectedKeys.has(`${cell.row}-${cell.column}`));
@@ -1661,4 +1663,31 @@ function updateTableCell(
     ...normalized,
     cells: [...cells, ...nextCells].sort((a, b) => a.row - b.row || a.column - b.column),
   };
+}
+
+function clampTableCellSpan(
+  cell: TableCell,
+  existing: TableCell,
+  updates: Partial<TableCell>,
+  table: TableComponent,
+): TableCell {
+  const rowCount = table.rowCount ?? 1;
+  const columnCount = table.columnCount ?? table.columns.length;
+  const shouldWriteRowSpan = existing.rowSpan !== undefined || updates.rowSpan !== undefined;
+  const shouldWriteColSpan = existing.colSpan !== undefined || updates.colSpan !== undefined;
+  return {
+    ...cell,
+    ...(shouldWriteRowSpan ? { rowSpan: Math.max(1, Math.min(cell.rowSpan ?? 1, rowCount - cell.row)) } : {}),
+    ...(shouldWriteColSpan ? { colSpan: Math.max(1, Math.min(cell.colSpan ?? 1, columnCount - cell.column)) } : {}),
+  };
+}
+
+function markCoveredTableCells(cell: TableCell, selectedKeys: Set<string>): void {
+  const rowSpan = cell.rowSpan ?? 1;
+  const colSpan = cell.colSpan ?? 1;
+  for (let row = cell.row; row < cell.row + rowSpan; row += 1) {
+    for (let column = cell.column; column < cell.column + colSpan; column += 1) {
+      selectedKeys.add(`${row}-${column}`);
+    }
+  }
 }
