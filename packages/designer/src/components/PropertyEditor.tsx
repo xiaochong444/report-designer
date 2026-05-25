@@ -139,6 +139,8 @@ export const PropertyEditor: React.FC = () => {
 
   const isTextComponent = component.type === 'text';
   const supportsFontProperties = component.type === 'text' || component.type === 'pagenumber' || component.type === 'datetime';
+  const supportsBorderProperties = component.type === 'text' || component.type === 'panel';
+  const supportsAppearanceProperties = ['text', 'image', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport'].includes(component.type);
   const isTextStyleLocked = (pathOrPrefix: string) => (
     isTextComponent ? hasTextStyleBinding(component as { styleBindings?: string[] }, pathOrPrefix) : false
   );
@@ -507,7 +509,7 @@ export const PropertyEditor: React.FC = () => {
           } : null,
 
           // ---- 边框 ----
-          {
+          supportsBorderProperties ? {
             key: 'border',
             label: t('border'),
             children: (
@@ -573,10 +575,10 @@ export const PropertyEditor: React.FC = () => {
                 <div style={{ ...borderSideStyle(), width: 60, height: 40, margin: '8px auto 0' }} />
               </Form>
             ),
-          },
+          } : null,
 
           // ---- 外观 ----
-          {
+          supportsAppearanceProperties ? {
             key: 'appearance',
             label: t('appearance'),
             children: (
@@ -643,7 +645,7 @@ export const PropertyEditor: React.FC = () => {
                 </Form.Item>
               </Form>
             ),
-          },
+          } : null,
 
           // ---- 表格 ----
           component.type === 'table' ? {
