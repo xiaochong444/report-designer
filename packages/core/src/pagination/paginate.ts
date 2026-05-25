@@ -167,6 +167,8 @@ export function paginate(
       width: templatePage.width,
       height: templatePage.height,
       backgroundColor: templatePage.backgroundColor,
+      watermark: templatePage.watermark,
+      pageBorder: templatePage.pageBorder,
       items: [],
     };
     pages.push(currentPage);

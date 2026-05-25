@@ -117,6 +117,28 @@ export interface TextFormatConfig {
 export type TextAlign = 'left' | 'center' | 'right';
 export type VerticalAlign = 'top' | 'middle' | 'bottom';
 
+export interface PageWatermark {
+  enabled: boolean;
+  text: Expression;
+  fontFamily?: string;
+  fontSize: number;
+  color: string;
+  opacity: number;
+  angle: number;
+  horizontalAlign: TextAlign;
+  verticalAlign: VerticalAlign;
+  showBehind: boolean;
+}
+
+export interface PageBorder {
+  enabled: boolean;
+  style: BorderConfig['style'];
+  width: number;
+  color: string;
+  sides: BorderConfig['sides'];
+  offset: number;
+}
+
 export interface ReportStyle {
   id: string;
   name: string;
@@ -404,6 +426,8 @@ export interface Page {
   width: number;
   height: number;
   backgroundColor?: string;
+  watermark?: PageWatermark;
+  pageBorder?: PageBorder;
   margins: Margins;
   orientation: PageOrientation;
   bands: Band[];

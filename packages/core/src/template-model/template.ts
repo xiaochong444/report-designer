@@ -1,5 +1,5 @@
 import { DEFAULT_REPORT_FONTS } from '../fonts';
-import type { Band, ReportStyle, ReportTemplate, Page } from './types';
+import type { Band, ReportStyle, ReportTemplate, Page, PageBorder, PageWatermark } from './types';
 
 let idCounter = 0;
 function uid(): string {
@@ -45,6 +45,27 @@ const DEFAULT_PADDING = {
   bottom: 0,
   left: 0,
 } as const;
+
+const DEFAULT_PAGE_WATERMARK: PageWatermark = {
+  enabled: false,
+  text: '',
+  fontSize: 48,
+  color: '#8c8c8c',
+  opacity: 0.18,
+  angle: -35,
+  horizontalAlign: 'center',
+  verticalAlign: 'middle',
+  showBehind: true,
+};
+
+const DEFAULT_PAGE_BORDER: PageBorder = {
+  enabled: false,
+  style: 'solid',
+  width: 0.2,
+  color: '#000000',
+  sides: { top: true, right: true, bottom: true, left: true },
+  offset: 0,
+};
 
 function createDefaultTextStyles(): ReportStyle[] {
   return [
@@ -156,6 +177,8 @@ export function createDefaultTemplate(name = '未命名报表'): ReportTemplate 
     width: 210,
     height: 297,
     backgroundColor: '#ffffff',
+    watermark: { ...DEFAULT_PAGE_WATERMARK },
+    pageBorder: { ...DEFAULT_PAGE_BORDER, sides: { ...DEFAULT_PAGE_BORDER.sides } },
     margins: { top: 20, right: 20, bottom: 20, left: 20 },
     orientation: 'portrait',
     bands,

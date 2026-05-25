@@ -1,4 +1,4 @@
-import type { BorderConfig, FontConfig, Padding, ReportFont, TableColumn } from '../template-model/types';
+import type { BorderConfig, FontConfig, Padding, PageBorder, PageWatermark, ReportFont, TableColumn } from '../template-model/types';
 import type { EventLogEntry } from '../event-engine/types';
 
 export interface RenderDocument {
@@ -14,6 +14,8 @@ export interface RenderPage {
   width: number;
   height: number;
   backgroundColor?: string;
+  watermark?: PageWatermark;
+  pageBorder?: PageBorder;
   items: RenderBandBox[];
 }
 
