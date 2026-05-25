@@ -172,6 +172,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const duplicateSelected = useDesignerStore(s => s.duplicateSelected);
   const pasteClipboard = useDesignerStore(s => s.pasteClipboard);
   const deleteSelected = useDesignerStore(s => s.deleteSelected);
+  const clearSelectedTableCell = useDesignerStore(s => s.clearSelectedTableCell);
   const moveSelectedBy = useDesignerStore(s => s.moveSelectedBy);
   const resizeSelectedBy = useDesignerStore(s => s.resizeSelectedBy);
   const toggleSelectedFontStyle = useDesignerStore(s => s.toggleSelectedFontStyle);
@@ -563,6 +564,10 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       // Delete / Backspace: 删除
       if (e.key === 'Delete' || e.key === 'Backspace') {
         e.preventDefault();
+        if (selectedTableCell) {
+          clearSelectedTableCell(selectedTableCell.startRow, selectedTableCell.startColumn);
+          return;
+        }
         deleteSelected();
         return;
       }
@@ -683,7 +688,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedComponentIds, flat, undo, redo, selectComponents, copySelected, cutSelected, duplicateSelected, pasteClipboard, deleteSelected, moveSelectedBy, resizeSelectedBy, toggleSelectedFontStyle, setTextAlign, setDesignerMode]);
+  }, [selectedComponentIds, selectedTableCell, flat, undo, redo, selectComponents, copySelected, cutSelected, duplicateSelected, pasteClipboard, deleteSelected, clearSelectedTableCell, moveSelectedBy, resizeSelectedBy, toggleSelectedFontStyle, setTextAlign, setDesignerMode]);
 
   // ---- Zoom wheel handler ----
 

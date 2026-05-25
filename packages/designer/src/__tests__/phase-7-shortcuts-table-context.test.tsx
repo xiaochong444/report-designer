@@ -1,9 +1,9 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
-import type { ReportComponent } from '@report-designer/core';
+import type { ReportComponent, TableComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { Canvas } from '../components/Canvas';
 import { PropertyEditor } from '../components/PropertyEditor';
@@ -27,6 +27,15 @@ function loadWith(component: ReportComponent) {
 
 function selectedComponent() {
   return useDesignerStore.getState().template.pages[0].bands.flatMap(band => band.components)[0] as any;
+}
+
+function clickCell(row: number, column: number) {
+  const cell = screen.getByTestId(`designer-table-cell-${row}-${column}`);
+  Object.defineProperty(document, 'elementFromPoint', {
+    configurable: true,
+    value: vi.fn(() => cell),
+  });
+  fireEvent.mouseDown(cell, { button: 0, clientX: 20, clientY: 20 });
 }
 
 describe('Phase 7 designer shortcuts and table context menu', () => {
@@ -90,6 +99,42 @@ describe('Phase 7 designer shortcuts and table context menu', () => {
     const table = selectedComponent();
     expect(table.columnCount).toBe(2);
     expect(table.columns).toHaveLength(2);
+  });
+
+  it('clears the selected table cell on Delete without deleting the table', () => {
+    loadWith({
+      id: 'table-1',
+      type: 'table',
+      x: 10,
+      y: 10,
+      width: 80,
+      height: 30,
+      dataSource: 'employees',
+      columns: [{ id: 'col-1', header: 'Name', field: 'name', width: 40, cellType: 'text' }],
+      rowCount: 2,
+      columnCount: 1,
+      headerRowsCount: 1,
+      footerRowsCount: 0,
+      canBreak: true,
+      headerHeight: 8,
+      rowHeight: 8,
+      showBorder: true,
+      cells: [{ row: 1, column: 0, text: 'Employee Name' }],
+    } as TableComponent);
+
+    render(<Canvas />);
+    clickCell(1, 0);
+    fireEvent.keyDown(window, { key: 'Delete' });
+
+    let table = selectedComponent() as TableComponent;
+    expect(table.type).toBe('table');
+    expect(table.cells?.find(cell => cell.row === 1 && cell.column === 0)?.text).toBeUndefined();
+
+    act(() => {
+      useDesignerStore.getState().undo();
+    });
+    table = selectedComponent() as TableComponent;
+    expect(table.cells?.find(cell => cell.row === 1 && cell.column === 0)?.text).toBe('Employee Name');
   });
 
   it('edits table column count from the property panel', () => {
