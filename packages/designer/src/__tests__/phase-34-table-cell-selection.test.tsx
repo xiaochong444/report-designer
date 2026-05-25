@@ -129,4 +129,30 @@ describe('phase 34 table cell selection', () => {
       padding: { top: 2 },
     });
   });
+
+  it('applies cell appearance updates to every selected cell in the range', () => {
+    loadWith(tableComponent());
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 0);
+    clickCell(2, 2, true);
+    fireEvent.change(screen.getByLabelText('边框宽度'), { target: { value: '0.5' } });
+
+    const table = useDesignerStore.getState().template.pages[0].bands
+      .flatMap(band => band.components)
+      .find(component => component.id === 'table-1') as TableComponent;
+    expect(table.cells?.filter(cell => cell.border?.width === 0.5).map(cell => `${cell.row}-${cell.column}`).sort()).toEqual([
+      '1-0',
+      '1-1',
+      '1-2',
+      '2-0',
+      '2-1',
+      '2-2',
+    ]);
+  });
 });

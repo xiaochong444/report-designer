@@ -1646,13 +1646,19 @@ function updateTableCell(
   updates: Partial<TableCell>,
 ): TableComponent {
   const normalized = normalizeTable(table);
-  const row = selection.startRow;
-  const column = selection.startColumn;
-  const existing = normalized.cells?.find(cell => cell.row === row && cell.column === column) ?? { row, column };
-  const nextCell = { ...existing, ...updates };
-  const cells = (normalized.cells ?? []).filter(cell => !(cell.row === row && cell.column === column));
+  const normalizedSelection = normalizeTableCellSelection(selection);
+  const selectedKeys = new Set<string>();
+  const nextCells: TableCell[] = [];
+  for (let row = normalizedSelection.startRow; row <= normalizedSelection.endRow; row += 1) {
+    for (let column = normalizedSelection.startColumn; column <= normalizedSelection.endColumn; column += 1) {
+      selectedKeys.add(`${row}-${column}`);
+      const existing = normalized.cells?.find(cell => cell.row === row && cell.column === column) ?? { row, column };
+      nextCells.push({ ...existing, ...updates });
+    }
+  }
+  const cells = (normalized.cells ?? []).filter(cell => !selectedKeys.has(`${cell.row}-${cell.column}`));
   return {
     ...normalized,
-    cells: [...cells, nextCell].sort((a, b) => a.row - b.row || a.column - b.column),
+    cells: [...cells, ...nextCells].sort((a, b) => a.row - b.row || a.column - b.column),
   };
 }
