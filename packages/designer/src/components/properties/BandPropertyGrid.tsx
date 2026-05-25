@@ -1,5 +1,5 @@
 import React from 'react';
-import { Button, Input, InputNumber, Select, Space, Typography } from 'antd';
+import { Button, Collapse, Form, Input, InputNumber, Select, Space, Switch, Typography } from 'antd';
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined } from '@ant-design/icons';
 import type { DataBandOptions, DataField } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
@@ -31,6 +31,30 @@ export const BandPropertyGrid: React.FC = () => {
   const currentDataSource = template.dataSources.find(source => source.id === dataSourceId);
   const sortFields = getSortFields(currentDataSource?.schema?.length ? currentDataSource.schema : currentDataSource?.fields);
   const sortRules = band.dataBand?.sort ?? [];
+  const behavior = {
+    enabled: true,
+    printOn: 'allPages' as const,
+    printIfEmpty: true,
+    printOnAllPages: band.type === 'pageHeader' || band.type === 'pageFooter' || band.type === 'groupHeader',
+    keepTogether: false,
+    canBreak: band.type === 'data' || band.type === 'child',
+    printAtBottom: band.type === 'pageFooter',
+    ...band.behavior,
+  };
+
+  const updateBand = (updates: Partial<typeof band>) => {
+    updateTemplate(current => ({
+      ...current,
+      pages: current.pages.map(item => item.id === page.id ? {
+        ...item,
+        bands: item.bands.map(nextBand => nextBand.id === band.id ? { ...nextBand, ...updates } : nextBand),
+      } : item),
+    }));
+  };
+
+  const updateBehavior = (updates: Partial<typeof behavior>) => {
+    updateBand({ behavior: { ...behavior, ...updates } });
+  };
 
   const updateBandDataBand = (updater: (dataBand: DataBandOptions) => DataBandOptions) => {
     updateTemplate(current => ({
@@ -54,7 +78,7 @@ export const BandPropertyGrid: React.FC = () => {
 
   return (
     <Space orientation="vertical" size={10} style={{ width: '100%' }}>
-      <Typography.Text type="secondary">Name</Typography.Text>
+      <Typography.Text type="secondary">{t('bandProperties.name')}</Typography.Text>
       <Input value={band.id} readOnly />
       <Button size="small" onClick={() => setEventEditorOpen(true)}>
         {t('events.edit')}
@@ -163,20 +187,52 @@ export const BandPropertyGrid: React.FC = () => {
           )}
         </Space>
       )}
-      <Typography.Text type="secondary">Height</Typography.Text>
+      <Typography.Text type="secondary">{t('bandProperties.height')}</Typography.Text>
       <InputNumber
+        aria-label={t('bandProperties.height')}
         value={formatUnitValue(band.height, reportUnit)}
         min={bandMin}
         max={bandMax}
         step={unitStep}
         style={{ width: '100%' }}
-        onChange={value => updateTemplate(current => ({
-          ...current,
-          pages: current.pages.map(item => item.id === page.id ? {
-            ...item,
-            bands: item.bands.map(nextBand => nextBand.id === band.id ? { ...nextBand, height: parseUnitValue(value, reportUnit, nextBand.height) } : nextBand),
-          } : item),
-        }))}
+        onChange={value => updateBand({ height: parseUnitValue(value, reportUnit, band.height) })}
+      />
+      <Collapse
+        size="small"
+        defaultActiveKey={['behavior']}
+        items={[{
+          key: 'behavior',
+          label: t('bandProperties.behavior'),
+          children: (
+            <Form layout="horizontal" size="small" labelCol={{ span: 12 }} wrapperCol={{ span: 12 }}>
+              <Form.Item label={t('bandProperties.printOnAllPages')}>
+                <Switch aria-label={t('bandProperties.printOnAllPages')} checked={behavior.printOnAllPages} onChange={printOnAllPages => updateBehavior({ printOnAllPages })} />
+              </Form.Item>
+              <Form.Item label={t('bandProperties.keepTogether')}>
+                <Switch aria-label={t('bandProperties.keepTogether')} checked={behavior.keepTogether} onChange={keepTogether => updateBehavior({ keepTogether })} />
+              </Form.Item>
+              <Form.Item label={t('bandProperties.canBreak')}>
+                <Switch aria-label={t('bandProperties.canBreak')} checked={behavior.canBreak} onChange={canBreak => updateBehavior({ canBreak })} />
+              </Form.Item>
+              <Form.Item label={t('bandProperties.printAtBottom')}>
+                <Switch aria-label={t('bandProperties.printAtBottom')} checked={behavior.printAtBottom} onChange={printAtBottom => updateBehavior({ printAtBottom })} />
+              </Form.Item>
+              <Form.Item label={t('bandProperties.printIfEmpty')}>
+                <Switch aria-label={t('bandProperties.printIfEmpty')} checked={behavior.printIfEmpty} onChange={printIfEmpty => updateBehavior({ printIfEmpty })} />
+              </Form.Item>
+              <Form.Item label={t('bandProperties.breakIfLessThan')}>
+                <InputNumber
+                  aria-label={t('bandProperties.breakIfLessThan')}
+                  value={formatUnitValue(behavior.breakIfLessThan ?? 0, reportUnit)}
+                  min={0}
+                  step={unitStep}
+                  style={{ width: '100%' }}
+                  onChange={value => updateBehavior({ breakIfLessThan: parseUnitValue(value, reportUnit, behavior.breakIfLessThan ?? 0) })}
+                />
+              </Form.Item>
+            </Form>
+          ),
+        }]}
       />
     </Space>
   );

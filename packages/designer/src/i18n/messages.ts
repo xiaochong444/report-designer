@@ -239,6 +239,15 @@ export type DesignerMessageKey =
   | 'contextMenu.table.toggleBorder'
   | 'contextMenu.table.setHeaderRow'
   | 'contextMenu.table.setFooterRow'
+  | 'bandProperties.name'
+  | 'bandProperties.height'
+  | 'bandProperties.behavior'
+  | 'bandProperties.printOnAllPages'
+  | 'bandProperties.keepTogether'
+  | 'bandProperties.canBreak'
+  | 'bandProperties.printAtBottom'
+  | 'bandProperties.printIfEmpty'
+  | 'bandProperties.breakIfLessThan'
   | 'tableCell.properties'
   | 'tableCell.range'
   | 'tableCell.text'
@@ -623,6 +632,15 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.toggleBorder': '切换表格边框',
     'contextMenu.table.setHeaderRow': '设为表头行',
     'contextMenu.table.setFooterRow': '设为表尾行',
+    'bandProperties.name': '名称',
+    'bandProperties.height': '高度',
+    'bandProperties.behavior': '分页/打印行为',
+    'bandProperties.printOnAllPages': '每页重复打印',
+    'bandProperties.keepTogether': '保持整体',
+    'bandProperties.canBreak': '允许跨页',
+    'bandProperties.printAtBottom': '打印在底部',
+    'bandProperties.printIfEmpty': '空数据时打印',
+    'bandProperties.breakIfLessThan': '不足高度换页',
     'tableCell.properties': '单元格属性',
     'tableCell.range': '范围',
     'tableCell.text': '文本内容',
@@ -1004,6 +1022,15 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.toggleBorder': 'Toggle Table Border',
     'contextMenu.table.setHeaderRow': 'Set Header Row',
     'contextMenu.table.setFooterRow': 'Set Footer Row',
+    'bandProperties.name': 'Name',
+    'bandProperties.height': 'Height',
+    'bandProperties.behavior': 'Pagination / Print Behavior',
+    'bandProperties.printOnAllPages': 'Repeat on Each Page',
+    'bandProperties.keepTogether': 'Keep Together',
+    'bandProperties.canBreak': 'Can Break',
+    'bandProperties.printAtBottom': 'Print at Bottom',
+    'bandProperties.printIfEmpty': 'Print if Empty',
+    'bandProperties.breakIfLessThan': 'Break if Less Than',
     'tableCell.properties': 'Cell Properties',
     'tableCell.range': 'Range',
     'tableCell.text': 'Text Content',
