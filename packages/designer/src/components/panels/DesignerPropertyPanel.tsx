@@ -1,8 +1,8 @@
 import React from 'react';
-import { Button, Collapse, ColorPicker, Form, Input, InputNumber, Select, Space, Typography } from 'antd';
-import { DeleteOutlined, PlusOutlined } from '@ant-design/icons';
-import { normalizeReportFonts } from '@report-designer/core';
-import type { Margins, Page, ReportFont } from '@report-designer/core';
+import { Button, Checkbox, Collapse, ColorPicker, Form, Input, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
+import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, DeleteOutlined, PlusOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
+import { createDefaultPageBorder, createDefaultPageWatermark, normalizeReportFonts } from '@report-designer/core';
+import type { Margins, Page, PageBorder, PageWatermark, ReportFont } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import {
   detectPaperType,
@@ -84,8 +84,16 @@ const PageProperties: React.FC = () => {
   const sizeMax = formatUnitValue(1000, reportUnit);
   const marginMax = formatUnitValue(100, reportUnit);
   const updatePage = (settings: Partial<Page>) => setPageSettings(page.id, settings);
+  const watermark = page.watermark ?? createDefaultPageWatermark();
+  const pageBorder = page.pageBorder ?? createDefaultPageBorder();
   const updateMargin = (field: keyof Margins, value?: number | string | null) => {
     updatePage({ margins: { ...margins, [field]: parseUnitValue(value, reportUnit, margins[field]) } });
+  };
+  const updateWatermark = (updates: Partial<PageWatermark>) => {
+    updatePage({ watermark: { ...watermark, ...updates } });
+  };
+  const updatePageBorder = (updates: Partial<PageBorder>) => {
+    updatePage({ pageBorder: { ...pageBorder, ...updates, sides: updates.sides ? { ...pageBorder.sides, ...updates.sides } : pageBorder.sides } });
   };
   const updateOrientation = (orientation: Page['orientation']) => {
     if (paperType !== 'Custom') {
@@ -138,7 +146,7 @@ const PageProperties: React.FC = () => {
     <div className="rd-property-grid-band" data-testid="designer-page-properties">
       <Collapse
         size="small"
-        defaultActiveKey={['page', 'margins', 'fonts']}
+        defaultActiveKey={['page', 'appearance', 'margins', 'fonts']}
         items={[
           {
             key: 'page',
@@ -226,6 +234,20 @@ const PageProperties: React.FC = () => {
                   />
                 </Form.Item>
               </Form>
+            ),
+          },
+          {
+            key: 'appearance',
+            label: t('pageSettings.appearance'),
+            children: (
+              <PageAppearanceControls
+                pageBorder={pageBorder}
+                reportUnit={reportUnit}
+                unitStep={unitStep}
+                watermark={watermark}
+                onPageBorderChange={updatePageBorder}
+                onWatermarkChange={updateWatermark}
+              />
             ),
           },
           {
@@ -337,6 +359,186 @@ const PageProperties: React.FC = () => {
         ]}
       />
     </div>
+  );
+};
+
+const PageAppearanceControls: React.FC<{
+  watermark: PageWatermark;
+  pageBorder: PageBorder;
+  reportUnit: 'mm' | 'cm';
+  unitStep: number;
+  onWatermarkChange: (updates: Partial<PageWatermark>) => void;
+  onPageBorderChange: (updates: Partial<PageBorder>) => void;
+}> = ({ watermark, pageBorder, reportUnit, unitStep, onWatermarkChange, onPageBorderChange }) => {
+  const { t } = useDesignerI18n();
+  const borderWidthMax = formatUnitValue(10, reportUnit);
+  const borderOffsetMax = formatUnitValue(50, reportUnit);
+
+  return (
+    <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+      <Form.Item label={t('pageSettings.watermark')}>
+        <Switch
+          aria-label={t('pageSettings.watermarkEnabled')}
+          checked={watermark.enabled}
+          onChange={enabled => onWatermarkChange({ enabled })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.watermarkText')}>
+        <Input
+          aria-label={t('pageSettings.watermarkText')}
+          value={watermark.text}
+          onChange={event => onWatermarkChange({ text: event.target.value })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.watermarkColor')}>
+        <Space.Compact style={{ width: '100%' }}>
+          <ColorPicker value={watermark.color} onChange={color => onWatermarkChange({ color: color.toHexString() })} />
+          <Input
+            aria-label={t('pageSettings.watermarkColor')}
+            value={watermark.color}
+            onChange={event => onWatermarkChange({ color: event.target.value })}
+          />
+        </Space.Compact>
+      </Form.Item>
+      <Form.Item label={t('pageSettings.watermarkFontSize')}>
+        <InputNumber
+          aria-label={t('pageSettings.watermarkFontSize')}
+          value={watermark.fontSize}
+          min={8}
+          max={240}
+          step={1}
+          style={{ width: '100%' }}
+          onChange={value => onWatermarkChange({ fontSize: Number(value ?? watermark.fontSize) })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.watermarkOpacity')}>
+        <InputNumber
+          aria-label={t('pageSettings.watermarkOpacity')}
+          value={watermark.opacity}
+          min={0}
+          max={1}
+          step={0.05}
+          style={{ width: '100%' }}
+          onChange={value => onWatermarkChange({ opacity: Number(value ?? watermark.opacity) })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.watermarkAngle')}>
+        <InputNumber
+          aria-label={t('pageSettings.watermarkAngle')}
+          value={watermark.angle}
+          min={-180}
+          max={180}
+          step={1}
+          style={{ width: '100%' }}
+          onChange={value => onWatermarkChange({ angle: Number(value ?? watermark.angle) })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.watermarkHorizontalAlign')}>
+        <Segmented
+          aria-label={t('pageSettings.watermarkHorizontalAlign')}
+          value={watermark.horizontalAlign}
+          block
+          options={[
+            { value: 'left', icon: <AlignLeftOutlined />, label: '' },
+            { value: 'center', icon: <AlignCenterOutlined />, label: '' },
+            { value: 'right', icon: <AlignRightOutlined />, label: '' },
+          ]}
+          onChange={value => onWatermarkChange({ horizontalAlign: value as PageWatermark['horizontalAlign'] })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.watermarkVerticalAlign')}>
+        <Segmented
+          aria-label={t('pageSettings.watermarkVerticalAlign')}
+          value={watermark.verticalAlign}
+          block
+          options={[
+            { value: 'top', icon: <VerticalAlignTopOutlined />, label: '' },
+            { value: 'middle', icon: <VerticalAlignMiddleOutlined />, label: '' },
+            { value: 'bottom', icon: <VerticalAlignBottomOutlined />, label: '' },
+          ]}
+          onChange={value => onWatermarkChange({ verticalAlign: value as PageWatermark['verticalAlign'] })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.watermarkShowBehind')}>
+        <Switch
+          aria-label={t('pageSettings.watermarkShowBehind')}
+          checked={watermark.showBehind}
+          onChange={showBehind => onWatermarkChange({ showBehind })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.pageBorder')}>
+        <Switch
+          aria-label={t('pageSettings.pageBorderEnabled')}
+          checked={pageBorder.enabled}
+          onChange={enabled => onPageBorderChange({ enabled })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.borderStyle')}>
+        <Segmented
+          aria-label={t('pageSettings.borderStyle')}
+          value={pageBorder.style}
+          block
+          options={[
+            { value: 'solid', label: t('pageSettings.borderSolid') },
+            { value: 'dashed', label: t('pageSettings.borderDashed') },
+            { value: 'dotted', label: t('pageSettings.borderDotted') },
+            { value: 'double', label: t('pageSettings.borderDouble') },
+          ]}
+          onChange={style => onPageBorderChange({ style: style as PageBorder['style'] })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.borderColor')}>
+        <Space.Compact style={{ width: '100%' }}>
+          <ColorPicker value={pageBorder.color} onChange={color => onPageBorderChange({ color: color.toHexString() })} />
+          <Input
+            aria-label={t('pageSettings.borderColor')}
+            value={pageBorder.color}
+            onChange={event => onPageBorderChange({ color: event.target.value })}
+          />
+        </Space.Compact>
+      </Form.Item>
+      <Form.Item label={t('pageSettings.borderWidth')}>
+        <InputNumber
+          aria-label={t('pageSettings.borderWidth')}
+          value={formatUnitValue(pageBorder.width, reportUnit)}
+          min={0}
+          max={borderWidthMax}
+          step={unitStep}
+          style={{ width: '100%' }}
+          onChange={value => onPageBorderChange({ width: parseUnitValue(value, reportUnit, pageBorder.width) })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.borderOffset')}>
+        <InputNumber
+          aria-label={t('pageSettings.borderOffset')}
+          value={formatUnitValue(pageBorder.offset ?? 0, reportUnit)}
+          min={0}
+          max={borderOffsetMax}
+          step={unitStep}
+          style={{ width: '100%' }}
+          onChange={value => onPageBorderChange({ offset: parseUnitValue(value, reportUnit, pageBorder.offset ?? 0) })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.borderSides')}>
+        <Checkbox.Group
+          value={Object.entries(pageBorder.sides).filter(([, enabled]) => enabled).map(([side]) => side)}
+          options={[
+            { value: 'top', label: t('pageSettings.top') },
+            { value: 'right', label: t('pageSettings.right') },
+            { value: 'bottom', label: t('pageSettings.bottom') },
+            { value: 'left', label: t('pageSettings.left') },
+          ]}
+          onChange={values => onPageBorderChange({
+            sides: {
+              top: values.includes('top'),
+              right: values.includes('right'),
+              bottom: values.includes('bottom'),
+              left: values.includes('left'),
+            },
+          })}
+        />
+      </Form.Item>
+    </Form>
   );
 };
 

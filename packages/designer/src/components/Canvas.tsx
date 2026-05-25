@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { sanitizeRichHtml, type ReportComponent, type Band, type PanelComponent, type ReportFont, type RichTextDocument, type TableComponent } from '@report-designer/core';
+import { sanitizeRichHtml, type ReportComponent, type Band, type PageBorder, type PageWatermark, type PanelComponent, type ReportFont, type RichTextDocument, type TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
 import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
@@ -831,6 +831,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             transform: `scale(${zoom})`,
             transformOrigin: 'top left',
           }}>
+          <PageWatermarkOverlay watermark={currentPage.watermark} zIndex={currentPage.watermark?.showBehind === false ? 3 : 1} />
           <div
             data-testid="designer-page-content-area"
             style={{
@@ -839,6 +840,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
               top: rawMarginTopPx,
               width: safeCssNumber(rawPrintableWidthPx),
               height: safeCssNumber(rawPrintableHeightPx),
+              zIndex: 2,
               backgroundImage: `
                 linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)
@@ -869,6 +871,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
                 onUpdateComponent={updateComponent} currentPageId={currentPageId} />
             ))}
           </div>
+          <PageBorderOverlay pageBorder={currentPage.pageBorder} />
 
         {/* Selection box */}
         {mode.type === 'select' && selBox && (
@@ -1247,6 +1250,72 @@ const BandView: React.FC<{
     </div>
   );
 };
+
+const PageWatermarkOverlay: React.FC<{ watermark?: PageWatermark; zIndex: number }> = ({ watermark, zIndex }) => {
+  if (!watermark?.enabled || !watermark.text) return null;
+
+  return (
+    <div
+      data-testid="designer-page-watermark"
+      style={{
+        position: 'absolute',
+        inset: 0,
+        display: 'flex',
+        justifyContent: horizontalAlignToFlex(watermark.horizontalAlign),
+        alignItems: verticalAlignToFlex(watermark.verticalAlign),
+        color: watermark.color,
+        opacity: watermark.opacity,
+        fontFamily: watermark.fontFamily,
+        fontSize: watermark.fontSize * MM_TO_PX,
+        fontWeight: 600,
+        lineHeight: 1,
+        whiteSpace: 'pre-wrap',
+        textAlign: watermark.horizontalAlign,
+        pointerEvents: 'none',
+        userSelect: 'none',
+        zIndex,
+      }}
+    >
+      <span
+        style={{
+          display: 'inline-block',
+          transform: `rotate(${watermark.angle}deg)`,
+          transformOrigin: 'center',
+        }}
+      >
+        {watermark.text}
+      </span>
+    </div>
+  );
+};
+
+const PageBorderOverlay: React.FC<{ pageBorder?: PageBorder }> = ({ pageBorder }) => {
+  if (!pageBorder?.enabled || pageBorder.style === 'none' || pageBorder.width <= 0) return null;
+  const border = `${pageBorder.width}mm ${pageBorder.style} ${pageBorder.color}`;
+
+  return (
+    <div
+      data-testid="designer-page-border"
+      style={{
+        position: 'absolute',
+        inset: `${pageBorder.offset ?? 0}mm`,
+        boxSizing: 'border-box',
+        borderTop: pageBorder.sides.top ? border : 'none',
+        borderRight: pageBorder.sides.right ? border : 'none',
+        borderBottom: pageBorder.sides.bottom ? border : 'none',
+        borderLeft: pageBorder.sides.left ? border : 'none',
+        pointerEvents: 'none',
+        zIndex: 4,
+      }}
+    />
+  );
+};
+
+function horizontalAlignToFlex(value?: string): React.CSSProperties['justifyContent'] {
+  if (value === 'left') return 'flex-start';
+  if (value === 'right') return 'flex-end';
+  return 'center';
+}
 
 // ---- Band Resize Handle ----
 

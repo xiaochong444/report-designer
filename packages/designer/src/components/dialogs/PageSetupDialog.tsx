@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
-import { Button, ColorPicker, Input, InputNumber, Modal, Radio, Select, Space } from 'antd';
-import type { Margins, PageOrientation } from '@report-designer/core';
+import { Button, Checkbox, ColorPicker, Input, InputNumber, Modal, Radio, Segmented, Select, Space, Switch, Typography } from 'antd';
+import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
+import { createDefaultPageBorder, createDefaultPageWatermark } from '@report-designer/core';
+import type { Margins, PageBorder, PageOrientation, PageWatermark } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { useDesignerI18n } from '../../i18n';
 import {
@@ -29,6 +31,8 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
   const [height, setHeight] = useState(page?.height ?? 297);
   const [pageName, setPageName] = useState(page?.name ?? '');
   const [backgroundColor, setBackgroundColor] = useState(page?.backgroundColor ?? '#ffffff');
+  const [watermark, setWatermark] = useState<PageWatermark>(page?.watermark ?? createDefaultPageWatermark());
+  const [pageBorder, setPageBorder] = useState<PageBorder>(page?.pageBorder ?? createDefaultPageBorder());
   const [margins, setMargins] = useState<Margins>(page?.margins ?? { top: 20, right: 20, bottom: 20, left: 20 });
   const [paperType, setPaperType] = useState<PaperType>(page ? detectPaperType(page.width, page.height) : 'A4');
 
@@ -39,6 +43,8 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
     setHeight(page.height);
     setPageName(page.name ?? '');
     setBackgroundColor(page.backgroundColor ?? '#ffffff');
+    setWatermark(page.watermark ?? createDefaultPageWatermark());
+    setPageBorder(page.pageBorder ?? createDefaultPageBorder());
     setMargins(page.margins);
     setPaperType(detectPaperType(page.width, page.height));
   }, [open, page]);
@@ -80,6 +86,8 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
       height,
       name: pageName,
       backgroundColor,
+      watermark,
+      pageBorder,
       margins,
     });
     onClose();
@@ -100,6 +108,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
         <Button key="apply" type="primary" onClick={apply}>{t('common.apply')}</Button>,
       ]}
     >
+      <div style={{ maxHeight: 'min(70vh, 680px)', overflowY: 'auto', paddingRight: 4 }}>
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         <DialogTextField
           label={t('pageSettings.pageName')}
@@ -107,9 +116,9 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
           value={pageName}
           onChange={setPageName}
         />
-        <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', alignItems: 'center', gap: 8 }}>
-          <span>{t('pageSettings.backgroundColor')}</span>
-          <Space.Compact style={{ width: '100%' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ width: 92, flex: '0 0 92px' }}>{t('pageSettings.backgroundColor')}</span>
+          <Space.Compact style={{ flex: 1, minWidth: 0 }}>
             <ColorPicker value={backgroundColor} onChange={color => setBackgroundColor(color.toHexString())} />
             <Input
               aria-label={t('pageSettings.backgroundColor')}
@@ -148,23 +157,119 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
         <DialogNumberField label={t('pageSettings.right')} value={formatUnitValue(margins.right, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('right', value)} />
         <DialogNumberField label={t('pageSettings.bottom')} value={formatUnitValue(margins.bottom, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('bottom', value)} />
         <DialogNumberField label={t('pageSettings.left')} value={formatUnitValue(margins.left, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('left', value)} />
+        <PageAppearanceDialogFields
+          pageBorder={pageBorder}
+          reportUnit={reportUnit}
+          unitStep={unitStep}
+          watermark={watermark}
+          onPageBorderChange={(updates) => setPageBorder(current => ({ ...current, ...updates, sides: updates.sides ? { ...current.sides, ...updates.sides } : current.sides }))}
+          onWatermarkChange={(updates) => setWatermark(current => ({ ...current, ...updates }))}
+        />
       </Space>
+      </div>
     </Modal>
+  );
+};
+
+const PageAppearanceDialogFields: React.FC<{
+  watermark: PageWatermark;
+  pageBorder: PageBorder;
+  reportUnit: 'mm' | 'cm';
+  unitStep: number;
+  onWatermarkChange: (updates: Partial<PageWatermark>) => void;
+  onPageBorderChange: (updates: Partial<PageBorder>) => void;
+}> = ({ watermark, pageBorder, reportUnit, unitStep, onWatermarkChange, onPageBorderChange }) => {
+  const { t } = useDesignerI18n();
+  const borderWidthMax = formatUnitValue(10, reportUnit);
+  const borderOffsetMax = formatUnitValue(50, reportUnit);
+
+  return (
+    <section style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
+      <Typography.Text strong style={{ display: 'block', marginBottom: 10 }}>
+        {t('pageSettings.appearance')}
+      </Typography.Text>
+      <Space orientation="vertical" size={10} style={{ width: '100%' }}>
+        <DialogSwitchField label={t('pageSettings.watermark')} ariaLabel={t('pageSettings.watermarkEnabled')} checked={watermark.enabled} onChange={enabled => onWatermarkChange({ enabled })} />
+        <DialogTextField label={t('pageSettings.watermarkText')} ariaLabel={t('pageSettings.watermarkText')} value={watermark.text} onChange={text => onWatermarkChange({ text })} />
+        <DialogColorField label={t('pageSettings.watermarkColor')} ariaLabel={t('pageSettings.watermarkColor')} value={watermark.color} onChange={color => onWatermarkChange({ color })} />
+        <DialogNumberField label={t('pageSettings.watermarkFontSize')} value={watermark.fontSize} min={8} max={240} step={1} onChange={value => onWatermarkChange({ fontSize: Number(value ?? watermark.fontSize) })} ariaLabel={t('pageSettings.watermarkFontSize')} />
+        <DialogNumberField label={t('pageSettings.watermarkOpacity')} value={watermark.opacity} min={0} max={1} step={0.05} onChange={value => onWatermarkChange({ opacity: Number(value ?? watermark.opacity) })} ariaLabel={t('pageSettings.watermarkOpacity')} />
+        <DialogNumberField label={t('pageSettings.watermarkAngle')} value={watermark.angle} min={-180} max={180} step={1} onChange={value => onWatermarkChange({ angle: Number(value ?? watermark.angle) })} ariaLabel={t('pageSettings.watermarkAngle')} />
+        <DialogSegmentedField
+          label={t('pageSettings.watermarkHorizontalAlign')}
+          ariaLabel={t('pageSettings.watermarkHorizontalAlign')}
+          value={watermark.horizontalAlign}
+          options={[
+            { value: 'left', icon: <AlignLeftOutlined />, label: '' },
+            { value: 'center', icon: <AlignCenterOutlined />, label: '' },
+            { value: 'right', icon: <AlignRightOutlined />, label: '' },
+          ]}
+          onChange={value => onWatermarkChange({ horizontalAlign: value as PageWatermark['horizontalAlign'] })}
+        />
+        <DialogSegmentedField
+          label={t('pageSettings.watermarkVerticalAlign')}
+          ariaLabel={t('pageSettings.watermarkVerticalAlign')}
+          value={watermark.verticalAlign}
+          options={[
+            { value: 'top', icon: <VerticalAlignTopOutlined />, label: '' },
+            { value: 'middle', icon: <VerticalAlignMiddleOutlined />, label: '' },
+            { value: 'bottom', icon: <VerticalAlignBottomOutlined />, label: '' },
+          ]}
+          onChange={value => onWatermarkChange({ verticalAlign: value as PageWatermark['verticalAlign'] })}
+        />
+        <DialogSwitchField label={t('pageSettings.watermarkShowBehind')} ariaLabel={t('pageSettings.watermarkShowBehind')} checked={watermark.showBehind} onChange={showBehind => onWatermarkChange({ showBehind })} />
+        <DialogSwitchField label={t('pageSettings.pageBorder')} ariaLabel={t('pageSettings.pageBorderEnabled')} checked={pageBorder.enabled} onChange={enabled => onPageBorderChange({ enabled })} />
+        <DialogSegmentedField
+          label={t('pageSettings.borderStyle')}
+          ariaLabel={t('pageSettings.borderStyle')}
+          value={pageBorder.style}
+          options={[
+            { value: 'solid', label: t('pageSettings.borderSolid') },
+            { value: 'dashed', label: t('pageSettings.borderDashed') },
+            { value: 'dotted', label: t('pageSettings.borderDotted') },
+            { value: 'double', label: t('pageSettings.borderDouble') },
+          ]}
+          onChange={style => onPageBorderChange({ style: style as PageBorder['style'] })}
+        />
+        <DialogColorField label={t('pageSettings.borderColor')} ariaLabel={t('pageSettings.borderColor')} value={pageBorder.color} onChange={color => onPageBorderChange({ color })} />
+        <DialogNumberField label={t('pageSettings.borderWidth')} value={formatUnitValue(pageBorder.width, reportUnit)} min={0} max={borderWidthMax} step={unitStep} onChange={value => onPageBorderChange({ width: parseUnitValue(value, reportUnit, pageBorder.width) })} ariaLabel={t('pageSettings.borderWidth')} />
+        <DialogNumberField label={t('pageSettings.borderOffset')} value={formatUnitValue(pageBorder.offset ?? 0, reportUnit)} min={0} max={borderOffsetMax} step={unitStep} onChange={value => onPageBorderChange({ offset: parseUnitValue(value, reportUnit, pageBorder.offset ?? 0) })} ariaLabel={t('pageSettings.borderOffset')} />
+        <DialogCheckboxGroupField
+          label={t('pageSettings.borderSides')}
+          value={Object.entries(pageBorder.sides).filter(([, enabled]) => enabled).map(([side]) => side)}
+          options={[
+            { value: 'top', label: t('pageSettings.top') },
+            { value: 'right', label: t('pageSettings.right') },
+            { value: 'bottom', label: t('pageSettings.bottom') },
+            { value: 'left', label: t('pageSettings.left') },
+          ]}
+          onChange={values => onPageBorderChange({
+            sides: {
+              top: values.includes('top'),
+              right: values.includes('right'),
+              bottom: values.includes('bottom'),
+              left: values.includes('left'),
+            },
+          })}
+        />
+      </Space>
+    </section>
   );
 };
 
 const DialogNumberField: React.FC<{
   label: string;
+  ariaLabel?: string;
   value: number;
   min: number;
   max: number;
   step: number;
   disabled?: boolean;
   onChange: (value: number | string | null) => void;
-}> = ({ label, value, min, max, step, disabled, onChange }) => (
-  <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', alignItems: 'center', gap: 8 }}>
-    <span>{label}</span>
-    <InputNumber min={min} max={max} step={step} disabled={disabled} value={value} onChange={onChange} style={{ width: '100%' }} />
+}> = ({ label, ariaLabel, value, min, max, step, disabled, onChange }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <span style={{ width: 92, flex: '0 0 92px' }}>{label}</span>
+    <InputNumber aria-label={ariaLabel} min={min} max={max} step={step} disabled={disabled} value={value} onChange={onChange} style={{ flex: 1, minWidth: 0 }} />
   </div>
 );
 
@@ -174,8 +279,8 @@ const DialogTextField: React.FC<{
   value: string;
   onChange: (value: string) => void;
 }> = ({ label, ariaLabel, value, onChange }) => (
-  <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', alignItems: 'center', gap: 8 }}>
-    <span>{label}</span>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <span style={{ width: 92, flex: '0 0 92px' }}>{label}</span>
     <Input aria-label={ariaLabel} value={value} onChange={event => onChange(event.target.value)} />
   </div>
 );
@@ -187,8 +292,60 @@ const DialogSelectField: React.FC<{
   options: Array<{ value: string; label: string }>;
   onChange: (value: any) => void;
 }> = ({ label, ariaLabel, value, options, onChange }) => (
-  <div style={{ display: 'grid', gridTemplateColumns: '72px minmax(0, 1fr)', alignItems: 'center', gap: 8 }}>
-    <span>{label}</span>
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <span style={{ width: 92, flex: '0 0 92px' }}>{label}</span>
     <Select aria-label={ariaLabel} value={value} options={options} virtual={false} onChange={onChange} />
+  </div>
+);
+
+const DialogColorField: React.FC<{
+  label: string;
+  ariaLabel: string;
+  value: string;
+  onChange: (value: string) => void;
+}> = ({ label, ariaLabel, value, onChange }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <span style={{ width: 92, flex: '0 0 92px' }}>{label}</span>
+    <Space.Compact style={{ flex: 1, minWidth: 0 }}>
+      <ColorPicker value={value} onChange={color => onChange(color.toHexString())} />
+      <Input aria-label={ariaLabel} value={value} onChange={event => onChange(event.target.value)} />
+    </Space.Compact>
+  </div>
+);
+
+const DialogSwitchField: React.FC<{
+  label: string;
+  ariaLabel: string;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}> = ({ label, ariaLabel, checked, onChange }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <span style={{ width: 92, flex: '0 0 92px' }}>{label}</span>
+    <Switch aria-label={ariaLabel} checked={checked} onChange={onChange} />
+  </div>
+);
+
+const DialogSegmentedField: React.FC<{
+  label: string;
+  ariaLabel: string;
+  value: string;
+  options: Array<{ value: string; label: React.ReactNode; icon?: React.ReactNode }>;
+  onChange: (value: string) => void;
+}> = ({ label, ariaLabel, value, options, onChange }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <span style={{ width: 92, flex: '0 0 92px' }}>{label}</span>
+    <Segmented aria-label={ariaLabel} value={value} options={options} onChange={value => onChange(String(value))} style={{ flex: 1 }} />
+  </div>
+);
+
+const DialogCheckboxGroupField: React.FC<{
+  label: string;
+  value: string[];
+  options: Array<{ value: string; label: React.ReactNode }>;
+  onChange: (value: string[]) => void;
+}> = ({ label, value, options, onChange }) => (
+  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+    <span style={{ width: 92, flex: '0 0 92px' }}>{label}</span>
+    <Checkbox.Group value={value} options={options} onChange={values => onChange(values.map(String))} />
   </div>
 );

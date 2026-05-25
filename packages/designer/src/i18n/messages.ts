@@ -261,6 +261,28 @@ export type DesignerMessageKey =
   | 'pageSettings.fontFamily'
   | 'pageSettings.fontFallback'
   | 'pageSettings.fontUrl'
+  | 'pageSettings.appearance'
+  | 'pageSettings.watermark'
+  | 'pageSettings.watermarkEnabled'
+  | 'pageSettings.watermarkText'
+  | 'pageSettings.watermarkColor'
+  | 'pageSettings.watermarkFontSize'
+  | 'pageSettings.watermarkOpacity'
+  | 'pageSettings.watermarkAngle'
+  | 'pageSettings.watermarkHorizontalAlign'
+  | 'pageSettings.watermarkVerticalAlign'
+  | 'pageSettings.watermarkShowBehind'
+  | 'pageSettings.pageBorder'
+  | 'pageSettings.pageBorderEnabled'
+  | 'pageSettings.borderStyle'
+  | 'pageSettings.borderSolid'
+  | 'pageSettings.borderDashed'
+  | 'pageSettings.borderDotted'
+  | 'pageSettings.borderDouble'
+  | 'pageSettings.borderColor'
+  | 'pageSettings.borderWidth'
+  | 'pageSettings.borderOffset'
+  | 'pageSettings.borderSides'
   | 'richText.font'
   | 'richText.fontSize'
   | 'richText.bold'
@@ -600,6 +622,28 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.fontFamily': 'CSS 字体族',
     'pageSettings.fontFallback': '备用字体',
     'pageSettings.fontUrl': '字体地址',
+    'pageSettings.appearance': '页面外观',
+    'pageSettings.watermark': '水印',
+    'pageSettings.watermarkEnabled': '启用水印',
+    'pageSettings.watermarkText': '水印文本',
+    'pageSettings.watermarkColor': '水印颜色',
+    'pageSettings.watermarkFontSize': '水印字号',
+    'pageSettings.watermarkOpacity': '水印透明度',
+    'pageSettings.watermarkAngle': '水印角度',
+    'pageSettings.watermarkHorizontalAlign': '水印水平对齐',
+    'pageSettings.watermarkVerticalAlign': '水印垂直对齐',
+    'pageSettings.watermarkShowBehind': '水印置于内容后',
+    'pageSettings.pageBorder': '页面边框',
+    'pageSettings.pageBorderEnabled': '启用页面边框',
+    'pageSettings.borderStyle': '边框样式',
+    'pageSettings.borderSolid': '实线',
+    'pageSettings.borderDashed': '虚线',
+    'pageSettings.borderDotted': '点线',
+    'pageSettings.borderDouble': '双线',
+    'pageSettings.borderColor': '边框颜色',
+    'pageSettings.borderWidth': '边框宽度',
+    'pageSettings.borderOffset': '边框偏移',
+    'pageSettings.borderSides': '边框边',
     'richText.font': '富文本字体',
     'richText.fontSize': '富文本字号',
     'richText.bold': '加粗',
@@ -936,6 +980,28 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.fontFamily': 'CSS font family',
     'pageSettings.fontFallback': 'Fallback font',
     'pageSettings.fontUrl': 'Font URL',
+    'pageSettings.appearance': 'Page appearance',
+    'pageSettings.watermark': 'Watermark',
+    'pageSettings.watermarkEnabled': 'Enable watermark',
+    'pageSettings.watermarkText': 'Watermark text',
+    'pageSettings.watermarkColor': 'Watermark color',
+    'pageSettings.watermarkFontSize': 'Watermark font size',
+    'pageSettings.watermarkOpacity': 'Watermark opacity',
+    'pageSettings.watermarkAngle': 'Watermark angle',
+    'pageSettings.watermarkHorizontalAlign': 'Watermark horizontal align',
+    'pageSettings.watermarkVerticalAlign': 'Watermark vertical align',
+    'pageSettings.watermarkShowBehind': 'Place watermark behind content',
+    'pageSettings.pageBorder': 'Page border',
+    'pageSettings.pageBorderEnabled': 'Enable page border',
+    'pageSettings.borderStyle': 'Border style',
+    'pageSettings.borderSolid': 'Solid',
+    'pageSettings.borderDashed': 'Dashed',
+    'pageSettings.borderDotted': 'Dotted',
+    'pageSettings.borderDouble': 'Double',
+    'pageSettings.borderColor': 'Border color',
+    'pageSettings.borderWidth': 'Border width',
+    'pageSettings.borderOffset': 'Border offset',
+    'pageSettings.borderSides': 'Border sides',
     'richText.font': 'Rich text font',
     'richText.fontSize': 'Rich text font size',
     'richText.bold': 'Bold',
