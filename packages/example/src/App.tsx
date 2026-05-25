@@ -112,6 +112,7 @@ function App() {
             template={previewTemplate}
             data={selected.data}
             subreports={'subreports' in selected ? selected.subreports : undefined}
+            locale={locale}
             onEventLogSelect={handleEventLogSelect}
           />
         ) : (

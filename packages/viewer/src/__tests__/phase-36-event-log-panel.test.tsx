@@ -105,6 +105,22 @@ describe('phase 36 event log panel', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Clear Event Logs' }));
     expect(onEventLogsClear).toHaveBeenCalledTimes(1);
   });
+
+  it('localizes viewer toolbar and event log operations to Chinese', () => {
+    render(<Viewer template={eventLogTemplate()} data={{}} locale="zh-CN" onEventLogSelect={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: '打印' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '导出 PDF' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '上一页' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '下一页' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '事件日志' }));
+
+    expect(screen.getByText('事件日志')).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: '全部' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: '错误' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: '打开事件' }).length).toBeGreaterThan(0);
+  });
 });
 
 function eventLogTemplate(): ReportTemplate {

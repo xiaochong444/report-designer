@@ -2,6 +2,7 @@ import React from 'react';
 import { AimOutlined, DeleteOutlined, DownloadOutlined } from '@ant-design/icons';
 import { Alert, Button, Drawer, Flex, Radio, Tag, Tooltip, Typography } from 'antd';
 import type { EventLogEntry } from '@report-designer/core';
+import type { ViewerMessages } from '../i18n';
 
 interface EventLogPanelProps {
   open: boolean;
@@ -10,14 +11,8 @@ interface EventLogPanelProps {
   onSelect?: (entry: EventLogEntry) => void;
   onClear?: () => void;
   onExport?: (logs: EventLogEntry[]) => void;
+  messages: ViewerMessages;
 }
-
-const ownerLabel: Record<EventLogEntry['ownerType'], string> = {
-  report: 'Report',
-  page: 'Page',
-  band: 'Band',
-  component: 'Component',
-};
 
 const tagColor: Record<EventLogEntry['level'], string> = {
   info: 'blue',
@@ -32,13 +27,20 @@ export const EventLogPanel: React.FC<EventLogPanelProps> = ({
   onExport,
   onSelect,
   open,
+  messages,
 }) => {
   const [levelFilter, setLevelFilter] = React.useState<EventLogEntry['level'] | 'all'>('all');
   const filteredLogs = levelFilter === 'all' ? logs : logs.filter(entry => entry.level === levelFilter);
+  const ownerLabel: Record<EventLogEntry['ownerType'], string> = {
+    report: messages.ownerReport,
+    page: messages.ownerPage,
+    band: messages.ownerBand,
+    component: messages.ownerComponent,
+  };
 
   return (
     <Drawer
-      title="Event Logs"
+      title={messages.eventLogs}
       open={open}
       onClose={onClose}
       size={420}
@@ -53,17 +55,17 @@ export const EventLogPanel: React.FC<EventLogPanelProps> = ({
             value={levelFilter}
             onChange={event => setLevelFilter(event.target.value)}
             options={[
-              { label: 'All', value: 'all' },
-              { label: 'Info', value: 'info' },
-              { label: 'Warning', value: 'warning' },
-              { label: 'Error', value: 'error' },
+              { label: messages.eventLogsAll, value: 'all' },
+              { label: messages.eventLogsInfo, value: 'info' },
+              { label: messages.eventLogsWarning, value: 'warning' },
+              { label: messages.eventLogsError, value: 'error' },
             ]}
           />
           <Flex gap={6}>
             {onExport ? (
-              <Tooltip title="Export Event Logs">
+              <Tooltip title={messages.eventLogsExport}>
                 <Button
-                  aria-label="Export Event Logs"
+                  aria-label={messages.eventLogsExport}
                   size="small"
                   icon={<DownloadOutlined />}
                   disabled={filteredLogs.length === 0}
@@ -72,9 +74,9 @@ export const EventLogPanel: React.FC<EventLogPanelProps> = ({
               </Tooltip>
             ) : null}
             {onClear ? (
-              <Tooltip title="Clear Event Logs">
+              <Tooltip title={messages.eventLogsClear}>
                 <Button
-                  aria-label="Clear Event Logs"
+                  aria-label={messages.eventLogsClear}
                   size="small"
                   icon={<DeleteOutlined />}
                   disabled={logs.length === 0}
@@ -85,7 +87,7 @@ export const EventLogPanel: React.FC<EventLogPanelProps> = ({
           </Flex>
         </Flex>
         {filteredLogs.length === 0 ? (
-          <Alert type="info" title="No event logs" />
+          <Alert type="info" title={messages.eventLogsEmpty} />
         ) : (
           <div role="list" style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {filteredLogs.map((entry, index) => (
@@ -104,14 +106,14 @@ export const EventLogPanel: React.FC<EventLogPanelProps> = ({
                       <Typography.Text type="secondary">{entry.eventName}</Typography.Text>
                       {entry.line ? (
                         <Typography.Text type="secondary">
-                          Line {entry.line}{entry.column ? `:${entry.column}` : ''}
+                          {messages.line} {entry.line}{entry.column ? `:${entry.column}` : ''}
                         </Typography.Text>
                       ) : null}
                     </Flex>
                     {onSelect ? (
-                      <Tooltip title="Open Event">
+                      <Tooltip title={messages.eventLogsOpen}>
                         <Button
-                          aria-label="Open Event"
+                          aria-label={messages.eventLogsOpen}
                           size="small"
                           icon={<AimOutlined />}
                           onClick={() => onSelect(entry)}

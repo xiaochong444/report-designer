@@ -5,6 +5,7 @@ import { ViewerToolbar } from './ViewerToolbar';
 import { downloadPDF, exportToPDF, printReport } from '../export';
 import { RenderDocumentView } from '../renderers/dom/RenderDocumentView';
 import { EventLogPanel } from './EventLogPanel';
+import { getViewerMessages, type ViewerLocale } from '../i18n';
 
 const { Content } = Layout;
 
@@ -16,12 +17,14 @@ interface ViewerProps {
   onEventLogSelect?: (entry: EventLogEntry) => void;
   onEventLogsClear?: () => void;
   onEventLogsExport?: (logs: EventLogEntry[]) => void;
+  locale?: ViewerLocale;
 }
 
 export const Viewer: React.FC<ViewerProps> = ({
   template,
   data,
   className,
+  locale = 'en-US',
   onEventLogSelect,
   onEventLogsClear,
   onEventLogsExport,
@@ -32,6 +35,7 @@ export const Viewer: React.FC<ViewerProps> = ({
   const [eventLogOpen, setEventLogOpen] = useState(false);
   const [eventLogsCleared, setEventLogsCleared] = useState(false);
   const previewScrollRef = React.useRef<HTMLElement | null>(null);
+  const messages = getViewerMessages(locale);
 
   const document = useMemo(
     () => renderReport(template, data, { subreports, mode: 'preview' }),
@@ -68,6 +72,7 @@ export const Viewer: React.FC<ViewerProps> = ({
           onExportPDF={handleExportPDF}
           eventLogCount={eventLogs.length}
           onShowEventLogs={() => setEventLogOpen(true)}
+          messages={messages}
         />
       </div>
 
@@ -84,6 +89,7 @@ export const Viewer: React.FC<ViewerProps> = ({
         onClose={() => setEventLogOpen(false)}
         onSelect={onEventLogSelect}
         onExport={onEventLogsExport}
+        messages={messages}
         onClear={() => {
           setEventLogsCleared(true);
           onEventLogsClear?.();

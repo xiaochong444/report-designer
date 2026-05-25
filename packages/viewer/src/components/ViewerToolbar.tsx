@@ -10,6 +10,7 @@ import {
   RightOutlined,
   BugOutlined,
 } from '@ant-design/icons';
+import type { ViewerMessages } from '../i18n';
 
 interface ViewerToolbarProps {
   currentPage: number;
@@ -21,6 +22,7 @@ interface ViewerToolbarProps {
   onExportPDF: () => void;
   eventLogCount?: number;
   onShowEventLogs?: () => void;
+  messages: ViewerMessages;
 }
 
 export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
@@ -32,6 +34,7 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   onPrint,
   onExportPDF,
   eventLogCount = 0,
+  messages,
   onShowEventLogs,
 }) => {
   return (
@@ -44,20 +47,20 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
       gap: 8,
     }}>
       <Space>
-        <Tooltip title="Print">
-          <Button aria-label="Print" icon={<PrinterOutlined />} size="small" onClick={onPrint} />
+        <Tooltip title={messages.print}>
+          <Button aria-label={messages.print} icon={<PrinterOutlined />} size="small" onClick={onPrint} />
         </Tooltip>
-        <Tooltip title="Export PDF">
-          <Button aria-label="Export PDF" icon={<DownloadOutlined />} size="small" onClick={onExportPDF} />
+        <Tooltip title={messages.exportPdf}>
+          <Button aria-label={messages.exportPdf} icon={<DownloadOutlined />} size="small" onClick={onExportPDF} />
         </Tooltip>
       </Space>
 
       <div style={{ borderLeft: '1px solid #e8e8e8', height: 20 }} />
 
       <Space>
-        <Tooltip title="Previous Page">
+        <Tooltip title={messages.previousPage}>
           <Button
-            aria-label="Previous Page"
+            aria-label={messages.previousPage}
             icon={<LeftOutlined />}
             size="small"
             disabled={currentPage <= 1}
@@ -65,7 +68,7 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
           />
         </Tooltip>
         <Select
-          aria-label="Current Page"
+          aria-label={messages.currentPage}
           size="small"
           value={currentPage}
           style={{ width: 80 }}
@@ -75,9 +78,9 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
             label: `${i + 1} / ${totalPages}`,
           }))}
         />
-        <Tooltip title="Next Page">
+        <Tooltip title={messages.nextPage}>
           <Button
-            aria-label="Next Page"
+            aria-label={messages.nextPage}
             icon={<RightOutlined />}
             size="small"
             disabled={currentPage >= totalPages}
@@ -89,8 +92,9 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
       <div style={{ borderLeft: '1px solid #e8e8e8', height: 20 }} />
 
       <Space>
-        <Tooltip title="Zoom Out">
+        <Tooltip title={messages.zoomOut}>
           <Button
+            aria-label={messages.zoomOut}
             icon={<ZoomOutOutlined />}
             size="small"
             disabled={zoom <= 50}
@@ -100,8 +104,9 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
         <span style={{ fontSize: 12, minWidth: 40, textAlign: 'center' }}>
           {zoom}%
         </span>
-        <Tooltip title="Zoom In">
+        <Tooltip title={messages.zoomIn}>
           <Button
+            aria-label={messages.zoomIn}
             icon={<ZoomInOutlined />}
             size="small"
             disabled={zoom >= 300}
@@ -113,9 +118,9 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
       <div style={{ flex: 1 }} />
 
       {eventLogCount > 0 ? (
-        <Tooltip title="Event Logs">
+        <Tooltip title={messages.eventLogs}>
           <Button
-            aria-label="Event Logs"
+            aria-label={messages.eventLogs}
             icon={<BugOutlined />}
             size="small"
             onClick={onShowEventLogs}
@@ -125,8 +130,8 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
         </Tooltip>
       ) : null}
 
-      <Tooltip title="Fullscreen">
-        <Button icon={<FullscreenOutlined />} size="small" />
+      <Tooltip title={messages.fullscreen}>
+        <Button aria-label={messages.fullscreen} icon={<FullscreenOutlined />} size="small" />
       </Tooltip>
     </div>
   );

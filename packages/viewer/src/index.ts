@@ -6,4 +6,6 @@ export { RenderDocumentView } from './renderers/dom/RenderDocumentView';
 export { RenderComponent } from './renderers/dom/renderComponent';
 export { exportRenderDocumentToPDF } from './export/pdf/export-render-document';
 export { buildPrintHtml, printRenderDocument } from './print/print-frame';
+export { getViewerMessages, viewerMessages } from './i18n';
 export type { PdfExportOptions } from './export/pdf/export-render-document';
+export type { ViewerLocale, ViewerMessages } from './i18n';
