@@ -163,4 +163,83 @@ describe('phase 35 band contracts', () => {
 
     expect(sequence).toEqual(['empty']);
   });
+
+  it('honors band print-on rules during pagination', () => {
+    const template = makeTemplate([
+      band('page-header', 'pageHeader', {
+        height: 8,
+        behavior: { enabled: true, printOn: 'exceptFirstPage', printIfEmpty: true, printOnAllPages: true, keepTogether: false, canBreak: false, printAtBottom: false },
+        components: [{
+          id: 'header-text',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 8,
+          text: 'Page Header',
+          ...textBase,
+        }],
+      }),
+      band('data', 'data', {
+        height: 20,
+        dataBand: { dataSourceId: 'employees' },
+        components: [{
+          id: 'detail',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 8,
+          text: '{employees.Name}',
+          ...textBase,
+        }],
+      }),
+    ]);
+    template.pages[0].height = 70;
+    template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
+
+    const document = renderReport(template, {
+      employees: [
+        { Name: 'A' },
+        { Name: 'B' },
+        { Name: 'C' },
+        { Name: 'D' },
+      ],
+    });
+
+    expect(document.pages.length).toBeGreaterThan(1);
+    expect(document.pages[0].items.map(item => item.bandId)).not.toContain('page-header');
+    expect(document.pages[1].items.map(item => item.bandId)[0]).toBe('page-header');
+  });
+
+  it('skips disabled bands and bands with a false visible expression', () => {
+    const template = makeTemplate([
+      band('disabled-header', 'header', {
+        height: 8,
+        behavior: { enabled: false, printOn: 'allPages', printIfEmpty: true, printOnAllPages: false, keepTogether: false, canBreak: false, printAtBottom: false },
+      }),
+      band('hidden-header', 'header', {
+        height: 8,
+        behavior: { enabled: true, visibleExpression: '{Parameters.ShowHeader}', printOn: 'allPages', printIfEmpty: true, printOnAllPages: false, keepTogether: false, canBreak: false, printAtBottom: false },
+      }),
+      band('data', 'data', {
+        height: 10,
+        dataBand: { dataSourceId: 'employees' },
+        components: [{
+          id: 'detail',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 8,
+          text: '{employees.Name}',
+          ...textBase,
+        }],
+      }),
+    ]);
+
+    const document = renderReport(template, { employees: [{ Name: 'A' }] }, { parameters: { ShowHeader: false } });
+
+    expect(document.pages[0].items.map(item => item.bandId)).toEqual(['data']);
+  });
 });

@@ -237,6 +237,10 @@ export function paginate(
 
     const layoutContext = withParameters(context, options.parameters);
     const behavior = getBandBehavior(eventBand);
+    if (!shouldPrintBand(behavior, currentPage!.pageNumber, layoutContext, rowsByBand)) {
+      finishBandInstance(eventBand, context, options, templatePage);
+      return undefined;
+    }
     const currentPageRows = currentPage ? pageRows.get(currentPage) ?? {} : {};
     let preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: currentPageRows, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false) });
     const breakIfLessThan = behavior.breakIfLessThan ?? 0;
@@ -777,4 +781,42 @@ function getBandBehavior(band: Band): NonNullable<Band['behavior']> {
     canBreak: band.type === 'data' || band.type === 'child',
     printAtBottom: band.type === 'pageFooter',
   };
+}
+
+function shouldPrintBand(
+  behavior: NonNullable<Band['behavior']>,
+  pageNumber: number,
+  context: RenderContext,
+  rowsByBand: Record<string, Record<string, unknown>[]>,
+): boolean {
+  if (behavior.enabled === false) return false;
+  if (behavior.visibleExpression && !resolveTemplateBoolean(behavior.visibleExpression, context, rowsByBand)) return false;
+  switch (behavior.printOn) {
+    case 'firstPage':
+      return pageNumber === 1;
+    case 'exceptFirstPage':
+      return pageNumber > 1;
+    case 'oddPages':
+      return pageNumber % 2 === 1;
+    case 'evenPages':
+      return pageNumber % 2 === 0;
+    case 'lastPage':
+      return true;
+    case 'allPages':
+    default:
+      return true;
+  }
+}
+
+function resolveTemplateBoolean(
+  value: string,
+  context: RenderContext,
+  rowsByBand: Record<string, Record<string, unknown>[]>,
+): boolean {
+  const resolved = resolveTemplateValue(value, context, rowsByBand);
+  if (typeof resolved === 'boolean') return resolved;
+  if (typeof resolved === 'number') return resolved !== 0;
+  const text = String(resolved ?? '').trim().toLowerCase();
+  if (['false', '0', 'no', 'off', ''].includes(text)) return false;
+  return true;
 }
