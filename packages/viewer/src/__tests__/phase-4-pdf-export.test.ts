@@ -251,6 +251,38 @@ describe('Phase 4 PDF export', () => {
     heightAtSize.mockRestore();
   });
 
+  it('keeps a non-centered rotated PDF watermark anchored by the text center', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Draft',
+      fontFamily: 'Arial',
+      fontSize: 18,
+      color: '#000000',
+      opacity: 0.2,
+      angle: 90,
+      horizontalAlign: 'left',
+      verticalAlign: 'top',
+      showBehind: true,
+    };
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+    const widthOfTextAtSize = vi.spyOn(PDFFont.prototype, 'widthOfTextAtSize').mockReturnValue(120);
+    const heightAtSize = vi.spyOn(PDFFont.prototype, 'heightAtSize').mockReturnValue(40);
+
+    await exportRenderDocumentToPDF(document);
+
+    const watermarkCall = drawText.mock.calls.find(([text]) => text === 'Draft');
+    expect(watermarkCall?.[1]).toEqual(expect.objectContaining({
+      x: expect.closeTo(80, 2),
+      y: expect.closeTo((297 * 72 / 25.4) - 80, 2),
+      rotate: expect.any(Object),
+    }));
+
+    drawText.mockRestore();
+    widthOfTextAtSize.mockRestore();
+    heightAtSize.mockRestore();
+  });
+
   it('keeps PDF double page border strokes within the configured total border width', async () => {
     const document = makeRenderDocument();
     document.pages[0].pageBorder = {

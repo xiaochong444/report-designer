@@ -92,6 +92,61 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('z-index:1');
   });
 
+  it('rotates print watermark text around its own center for non-centered placement', () => {
+    const document = makeRenderDocument();
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Draft',
+      fontSize: 18,
+      color: '#000000',
+      opacity: 0.3,
+      angle: 45,
+      horizontalAlign: 'left',
+      verticalAlign: 'top',
+      showBehind: true,
+    };
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('class="rd-print-watermark-text"');
+    expect(html).toContain('transform:rotate(45deg)');
+    expect(html).toContain('transform-origin:center');
+    expect(html).not.toContain('class="rd-print-watermark" style="inset:0;display:flex;justify-content:flex-start;align-items:flex-start;color:#000000;opacity:0.3;transform:rotate(45deg)');
+  });
+
+  it('normalizes page appearance CSS values before writing print styles', () => {
+    const document = makeRenderDocument();
+    document.pages[0].backgroundColor = '#fff;position:fixed';
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Safe',
+      fontFamily: 'Arial;position:fixed',
+      fontSize: 18,
+      color: '#fff;position:fixed',
+      opacity: 0.3,
+      angle: 0,
+      horizontalAlign: 'center',
+      verticalAlign: 'middle',
+      showBehind: true,
+    };
+    document.pages[0].pageBorder = {
+      enabled: true,
+      style: 'solid',
+      width: 0.4,
+      color: '#000;position:fixed',
+      sides: { top: true, right: true, bottom: true, left: true },
+      offset: 5,
+    };
+
+    const html = buildPrintHtml(document);
+
+    expect(html).not.toContain('background-color:#fff;position:fixed');
+    expect(html).not.toContain('color:#fff;position:fixed');
+    expect(html).not.toContain('font-family:Arial;position:fixed');
+    expect(html).not.toContain('border-top:0.4mm solid #000;position:fixed');
+    expect(html).not.toContain('position:fixed');
+  });
+
   it('renders component coordinates relative to their containing band', () => {
     const html = buildPrintHtml(makeRenderDocument());
 

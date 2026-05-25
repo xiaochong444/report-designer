@@ -9,7 +9,7 @@ export function buildPrintHtml(document: RenderDocument): string {
   const pageCss = firstPage ? `${firstPage.width}mm ${firstPage.height}mm` : '210mm 297mm';
   const fontCss = buildReportFontCss(document.fonts);
   const pages = document.pages.map((page) => `
-    <div class="rd-print-page" style="width:${page.width}mm;height:${page.height}mm;background-color:${escapeAttribute(page.backgroundColor ?? '#fff')};">
+    <div class="rd-print-page" style="width:${page.width}mm;height:${page.height}mm;background-color:${safeCssColor(page.backgroundColor, '#fff')};">
       ${page.watermark?.showBehind === false ? '' : renderPageWatermarkHtml(page.watermark)}
       ${page.items.map((band) => `
         <div class="rd-print-band" style="left:${band.x}mm;top:${band.y}mm;width:${band.width}mm;height:${band.height}mm;">
@@ -41,16 +41,15 @@ export function buildPrintHtml(document: RenderDocument): string {
 
 function renderPageWatermarkHtml(watermark?: PageWatermark): string {
   if (!watermark?.enabled || !watermark.text) return '';
+  const fontFamily = safeCssFontFamily(watermark.fontFamily);
   const style = [
     'inset:0',
     'display:flex',
     `justify-content:${horizontalAlignToFlex(watermark.horizontalAlign)}`,
     `align-items:${verticalAlignToFlex(watermark.verticalAlign)}`,
-    `color:${escapeAttribute(watermark.color)}`,
+    `color:${safeCssColor(watermark.color, '#000000')}`,
     `opacity:${watermark.opacity}`,
-    `transform:rotate(${watermark.angle}deg)`,
-    'transform-origin:center',
-    watermark.fontFamily ? `font-family:${escapeAttribute(watermark.fontFamily)}` : undefined,
+    fontFamily ? `font-family:${fontFamily}` : undefined,
     `font-size:${watermark.fontSize}mm`,
     'font-weight:600',
     'line-height:1',
@@ -58,17 +57,19 @@ function renderPageWatermarkHtml(watermark?: PageWatermark): string {
     `text-align:${watermark.horizontalAlign}`,
     `z-index:${watermark.showBehind === false ? 3 : 1}`,
   ].filter(Boolean).join(';');
-  return `<div class="rd-print-watermark" style="${style};">${escapeHtml(watermark.text)}</div>`;
+  const textStyle = `display:inline-block;transform:rotate(${watermark.angle}deg);transform-origin:center;`;
+  return `<div class="rd-print-watermark" style="${style};"><span class="rd-print-watermark-text" style="${textStyle}">${escapeHtml(watermark.text)}</span></div>`;
 }
 
 function renderPageBorderHtml(pageBorder?: PageBorder): string {
   if (!pageBorder?.enabled || pageBorder.style === 'none' || pageBorder.width <= 0) return '';
+  const borderColor = safeCssColor(pageBorder.color, '#000000');
   const declarations = [
     `inset:${roundCss(pageBorder.offset)}mm`,
-    pageBorder.sides.top ? `border-top:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${escapeAttribute(pageBorder.color)}` : undefined,
-    pageBorder.sides.right ? `border-right:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${escapeAttribute(pageBorder.color)}` : undefined,
-    pageBorder.sides.bottom ? `border-bottom:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${escapeAttribute(pageBorder.color)}` : undefined,
-    pageBorder.sides.left ? `border-left:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${escapeAttribute(pageBorder.color)}` : undefined,
+    pageBorder.sides.top ? `border-top:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${borderColor}` : undefined,
+    pageBorder.sides.right ? `border-right:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${borderColor}` : undefined,
+    pageBorder.sides.bottom ? `border-bottom:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${borderColor}` : undefined,
+    pageBorder.sides.left ? `border-left:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${borderColor}` : undefined,
     'z-index:4',
   ].filter(Boolean).join(';');
   return `<div class="rd-print-page-border" style="${declarations};"></div>`;
@@ -255,6 +256,22 @@ function escapeHtml(value: string): string {
 
 function escapeAttribute(value: string): string {
   return escapeHtml(value).replaceAll("'", '&#39;');
+}
+
+function safeCssColor(value: string | undefined, fallback: string): string {
+  const trimmed = value?.trim();
+  if (!trimmed) return fallback;
+  if (/^#(?:[0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/.test(trimmed)) return trimmed;
+  if (/^rgba?\(\s*(?:\d{1,3}|(?:\d{1,3}(?:\.\d+)?)%)\s*,\s*(?:\d{1,3}|(?:\d{1,3}(?:\.\d+)?)%)\s*,\s*(?:\d{1,3}|(?:\d{1,3}(?:\.\d+)?)%)(?:\s*,\s*(?:0|1|0?\.\d+))?\s*\)$/i.test(trimmed)) return trimmed;
+  const namedColors = new Set(['transparent', 'black', 'white', 'red', 'green', 'blue', 'gray', 'grey', 'yellow', 'orange', 'purple']);
+  return namedColors.has(trimmed.toLowerCase()) ? trimmed.toLowerCase() : fallback;
+}
+
+function safeCssFontFamily(value: string | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+  if (/[;"'{}<>\\]/.test(trimmed) || trimmed.includes('/*') || trimmed.includes('*/')) return 'Arial';
+  return escapeAttribute(trimmed.split(',').map(part => part.trim()).filter(Boolean).join(','));
 }
 
 function lineDashArray(style?: string): string {

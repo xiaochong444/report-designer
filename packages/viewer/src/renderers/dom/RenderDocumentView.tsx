@@ -109,8 +109,6 @@ const PageWatermarkView: React.FC<{ watermark?: PageWatermark; scale: number; zI
         alignItems: verticalAlignToFlex(watermark.verticalAlign),
         color: watermark.color,
         opacity: watermark.opacity,
-        transform: `rotate(${watermark.angle}deg)`,
-        transformOrigin: 'center',
         fontFamily: watermark.fontFamily,
         fontSize: watermark.fontSize * MM_TO_PX * scale,
         fontWeight: 600,
@@ -122,7 +120,16 @@ const PageWatermarkView: React.FC<{ watermark?: PageWatermark; scale: number; zI
         zIndex,
       }}
     >
-      {watermark.text}
+      <span
+        className="rd-page-watermark-text"
+        style={{
+          display: 'inline-block',
+          transform: `rotate(${watermark.angle}deg)`,
+          transformOrigin: 'center',
+        }}
+      >
+        {watermark.text}
+      </span>
     </div>
   );
 };

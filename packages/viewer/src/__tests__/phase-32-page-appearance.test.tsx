@@ -41,11 +41,11 @@ describe('Phase 32 page appearance rendering', () => {
     expect(watermark).toHaveStyle({
       color: 'rgb(255, 77, 79)',
       opacity: '0.25',
-      transform: 'rotate(-30deg)',
       pointerEvents: 'none',
       zIndex: '1',
       fontFamily: 'SimSun',
     });
+    expect(watermark.querySelector('.rd-page-watermark-text')?.getAttribute('style')).toContain('transform: rotate(-30deg)');
     expect(Number.parseFloat(watermark.style.fontSize)).toBeCloseTo(36 * MM_TO_PX, 3);
     expect(border).toHaveStyle({
       borderTop: `${0.4 * MM_TO_PX}px dashed #1677ff`,
@@ -82,7 +82,29 @@ describe('Phase 32 page appearance rendering', () => {
       justifyContent: 'flex-end',
       alignItems: 'flex-end',
       zIndex: '3',
-      transform: 'rotate(15deg)',
     });
+  });
+
+  it('rotates preview watermark text around its own center for non-centered placement', () => {
+    const document = makeRenderDocument();
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Draft',
+      fontSize: 18,
+      color: '#000000',
+      opacity: 0.3,
+      angle: 45,
+      horizontalAlign: 'left',
+      verticalAlign: 'top',
+      showBehind: true,
+    };
+
+    render(<RenderDocumentView document={document} zoom={100} />);
+
+    const watermark = screen.getByTestId('rd-page-watermark');
+    const text = watermark.querySelector('.rd-page-watermark-text') as HTMLElement | null;
+    expect(watermark.style.transform).toBe('');
+    expect(text?.getAttribute('style')).toContain('transform: rotate(45deg)');
+    expect(text?.getAttribute('style')).toContain('transform-origin: center');
   });
 });
