@@ -831,7 +831,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             transform: `scale(${zoom})`,
             transformOrigin: 'top left',
           }}>
-          <PageWatermarkOverlay watermark={currentPage.watermark} zIndex={currentPage.watermark?.showBehind === false ? 3 : 1} />
+          <PageWatermarkOverlay watermark={currentPage.watermark} zIndex={currentPage.watermark?.showBehind === false ? 20 : 0} />
           <div
             data-testid="designer-page-content-area"
             style={{
@@ -840,7 +840,6 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
               top: rawMarginTopPx,
               width: safeCssNumber(rawPrintableWidthPx),
               height: safeCssNumber(rawPrintableHeightPx),
-              zIndex: 2,
               backgroundImage: `
                 linear-gradient(rgba(0,0,0,0.06) 1px, transparent 1px),
                 linear-gradient(90deg, rgba(0,0,0,0.06) 1px, transparent 1px)
@@ -1198,9 +1197,10 @@ const BandView: React.FC<{
         display: 'flex', alignItems: 'center',
         padding: '0 3px',
         fontSize: 12, lineHeight: `${headerHeight}px`, color: '#111',
-        cursor: 'default', zIndex: 3, pointerEvents: 'none',
+        cursor: 'default', zIndex: 30, pointerEvents: 'none',
         boxSizing: 'border-box',
-      }}>
+      }}
+      data-testid={`designer-band-title-${band.type}`}>
         <span>{bandLabel}</span>
         <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap' }}>
           {baseLabel}

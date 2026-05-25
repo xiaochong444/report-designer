@@ -60,6 +60,18 @@ describe('Phase 32 designer page appearance', () => {
     expect(watermark.firstElementChild).toHaveStyle({ transform: 'rotate(-25deg)' });
   });
 
+  it('keeps designer band titles above a foreground watermark', () => {
+    render(<Designer template={makeTemplate('前景水印')} />);
+
+    const pageProperties = screen.getByTestId('designer-page-properties');
+    fireEvent.click(within(pageProperties).getByLabelText('启用水印'));
+    fireEvent.change(within(pageProperties).getByLabelText('水印文本'), { target: { value: '前景' } });
+    fireEvent.click(within(pageProperties).getByLabelText('水印置于内容后'));
+
+    expect(screen.getByTestId('designer-page-watermark')).toHaveStyle({ zIndex: '20' });
+    expect(screen.getByTestId('designer-band-title-reportTitle')).toHaveStyle({ zIndex: '30' });
+  });
+
   it('edits the page border from the page properties and renders it on the canvas', () => {
     render(<Designer template={makeTemplate('边框编辑')} />);
 
