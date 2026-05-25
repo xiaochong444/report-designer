@@ -209,6 +209,7 @@ export interface ReportComponent {
   height: number;
   zOrder?: number;
   backgroundColor?: string;
+  border?: BorderConfig;
   padding?: Padding;
   style?: string;
   conditionalFormat?: string;

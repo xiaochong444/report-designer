@@ -139,7 +139,7 @@ export const PropertyEditor: React.FC = () => {
 
   const isTextComponent = component.type === 'text';
   const supportsFontProperties = component.type === 'text' || component.type === 'pagenumber' || component.type === 'datetime';
-  const supportsBorderProperties = component.type === 'text' || component.type === 'panel';
+  const supportsBorderProperties = ['text', 'image', 'barcode', 'checkbox', 'panel'].includes(component.type);
   const supportsAppearanceProperties = ['text', 'image', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport'].includes(component.type);
   const isTextStyleLocked = (pathOrPrefix: string) => (
     isTextComponent ? hasTextStyleBinding(component as { styleBindings?: string[] }, pathOrPrefix) : false

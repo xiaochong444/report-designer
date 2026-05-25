@@ -84,6 +84,10 @@ export function toAbsoluteStyle(component: RenderComponentBox, scale: number, pa
     borderRight: border?.sides.right ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
     borderBottom: border?.sides.bottom ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
     borderLeft: border?.sides.left ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
+    paddingTop: toPaddingPx(component.style?.padding?.top, scale),
+    paddingRight: toPaddingPx(component.style?.padding?.right, scale),
+    paddingBottom: toPaddingPx(component.style?.padding?.bottom, scale),
+    paddingLeft: toPaddingPx(component.style?.padding?.left, scale),
   };
 }
 

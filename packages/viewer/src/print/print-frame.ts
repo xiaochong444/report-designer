@@ -198,13 +198,14 @@ function buildComponentStyle(component: RenderComponentBox, bandX: number, bandY
   if (border?.sides.right) declarations.push(`border-right:${border.width}mm ${border.style} ${border.color}`);
   if (border?.sides.bottom) declarations.push(`border-bottom:${border.width}mm ${border.style} ${border.color}`);
   if (border?.sides.left) declarations.push(`border-left:${border.width}mm ${border.style} ${border.color}`);
+  if (component.style?.padding) declarations.push(`padding:${paddingCssValue(component.style.padding)}`);
 
   if (component.type === 'text') {
     const textStyle = component.style as RenderTextStyle | undefined;
     const font = textStyle?.font;
     declarations.push('display:flex');
     declarations.push(`align-items:${verticalAlignToFlex(textStyle?.verticalAlign)}`);
-    declarations.push(`padding:${paddingCssValue(textStyle?.padding)}`);
+    if (!component.style?.padding) declarations.push(`padding:${paddingCssValue(textStyle?.padding)}`);
     declarations.push('white-space:pre-wrap');
     if (font?.color) declarations.push(`color:${font.color}`);
     if (font?.family) declarations.push(`font-family:${font.family}`);

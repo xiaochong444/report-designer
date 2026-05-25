@@ -59,7 +59,7 @@ describe('phase 33 component property matrix', () => {
     expectHidden('表格', '线条属性', '形状属性', '页码属性', '日期时间属性');
   });
 
-  it('shows image content controls without font, border, or table groups', () => {
+  it('shows image content controls with appearance styling but without font or table groups', () => {
     loadSelectedComponent({
       id: 'image-1',
       type: 'image',
@@ -76,7 +76,44 @@ describe('phase 33 component property matrix', () => {
 
     expect(screen.getByLabelText('图片地址/Base64')).toBeInTheDocument();
     expect(screen.getByLabelText('适应方式')).toBeInTheDocument();
-    expectHidden('字体', '边框', '表格', '线条属性', '形状属性', '页码属性', '日期时间属性');
+    expectVisible('边框', '外观');
+    expectHidden('字体', '表格', '线条属性', '形状属性', '页码属性', '日期时间属性');
+  });
+
+  it('shows barcode and checkbox appearance styling controls', () => {
+    loadSelectedComponent({
+      id: 'barcode-1',
+      type: 'barcode',
+      name: 'Barcode1',
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 16,
+      value: 'A-100',
+      format: 'CODE128',
+      showText: true,
+    } as ReportComponent);
+    render(<PropertyEditor />);
+
+    expectVisible('边框', '外观');
+    expectHidden('字体', '表格', '线条属性', '形状属性');
+
+    cleanup();
+    loadSelectedComponent({
+      id: 'checkbox-1',
+      type: 'checkbox',
+      name: 'Checkbox1',
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 8,
+      checked: 'true',
+      label: 'Paid',
+    } as ReportComponent);
+    render(<PropertyEditor />);
+
+    expectVisible('边框', '外观');
+    expectHidden('字体', '表格', '线条属性', '形状属性');
   });
 
   it('shows line and shape only with their own drawing groups', () => {
