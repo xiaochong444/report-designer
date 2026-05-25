@@ -408,6 +408,133 @@ describe('Phase 4 PDF export', () => {
     expect(bytes.byteLength).toBeGreaterThan(900);
   });
 
+  it('draws table cells, content, and cell borders when exporting PDF', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push({
+      id: 'table-1',
+      type: 'table',
+      x: 30,
+      y: 45,
+      width: 90,
+      height: 30,
+      columns: [
+        { id: 'col-1', title: 'Name', width: 45, field: 'name' },
+        { id: 'col-2', title: 'Amount', width: 45, field: 'amount' },
+      ],
+      rows: [
+        [
+          { row: 0, column: 0, content: 'Name', rowSpan: 1, colSpan: 1, height: 8, isHeader: true, style: { backgroundColor: '#f0f5ff', textAlign: 'center', verticalAlign: 'middle' } },
+          { row: 0, column: 1, content: 'Amount', rowSpan: 1, colSpan: 1, height: 8, isHeader: true, style: { backgroundColor: '#f0f5ff', textAlign: 'center', verticalAlign: 'middle' } },
+        ],
+        [
+          {
+            row: 1,
+            column: 0,
+            content: 'Alice',
+            rowSpan: 1,
+            colSpan: 1,
+            height: 8,
+            style: {
+              backgroundColor: '#ffffff',
+              padding: { top: 2, right: 3, bottom: 1, left: 4 },
+              textAlign: 'left',
+              verticalAlign: 'top',
+              border: { style: 'dashed', width: 0.4, color: '#ff4d4f', sides: { top: true, right: true, bottom: true, left: true } },
+            },
+          },
+          { row: 1, column: 1, content: '$12.30', rowSpan: 1, colSpan: 1, height: 8, style: { textAlign: 'right', verticalAlign: 'bottom' } },
+        ],
+        [
+          { row: 2, column: 0, content: 'Total', rowSpan: 1, colSpan: 1, height: 8, isFooter: true, style: { backgroundColor: '#fff7e6' } },
+          { row: 2, column: 1, content: '$12.30', rowSpan: 1, colSpan: 1, height: 8, isFooter: true, style: { backgroundColor: '#fff7e6', textAlign: 'right' } },
+        ],
+      ],
+      showBorder: true,
+      style: {},
+    });
+    const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+    const drawLine = vi.spyOn(PDFPage.prototype, 'drawLine');
+
+    await exportRenderDocumentToPDF(document);
+
+    expect(drawText.mock.calls.some(([text]) => text === 'Name')).toBe(true);
+    expect(drawText.mock.calls.some(([text]) => text === 'Alice')).toBe(true);
+    expect(drawText.mock.calls.some(([text]) => text === 'Total')).toBe(true);
+    expect(drawRectangle.mock.calls.some(([options]) => options.color?.red === 240 / 255 && options.color?.green === 245 / 255 && options.color?.blue === 255 / 255)).toBe(true);
+    expect(drawRectangle.mock.calls.some(([options]) => options.color?.red === 255 / 255 && options.color?.green === 247 / 255 && options.color?.blue === 230 / 255)).toBe(true);
+    expect(drawLine.mock.calls.some(([options]) => (
+      options.color?.red === 255 / 255
+      && options.color?.green === 77 / 255
+      && options.color?.blue === 79 / 255
+      && Math.abs((options.thickness ?? 0) - 0.4 * 72 / 25.4) < 0.01
+      && JSON.stringify(options.dashArray) === '[6,4]'
+    ))).toBe(true);
+
+    drawRectangle.mockRestore();
+    drawText.mockRestore();
+    drawLine.mockRestore();
+  });
+
+  it('lays out PDF table rows from the table top when rows do not fill the component height', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push({
+      id: 'table-top-layout',
+      type: 'table',
+      x: 30,
+      y: 90,
+      width: 60,
+      height: 40,
+      columns: [{ id: 'col-1', title: 'Name', width: 60, field: 'name' }],
+      rows: [
+        [{ row: 0, column: 0, content: 'Top row', rowSpan: 1, colSpan: 1, height: 8, style: { padding: { top: 1, right: 1, bottom: 1, left: 1 } } }],
+        [{ row: 1, column: 0, content: 'Second row', rowSpan: 1, colSpan: 1, height: 8 }],
+      ],
+      showBorder: true,
+      style: {},
+    });
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+
+    await exportRenderDocumentToPDF(document);
+
+    const tableBottomY = (297 - 90 - 40) * 72 / 25.4;
+    const expectedTopRowTextY = tableBottomY + 40 * 72 / 25.4 - 1 * 72 / 25.4 - 10;
+    const topRowCall = drawText.mock.calls.find(([text]) => text === 'Top row');
+    expect(topRowCall?.[1]?.y).toBeCloseTo(expectedTopRowTextY, 2);
+
+    drawText.mockRestore();
+  });
+
+  it('draws a dashed PDF table outline when table borders are disabled', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push({
+      id: 'table-disabled-border',
+      type: 'table',
+      x: 30,
+      y: 90,
+      width: 60,
+      height: 16,
+      columns: [{ id: 'col-1', title: 'Name', width: 60, field: 'name' }],
+      rows: [
+        [{ row: 0, column: 0, content: 'No border', rowSpan: 1, colSpan: 1, height: 8 }],
+      ],
+      showBorder: false,
+      style: {},
+    });
+    const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+
+    await exportRenderDocumentToPDF(document);
+
+    expect(drawRectangle.mock.calls.some(([options]) => (
+      options.borderColor?.red === 217 / 255
+      && options.borderColor?.green === 217 / 255
+      && options.borderColor?.blue === 217 / 255
+      && JSON.stringify(options.borderDashArray) === '[6,4]'
+    ))).toBe(true);
+
+    drawRectangle.mockRestore();
+  });
+
   it('draws PDF shape variants with matching fill and border styles', async () => {
     const document = makeRenderDocument();
     document.pages[0].items[0].components.push(

@@ -1,5 +1,5 @@
 import { type PDFDocument, type PDFPage, type PDFFont } from 'pdf-lib';
-import type { RenderBarcode, RenderCheckbox, RenderComponentBox, RenderImage, RenderLine, RenderRichText, RenderShape, RenderText } from '@report-designer/core';
+import type { BorderConfig, Padding, RenderBarcode, RenderCheckbox, RenderComponentBox, RenderImage, RenderLine, RenderRichText, RenderShape, RenderTable, RenderTableCell, RenderText } from '@report-designer/core';
 import { barcodePattern, dataUrlMimeType, dataUrlToUint8Array, MM_TO_PT, parsePdfColor, safePdfText, stripHtmlToPdfText } from './pdf-component-rendering';
 
 export async function drawRenderComponent(
@@ -79,6 +79,11 @@ export async function drawRenderComponent(
 
   if (component.type === 'checkbox' && 'checked' in component) {
     drawCheckbox(page, component as RenderCheckbox, x, y, width, height, font, boldFont);
+    return;
+  }
+
+  if (component.type === 'table' && 'rows' in component && 'columns' in component) {
+    drawTable(page, component as RenderTable, x, y, width, height, font);
   }
 }
 
@@ -206,4 +211,149 @@ function drawCheckbox(page: PDFPage, checkbox: RenderCheckbox, x: number, y: num
     const fontSize = checkbox.font?.size ?? 10;
     page.drawText(safePdfText(checkbox.label), { x: x + boxSize + 4, y: y + height - boxSize + 2, size: fontSize, font: checkbox.font?.bold ? boldFont : font, maxWidth: Math.max(1, width - boxSize - 4), color: parsePdfColor(labelColor) });
   }
+}
+
+function drawTable(page: PDFPage, table: RenderTable, x: number, y: number, width: number, height: number, font: PDFFont): void {
+  page.drawRectangle({ x, y, width, height, color: parsePdfColor('#ffffff') });
+  page.drawRectangle({
+    x,
+    y,
+    width,
+    height,
+    borderColor: parsePdfColor(table.showBorder ? '#8c8c8c' : '#d9d9d9'),
+    borderWidth: Math.max(0.5, 0.2 * MM_TO_PT),
+    borderDashArray: table.showBorder ? undefined : [6, 4],
+  });
+
+  const columnWidths = table.columns.map(column => column.width * MM_TO_PT);
+  const rowHeights = table.rows.map(row => (row[0]?.height ?? 8) * MM_TO_PT);
+  const columnOffsets = cumulativeOffsets(columnWidths);
+  const rowOffsets = cumulativeOffsets(rowHeights);
+
+  for (const row of table.rows) {
+    for (const cell of row) {
+      const cellX = x + (columnOffsets[cell.column] ?? 0);
+      const rowTopOffset = rowOffsets[cell.row] ?? 0;
+      const cellWidth = spanSize(columnWidths, cell.column, cell.colSpan);
+      const cellHeight = spanSize(rowHeights, cell.row, cell.rowSpan);
+      const cellY = y + height - rowTopOffset - cellHeight;
+      drawTableCell(page, cell, cellX, cellY, cellWidth, cellHeight, table.columns.length, table.rows.length, font, table.showBorder);
+    }
+  }
+}
+
+function drawTableCell(
+  page: PDFPage,
+  cell: RenderTableCell,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  columnCount: number,
+  rowCount: number,
+  font: PDFFont,
+  showBorder: boolean,
+): void {
+  const backgroundColor = cell.style?.backgroundColor ?? (cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined);
+  if (backgroundColor) {
+    page.drawRectangle({ x, y, width, height, color: parsePdfColor(backgroundColor) });
+  }
+
+  drawTableCellBorders(page, cell, x, y, width, height, columnCount, rowCount, showBorder);
+
+  const padding = cell.style?.padding ?? { top: 1, right: 1.5, bottom: 1, left: 1.5 };
+  const fontSize = cell.style?.font?.size ?? 10;
+  const textX = textAlignedX(x, width, padding, safePdfText(cell.content), font, fontSize, cell.style?.textAlign);
+  const textY = textAlignedY(y, height, padding, fontSize, cell.style?.verticalAlign);
+  page.drawText(safePdfText(cell.content), {
+    x: textX,
+    y: textY,
+    size: fontSize,
+    font,
+    color: parsePdfColor(cell.style?.font?.color ?? '#111111'),
+    maxWidth: Math.max(1, width - (padding.left + padding.right) * MM_TO_PT),
+  });
+}
+
+function drawTableCellBorders(
+  page: PDFPage,
+  cell: RenderTableCell,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  columnCount: number,
+  rowCount: number,
+  showBorder: boolean,
+): void {
+  const fallbackBorder: BorderConfig = {
+    style: showBorder ? 'solid' : 'dashed',
+    width: 0.2,
+    color: showBorder ? '#8c8c8c' : '#d9d9d9',
+    sides: {
+      top: false,
+      right: cell.column + cell.colSpan < columnCount,
+      bottom: cell.row + cell.rowSpan < rowCount,
+      left: false,
+    },
+  };
+  const configured = cell.style?.border;
+  const border: BorderConfig = configured && configured.style !== 'none' && configured.width > 0
+    ? configured
+    : fallbackBorder;
+  const sides = border.sides;
+  const borderWidth = Math.max(0.5, border.width * MM_TO_PT);
+  const color = parsePdfColor(border.color);
+  const dashArray = pdfBorderDashArray(border.style);
+
+  if (sides.top) {
+    page.drawLine({ start: { x, y: y + height }, end: { x: x + width, y: y + height }, thickness: borderWidth, color, dashArray });
+  }
+  if (sides.right) {
+    page.drawLine({ start: { x: x + width, y: y + height }, end: { x: x + width, y }, thickness: borderWidth, color, dashArray });
+  }
+  if (sides.bottom) {
+    page.drawLine({ start: { x, y }, end: { x: x + width, y }, thickness: borderWidth, color, dashArray });
+  }
+  if (sides.left) {
+    page.drawLine({ start: { x, y: y + height }, end: { x, y }, thickness: borderWidth, color, dashArray });
+  }
+}
+
+function cumulativeOffsets(values: number[]): number[] {
+  const offsets: number[] = [];
+  let total = 0;
+  for (const value of values) {
+    offsets.push(total);
+    total += value;
+  }
+  return offsets;
+}
+
+function spanSize(values: number[], start: number, span: number): number {
+  return values.slice(start, start + Math.max(1, span)).reduce((sum, value) => sum + value, 0);
+}
+
+function textAlignedX(x: number, width: number, padding: Padding, text: string, font: PDFFont, fontSize: number, align?: 'left' | 'center' | 'right'): number {
+  const left = x + padding.left * MM_TO_PT;
+  const right = x + width - padding.right * MM_TO_PT;
+  const availableWidth = Math.max(1, right - left);
+  if (align === 'center') {
+    return left + Math.max(0, availableWidth - font.widthOfTextAtSize(text, fontSize)) / 2;
+  }
+  if (align === 'right') {
+    return Math.max(left, right - font.widthOfTextAtSize(text, fontSize));
+  }
+  return left;
+}
+
+function textAlignedY(y: number, height: number, padding: Padding, fontSize: number, align?: 'top' | 'middle' | 'bottom'): number {
+  const topBaseline = y + height - padding.top * MM_TO_PT - fontSize;
+  if (align === 'middle') {
+    return y + (height - fontSize) / 2;
+  }
+  if (align === 'bottom') {
+    return y + padding.bottom * MM_TO_PT;
+  }
+  return topBaseline;
 }
