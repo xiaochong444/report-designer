@@ -285,12 +285,16 @@ export interface BarcodeComponent extends ReportComponent {
   value: Expression;
   format: BarcodeFormat;
   showText: boolean;
+  foregroundColor?: string;
+  font?: FontConfig;
 }
 
 export interface CheckboxComponent extends ReportComponent {
   type: 'checkbox';
   checked: Expression;
   label?: Expression;
+  foregroundColor?: string;
+  font?: FontConfig;
 }
 
 export interface RichtextComponent extends ReportComponent {

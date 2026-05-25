@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { act, cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { describe, expect, it } from 'vitest';
 import { createDefaultTemplate } from '@report-designer/core';
@@ -31,6 +31,10 @@ function expectHidden(...labels: string[]) {
   for (const label of labels) {
     expect(screen.queryByText(label)).not.toBeInTheDocument();
   }
+}
+
+function selectedComponent() {
+  return useDesignerStore.getState().template.pages[0].bands.flatMap(band => band.components)[0] as any;
 }
 
 describe('phase 33 component property matrix', () => {
@@ -80,7 +84,7 @@ describe('phase 33 component property matrix', () => {
     expectHidden('字体', '表格', '线条属性', '形状属性', '页码属性', '日期时间属性');
   });
 
-  it('shows barcode and checkbox appearance styling controls', () => {
+  it('shows barcode and checkbox foreground and font styling controls', () => {
     loadSelectedComponent({
       id: 'barcode-1',
       type: 'barcode',
@@ -95,8 +99,16 @@ describe('phase 33 component property matrix', () => {
     } as ReportComponent);
     render(<PropertyEditor />);
 
-    expectVisible('边框', '外观');
-    expectHidden('字体', '表格', '线条属性', '形状属性');
+    expect(screen.getByLabelText('前景色')).toBeInTheDocument();
+    expect(screen.getByLabelText('字体系列')).toBeInTheDocument();
+    expectVisible('字体', '边框', '外观');
+    expectHidden('表格', '线条属性', '形状属性');
+
+    fireEvent.change(screen.getByLabelText('前景色'), { target: { value: '#123456' } });
+    fireEvent.change(screen.getByLabelText('字号'), { target: { value: '16' } });
+    fireEvent.click(screen.getByRole('button', { name: '加粗' }));
+    expect(selectedComponent().foregroundColor).toBe('#123456');
+    expect(selectedComponent().font).toMatchObject({ size: 16, bold: true });
 
     cleanup();
     loadSelectedComponent({
@@ -112,8 +124,16 @@ describe('phase 33 component property matrix', () => {
     } as ReportComponent);
     render(<PropertyEditor />);
 
-    expectVisible('边框', '外观');
-    expectHidden('字体', '表格', '线条属性', '形状属性');
+    expect(screen.getByLabelText('前景色')).toBeInTheDocument();
+    expect(screen.getByLabelText('字体系列')).toBeInTheDocument();
+    expectVisible('字体', '边框', '外观');
+    expectHidden('表格', '线条属性', '形状属性');
+
+    fireEvent.change(screen.getByLabelText('前景色'), { target: { value: '#654321' } });
+    fireEvent.change(screen.getByLabelText('字号'), { target: { value: '14' } });
+    fireEvent.click(screen.getByRole('button', { name: '斜体' }));
+    expect(selectedComponent().foregroundColor).toBe('#654321');
+    expect(selectedComponent().font).toMatchObject({ size: 14, italic: true });
   });
 
   it('shows line and shape only with their own drawing groups', () => {

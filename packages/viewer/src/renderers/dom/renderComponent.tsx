@@ -58,7 +58,7 @@ export const RenderComponent: React.FC<RenderComponentProps> = ({ component, zoo
     case 'checkbox':
       return <CheckboxComponent component={component as RenderCheckbox} style={style} scale={scale} dataProps={dataProps} />;
     case 'barcode':
-      return <BarcodeComponent component={component as RenderBarcode} style={style} dataProps={dataProps} />;
+      return <BarcodeComponent component={component as RenderBarcode} style={style} scale={scale} dataProps={dataProps} />;
     case 'table':
       return <TableComponent component={component as RenderTable} style={style} scale={scale} dataProps={dataProps} />;
     default:
@@ -170,34 +170,56 @@ const ShapeComponent: React.FC<{ component: RenderShape; style: React.CSSPropert
   );
 };
 
-const CheckboxComponent: React.FC<{ component: RenderCheckbox; style: React.CSSProperties; scale: number; dataProps: Record<string, string> }> = ({ component, style, scale, dataProps }) => (
-  <div data-testid="render-component-checkbox" {...dataProps} style={{ ...style, display: 'flex', alignItems: 'center', gap: 4 * scale }}>
-    <span style={{ width: 12 * scale, height: 12 * scale, border: '1px solid #333', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}>
-      {component.checked ? '✓' : ''}
-    </span>
-    {component.label}
-  </div>
-);
+const CheckboxComponent: React.FC<{ component: RenderCheckbox; style: React.CSSProperties; scale: number; dataProps: Record<string, string> }> = ({ component, style, scale, dataProps }) => {
+  const foregroundColor = component.foregroundColor ?? '#333333';
+  const labelColor = component.font?.color ?? foregroundColor;
+  return (
+    <div data-testid="render-component-checkbox" {...dataProps} style={{ ...style, display: 'flex', alignItems: 'center', gap: 4 * scale }}>
+      <span style={{ width: 12 * scale, height: 12 * scale, border: `1px solid ${foregroundColor}`, color: foregroundColor, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'Arial, sans-serif', fontSize: 3 * MM_TO_PX * scale, fontWeight: 400, fontStyle: 'normal', lineHeight: 1, textDecoration: 'none' }}>
+        {component.checked ? '✓' : ''}
+      </span>
+      {component.label ? <span style={fontStyle(component.font, labelColor, scale)}>{component.label}</span> : null}
+    </div>
+  );
+};
 
-const BarcodeComponent: React.FC<{ component: RenderBarcode; style: React.CSSProperties; dataProps: Record<string, string> }> = ({ component, style, dataProps }) => {
+const BarcodeComponent: React.FC<{ component: RenderBarcode; style: React.CSSProperties; scale: number; dataProps: Record<string, string> }> = ({ component, style, scale, dataProps }) => {
   const ref = useRef<SVGSVGElement | null>(null);
+  const foregroundColor = component.foregroundColor ?? '#000000';
+  const textColor = component.font?.color ?? foregroundColor;
   useEffect(() => {
     if (ref.current) {
       try {
-        JsBarcode(ref.current, component.value, { format: component.format ?? 'CODE128', displayValue: false, margin: 0 });
+        JsBarcode(ref.current, component.value, { format: component.format ?? 'CODE128', displayValue: false, margin: 0, lineColor: foregroundColor });
       } catch {
         // Keep an empty SVG if the value cannot be encoded by the selected format.
       }
     }
-  }, [component.format, component.value]);
+  }, [component.format, component.value, foregroundColor]);
 
   return (
     <div data-testid="render-component-barcode" {...dataProps} style={{ ...style, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
       <svg ref={ref} style={{ width: '100%', height: component.showText ? '75%' : '100%' }} />
-      {component.showText ? <div style={{ fontSize: 10, lineHeight: '1.1', textAlign: 'center' }}>{component.value}</div> : null}
+      {component.showText ? <div style={{ ...fontStyle(component.font, textColor, scale, 10), lineHeight: '1.1', textAlign: 'center' }}>{component.value}</div> : null}
     </div>
   );
 };
+
+function fontStyle(
+  font: RenderBarcode['font'] | RenderCheckbox['font'] | undefined,
+  color: string,
+  scale: number,
+  defaultSize = 10,
+): React.CSSProperties {
+  return {
+    color,
+    fontFamily: font?.family,
+    fontSize: (font?.size ?? defaultSize) * 1.333 * scale,
+    fontWeight: font?.bold ? 700 : 400,
+    fontStyle: font?.italic ? 'italic' : undefined,
+    textDecoration: textDecorationValue(font),
+  };
+}
 
 const TableComponent: React.FC<{ component: RenderTable; style: React.CSSProperties; scale: number; dataProps: Record<string, string> }> = ({ component, style, scale, dataProps }) => {
   const border = component.showBorder ? `${Math.max(1, 0.2 * MM_TO_PX * scale)}px solid #8c8c8c` : '1px dashed #d9d9d9';

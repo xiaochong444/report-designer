@@ -282,6 +282,45 @@ describe('phase 27 component property model', () => {
     render(<PropertyEditor />);
     expect(screen.getByLabelText('字体系列')).toBeInTheDocument();
     expect(await within(document.body).findByText('Brand Song')).toBeInTheDocument();
+
+    cleanup();
+    loadSelectedComponent({
+      id: 'barcode-1',
+      type: 'barcode',
+      name: 'Barcode1',
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 16,
+      value: 'ORD-1',
+      format: 'CODE128',
+      showText: true,
+      font: { family: 'BrandSong', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+    } as ReportComponent, template => {
+      template.fonts = [...(template.fonts ?? []), customFont];
+    });
+    render(<PropertyEditor />);
+    expect(screen.getByLabelText('字体系列')).toBeInTheDocument();
+    expect(await within(document.body).findByText('Brand Song')).toBeInTheDocument();
+
+    cleanup();
+    loadSelectedComponent({
+      id: 'checkbox-1',
+      type: 'checkbox',
+      name: 'Checkbox1',
+      x: 0,
+      y: 0,
+      width: 40,
+      height: 8,
+      checked: '{Orders.Paid}',
+      label: 'Paid',
+      font: { family: 'BrandSong', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+    } as ReportComponent, template => {
+      template.fonts = [...(template.fonts ?? []), customFont];
+    });
+    render(<PropertyEditor />);
+    expect(screen.getByLabelText('字体系列')).toBeInTheDocument();
+    expect(await within(document.body).findByText('Brand Song')).toBeInTheDocument();
   });
 
   it('edits page number and date time vertical alignment from their property groups', () => {

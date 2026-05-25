@@ -9,6 +9,26 @@ const border = {
   sides: { top: true, right: true, bottom: false, left: true },
 };
 
+const barcodeFont = {
+  family: 'Consolas',
+  size: 9,
+  bold: true,
+  italic: false,
+  underline: false,
+  strikethrough: false,
+  color: '#123456',
+};
+
+const checkboxFont = {
+  family: 'Arial',
+  size: 11,
+  bold: true,
+  italic: false,
+  underline: false,
+  strikethrough: false,
+  color: '#654321',
+};
+
 describe('phase 33 component properties', () => {
   it('carries image, barcode, and checkbox appearance properties into render document', () => {
     const template = createDefaultTemplate('Component Properties');
@@ -40,6 +60,8 @@ describe('phase 33 component properties', () => {
         value: 'A-100',
         format: 'CODE128',
         showText: true,
+        foregroundColor: '#0088cc',
+        font: barcodeFont,
         backgroundColor: '#f6ffed',
         border,
       } as BarcodeComponent,
@@ -53,6 +75,8 @@ describe('phase 33 component properties', () => {
         height: 8,
         checked: 'true',
         label: 'Paid',
+        foregroundColor: '#cc5500',
+        font: checkboxFont,
         backgroundColor: '#e6f4ff',
         padding: { top: 1, right: 2, bottom: 1, left: 2 },
         border,
@@ -70,10 +94,18 @@ describe('phase 33 component properties', () => {
       backgroundColor: '#f6ffed',
       border,
     });
+    expect(components.find(component => component.id === 'barcode-1')).toMatchObject({
+      foregroundColor: '#0088cc',
+      font: barcodeFont,
+    });
     expect(components.find(component => component.id === 'checkbox-1')?.style).toMatchObject({
       backgroundColor: '#e6f4ff',
       padding: { top: 1, right: 2, bottom: 1, left: 2 },
       border,
+    });
+    expect(components.find(component => component.id === 'checkbox-1')).toMatchObject({
+      foregroundColor: '#cc5500',
+      font: checkboxFont,
     });
   });
 });

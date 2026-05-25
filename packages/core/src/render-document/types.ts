@@ -95,6 +95,8 @@ export interface RenderCheckbox extends RenderComponentBase {
   type: 'checkbox';
   checked: boolean;
   label?: string;
+  foregroundColor?: string;
+  font?: FontConfig;
 }
 
 export interface RenderBarcode extends RenderComponentBase {
@@ -102,6 +104,8 @@ export interface RenderBarcode extends RenderComponentBase {
   value: string;
   format?: string;
   showText?: boolean;
+  foregroundColor?: string;
+  font?: FontConfig;
 }
 
 export interface RenderTableCell {

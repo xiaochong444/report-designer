@@ -1,4 +1,4 @@
-import { buildReportFontCss, sanitizeRichHtml, type PageBorder, type PageWatermark, type RenderComponentBox, type RenderDocument, type RenderLine } from '@report-designer/core';
+import { buildReportFontCss, sanitizeRichHtml, type PageBorder, type PageWatermark, type RenderBarcode, type RenderCheckbox, type RenderComponentBox, type RenderDocument, type RenderLine } from '@report-designer/core';
 
 type RenderTextStyle = NonNullable<Extract<RenderComponentBox, { type: 'text' }>['style']> & {
   padding?: { top: number; right: number; bottom: number; left: number };
@@ -130,10 +130,19 @@ function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY
     return `<div class="rd-print-component rd-print-richtext" ${dataAttribute} style="${style}overflow:hidden;">${sanitizeRichHtml(component.html)}</div>`;
   }
   if (component.type === 'barcode' && 'value' in component) {
-    return `<div class="rd-print-component rd-print-barcode" ${dataAttribute} style="${style}overflow:hidden;font-family:monospace;font-size:10px;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,#000 0 1px,#fff 1px 3px);color:#000;" data-format="${escapeAttribute(String(component.format ?? 'CODE128'))}" aria-label="${escapeAttribute(component.value)}">${component.showText ? escapeHtml(component.value) : ''}</div>`;
+    const barcode = component as RenderBarcode;
+    const foregroundColor = safeCssColor(barcode.foregroundColor, '#000000');
+    const textColor = safeCssColor(barcode.font?.color, foregroundColor);
+    const textStyle = fontCssDeclarations(barcode.font, textColor, 10, 'monospace');
+    return `<div class="rd-print-component rd-print-barcode" ${dataAttribute} style="${style}overflow:hidden;${textStyle}display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,${foregroundColor} 0 1px,#fff 1px 3px);" data-format="${escapeAttribute(String(barcode.format ?? 'CODE128'))}" aria-label="${escapeAttribute(barcode.value)}">${barcode.showText ? escapeHtml(barcode.value) : ''}</div>`;
   }
   if (component.type === 'checkbox' && 'checked' in component) {
-    return `<div class="rd-print-component rd-print-checkbox" ${dataAttribute} style="${style}display:flex;align-items:center;gap:1.5mm;"><span style="width:3.2mm;height:3.2mm;border:0.2mm solid #333;display:inline-flex;align-items:center;justify-content:center;font-size:3mm;line-height:1;">${component.checked ? '&#10003;' : ''}</span>${component.label ? `<span>${escapeHtml(component.label)}</span>` : ''}</div>`;
+    const checkbox = component as RenderCheckbox;
+    const foregroundColor = safeCssColor(checkbox.foregroundColor, '#333333');
+    const labelColor = safeCssColor(checkbox.font?.color, foregroundColor);
+    const labelStyle = fontCssDeclarations(checkbox.font, labelColor, 10);
+    const checkmarkStyle = `width:3.2mm;height:3.2mm;border:0.2mm solid ${foregroundColor};color:${foregroundColor};display:inline-flex;align-items:center;justify-content:center;font-family:Arial, sans-serif;font-size:3mm;font-weight:400;font-style:normal;line-height:1;text-decoration:none;`;
+    return `<div class="rd-print-component rd-print-checkbox" ${dataAttribute} style="${style}display:flex;align-items:center;gap:1.5mm;"><span style="${checkmarkStyle}">${checkbox.checked ? '&#10003;' : ''}</span>${checkbox.label ? `<span style="${labelStyle}">${escapeHtml(checkbox.label)}</span>` : ''}</div>`;
   }
   if (component.type === 'table' && 'rows' in component && 'columns' in component) {
     return renderTableHtml(component, dataAttribute, style);
@@ -241,6 +250,18 @@ function buildTextContentStyle(component: RenderComponentBox): string {
     `text-align:${component.style?.textAlign ?? 'left'}`,
     'white-space:inherit',
   ].join(';') + ';';
+}
+
+function fontCssDeclarations(font: RenderBarcode['font'] | RenderCheckbox['font'] | undefined, color: string, defaultSize: number, defaultFamily?: string): string {
+  const declarations = [
+    `color:${color}`,
+    `font-size:${roundCss((font?.size ?? defaultSize) * 1.333)}px`,
+    `font-weight:${font?.bold ? 700 : 400}`,
+    font?.family ? `font-family:${safeCssFontFamily(font.family)}` : defaultFamily ? `font-family:${defaultFamily}` : undefined,
+    font?.italic ? 'font-style:italic' : undefined,
+    textDecorationValue(font) ? `text-decoration:${textDecorationValue(font)}` : undefined,
+  ];
+  return declarations.filter(Boolean).join(';') + ';';
 }
 
 function verticalAlignToFlex(value?: 'top' | 'middle' | 'bottom'): string {

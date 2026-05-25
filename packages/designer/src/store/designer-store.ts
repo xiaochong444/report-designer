@@ -17,7 +17,7 @@ import type {
   TextComponent,
 } from '@report-designer/core';
 import { createDefaultTemplate, getDefaultTextStyle, normalizeTemplate } from '@report-designer/core';
-import { CommandDispatcher } from '@report-designer/core';
+import { CommandDispatcher, registerCommand } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
 import { ensureTemplateComponentNames, prepareComponentForInsert } from '../report-structure';
 import {
@@ -196,8 +196,91 @@ export interface DesignerState {
 const DEFAULT_PAGE_WIDTH = 210; // A4
 const DEFAULT_PAGE_HEIGHT = 297;
 
+const UPDATE_COMPONENTS_COMMAND = 'update-components';
+
+if (!CommandDispatcher.isAllowed(UPDATE_COMPONENTS_COMMAND)) {
+  registerCommand(
+    UPDATE_COMPONENTS_COMMAND,
+    (state, payload) => applyComponentUpdates(state, payload.updates ?? []),
+    (state, payload) => applyComponentUpdates(state, payload.previous ?? []),
+  );
+}
+
 export const useDesignerStore = create<DesignerState>((set, get) => {
   const dispatcher = new CommandDispatcher();
+  const updateSelectedTableComponents = (updater: (table: TableComponent) => TableComponent) => {
+    const { template, currentPageId, selectedComponentIds, dispatcher } = get();
+    if (selectedComponentIds.length === 0) return;
+    const page = template.pages.find(p => p.id === currentPageId);
+    if (!page) return;
+
+    const selected = new Set(selectedComponentIds);
+    const updates: ComponentUpdatePayload[] = [];
+    const previous: ComponentUpdatePayload[] = [];
+
+    for (const band of page.bands) {
+      for (const component of band.components) {
+        if (!selected.has(component.id) || component.type !== 'table') continue;
+        const nextTable = updater(component as TableComponent);
+        if (JSON.stringify(nextTable) === JSON.stringify(component)) continue;
+
+        const target = {
+          pageId: currentPageId,
+          bandId: band.id,
+          componentId: component.id,
+        };
+        updates.push({
+          ...target,
+          updates: nextTable,
+        });
+        previous.push({
+          ...target,
+          updates: component,
+        });
+      }
+    }
+
+    if (updates.length === 0) return;
+
+    const nextTemplate = dispatcher.execute(template, {
+      type: UPDATE_COMPONENTS_COMMAND,
+      payload: {
+        pageId: currentPageId,
+        updates,
+        previous,
+      },
+      execute: () => template,
+      undo: () => template,
+    });
+    set({ template: nextTemplate });
+  };
+
+  const updateSelectedTableCellComponent = (updates: Partial<TableCell>) => {
+    const { template, currentPageId, selectedTableCell, dispatcher } = get();
+    if (!selectedTableCell) return;
+
+    const normalizedSelection = normalizeTableCellSelection(selectedTableCell);
+    const band = findBand(template, currentPageId, normalizedSelection.bandId);
+    const component = band?.components.find(item => item.id === normalizedSelection.tableId);
+    if (!component || component.type !== 'table') return;
+
+    const nextTable = updateTableCell(component as TableComponent, normalizedSelection, updates);
+    if (JSON.stringify(nextTable) === JSON.stringify(component)) return;
+
+    const nextTemplate = dispatcher.execute(template, {
+      type: 'update-component',
+      payload: {
+        pageId: currentPageId,
+        bandId: normalizedSelection.bandId,
+        componentId: normalizedSelection.tableId,
+        updates: nextTable,
+        previous: component,
+      },
+      execute: () => template,
+      undo: () => template,
+    });
+    set({ template: nextTemplate });
+  };
 
   return {
     template: createDefaultTemplate(),
@@ -898,19 +981,11 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   },
 
   updateSelectedTable: (updates) => {
-    const { template, currentPageId, selectedComponentIds } = get();
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
-      if (comp.type !== 'table') return comp;
-      return setTableStructure(comp as TableComponent, updates);
-    });
-    set({ template: newTemplate });
+    updateSelectedTableComponents(table => setTableStructure(table, updates));
   },
 
   updateSelectedTableCell: (updates) => {
-    const { template, currentPageId, selectedTableCell } = get();
-    if (!selectedTableCell) return;
-    const newTemplate = updateTableCellInTemplate(template, currentPageId, selectedTableCell, updates);
-    set({ template: newTemplate });
+    updateSelectedTableCellComponent(updates);
   },
 
   applySelectedStyle: (styleId) => {
@@ -1059,75 +1134,39 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   },
 
   insertSelectedTableColumn: (afterColumn) => {
-    const { template, currentPageId, selectedComponentIds } = get();
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? insertTableColumn(comp as TableComponent, afterColumn) : comp
-    ));
-    set({ template: newTemplate });
+    updateSelectedTableComponents(table => insertTableColumn(table, afterColumn));
   },
 
   deleteSelectedTableColumn: (columnIndex) => {
-    const { template, currentPageId, selectedComponentIds } = get();
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? deleteTableColumn(comp as TableComponent, columnIndex) : comp
-    ));
-    set({ template: newTemplate });
+    updateSelectedTableComponents(table => deleteTableColumn(table, columnIndex));
   },
 
   insertSelectedTableRow: (afterRow) => {
-    const { template, currentPageId, selectedComponentIds } = get();
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? insertTableRow(comp as TableComponent, afterRow) : comp
-    ));
-    set({ template: newTemplate });
+    updateSelectedTableComponents(table => insertTableRow(table, afterRow));
   },
 
   deleteSelectedTableRow: (rowIndex) => {
-    const { template, currentPageId, selectedComponentIds } = get();
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? deleteTableRow(comp as TableComponent, rowIndex) : comp
-    ));
-    set({ template: newTemplate });
+    updateSelectedTableComponents(table => deleteTableRow(table, rowIndex));
   },
 
   mergeSelectedTableCellRight: (row, column) => {
-    const { template, currentPageId, selectedComponentIds } = get();
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? mergeTableCellRight(comp as TableComponent, row, column) : comp
-    ));
-    set({ template: newTemplate });
+    updateSelectedTableComponents(table => mergeTableCellRight(table, row, column));
   },
 
   splitSelectedTableCell: (row, column) => {
-    const { template, currentPageId, selectedComponentIds } = get();
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? splitTableCell(comp as TableComponent, row, column) : comp
-    ));
-    set({ template: newTemplate });
+    updateSelectedTableComponents(table => splitTableCell(table, row, column));
   },
 
   clearSelectedTableCell: (row, column) => {
-    const { template, currentPageId, selectedComponentIds } = get();
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? clearTableCell(comp as TableComponent, row, column) : comp
-    ));
-    set({ template: newTemplate });
+    updateSelectedTableComponents(table => clearTableCell(table, row, column));
   },
 
   equalizeSelectedTableColumns: () => {
-    const { template, currentPageId, selectedComponentIds } = get();
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? equalizeTableColumns(comp as TableComponent) : comp
-    ));
-    set({ template: newTemplate });
+    updateSelectedTableComponents(table => equalizeTableColumns(table));
   },
 
   equalizeSelectedTableRows: () => {
-    const { template, currentPageId, selectedComponentIds } = get();
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => (
-      comp.type === 'table' ? equalizeTableRows(comp as TableComponent) : comp
-    ));
-    set({ template: newTemplate });
+    updateSelectedTableComponents(table => equalizeTableRows(table));
   },
 
   addBand: (pageId, band) => {
@@ -1294,6 +1333,34 @@ function findBand(template: ReportTemplate, pageId: string, bandId: string): Ban
   const page = template.pages.find(p => p.id === pageId);
   if (!page) return undefined;
   return page.bands.find(b => b.id === bandId);
+}
+
+interface ComponentUpdatePayload {
+  pageId: string;
+  bandId: string;
+  componentId: string;
+  updates: Record<string, any>;
+}
+
+function applyComponentUpdates(template: ReportTemplate, updates: ComponentUpdatePayload[]): ReportTemplate {
+  if (updates.length === 0) return template;
+  const updatesByComponent = new Map(
+    updates.map(update => [`${update.pageId}/${update.bandId}/${update.componentId}`, update]),
+  );
+
+  return {
+    ...template,
+    pages: template.pages.map(page => ({
+      ...page,
+      bands: page.bands.map(band => ({
+        ...band,
+        components: band.components.map(component => {
+          const update = updatesByComponent.get(`${page.id}/${band.id}/${component.id}`);
+          return update ? { ...component, ...update.updates } : component;
+        }),
+      })),
+    })),
+  };
 }
 
 function cleanEventMap<TName extends string>(events: EventMap<TName>): EventMap<TName> | undefined {
@@ -1553,34 +1620,6 @@ function normalizeTableCellSelection(selection: TableCellSelection): TableCellSe
   const startColumn = Math.min(selection.startColumn, selection.endColumn);
   const endColumn = Math.max(selection.startColumn, selection.endColumn);
   return { ...selection, startRow, startColumn, endRow, endColumn };
-}
-
-function updateTableCellInTemplate(
-  template: ReportTemplate,
-  pageId: string,
-  selection: TableCellSelection,
-  updates: Partial<TableCell>,
-): ReportTemplate {
-  const normalizedSelection = normalizeTableCellSelection(selection);
-  return {
-    ...template,
-    pages: template.pages.map(page => {
-      if (page.id !== pageId) return page;
-      return {
-        ...page,
-        bands: page.bands.map(band => {
-          if (band.id !== normalizedSelection.bandId) return band;
-          return {
-            ...band,
-            components: band.components.map(component => {
-              if (component.id !== normalizedSelection.tableId || component.type !== 'table') return component;
-              return updateTableCell(component as TableComponent, normalizedSelection, updates);
-            }),
-          };
-        }),
-      };
-    }),
-  };
 }
 
 function updateTableCell(

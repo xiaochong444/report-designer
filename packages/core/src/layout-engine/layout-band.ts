@@ -222,6 +222,8 @@ function layoutComponent(
       value: resolveTemplateValue(barcodeComponent.value, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
       format: barcodeComponent.format,
       showText: barcodeComponent.showText,
+      foregroundColor: barcodeComponent.foregroundColor,
+      font: barcodeComponent.font,
       style: buildBaseRenderStyle(component),
     };
   }
@@ -239,6 +241,8 @@ function layoutComponent(
       label: checkboxComponent.label
         ? resolveTemplateValue(checkboxComponent.label, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {})
         : undefined,
+      foregroundColor: checkboxComponent.foregroundColor,
+      font: checkboxComponent.font,
       style: buildBaseRenderStyle(component),
     };
   }

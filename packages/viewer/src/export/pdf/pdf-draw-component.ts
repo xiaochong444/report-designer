@@ -73,12 +73,12 @@ export async function drawRenderComponent(
   }
 
   if (component.type === 'barcode' && 'value' in component) {
-    drawBarcode(page, component as RenderBarcode, x, y, width, height, font);
+    drawBarcode(page, component as RenderBarcode, x, y, width, height, font, boldFont);
     return;
   }
 
   if (component.type === 'checkbox' && 'checked' in component) {
-    drawCheckbox(page, component as RenderCheckbox, x, y, width, height, font);
+    drawCheckbox(page, component as RenderCheckbox, x, y, width, height, font, boldFont);
   }
 }
 
@@ -134,29 +134,35 @@ async function drawImage(pdfDoc: PDFDocument, page: PDFPage, image: RenderImage,
   }
 }
 
-function drawBarcode(page: PDFPage, barcode: RenderBarcode, x: number, y: number, width: number, height: number, font: PDFFont): void {
-  const textHeight = barcode.showText ? 10 : 0;
+function drawBarcode(page: PDFPage, barcode: RenderBarcode, x: number, y: number, width: number, height: number, font: PDFFont, boldFont: PDFFont): void {
+  const fontSize = barcode.font?.size ?? 8;
+  const textHeight = barcode.showText ? fontSize + 2 : 0;
   const barHeight = Math.max(1, height - textHeight);
   const pattern = barcodePattern(barcode.value);
   const barWidth = width / pattern.length;
+  const foregroundColor = barcode.foregroundColor ?? '#000000';
+  const textColor = barcode.font?.color ?? foregroundColor;
   pattern.forEach((filled, index) => {
     if (filled) {
-      page.drawRectangle({ x: x + index * barWidth, y: y + textHeight, width: Math.max(0.5, barWidth), height: barHeight, color: parsePdfColor('#000000') });
+      page.drawRectangle({ x: x + index * barWidth, y: y + textHeight, width: Math.max(0.5, barWidth), height: barHeight, color: parsePdfColor(foregroundColor) });
     }
   });
   if (barcode.showText) {
-    page.drawText(safePdfText(barcode.value), { x, y: y + 1, size: 8, font, maxWidth: width, color: parsePdfColor('#000000') });
+    page.drawText(safePdfText(barcode.value), { x, y: y + 1, size: fontSize, font: barcode.font?.bold ? boldFont : font, maxWidth: width, color: parsePdfColor(textColor) });
   }
 }
 
-function drawCheckbox(page: PDFPage, checkbox: RenderCheckbox, x: number, y: number, width: number, height: number, font: PDFFont): void {
+function drawCheckbox(page: PDFPage, checkbox: RenderCheckbox, x: number, y: number, width: number, height: number, font: PDFFont, boldFont: PDFFont): void {
   const boxSize = Math.min(height, 12);
-  page.drawRectangle({ x, y: y + height - boxSize, width: boxSize, height: boxSize, borderColor: parsePdfColor('#333333'), borderWidth: 1 });
+  const foregroundColor = checkbox.foregroundColor ?? '#333333';
+  const labelColor = checkbox.font?.color ?? foregroundColor;
+  page.drawRectangle({ x, y: y + height - boxSize, width: boxSize, height: boxSize, borderColor: parsePdfColor(foregroundColor), borderWidth: 1 });
   if (checkbox.checked) {
-    page.drawLine({ start: { x: x + 2, y: y + height - boxSize / 2 }, end: { x: x + boxSize / 2, y: y + height - boxSize + 2 }, thickness: 1, color: parsePdfColor('#333333') });
-    page.drawLine({ start: { x: x + boxSize / 2, y: y + height - boxSize + 2 }, end: { x: x + boxSize - 2, y: y + height - 2 }, thickness: 1, color: parsePdfColor('#333333') });
+    page.drawLine({ start: { x: x + 2, y: y + height - boxSize / 2 }, end: { x: x + boxSize / 2, y: y + height - boxSize + 2 }, thickness: 1, color: parsePdfColor(foregroundColor) });
+    page.drawLine({ start: { x: x + boxSize / 2, y: y + height - boxSize + 2 }, end: { x: x + boxSize - 2, y: y + height - 2 }, thickness: 1, color: parsePdfColor(foregroundColor) });
   }
   if (checkbox.label) {
-    page.drawText(safePdfText(checkbox.label), { x: x + boxSize + 4, y: y + height - boxSize + 2, size: 10, font, maxWidth: Math.max(1, width - boxSize - 4), color: parsePdfColor('#000000') });
+    const fontSize = checkbox.font?.size ?? 10;
+    page.drawText(safePdfText(checkbox.label), { x: x + boxSize + 4, y: y + height - boxSize + 2, size: fontSize, font: checkbox.font?.bold ? boldFont : font, maxWidth: Math.max(1, width - boxSize - 4), color: parsePdfColor(labelColor) });
   }
 }

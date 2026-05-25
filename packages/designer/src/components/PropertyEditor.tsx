@@ -151,9 +151,10 @@ export const PropertyEditor: React.FC = () => {
   };
 
   const isTextComponent = component.type === 'text';
-  const supportsFontProperties = component.type === 'text' || component.type === 'pagenumber' || component.type === 'datetime';
+  const supportsFontProperties = ['text', 'barcode', 'checkbox', 'pagenumber', 'datetime'].includes(component.type);
   const supportsBorderProperties = ['text', 'image', 'barcode', 'checkbox', 'panel'].includes(component.type);
   const supportsAppearanceProperties = ['text', 'image', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport'].includes(component.type);
+  const supportsForegroundColor = component.type === 'barcode' || component.type === 'checkbox';
   const isTextStyleLocked = (pathOrPrefix: string) => (
     isTextComponent ? hasTextStyleBinding(component as { styleBindings?: string[] }, pathOrPrefix) : false
   );
@@ -596,6 +597,26 @@ export const PropertyEditor: React.FC = () => {
             label: t('appearance'),
             children: (
               <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+                {supportsForegroundColor ? (
+                  <Form.Item label={t('foregroundColor')}>
+                    <Space.Compact style={{ width: '100%' }}>
+                      <ColorPicker
+                        aria-label={t('foregroundColorPicker')}
+                        size="small"
+                        value={comp.foregroundColor || '#000000'}
+                        onChange={(color) => handleChange('foregroundColor', color.toHexString())}
+                      />
+                      <Input
+                        aria-label={t('foregroundColor')}
+                        value={comp.foregroundColor || '#000000'}
+                        onChange={(event) => handleChange('foregroundColor', event.target.value)}
+                        size="small"
+                        style={{ width: '100%' }}
+                        placeholder="#000000"
+                      />
+                    </Space.Compact>
+                  </Form.Item>
+                ) : null}
                 <Form.Item label={t('backgroundColor')}>
                   <ColorPicker
                     aria-label={t('backgroundColor')}
@@ -1271,6 +1292,8 @@ const propertyEditorMessages = {
     bottom: '下',
     left: '左',
     backgroundColor: '背景色',
+    foregroundColor: '前景色',
+    foregroundColorPicker: '前景色选择器',
     padding: '内边距',
     paddingTop: '内边距上',
     paddingRight: '内边距右',
@@ -1412,6 +1435,8 @@ const propertyEditorMessages = {
     bottom: 'Bottom',
     left: 'Left',
     backgroundColor: 'Background color',
+    foregroundColor: 'Foreground color',
+    foregroundColorPicker: 'Foreground color picker',
     padding: 'Padding',
     paddingTop: 'Padding top',
     paddingRight: 'Padding right',
