@@ -23,11 +23,18 @@ describe('phase 36 event productization', () => {
     expect(templates.map(item => item.label)).toEqual(expect.arrayContaining([
       'events.template.setValue',
       'events.template.hideComponent',
+      'events.template.createText',
+      'events.template.bindText',
+      'events.template.setComponentProperty',
       'events.template.logMessage',
     ]));
     expect(templates.find(item => item.id === 'component.getValue.setValue')).toMatchObject({
       insertText: 'ctx.setValue?.("");',
       detail: 'events.template.setValue.detail',
+    });
+    expect(templates.find(item => item.id === 'component.bindText')).toMatchObject({
+      insertText: 'ctx.bindText?.("Text1", "{orders.Amount}");',
+      detail: 'events.template.bindText.detail',
     });
   });
 
@@ -71,5 +78,6 @@ describe('phase 36 event productization', () => {
 
     expect(screen.getByText('脚本模板')).toBeInTheDocument();
     expect(screen.getByText('写入报表状态')).toBeInTheDocument();
+    expect(screen.getByText('创建文本组件')).toBeInTheDocument();
   });
 });

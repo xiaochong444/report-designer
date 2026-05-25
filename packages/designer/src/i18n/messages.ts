@@ -412,6 +412,12 @@ export type DesignerMessageKey =
   | 'events.template.setValue.detail'
   | 'events.template.hideComponent'
   | 'events.template.hideComponent.detail'
+  | 'events.template.createText'
+  | 'events.template.createText.detail'
+  | 'events.template.bindText'
+  | 'events.template.bindText.detail'
+  | 'events.template.setComponentProperty'
+  | 'events.template.setComponentProperty.detail'
   | 'events.template.readRow'
   | 'events.template.readRow.detail'
   | 'events.template.reportState'
@@ -834,6 +840,12 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.template.setValue.detail': '为取值事件写入返回值',
     'events.template.hideComponent': '隐藏组件',
     'events.template.hideComponent.detail': '在运行时隐藏当前组件',
+    'events.template.createText': '创建文本组件',
+    'events.template.createText.detail': '在当前带区运行时创建一个文本组件',
+    'events.template.bindText': '绑定文本表达式',
+    'events.template.bindText.detail': '把指定文本组件绑定到字段或表达式',
+    'events.template.setComponentProperty': '修改组件属性',
+    'events.template.setComponentProperty.detail': '在事件中修改指定组件的属性',
     'events.template.readRow': '读取当前行',
     'events.template.readRow.detail': '读取带区事件的当前数据行',
     'events.template.reportState': '写入报表状态',
@@ -1253,6 +1265,12 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.template.setValue.detail': 'Write the return value for a get value event',
     'events.template.hideComponent': 'Hide component',
     'events.template.hideComponent.detail': 'Hide the current component at runtime',
+    'events.template.createText': 'Create text component',
+    'events.template.createText.detail': 'Create a text component in the current band at runtime',
+    'events.template.bindText': 'Bind text expression',
+    'events.template.bindText.detail': 'Bind a text component to a field or expression',
+    'events.template.setComponentProperty': 'Set component property',
+    'events.template.setComponentProperty.detail': 'Change a component property from the event script',
     'events.template.readRow': 'Read current row',
     'events.template.readRow.detail': 'Read the current data row in a band event',
     'events.template.reportState': 'Write report state',

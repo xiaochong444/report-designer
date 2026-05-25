@@ -28,6 +28,33 @@ export function buildEventScriptTemplates(
       insertText: 'ctx.hide?.();',
       detail: t('events.template.hideComponent.detail'),
     });
+    templates.push({
+      id: 'component.bindText',
+      label: t('events.template.bindText'),
+      insertText: 'ctx.bindText?.("Text1", "{orders.Amount}");',
+      detail: t('events.template.bindText.detail'),
+    });
+    templates.push({
+      id: 'component.setProperty',
+      label: t('events.template.setComponentProperty'),
+      insertText: 'ctx.setComponentProperty?.("Text1", "backgroundColor", "#fff1b8");',
+      detail: t('events.template.setComponentProperty.detail'),
+    });
+    templates.push({
+      id: 'component.createText',
+      label: t('events.template.createText'),
+      insertText: [
+        'ctx.createText?.({',
+        '  name: "DynamicLabel",',
+        '  x: 70,',
+        '  y: 0,',
+        '  width: 60,',
+        '  height: 8,',
+        '  text: "Dynamic text"',
+        '});',
+      ].join('\n'),
+      detail: t('events.template.createText.detail'),
+    });
   }
 
   if (targetType === 'band') {
@@ -37,6 +64,21 @@ export function buildEventScriptTemplates(
       insertText: 'const row = ctx.row ?? {};\nctx.log.info(JSON.stringify(row));',
       detail: t('events.template.readRow.detail'),
     });
+    templates.push({
+      id: 'band.createText',
+      label: t('events.template.createText'),
+      insertText: [
+        'ctx.createText?.({',
+        '  name: "DynamicLabel",',
+        '  x: 70,',
+        '  y: 0,',
+        '  width: 60,',
+        '  height: 8,',
+        '  text: "Dynamic " + (ctx.row?.Amount ?? "")',
+        '});',
+      ].join('\n'),
+      detail: t('events.template.createText.detail'),
+    });
   }
 
   if (targetType === 'report') {
@@ -45,6 +87,21 @@ export function buildEventScriptTemplates(
       label: t('events.template.reportState'),
       insertText: 'ctx.state.lastEvent = ctx.target.eventName;',
       detail: t('events.template.reportState.detail'),
+    });
+    templates.push({
+      id: 'report.createText',
+      label: t('events.template.createText'),
+      insertText: [
+        'ctx.createText?.({',
+        '  name: "DynamicLabel",',
+        '  x: 0,',
+        '  y: 0,',
+        '  width: 60,',
+        '  height: 8,',
+        '  text: "Dynamic text"',
+        '});',
+      ].join('\n'),
+      detail: t('events.template.createText.detail'),
     });
   }
 
