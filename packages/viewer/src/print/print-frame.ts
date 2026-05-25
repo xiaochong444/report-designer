@@ -42,34 +42,43 @@ export function buildPrintHtml(document: RenderDocument): string {
 function renderPageWatermarkHtml(watermark?: PageWatermark): string {
   if (!watermark?.enabled || !watermark.text) return '';
   const fontFamily = safeCssFontFamily(watermark.fontFamily);
+  const horizontalAlign = safeCssEnum(watermark.horizontalAlign, ['left', 'center', 'right'], 'center');
+  const verticalAlign = safeCssEnum(watermark.verticalAlign, ['top', 'middle', 'bottom'], 'middle');
+  const opacity = safeCssOpacity(watermark.opacity, 0.18);
+  const fontSize = safeCssNumber(watermark.fontSize, 48, { min: 0 });
+  const angle = safeCssAngle(watermark.angle, -35);
   const style = [
     'inset:0',
     'display:flex',
-    `justify-content:${horizontalAlignToFlex(watermark.horizontalAlign)}`,
-    `align-items:${verticalAlignToFlex(watermark.verticalAlign)}`,
+    `justify-content:${horizontalAlignToFlex(horizontalAlign)}`,
+    `align-items:${verticalAlignToFlex(verticalAlign)}`,
     `color:${safeCssColor(watermark.color, '#000000')}`,
-    `opacity:${watermark.opacity}`,
+    `opacity:${roundCss(opacity)}`,
     fontFamily ? `font-family:${fontFamily}` : undefined,
-    `font-size:${watermark.fontSize}mm`,
+    `font-size:${roundCss(fontSize)}mm`,
     'font-weight:600',
     'line-height:1',
     'white-space:pre-wrap',
-    `text-align:${watermark.horizontalAlign}`,
+    `text-align:${horizontalAlign}`,
     `z-index:${watermark.showBehind === false ? 3 : 1}`,
   ].filter(Boolean).join(';');
-  const textStyle = `display:inline-block;transform:rotate(${watermark.angle}deg);transform-origin:center;`;
+  const textStyle = `display:inline-block;transform:rotate(${roundCss(angle)}deg);transform-origin:center;`;
   return `<div class="rd-print-watermark" style="${style};"><span class="rd-print-watermark-text" style="${textStyle}">${escapeHtml(watermark.text)}</span></div>`;
 }
 
 function renderPageBorderHtml(pageBorder?: PageBorder): string {
-  if (!pageBorder?.enabled || pageBorder.style === 'none' || pageBorder.width <= 0) return '';
+  const borderStyle = safeCssEnum(pageBorder?.style, ['none', 'solid', 'dashed', 'dotted', 'double'], 'solid');
+  const borderWidth = safeCssNumber(pageBorder?.width, 0.2, { min: 0 });
+  const borderOffset = safeCssNumber(pageBorder?.offset, 0, { min: 0 });
+  if (!pageBorder?.enabled || borderStyle === 'none' || borderWidth <= 0) return '';
   const borderColor = safeCssColor(pageBorder.color, '#000000');
+  const sides = safeBorderSides(pageBorder.sides);
   const declarations = [
-    `inset:${roundCss(pageBorder.offset)}mm`,
-    pageBorder.sides.top ? `border-top:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${borderColor}` : undefined,
-    pageBorder.sides.right ? `border-right:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${borderColor}` : undefined,
-    pageBorder.sides.bottom ? `border-bottom:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${borderColor}` : undefined,
-    pageBorder.sides.left ? `border-left:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${borderColor}` : undefined,
+    `inset:${roundCss(borderOffset)}mm`,
+    sides.top ? `border-top:${roundCss(borderWidth)}mm ${borderStyle} ${borderColor}` : undefined,
+    sides.right ? `border-right:${roundCss(borderWidth)}mm ${borderStyle} ${borderColor}` : undefined,
+    sides.bottom ? `border-bottom:${roundCss(borderWidth)}mm ${borderStyle} ${borderColor}` : undefined,
+    sides.left ? `border-left:${roundCss(borderWidth)}mm ${borderStyle} ${borderColor}` : undefined,
     'z-index:4',
   ].filter(Boolean).join(';');
   return `<div class="rd-print-page-border" style="${declarations};"></div>`;
@@ -272,6 +281,36 @@ function safeCssFontFamily(value: string | undefined): string | undefined {
   if (!trimmed) return undefined;
   if (/[;"'{}<>\\]/.test(trimmed) || trimmed.includes('/*') || trimmed.includes('*/')) return 'Arial';
   return escapeAttribute(trimmed.split(',').map(part => part.trim()).filter(Boolean).join(','));
+}
+
+function safeCssNumber(value: unknown, fallback: number, options: { min?: number; max?: number } = {}): number {
+  const numberValue = typeof value === 'number' || typeof value === 'string' ? Number(value) : Number.NaN;
+  if (!Number.isFinite(numberValue)) return fallback;
+  if (options.min !== undefined && numberValue < options.min) return fallback;
+  if (options.max !== undefined && numberValue > options.max) return fallback;
+  return numberValue;
+}
+
+function safeCssOpacity(value: unknown, fallback: number): number {
+  return safeCssNumber(value, fallback, { min: 0, max: 1 });
+}
+
+function safeCssAngle(value: unknown, fallback: number): number {
+  return safeCssNumber(value, fallback);
+}
+
+function safeCssEnum<T extends string>(value: unknown, allowed: readonly T[], fallback: T): T {
+  return typeof value === 'string' && allowed.includes(value as T) ? value as T : fallback;
+}
+
+function safeBorderSides(value: unknown): PageBorder['sides'] {
+  const sides = typeof value === 'object' && value !== null ? value as Partial<PageBorder['sides']> : {};
+  return {
+    top: sides.top === true,
+    right: sides.right === true,
+    bottom: sides.bottom === true,
+    left: sides.left === true,
+  };
 }
 
 function lineDashArray(style?: string): string {

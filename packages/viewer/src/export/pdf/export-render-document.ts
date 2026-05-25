@@ -161,14 +161,18 @@ function watermarkTextCenterY(pageHeight: number, textHeight: number, align: Pag
   return pageHeight - textHeight / 2;
 }
 
-function parsePdfColor(color: string) {
-  if (!color.startsWith('#') || (color.length !== 7 && color.length !== 4)) {
+function parsePdfColor(color: unknown) {
+  if (typeof color !== 'string') {
+    return rgb(1, 1, 1);
+  }
+  const trimmed = color.trim();
+  if (!/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(trimmed)) {
     return rgb(1, 1, 1);
   }
 
-  const normalized = color.length === 4
-    ? `#${color[1]}${color[1]}${color[2]}${color[2]}${color[3]}${color[3]}`
-    : color;
+  const normalized = trimmed.length === 4
+    ? `#${trimmed[1]}${trimmed[1]}${trimmed[2]}${trimmed[2]}${trimmed[3]}${trimmed[3]}`
+    : trimmed;
   const red = Number.parseInt(normalized.slice(1, 3), 16) / 255;
   const green = Number.parseInt(normalized.slice(3, 5), 16) / 255;
   const blue = Number.parseInt(normalized.slice(5, 7), 16) / 255;

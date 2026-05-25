@@ -147,6 +147,44 @@ describe('Phase 4 print frame', () => {
     expect(html).not.toContain('position:fixed');
   });
 
+  it('falls back from unsafe page appearance numbers and enums before writing print styles', () => {
+    const document = makeRenderDocument();
+    const page = document.pages[0] as any;
+    page.watermark = {
+      enabled: true,
+      text: 'Safe',
+      fontSize: '18;position:fixed',
+      color: '#000000',
+      opacity: '0.3;position:fixed',
+      angle: '0deg);position:fixed;/*',
+      horizontalAlign: 'left;position:fixed',
+      verticalAlign: 'top;position:fixed',
+      showBehind: true,
+    };
+    page.pageBorder = {
+      enabled: true,
+      style: 'solid;position:fixed',
+      width: '0.4;position:fixed',
+      color: '#000000',
+      sides: { top: true, right: true, bottom: true, left: true },
+      offset: '5;position:fixed',
+    };
+
+    const html = buildPrintHtml(document);
+
+    expect(html).not.toContain('position:fixed');
+    expect(html).not.toContain('javascript');
+    expect(html).not.toContain('/*');
+    expect(html).toContain('justify-content:center');
+    expect(html).toContain('align-items:center');
+    expect(html).toContain('opacity:0.18');
+    expect(html).toContain('font-size:48mm');
+    expect(html).toContain('text-align:center');
+    expect(html).toContain('transform:rotate(-35deg)');
+    expect(html).toContain('inset:0mm');
+    expect(html).toContain('border-top:0.2mm solid #000000');
+  });
+
   it('renders component coordinates relative to their containing band', () => {
     const html = buildPrintHtml(makeRenderDocument());
 

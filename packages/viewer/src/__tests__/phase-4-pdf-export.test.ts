@@ -28,6 +28,54 @@ describe('Phase 4 PDF export', () => {
     drawRectangle.mockRestore();
   });
 
+  it('falls back from invalid page appearance PDF colors without NaN channels', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].backgroundColor = '#zzzzzz';
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Internal',
+      fontFamily: 'Arial',
+      fontSize: 18,
+      color: 'javascript:alert(1)',
+      opacity: 0.2,
+      angle: 0,
+      horizontalAlign: 'center',
+      verticalAlign: 'middle',
+      showBehind: true,
+    };
+    document.pages[0].pageBorder = {
+      enabled: true,
+      style: 'solid',
+      width: 0.4,
+      color: '#zzzzzz',
+      sides: { top: true, right: true, bottom: true, left: true },
+      offset: 5,
+    };
+    const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+    const drawLine = vi.spyOn(PDFPage.prototype, 'drawLine');
+    const expectFiniteColor = (color: any) => {
+      expect(Number.isFinite(color?.red)).toBe(true);
+      expect(Number.isFinite(color?.green)).toBe(true);
+      expect(Number.isFinite(color?.blue)).toBe(true);
+    };
+
+    await expect(exportRenderDocumentToPDF(document)).resolves.toBeInstanceOf(Uint8Array);
+
+    expectFiniteColor(drawRectangle.mock.calls[0]?.[0].color);
+    const watermarkCall = drawText.mock.calls.find(([text]) => text === 'Internal');
+    expectFiniteColor(watermarkCall?.[1]?.color);
+    const borderCalls = drawLine.mock.calls.filter(([options]) => Math.abs((options.thickness ?? 0) - 1.134) < 0.01);
+    expect(borderCalls.length).toBeGreaterThan(0);
+    for (const [options] of borderCalls) {
+      expectFiniteColor(options.color);
+    }
+
+    drawRectangle.mockRestore();
+    drawText.mockRestore();
+    drawLine.mockRestore();
+  });
+
   it('draws behind watermark after background and before page content when exporting PDF', async () => {
     const document = makeRenderDocument();
     document.pages[0].backgroundColor = '#fff7e6';
