@@ -360,6 +360,10 @@ export type DesignerMessageKey =
   | 'dataBand.sort.deleteRule'
   | 'dataBand.sort.noFields'
   | 'events.title'
+  | 'events.reportTitle'
+  | 'events.pageTitle'
+  | 'events.editReport'
+  | 'events.editPage'
   | 'events.script'
   | 'events.validate'
   | 'events.apply'
@@ -788,6 +792,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'dataBand.sort.deleteRule': '删除排序规则 {index}',
     'dataBand.sort.noFields': '当前数据源没有可排序字段',
     'events.title': '事件',
+    'events.reportTitle': '报表事件',
+    'events.pageTitle': '页面事件',
+    'events.editReport': '编辑报表事件',
+    'events.editPage': '编辑页面事件',
     'events.script': '脚本',
     'events.validate': '校验',
     'events.apply': '应用',
@@ -1213,6 +1221,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'dataBand.sort.deleteRule': 'Delete sort rule {index}',
     'dataBand.sort.noFields': 'The current data source has no sortable fields',
     'events.title': 'Events',
+    'events.reportTitle': 'Report Events',
+    'events.pageTitle': 'Page Events',
+    'events.editReport': 'Edit Report Events',
+    'events.editPage': 'Edit Page Events',
     'events.script': 'Script',
     'events.validate': 'Validate',
     'events.apply': 'Apply',
@@ -1228,7 +1240,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.fields': 'Fields',
     'events.components': 'Components',
     'events.validationPassed': 'Validation passed',
-    'events.edit': 'Edit events',
+    'events.edit': 'Edit Events',
     'events.beforePreview': 'Before Preview',
     'events.beforePrint': 'Before Print',
     'events.beforeRender': 'Before Render',

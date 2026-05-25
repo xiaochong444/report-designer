@@ -1,10 +1,11 @@
-import type { BandEventName, ComponentEventName, EventOwnerType, ReportEventName } from './types';
+import type { BandEventName, ComponentEventName, EventOwnerType, PageEventName, ReportEventName } from './types';
 
 export type EventEditorTargetType = EventOwnerType;
 
 export type EventEditorContextType =
   | 'EventContext'
   | 'ReportEventContext'
+  | 'PageEventContext'
   | 'BandEventContext'
   | 'ComponentEventContext'
   | 'ComponentGetValueEventContext';
@@ -20,7 +21,7 @@ export interface EventEditorHelperDescriptor {
 
 export const EVENT_SCRIPT_DTS = `
 type EventMode = 'preview' | 'print' | 'pdf';
-type EventOwnerType = 'report' | 'band' | 'component';
+type EventOwnerType = 'report' | 'page' | 'band' | 'component';
 type EventLogLevel = 'info' | 'warning' | 'error';
 
 interface EventTargetState {
@@ -136,6 +137,11 @@ interface ReportEventContext extends EventContext {
   target: EventTargetState & { ownerType: 'report' };
 }
 
+interface PageEventContext extends EventContext {
+  page: unknown;
+  target: EventTargetState & { ownerType: 'page' };
+}
+
 interface BandEventContext extends EventContext {
   band: unknown;
   row?: Record<string, unknown>;
@@ -164,6 +170,10 @@ export const eventEditorContextTypeByEvent = {
     beforeData: 'ReportEventContext',
     afterData: 'ReportEventContext',
   },
+  page: {
+    beforePrint: 'PageEventContext',
+    afterPrint: 'PageEventContext',
+  },
   band: {
     beforePrint: 'BandEventContext',
     afterPrint: 'BandEventContext',
@@ -177,6 +187,7 @@ export const eventEditorContextTypeByEvent = {
   },
 } as const satisfies {
   report: Record<ReportEventName, EventEditorContextType>;
+  page: Record<PageEventName, EventEditorContextType>;
   band: Record<BandEventName, EventEditorContextType>;
   component: Record<ComponentEventName, EventEditorContextType>;
 };
@@ -268,6 +279,10 @@ export function getEventEditorContextType(
 
   if (targetType === 'report') {
     return 'ReportEventContext';
+  }
+
+  if (targetType === 'page') {
+    return 'PageEventContext';
   }
 
   if (targetType === 'band') {

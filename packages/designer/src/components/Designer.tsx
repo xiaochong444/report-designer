@@ -84,6 +84,10 @@ function locateEventTarget(template: ReportTemplate, target: DesignerEventNaviga
     return template.pages[0] ? { pageId: template.pages[0].id } : null;
   }
 
+  if (target.ownerType === 'page') {
+    return template.pages.some(page => page.id === target.ownerId) ? { pageId: target.ownerId } : null;
+  }
+
   for (const page of template.pages) {
     for (const band of page.bands) {
       if (target.ownerType === 'band' && band.id === target.ownerId) {

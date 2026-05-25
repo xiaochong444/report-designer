@@ -14,7 +14,7 @@ import {
   createEventRuntimeState,
   runEventScript,
 } from '../event-engine';
-import type { BandEventName, EventExecutionState, EventMode, ReportEventName } from '../event-engine';
+import type { BandEventName, EventExecutionState, EventMode, PageEventName, ReportEventName } from '../event-engine';
 
 export interface RenderReportOptions {
   subreports?: Record<string, ReportTemplate>;
@@ -82,6 +82,42 @@ function runReportEvent(
 
   runEventScript({
     event: template.events?.[eventName],
+    ctx,
+    target,
+    eventLogs: eventRuntime.log,
+    runtimeState: eventRuntime.runtime,
+  });
+
+  return execution;
+}
+
+function runPageEvent(
+  page: Page,
+  eventName: PageEventName,
+  eventRuntime: LayoutEventRuntime | undefined,
+): EventExecutionState {
+  const execution: EventExecutionState = { canceled: false, hidden: false, hasValue: false };
+  if (!eventRuntime) {
+    return execution;
+  }
+
+  const target = { ownerType: 'page' as const, ownerId: page.id, eventName };
+  const ctx = createEventContext({
+    mode: eventRuntime.mode,
+    report: eventRuntime.report,
+    page,
+    data: eventRuntime.data,
+    parameters: eventRuntime.parameters,
+    variables: eventRuntime.variables,
+    state: eventRuntime.state,
+    log: eventRuntime.log,
+    target,
+    runtime: eventRuntime.runtime,
+    execution,
+  });
+
+  runEventScript({
+    event: page.events?.[eventName],
     ctx,
     target,
     eventLogs: eventRuntime.log,
@@ -171,6 +207,7 @@ export function paginate(
       pageBorder: clonePageBorder(templatePage.pageBorder),
       items: [],
     };
+    runPageEvent(templatePage, 'beforePrint', options.eventRuntime);
     pages.push(currentPage);
     pageRows.set(currentPage, {});
     cursorY = templatePage.margins.top;
@@ -300,6 +337,7 @@ export function paginate(
         footerY += box.height;
       }
     }
+    runPageEvent(templatePage, 'afterPrint', options.eventRuntime);
   }
 
   return pages;

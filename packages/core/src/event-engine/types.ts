@@ -8,6 +8,7 @@ export type ReportEventName =
 
 export type BandEventName = 'beforePrint' | 'afterPrint' | 'beforeRow' | 'afterRow';
 export type ComponentEventName = 'getValue' | 'beforePrint' | 'afterPrint';
+export type PageEventName = 'beforePrint' | 'afterPrint';
 
 export interface EventScript {
   enabled: boolean;
@@ -16,7 +17,7 @@ export interface EventScript {
 
 export type EventMap<TName extends string> = Partial<Record<TName, EventScript>>;
 export type EventMode = 'preview' | 'print' | 'pdf';
-export type EventOwnerType = 'report' | 'band' | 'component';
+export type EventOwnerType = 'report' | 'page' | 'band' | 'component';
 export type EventLogLevel = 'info' | 'warning' | 'error';
 
 export interface EventTargetState {

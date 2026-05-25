@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Checkbox, Collapse, ColorPicker, Form, Input, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
 import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, DeleteOutlined, PlusOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { createDefaultPageBorder, createDefaultPageWatermark, normalizeReportFonts } from '@report-designer/core';
-import type { BorderConfig, Margins, Padding, Page, PageBorder, PageWatermark, ReportFont, TableCell, TableComponent, TextFormatConfig } from '@report-designer/core';
+import type { BorderConfig, EventMap, Margins, Padding, Page, PageBorder, PageEventName, PageWatermark, ReportFont, TableCell, TableComponent, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import {
   detectPaperType,
@@ -251,6 +251,7 @@ const PageProperties: React.FC = () => {
   const reportUnit = useDesignerStore(s => s.reportUnit);
   const setReportUnit = useDesignerStore(s => s.setReportUnit);
   const replaceReportEvents = useDesignerStore(s => s.replaceReportEvents);
+  const replacePageEvents = useDesignerStore(s => s.replacePageEvents);
   const pendingEventEditorTarget = useDesignerStore(s => s.pendingEventEditorTarget);
   const consumeEventEditorTarget = useDesignerStore(s => s.consumeEventEditorTarget);
   const [eventEditorOpen, setEventEditorOpen] = React.useState(false);
@@ -330,7 +331,7 @@ const PageProperties: React.FC = () => {
   const removeFont = (fontId: string) => {
     updateFonts(reportFonts.filter(font => font.id !== fontId || font.builtin));
   };
-  const pendingTarget = pendingEventEditorTarget?.ownerType === 'report'
+  const pendingTarget = (pendingEventEditorTarget?.ownerType === 'report' || pendingEventEditorTarget?.ownerType === 'page')
     ? pendingEventEditorTarget
     : null;
 
@@ -345,7 +346,7 @@ const PageProperties: React.FC = () => {
     <div className="rd-property-grid-band" data-testid="designer-page-properties">
       <Collapse
         size="small"
-        defaultActiveKey={['page', 'appearance', 'margins', 'fonts']}
+        defaultActiveKey={['page', 'appearance', 'margins', 'events', 'fonts']}
         items={[
           {
             key: 'page',
@@ -473,36 +474,54 @@ const PageProperties: React.FC = () => {
             key: 'events',
             label: t('events.title'),
             children: (
-              <>
-                <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 8 }}>
-                  {Object.keys(template.events ?? {}).length} {t('events.title')}
+              <Space orientation="vertical" size={8} style={{ width: '100%' }}>
+                <Typography.Text type="secondary">
+                  {Object.keys(page.events ?? {}).length} {t('events.pageTitle')}
                 </Typography.Text>
                 <Button size="small" onClick={() => {
-                  setEventEditorTarget(null);
+                  setEventEditorTarget({ ownerType: 'page', ownerId: page.id, eventName: 'beforePrint', requestId: Date.now() });
                   setEventEditorOpen(true);
                 }}>
-                  {t('events.edit')}
+                  {t('events.editPage')}
                 </Button>
-                <EventEditorDialog
-                  open={eventEditorOpen}
-                  targetType="report"
-                  events={template.events}
-                  initialEventName={eventEditorTarget?.eventName}
-                  initialCursor={eventEditorTarget ? { line: eventEditorTarget.line, column: eventEditorTarget.column } : undefined}
-                  dataContext={buildEventEditorDataContext(template, { targetType: 'report' })}
-                  dictionaryItems={buildDictionaryEventItems(template)}
-                  componentItems={buildComponentEventItems(template)}
-                  onCancel={() => {
-                    setEventEditorOpen(false);
-                    setEventEditorTarget(null);
-                  }}
-                  onSave={(events) => {
-                    replaceReportEvents(events);
-                    setEventEditorOpen(false);
-                    setEventEditorTarget(null);
-                  }}
-                />
-              </>
+                <Typography.Text type="secondary">
+                  {Object.keys(template.events ?? {}).length} {t('events.reportTitle')}
+                </Typography.Text>
+                <Button size="small" onClick={() => {
+                  setEventEditorTarget({ ownerType: 'report', ownerId: template.id, eventName: 'beforeRender', requestId: Date.now() });
+                  setEventEditorOpen(true);
+                }}>
+                  {t('events.editReport')}
+                </Button>
+                {eventEditorTarget ? (
+                  <EventEditorDialog
+                    open={eventEditorOpen}
+                    targetType={eventEditorTarget.ownerType === 'page' ? 'page' : 'report'}
+                    events={eventEditorTarget.ownerType === 'page' ? page.events : template.events}
+                    initialEventName={eventEditorTarget.eventName}
+                    initialCursor={{ line: eventEditorTarget.line, column: eventEditorTarget.column }}
+                    dataContext={buildEventEditorDataContext(template, {
+                      targetType: eventEditorTarget.ownerType === 'page' ? 'page' : 'report',
+                      pageId: page.id,
+                    })}
+                    dictionaryItems={buildDictionaryEventItems(template)}
+                    componentItems={buildComponentEventItems(template)}
+                    onCancel={() => {
+                      setEventEditorOpen(false);
+                      setEventEditorTarget(null);
+                    }}
+                    onSave={(events) => {
+                      if (eventEditorTarget.ownerType === 'page') {
+                        replacePageEvents(page.id, events as EventMap<PageEventName>);
+                      } else {
+                        replaceReportEvents(events);
+                      }
+                      setEventEditorOpen(false);
+                      setEventEditorTarget(null);
+                    }}
+                  />
+                ) : null}
+              </Space>
             ),
           },
           {

@@ -1,4 +1,4 @@
-import type { BandEventName, ComponentEventName, EventMap, ReportEventName } from '../event-engine/types';
+import type { BandEventName, ComponentEventName, EventMap, PageEventName, ReportEventName } from '../event-engine/types';
 
 export type Expression = string;
 
@@ -439,6 +439,7 @@ export interface Page {
   backgroundColor?: string;
   watermark?: PageWatermark;
   pageBorder?: PageBorder;
+  events?: EventMap<PageEventName>;
   margins: Margins;
   orientation: PageOrientation;
   bands: Band[];

@@ -14,6 +14,7 @@ interface EventLogPanelProps {
 
 const ownerLabel: Record<EventLogEntry['ownerType'], string> = {
   report: 'Report',
+  page: 'Page',
   band: 'Band',
   component: 'Component',
 };

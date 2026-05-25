@@ -4,6 +4,7 @@ import type {
   EventEditorDataContractInput,
   EventMap,
   EventScript,
+  PageEventName,
   ReportEventName,
   ReportTemplate,
 } from '@report-designer/core';
@@ -11,17 +12,19 @@ import { validateEventScript } from '@report-designer/core';
 import type { EventCompletionTextItem } from './event-script-monaco';
 import { buildEventScriptTemplates } from './event-script-templates';
 
-export type EventTargetType = 'report' | 'band' | 'component';
-export type DesignerEventName = ReportEventName | BandEventName | ComponentEventName;
+export type EventTargetType = 'report' | 'page' | 'band' | 'component';
+export type DesignerEventName = ReportEventName | PageEventName | BandEventName | ComponentEventName;
 
 export interface EventEditorDataContextScope {
   targetType: EventTargetType;
+  pageId?: string;
   bandId?: string;
   componentId?: string;
 }
 
 export const eventNamesByTarget: Record<EventTargetType, DesignerEventName[]> = {
   report: ['beforePreview', 'beforePrint', 'beforeRender', 'afterRender', 'beforeData', 'afterData'],
+  page: ['beforePrint', 'afterPrint'],
   band: ['beforeRow', 'beforePrint', 'afterPrint', 'afterRow'],
   component: ['getValue', 'beforePrint', 'afterPrint'],
 };

@@ -6,6 +6,7 @@ import type {
   ConditionalFormat,
   EventMap,
   EventScript,
+  PageEventName,
   Page,
   ReportComponent,
   ReportEventName,
@@ -52,7 +53,7 @@ export interface TableCellSelection {
 }
 
 export interface DesignerEventNavigationTarget {
-  ownerType: 'report' | 'band' | 'component';
+  ownerType: 'report' | 'page' | 'band' | 'component';
   ownerId: string;
   eventName: string;
   line?: number;
@@ -84,9 +85,11 @@ export interface DesignerState {
   loadTemplate: (template: ReportTemplate) => void;
   updateTemplate: (updater: (template: ReportTemplate) => ReportTemplate) => void;
   replaceReportEvents: (events: EventMap<ReportEventName>) => void;
+  replacePageEvents: (pageId: string, events: EventMap<PageEventName>) => void;
   replaceBandEvents: (pageId: string, bandId: string, events: EventMap<BandEventName>) => void;
   replaceComponentEvents: (pageId: string, bandId: string, componentId: string, events: EventMap<ComponentEventName>) => void;
   updateReportEvent: (eventName: ReportEventName, event: EventScript) => void;
+  updatePageEvent: (pageId: string, eventName: PageEventName, event: EventScript) => void;
   updateBandEvent: (pageId: string, bandId: string, eventName: BandEventName, event: EventScript) => void;
   updateComponentEvent: (pageId: string, bandId: string, componentId: string, eventName: ComponentEventName, event: EventScript) => void;
   setCurrentPage: (pageId: string) => void;
@@ -322,6 +325,15 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     template: { ...state.template, events: cleanEventMap(events) as EventMap<ReportEventName> },
   })),
 
+  replacePageEvents: (pageId, events) => set(state => ({
+    template: {
+      ...state.template,
+      pages: state.template.pages.map(page => page.id === pageId
+        ? { ...page, events: cleanEventMap(events) as EventMap<PageEventName> }
+        : page),
+    },
+  })),
+
   replaceBandEvents: (pageId, bandId, events) => set(state => ({
     template: {
       ...state.template,
@@ -355,6 +367,12 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   updateReportEvent: (eventName, event) => {
     const events = { ...(get().template.events ?? {}), [eventName]: event };
     get().replaceReportEvents(events);
+  },
+
+  updatePageEvent: (pageId, eventName, event) => {
+    const page = get().template.pages.find(item => item.id === pageId);
+    const events = { ...(page?.events ?? {}), [eventName]: event };
+    get().replacePageEvents(pageId, events);
   },
 
   updateBandEvent: (pageId, bandId, eventName, event) => {

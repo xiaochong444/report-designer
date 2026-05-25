@@ -57,6 +57,11 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   targetType,
 }) => {
   const { t } = useDesignerI18n();
+  const dialogTitle = targetType === 'page'
+    ? t('events.pageTitle')
+    : targetType === 'report'
+      ? t('events.reportTitle')
+      : t('events.title');
   const initialEvent = useMemo(
     () => chooseDialogInitialEvent(targetType, events, initialEventName),
     [events, initialEventName, targetType],
@@ -159,7 +164,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   return (
     <Modal
       open={open}
-      title={t('events.title')}
+      title={dialogTitle}
       width={900}
       onCancel={onCancel}
       footer={[
