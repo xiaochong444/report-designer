@@ -133,6 +133,39 @@ describe('Phase 4 PDF export', () => {
     drawLine.mockRestore();
   });
 
+  it('draws double page borders as two PDF lines per enabled side', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].pageBorder = {
+      enabled: true,
+      style: 'double',
+      width: 0.4,
+      color: '#1677ff',
+      sides: { top: true, right: true, bottom: true, left: true },
+      offset: 5,
+    };
+    const drawLine = vi.spyOn(PDFPage.prototype, 'drawLine');
+
+    await exportRenderDocumentToPDF(document);
+
+    const thickness = 0.4 * 72 / 25.4;
+    const borderLines = drawLine.mock.calls
+      .map(([options]) => options)
+      .filter((options) => Math.abs((options.thickness ?? 0) - thickness) < 0.01);
+    expect(borderLines).toHaveLength(8);
+
+    const pageHeight = 297 * 72 / 25.4;
+    const expectedGap = Math.max(thickness * 2, 1);
+    const topLines = borderLines.filter((options) => (
+      Math.abs(options.start.y - options.end.y) < 0.01
+      && options.start.y > pageHeight / 2
+    ));
+    const topYs = topLines.map((options) => options.start.y).sort((a, b) => b - a);
+    expect(topYs).toHaveLength(2);
+    expect(topYs[0] - topYs[1]).toBeCloseTo(expectedGap, 2);
+
+    drawLine.mockRestore();
+  });
+
   it('uses safe PDF text when exporting a Chinese page watermark', async () => {
     const document = makeRenderDocument();
     document.pages[0].watermark = {

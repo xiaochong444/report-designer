@@ -83,19 +83,31 @@ function drawPageBorder(page: ReturnType<PDFDocument['addPage']>, pageWidthMm: n
     : pageBorder.style === 'dotted'
       ? [1, 3]
       : undefined;
+  const insets = pageBorder.style === 'double'
+    ? [offset, doubleBorderInnerInset(offset, thickness, width, height)]
+    : [offset];
 
-  if (pageBorder.sides.top) {
-    page.drawLine({ start: { x: offset, y: height - offset }, end: { x: width - offset, y: height - offset }, thickness, color, dashArray });
+  for (const inset of insets) {
+    if (inset < 0 || inset * 2 > width || inset * 2 > height) continue;
+    if (pageBorder.sides.top) {
+      page.drawLine({ start: { x: inset, y: height - inset }, end: { x: width - inset, y: height - inset }, thickness, color, dashArray });
+    }
+    if (pageBorder.sides.right) {
+      page.drawLine({ start: { x: width - inset, y: height - inset }, end: { x: width - inset, y: inset }, thickness, color, dashArray });
+    }
+    if (pageBorder.sides.bottom) {
+      page.drawLine({ start: { x: inset, y: inset }, end: { x: width - inset, y: inset }, thickness, color, dashArray });
+    }
+    if (pageBorder.sides.left) {
+      page.drawLine({ start: { x: inset, y: height - inset }, end: { x: inset, y: inset }, thickness, color, dashArray });
+    }
   }
-  if (pageBorder.sides.right) {
-    page.drawLine({ start: { x: width - offset, y: height - offset }, end: { x: width - offset, y: offset }, thickness, color, dashArray });
-  }
-  if (pageBorder.sides.bottom) {
-    page.drawLine({ start: { x: offset, y: offset }, end: { x: width - offset, y: offset }, thickness, color, dashArray });
-  }
-  if (pageBorder.sides.left) {
-    page.drawLine({ start: { x: offset, y: height - offset }, end: { x: offset, y: offset }, thickness, color, dashArray });
-  }
+}
+
+function doubleBorderInnerInset(offset: number, thickness: number, width: number, height: number): number {
+  const gap = Math.max(thickness * 2, 1);
+  const maxInset = Math.max(offset, Math.min(width, height) / 2);
+  return Math.min(offset + gap, maxInset);
 }
 
 function watermarkTextX(pageWidth: number, textWidth: number, align: PageWatermark['horizontalAlign']): number {
