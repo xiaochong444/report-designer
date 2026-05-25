@@ -28,6 +28,60 @@ describe('Phase 4 PDF export', () => {
     drawRectangle.mockRestore();
   });
 
+  it('draws page appearance around content in deterministic PDF layer order', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].backgroundColor = '#fff7e6';
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Internal',
+      fontFamily: 'SimSun',
+      fontSize: 36,
+      color: '#ff4d4f',
+      opacity: 0.25,
+      angle: -30,
+      horizontalAlign: 'center',
+      verticalAlign: 'middle',
+      showBehind: true,
+    };
+    document.pages[0].pageBorder = {
+      enabled: true,
+      style: 'dashed',
+      width: 0.4,
+      color: '#1677ff',
+      sides: { top: true, right: false, bottom: true, left: true },
+      offset: 5,
+    };
+    const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+    const drawLine = vi.spyOn(PDFPage.prototype, 'drawLine');
+
+    await exportRenderDocumentToPDF(document);
+
+    expect(drawRectangle.mock.calls[0]?.[0]).toEqual(expect.objectContaining({
+      x: 0,
+      y: 0,
+      width: expect.closeTo(595.275, 2),
+      height: expect.closeTo(841.89, 2),
+    }));
+    const watermarkCallIndex = drawText.mock.calls.findIndex(([text]) => text === 'Internal');
+    const itemCallIndex = drawText.mock.calls.findIndex(([text]) => text === 'Hello PDF');
+    expect(watermarkCallIndex).toBeGreaterThanOrEqual(0);
+    expect(itemCallIndex).toBeGreaterThan(watermarkCallIndex);
+    expect(drawText.mock.calls[watermarkCallIndex]?.[1]).toEqual(expect.objectContaining({
+      size: expect.closeTo(102.047, 2),
+      opacity: 0.25,
+      rotate: expect.any(Object),
+    }));
+    const borderLineCalls = drawLine.mock.calls.filter(([options]) => Math.abs((options.thickness ?? 0) - 1.134) < 0.01);
+    expect(borderLineCalls).toHaveLength(3);
+    const firstBorderLineOrder = drawLine.mock.invocationCallOrder.find((_, index) => Math.abs((drawLine.mock.calls[index]?.[0].thickness ?? 0) - 1.134) < 0.01);
+    expect(firstBorderLineOrder).toBeGreaterThan(drawText.mock.invocationCallOrder[itemCallIndex]);
+
+    drawRectangle.mockRestore();
+    drawText.mockRestore();
+    drawLine.mockRestore();
+  });
+
   it('provides deterministic browser-compatible helpers for component PDF rendering', () => {
     const bytes = dataUrlToUint8Array('data:image/png;base64,iVBORw0KGgo=');
 

@@ -1,4 +1,4 @@
-import { buildReportFontCss, sanitizeRichHtml, type RenderComponentBox, type RenderDocument, type RenderLine } from '@report-designer/core';
+import { buildReportFontCss, sanitizeRichHtml, type PageBorder, type PageWatermark, type RenderComponentBox, type RenderDocument, type RenderLine } from '@report-designer/core';
 
 type RenderTextStyle = NonNullable<Extract<RenderComponentBox, { type: 'text' }>['style']> & {
   padding?: { top: number; right: number; bottom: number; left: number };
@@ -10,11 +10,14 @@ export function buildPrintHtml(document: RenderDocument): string {
   const fontCss = buildReportFontCss(document.fonts);
   const pages = document.pages.map((page) => `
     <div class="rd-print-page" style="width:${page.width}mm;height:${page.height}mm;background-color:${escapeAttribute(page.backgroundColor ?? '#fff')};">
+      ${page.watermark?.showBehind === false ? '' : renderPageWatermarkHtml(page.watermark)}
       ${page.items.map((band) => `
         <div class="rd-print-band" style="left:${band.x}mm;top:${band.y}mm;width:${band.width}mm;height:${band.height}mm;">
           ${band.components.map(component => renderComponentHtml(component, band.x, band.y)).join('')}
         </div>
       `).join('')}
+      ${page.watermark?.showBehind === false ? renderPageWatermarkHtml(page.watermark) : ''}
+      ${renderPageBorderHtml(page.pageBorder)}
     </div>
   `).join('');
 
@@ -28,10 +31,46 @@ export function buildPrintHtml(document: RenderDocument): string {
     html, body { margin: 0; padding: 0; }
     .rd-print-page { position: relative; page-break-after: always; overflow: hidden; background: #fff; }
     .rd-print-band, .rd-print-component { position: absolute; box-sizing: border-box; }
+    .rd-print-watermark, .rd-print-page-border { position: absolute; box-sizing: border-box; pointer-events: none; }
   </style>
 </head>
 <body>${pages}</body>
 </html>`;
+}
+
+function renderPageWatermarkHtml(watermark?: PageWatermark): string {
+  if (!watermark?.enabled || !watermark.text) return '';
+  const style = [
+    'inset:0',
+    'display:flex',
+    `justify-content:${horizontalAlignToFlex(watermark.horizontalAlign)}`,
+    `align-items:${verticalAlignToFlex(watermark.verticalAlign)}`,
+    `color:${escapeAttribute(watermark.color)}`,
+    `opacity:${watermark.opacity}`,
+    `transform:rotate(${watermark.angle}deg)`,
+    'transform-origin:center',
+    watermark.fontFamily ? `font-family:${escapeAttribute(watermark.fontFamily)}` : undefined,
+    `font-size:${watermark.fontSize}mm`,
+    'font-weight:600',
+    'line-height:1',
+    'white-space:pre-wrap',
+    `text-align:${watermark.horizontalAlign}`,
+    `z-index:${watermark.showBehind === false ? 3 : 1}`,
+  ].filter(Boolean).join(';');
+  return `<div class="rd-print-watermark" style="${style};">${escapeHtml(watermark.text)}</div>`;
+}
+
+function renderPageBorderHtml(pageBorder?: PageBorder): string {
+  if (!pageBorder?.enabled || pageBorder.style === 'none' || pageBorder.width <= 0) return '';
+  const declarations = [
+    `inset:${roundCss(pageBorder.offset)}mm`,
+    pageBorder.sides.top ? `border-top:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${escapeAttribute(pageBorder.color)}` : undefined,
+    pageBorder.sides.right ? `border-right:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${escapeAttribute(pageBorder.color)}` : undefined,
+    pageBorder.sides.bottom ? `border-bottom:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${escapeAttribute(pageBorder.color)}` : undefined,
+    pageBorder.sides.left ? `border-left:${roundCss(pageBorder.width)}mm ${pageBorder.style} ${escapeAttribute(pageBorder.color)}` : undefined,
+    'z-index:4',
+  ].filter(Boolean).join(';');
+  return `<div class="rd-print-page-border" style="${declarations};"></div>`;
 }
 
 export async function printRenderDocument(document: RenderDocument): Promise<void> {
@@ -179,6 +218,12 @@ function buildTextContentStyle(component: RenderComponentBox): string {
 function verticalAlignToFlex(value?: 'top' | 'middle' | 'bottom'): string {
   if (value === 'middle') return 'center';
   if (value === 'bottom') return 'flex-end';
+  return 'flex-start';
+}
+
+function horizontalAlignToFlex(value?: 'left' | 'center' | 'right'): string {
+  if (value === 'center') return 'center';
+  if (value === 'right') return 'flex-end';
   return 'flex-start';
 }
 

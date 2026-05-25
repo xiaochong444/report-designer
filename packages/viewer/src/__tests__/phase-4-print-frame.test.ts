@@ -33,6 +33,44 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('class="rd-print-page" style="width:210mm;height:297mm;background-color:#fff7e6;"');
   });
 
+  it('prints page watermark and border from the render document', () => {
+    const document = makeRenderDocument();
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Internal',
+      fontFamily: 'SimSun',
+      fontSize: 36,
+      color: '#ff4d4f',
+      opacity: 0.25,
+      angle: -30,
+      horizontalAlign: 'center',
+      verticalAlign: 'middle',
+      showBehind: true,
+    };
+    document.pages[0].pageBorder = {
+      enabled: true,
+      style: 'dashed',
+      width: 0.4,
+      color: '#1677ff',
+      sides: { top: true, right: false, bottom: true, left: true },
+      offset: 5,
+    };
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('class="rd-print-watermark"');
+    expect(html).toContain('Internal');
+    expect(html).toContain('opacity:0.25');
+    expect(html).toContain('transform:rotate(-30deg)');
+    expect(html).toContain('font-family:SimSun');
+    expect(html).toContain('class="rd-print-page-border"');
+    expect(html).toContain('inset:5mm');
+    expect(html).toContain('border-top:0.4mm dashed #1677ff');
+    expect(html).toContain('border-bottom:0.4mm dashed #1677ff');
+    expect(html).toContain('border-left:0.4mm dashed #1677ff');
+    expect(html).not.toContain('border-right:0.4mm dashed #1677ff');
+  });
+
   it('renders component coordinates relative to their containing band', () => {
     const html = buildPrintHtml(makeRenderDocument());
 
