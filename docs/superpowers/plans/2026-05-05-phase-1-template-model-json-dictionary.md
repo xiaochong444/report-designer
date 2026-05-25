@@ -4,7 +4,7 @@
 
 **Goal:** Add a reference-style report template model and JSON-only data dictionary while keeping existing templates migratable.
 
-**Architecture:** Add v2 model files next to the existing model, plus migration and validation utilities. JSON dictionary inference becomes a core capability consumed by designer and renderer.
+**Architecture:** Add current model files next to the existing model, plus migration and validation utilities. JSON dictionary inference becomes a core capability consumed by designer and renderer.
 
 **Tech Stack:** TypeScript, Vitest, existing `@report-designer/core` package.
 
@@ -18,7 +18,7 @@
 - Create: `packages/core/src/data-dictionary/json-dictionary.ts`
 - Create: `packages/core/src/data-dictionary/json-path.ts`
 - Modify: `packages/core/src/index.ts`
-- Test: `packages/core/__tests__/phase-1-template-v2.test.ts`
+- Test: `packages/core/__tests__/phase-1-template-model.test.ts`
 - Test: `packages/core/__tests__/phase-1-json-dictionary.test.ts`
 
 ## Tasks
@@ -33,7 +33,7 @@ Create tests asserting these band types exist in exported constants:
 import { describe, expect, it } from 'vitest';
 import { STANDARD_BAND_TYPES } from '../src/template-model/types';
 
-describe('Phase 1 template v2', () => {
+describe('Phase 1 template model', () => {
   it('exports reference-style standard band types', () => {
     expect(STANDARD_BAND_TYPES).toEqual([
       'reportTitle',
@@ -171,7 +171,7 @@ Return `{ valid: boolean; errors: Array<{ path: string; message: string }> }`.
 
 - [ ] **Step 1: Modify `packages/core/src/index.ts`**
 
-Export v2 types, migration, validation, and JSON dictionary utilities.
+Export current types, migration, validation, and JSON dictionary utilities.
 
 - [ ] **Step 2: Run tests**
 

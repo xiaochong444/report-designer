@@ -30,7 +30,7 @@ Sources:
 
 ## Current Repository Findings
 
-- Legacy Band type already has `data` and `header` in `packages/core/src/template-model/types.ts`.
+- Existing Band type already has `data` and `header` in `packages/core/src/template-model/types.ts`.
 - Band type already has the broader reference-style taxonomy in `packages/core/src/template-model/types.ts`.
 - `buildBandPlan()` already attaches pending `header`, `groupHeader`, `columnHeader`, `footer`, `groupFooter`, `columnFooter`, `child`, and `emptyData` around the nearest `data` section.
 - `executeBandPlan()` already repeats DataBand per row and handles one group-pair layer.
@@ -49,7 +49,7 @@ Sources:
 - Modify: `packages/core/src/band-planner/band-plan.ts`
 - Modify: `packages/core/src/band-planner/build-band-plan.ts`
 - Modify: `packages/core/src/band-planner/execute-band-plan.ts`
-- Modify: `packages/core/src/pagination/paginate-v2.ts`
+- Modify: `packages/core/src/pagination/paginate.ts`
 - Modify: `packages/core/src/template-model/schema.ts`
 - Modify later: `packages/designer/src/components/dialogs/BandWizardDialog.tsx`
 - Modify later: `packages/designer/src/components/Canvas.tsx`
@@ -345,7 +345,7 @@ Expected: PASS.
 - Create: `packages/core/__tests__/phase-7-band-pagination-contract.test.ts`
 - Modify: `packages/core/src/band-planner/band-plan.ts`
 - Modify: `packages/core/src/band-planner/execute-band-plan.ts`
-- Modify: `packages/core/src/pagination/paginate-v2.ts`
+- Modify: `packages/core/src/pagination/paginate.ts`
 
 - [ ] **Step 1: Write pagination tests for PageHeader/PageFooter and HeaderBand repeat**
 
@@ -459,7 +459,7 @@ When pushing `section.dataBand` or `section.childBands`, use `createSectionBandI
 
 - [ ] **Step 5: Repeat section bands after automatic page breaks**
 
-In `packages/core/src/pagination/paginate-v2.ts`, keep the current PageHeader/GroupHeader logic and add a local active section repeat list:
+In `packages/core/src/pagination/paginate.ts`, keep the current PageHeader/GroupHeader logic and add a local active section repeat list:
 
 ```ts
 let activeSectionRepeatBands: ReportBandcurrent model[] = [];
@@ -503,7 +503,7 @@ Expected: PASS.
 
 **Files:**
 - Create: `packages/core/__tests__/phase-7-band-break-contract.test.ts`
-- Modify: `packages/core/src/pagination/paginate-v2.ts`
+- Modify: `packages/core/src/pagination/paginate.ts`
 - Modify if needed: `packages/core/src/layout-engine/layout-band.ts`
 
 - [ ] **Step 1: Write break-behavior tests**
@@ -592,7 +592,7 @@ Expected before implementation: at least one test fails because `breakIfLessThan
 
 - [ ] **Step 3: Implement pre-placement break checks**
 
-In `placeBand()` inside `packages/core/src/pagination/paginate-v2.ts`, before computing final box, add:
+In `placeBand()` inside `packages/core/src/pagination/paginate.ts`, before computing final box, add:
 
 ```ts
 const remaining = pageBottomY - cursorY;

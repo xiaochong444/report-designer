@@ -104,7 +104,7 @@ Expected: PASS.
 **Files:**
 - Inspect: `packages/example/src/templates/*.ts`
 - Inspect: `packages/example/src/App.tsx`
-- Inspect: `packages/core/src/pagination/paginate-v2.ts`
+- Inspect: `packages/core/src/pagination/paginate.ts`
 - Inspect: `packages/viewer/src/renderers/dom/RenderDocumentView.tsx`
 - Modify only if the parity measurement identifies a real coordinate transform bug.
 
@@ -124,7 +124,7 @@ Measure each title's center relative to its paper center. A centered title shoul
 
 - [x] **Step 2: If parity fails, fix the source coordinate transform**
 
-If the viewer is wrong, keep `paginate-v2.ts` margins as the single source of page offset and ensure `layoutBand` returns components relative to the same printable coordinate system. If the designer is wrong, ensure `toDesignerTemplate` and `Canvas.tsx` do not double-apply or omit margins.
+If the viewer is wrong, keep `paginate.ts` margins as the single source of page offset and ensure `layoutBand` returns components relative to the same printable coordinate system. If the designer is wrong, ensure `toDesignerTemplate` and `Canvas.tsx` do not double-apply or omit margins.
 
 Actual finding: page and component coordinates were aligned, but the viewer text renderer put `textAlign` on a flex container. The component box was centered, while the rendered text stayed visually left-aligned inside that flex box. The fix is to render a full-width inner text content node with `textAlign`.
 

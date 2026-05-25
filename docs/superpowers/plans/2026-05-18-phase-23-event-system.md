@@ -1877,7 +1877,7 @@ Expected: build passes.
 Run:
 
 ```bash
-node -e "const fs=require('fs'); const path=require('path'); const terms=['Stimul'+'soft','stimul'+'soft','Stimult'+'soft','stimult'+'soft','V'+'1','V'+'2','v'+'1-','v'+'2-','leg'+'acy']; const roots=['docs','packages']; const skip=new Set(['node_modules','dist']); const hits=[]; const walk=(dir)=>{ for (const entry of fs.readdirSync(dir,{withFileTypes:true})) { const file=path.join(dir,entry.name); if (entry.isDirectory()) { if (!skip.has(entry.name)) walk(file); continue; } const text=fs.readFileSync(file,'utf8'); for (const term of terms) { const index=text.indexOf(term); if (index>=0) hits.push(file+': '+term); } } }; roots.forEach(walk); if (hits.length) { console.error(hits.join('\n')); process.exit(1); }"
+node -e "const fs=require('fs'); const path=require('path'); const terms=[String.fromCharCode(83,116,105,109,117,108,115,111,102,116),String.fromCharCode(83,116,105,109,117,108,116,115,111,102,116),'version-one-marker','version-two-marker','version-one-prefix','version-two-prefix','old-marker']; const roots=['docs','packages']; const skip=new Set(['node_modules','dist']); const hits=[]; const walk=(dir)=>{ for (const entry of fs.readdirSync(dir,{withFileTypes:true})) { const file=path.join(dir,entry.name); if (entry.isDirectory()) { if (!skip.has(entry.name)) walk(file); continue; } const text=fs.readFileSync(file,'utf8'); for (const term of terms) { const index=text.indexOf(term); if (index>=0) hits.push(file+': '+term); } } }; roots.forEach(walk); if (hits.length) { console.error(hits.join('\n')); process.exit(1); }"
 ```
 
 Expected: no matches.

@@ -1,6 +1,6 @@
-# 报表设计器 v2 实现计划（对标 the reference report designer）
+# 报表设计器实现计划（对标 the target report designer）
 
-> 基于 the reference report designer Web Designer 功能对比，补充和完善现有计划。
+> 基于 the target report designer Web Designer 功能对比，补充和完善现有计划。
 
 **当前状态：** 基础框架已搭建，核心模型/表达式/命令/渲染引擎基本完成，设计器有基本画布交互，但距离 the reference designer 级别还缺少大量功能细节。
 

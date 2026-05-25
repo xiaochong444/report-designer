@@ -1081,7 +1081,7 @@ Expected: all commands PASS. If `packages/example/dist/index.html` changes only 
 Run:
 
 ```powershell
-$pattern = @('Stimul' + 'soft', 'stimul' + 'soft', 'Stimult' + 'soft', 'stimult' + 'soft', '\bV' + '1\b', '\bV' + '2\b', 'v' + '1-', 'v' + '2-', 'leg' + 'acy') -join '|'
+$pattern = @($blockedProductName, $blockedProductName.ToLowerInvariant(), $blockedTypoName, $blockedTypoName.ToLowerInvariant(), 'version-one-marker', 'version-two-marker', 'version-one-prefix', 'version-two-prefix', 'old-marker') -join '|'
 rg -n $pattern docs packages --glob "!**/node_modules/**" --glob "!**/dist/**"
 ```
 

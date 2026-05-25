@@ -196,7 +196,7 @@ Expected: PASS.
 - Modify: `packages/core/src/aggregate-engine/aggregate-runtime.ts`
 - Modify: `packages/core/src/expression-engine/evaluator.ts`
 - Modify: `packages/core/src/expression-engine/report-functions.ts`
-- Modify: `packages/core/src/pagination/paginate-v2.ts`
+- Modify: `packages/core/src/pagination/paginate.ts`
 - Test: `packages/core/__tests__/phase-9-page-report-totals.test.ts`
 
 - [ ] **Step 1: Write the failing tests**

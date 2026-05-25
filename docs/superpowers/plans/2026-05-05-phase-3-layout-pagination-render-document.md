@@ -16,7 +16,7 @@
 - Create: `packages/core/src/layout-engine/measure.ts`
 - Create: `packages/core/src/layout-engine/layout-band.ts`
 - Create: `packages/core/src/layout-engine/layout-document.ts`
-- Create: `packages/core/src/pagination/paginate-v2.ts`
+- Create: `packages/core/src/pagination/paginate.ts`
 - Create: `packages/core/src/pagination/page-number-pass.ts`
 - Modify: `packages/core/src/index.ts`
 - Test: `packages/core/__tests__/phase-3-layout.test.ts`

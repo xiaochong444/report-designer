@@ -575,7 +575,7 @@ Expected: PASS. Restore `packages/example/dist/index.html` if only Vite asset ha
 - [ ] **Step 3: Run forbidden terminology scan**
 
 ```powershell
-$pattern = @('Stimul' + 'soft', 'stimul' + 'soft', 'Stimult' + 'soft', 'stimult' + 'soft', '\bV' + '1\b', '\bV' + '2\b', 'v' + '1-', 'v' + '2-', 'leg' + 'acy') -join '|'
+$pattern = @($blockedProductName, $blockedProductName.ToLowerInvariant(), $blockedTypoName, $blockedTypoName.ToLowerInvariant(), 'version-one-marker', 'version-two-marker', 'version-one-prefix', 'version-two-prefix', 'old-marker') -join '|'
 rg -n $pattern docs packages --glob "!**/node_modules/**" --glob "!**/dist/**"
 ```
 

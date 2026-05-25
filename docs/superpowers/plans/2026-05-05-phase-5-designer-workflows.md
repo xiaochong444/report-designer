@@ -25,7 +25,7 @@
 - Test: `packages/designer/src/__tests__/phase-5-json-data-source-dialog.test.tsx`
 - Test: `packages/designer/src/__tests__/phase-5-band-wizard.test.tsx`
 - Test: `packages/designer/src/__tests__/phase-5-group-wizard.test.tsx`
-- Test: `packages/designer/src/__tests__/phase-5-expression-editor-v2.test.tsx`
+- Test: `packages/designer/src/__tests__/phase-5-expression-editor.test.tsx`
 
 ## Tasks
 
