@@ -389,6 +389,8 @@ function renderFixedBand(
 interface TableChunk {
   table: RenderTable;
   height: number;
+  tableHeight: number;
+  tableTopOffset: number;
 }
 
 function splitTableBand(band: Band, box: RenderBandBox, cursorY: number, pageBottomY: number, pageTopY: number): { chunks: TableChunk[] } | undefined {
@@ -400,11 +402,12 @@ function splitTableBand(band: Band, box: RenderBandBox, cursorY: number, pageBot
 
   const table = component as RenderTable;
   const rows = table.rows ?? [];
+  const tableTopOffset = Math.max(0, table.y - box.y);
   const headerRows = rows.filter(row => row.some(cell => cell.isHeader));
   const bodyRows = rows.filter(row => !row.some(cell => cell.isHeader) && !row.some(cell => cell.isFooter));
   const footerRows = rows.filter(row => row.some(cell => cell.isFooter));
   if (bodyRows.length === 0) return undefined;
-  const availableFirstPage = pageBottomY - cursorY - table.y + box.y;
+  const availableFirstPage = pageBottomY - cursorY - tableTopOffset;
   const totalTableHeight = rowsHeight(rows);
   if (availableFirstPage >= totalTableHeight) return undefined;
 
@@ -419,17 +422,20 @@ function splitTableBand(band: Band, box: RenderBandBox, cursorY: number, pageBot
     }
     const isLast = chunk.bodyRows.length >= remainingBodyRows.length;
     const chunkRows = normalizeTableChunkRows([...headerRows, ...chunk.bodyRows, ...(isLast ? footerRows : [])]);
+    const tableHeight = rowsHeight(chunkRows);
     chunks.push({
       table: {
         ...table,
-        y: 0,
-        height: rowsHeight(chunkRows),
+        y: tableTopOffset,
+        height: tableHeight,
         rows: chunkRows,
       },
-      height: rowsHeight(chunkRows),
+      height: tableTopOffset + tableHeight,
+      tableHeight,
+      tableTopOffset,
     });
     remainingBodyRows = remainingBodyRows.slice(chunk.bodyRows.length);
-    availableHeight = pageBottomY - pageTopY;
+    availableHeight = pageBottomY - pageTopY - tableTopOffset;
   }
 
   return chunks.length > 1 ? { chunks } : undefined;
@@ -470,8 +476,8 @@ function createTableChunkBandBox(source: RenderBandBox, chunk: TableChunk, y: nu
     height: chunk.height,
     components: [{
       ...chunk.table,
-      y,
-      height: chunk.height,
+      y: y + chunk.tableTopOffset,
+      height: chunk.tableHeight,
     }],
   };
 }

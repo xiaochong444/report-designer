@@ -264,6 +264,52 @@ describe('phase 34 table rendering', () => {
     expect((secondPageTableBand?.y ?? 0) + (secondPageTableBand?.height ?? 0)).toBeLessThanOrEqual(65);
   });
 
+  it('preserves table top offset when splitting chunks across pages', () => {
+    const template = createDefaultTemplate('Offset Table Split');
+    const page = template.pages[0];
+    page.height = 70;
+    page.margins = { top: 5, right: 5, bottom: 5, left: 5 };
+    page.bands = [{
+      id: 'report-table-band',
+      type: 'reportTitle',
+      height: 64,
+      components: [{
+        id: 'table-1',
+        type: 'table',
+        x: 0,
+        y: 6,
+        width: 80,
+        height: 58,
+        dataSource: '',
+        columns: [{ id: 'name', header: 'Name', field: 'name', width: 80, cellType: 'text' }],
+        rowCount: 7,
+        columnCount: 1,
+        headerRowsCount: 1,
+        footerRowsCount: 0,
+        headerHeight: 8,
+        rowHeight: 10,
+        showBorder: true,
+        canBreak: true,
+        cells: Array.from({ length: 6 }, (_, index) => ({
+          row: index + 1,
+          column: 0,
+          text: `Row ${index + 1}`,
+        })),
+      } as TableComponent],
+    }];
+
+    const document = renderReport(template, {});
+    const firstBand = document.pages[0].items.find(item => item.bandId === 'report-table-band');
+    const secondBand = document.pages[1].items.find(item => item.bandId === 'report-table-band');
+    const firstTable = firstBand?.components.find(component => component.id === 'table-1');
+    const secondTable = secondBand?.components.find(component => component.id === 'table-1');
+
+    expect(firstBand).toMatchObject({ y: 5 });
+    expect(secondBand).toMatchObject({ y: 5 });
+    expect(firstTable).toMatchObject({ y: 11 });
+    expect(secondTable).toMatchObject({ y: 11 });
+  });
+
   it('keeps a tall table together when table breaking is disabled', () => {
     const template = createDefaultTemplate('Table No Break');
     const page = template.pages[0];
