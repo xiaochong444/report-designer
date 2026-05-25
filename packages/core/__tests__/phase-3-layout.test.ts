@@ -9,16 +9,15 @@ describe('Phase 3 layout', () => {
 
     const document = renderReport(template, {});
 
-    expect(document.pages).toEqual([
-      {
-        id: 'page-1-1',
-        pageNumber: 1,
-        totalPages: 1,
-        width: 210,
-        height: 297,
-        items: [],
-      },
-    ]);
+    expect(document.pages).toHaveLength(1);
+    expect(document.pages[0]).toMatchObject({
+      id: 'page-1-1',
+      pageNumber: 1,
+      totalPages: 1,
+      width: 210,
+      height: 297,
+      items: [],
+    });
   });
 
   it('measures text canGrow, canShrink, and overflow deterministically', () => {

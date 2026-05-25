@@ -4,6 +4,7 @@ import { renderReport, type RenderReportOptions, type ReportTemplate } from '@re
 import { ViewerToolbar } from './ViewerToolbar';
 import { downloadPDF, exportToPDF, printReport } from '../export';
 import { RenderDocumentView } from '../renderers/dom/RenderDocumentView';
+import { EventLogPanel } from './EventLogPanel';
 
 const { Content } = Layout;
 
@@ -17,6 +18,7 @@ interface ViewerProps {
 export const Viewer: React.FC<ViewerProps> = ({ template, data, className, subreports }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(100);
+  const [eventLogOpen, setEventLogOpen] = useState(false);
   const previewScrollRef = React.useRef<HTMLElement | null>(null);
 
   const document = useMemo(
@@ -47,6 +49,8 @@ export const Viewer: React.FC<ViewerProps> = ({ template, data, className, subre
           onZoomChange={setZoom}
           onPrint={handlePrint}
           onExportPDF={handleExportPDF}
+          eventLogCount={document.eventLogs?.length ?? 0}
+          onShowEventLogs={() => setEventLogOpen(true)}
         />
       </div>
 
@@ -57,6 +61,11 @@ export const Viewer: React.FC<ViewerProps> = ({ template, data, className, subre
       >
         <RenderDocumentView document={document} zoom={zoom} currentPage={currentPage} scrollContainerRef={previewScrollRef} />
       </Content>
+      <EventLogPanel
+        open={eventLogOpen}
+        logs={document.eventLogs ?? []}
+        onClose={() => setEventLogOpen(false)}
+      />
     </Layout>
   );
 };

@@ -352,6 +352,7 @@ export type DesignerMessageKey =
   | 'events.editorLoading'
   | 'events.contextHelpers'
   | 'events.examples'
+  | 'events.scriptTemplates'
   | 'events.typeWarnings'
   | 'events.fields'
   | 'events.components'
@@ -388,7 +389,17 @@ export type DesignerMessageKey =
   | 'events.example.reportState'
   | 'events.example.reportState.detail'
   | 'events.example.logMessage'
-  | 'events.example.logMessage.detail';
+  | 'events.example.logMessage.detail'
+  | 'events.template.setValue'
+  | 'events.template.setValue.detail'
+  | 'events.template.hideComponent'
+  | 'events.template.hideComponent.detail'
+  | 'events.template.readRow'
+  | 'events.template.readRow.detail'
+  | 'events.template.reportState'
+  | 'events.template.reportState.detail'
+  | 'events.template.logMessage'
+  | 'events.template.logMessage.detail';
 
 export type DesignerMessages = Record<DesignerMessageKey, string>;
 
@@ -745,6 +756,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.editorLoading': '正在加载脚本编辑器',
     'events.contextHelpers': '上下文辅助',
     'events.examples': '示例',
+    'events.scriptTemplates': '脚本模板',
     'events.typeWarnings': '类型警告',
     'events.fields': '字段',
     'events.components': '组件',
@@ -782,6 +794,16 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.example.reportState.detail': '在报表事件中记录可复用状态',
     'events.example.logMessage': '记录日志',
     'events.example.logMessage.detail': '向事件日志写入调试信息',
+    'events.template.setValue': '设置事件值',
+    'events.template.setValue.detail': '为取值事件写入返回值',
+    'events.template.hideComponent': '隐藏组件',
+    'events.template.hideComponent.detail': '在运行时隐藏当前组件',
+    'events.template.readRow': '读取当前行',
+    'events.template.readRow.detail': '读取带区事件的当前数据行',
+    'events.template.reportState': '写入报表状态',
+    'events.template.reportState.detail': '在报表事件中记录可复用状态',
+    'events.template.logMessage': '记录日志',
+    'events.template.logMessage.detail': '向事件日志写入调试信息',
   },
   'en-US': {
     'common.cancel': 'Cancel',
@@ -1135,6 +1157,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.editorLoading': 'Loading script editor',
     'events.contextHelpers': 'Context helpers',
     'events.examples': 'Examples',
+    'events.scriptTemplates': 'Script templates',
     'events.typeWarnings': 'Type warnings',
     'events.fields': 'Fields',
     'events.components': 'Components',
@@ -1172,5 +1195,15 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.example.reportState.detail': 'Store reusable state in a report event',
     'events.example.logMessage': 'Log message',
     'events.example.logMessage.detail': 'Write debug information to the event log',
+    'events.template.setValue': 'Set event value',
+    'events.template.setValue.detail': 'Write the return value for a get value event',
+    'events.template.hideComponent': 'Hide component',
+    'events.template.hideComponent.detail': 'Hide the current component at runtime',
+    'events.template.readRow': 'Read current row',
+    'events.template.readRow.detail': 'Read the current data row in a band event',
+    'events.template.reportState': 'Write report state',
+    'events.template.reportState.detail': 'Store reusable state in a report event',
+    'events.template.logMessage': 'Log message',
+    'events.template.logMessage.detail': 'Write debug information to the event log',
   },
 };

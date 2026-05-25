@@ -16,6 +16,7 @@ export function createEventLogCollector(defaultTarget: Partial<EventTargetState>
       ...target,
       level,
       message,
+      timestamp: new Date().toISOString(),
     });
   };
 
@@ -31,7 +32,10 @@ export function createEventLogCollector(defaultTarget: Partial<EventTargetState>
       write('error', message, target);
     },
     push(entry) {
-      entries.push(entry);
+      entries.push({
+        ...entry,
+        timestamp: entry.timestamp ?? new Date().toISOString(),
+      });
     },
   };
 }

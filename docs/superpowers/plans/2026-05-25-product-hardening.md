@@ -256,7 +256,7 @@ Run: `pnpm --filter @report-designer/designer test -- phase-33-component-propert
 
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add docs/component-property-matrix.md packages/designer/src/components/PropertyEditor.tsx packages/designer/src/i18n/messages.ts packages/designer/src/__tests__/phase-33-component-property-matrix.test.tsx
@@ -305,7 +305,7 @@ Run: `pnpm --filter @report-designer/core test -- phase-33-component-properties.
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/core packages/designer/src/components/PropertyEditor.tsx packages/designer/src/i18n/messages.ts packages/viewer/src/renderers/dom/renderComponent.tsx packages/viewer/src/print/print-frame.ts packages/viewer/src/export/pdf/pdf-draw-component.ts
@@ -522,25 +522,25 @@ git commit -m "feat(band): 完善Band属性入口"
 - Modify: `packages/designer/src/i18n/messages.ts`
 - Test: `packages/designer/src/__tests__/phase-36-event-productization.test.tsx`
 
-- [ ] **Step 1: Write failing UI tests**
+- [x] **Step 1: Write failing UI tests**
 
 Assert report, page, Band, and component property areas show the same event entry button. Open the dialog, insert a script template, save it, and reopen to confirm persistence.
 
-- [ ] **Step 2: Run focused designer test**
+- [x] **Step 2: Run focused designer test**
 
 Run: `pnpm --filter @report-designer/designer test -- phase-36-event-productization.test.tsx`
 
 Expected: FAIL because entrypoints and templates are not unified.
 
-- [ ] **Step 3: Implement event templates**
+- [x] **Step 3: Implement event templates**
 
 Create template entries for preview before, print before, render before, data before, Band before render, and component before render. Each template uses the typed `ctx` object and localized display name.
 
-- [ ] **Step 4: Implement shared event button**
+- [x] **Step 4: Implement shared event button**
 
 Use one small component for report, page, Band, and component event entry. Pass owner type, owner id, event map, and update callback.
 
-- [ ] **Step 5: Run focused designer test**
+- [x] **Step 5: Run focused designer test**
 
 Run: `pnpm --filter @report-designer/designer test -- phase-36-event-productization.test.tsx`
 
@@ -565,29 +565,31 @@ git commit -m "feat(events): 统一事件入口和脚本模板"
 - Test: `packages/viewer/src/__tests__/phase-36-event-log-panel.test.tsx`
 - Test: `packages/designer/src/__tests__/phase-36-event-productization.test.tsx`
 
-- [ ] **Step 1: Write failing runtime and UI tests**
+- [x] **Step 1: Write failing runtime and UI tests**
 
 Assert event logs include owner type, owner id, event name, level, message, timestamp, optional line, optional column, and stack excerpt. Assert viewer can show logs and designer can reopen the failing event.
 
-- [ ] **Step 2: Run focused tests**
+- [x] **Step 2: Run focused tests**
 
 Run: `pnpm --filter @report-designer/core test -- phase-36-event-runtime.test.ts; pnpm --filter @report-designer/viewer test -- phase-36-event-log-panel.test.tsx; pnpm --filter @report-designer/designer test -- phase-36-event-productization.test.tsx`
 
 Expected: FAIL because error metadata and log panel are incomplete.
 
-- [ ] **Step 3: Enrich event log metadata**
+- [x] **Step 3: Enrich event log metadata**
 
 Capture error line and column when available. Keep runtime errors isolated to event execution and always append an error log entry.
 
-- [ ] **Step 4: Implement viewer event log panel**
+- [x] **Step 4: Implement viewer event log panel**
 
 Add a compact panel in viewer that lists logs for the last rendered document. Use severity tags, object name, event name, message, and line/column.
 
 - [ ] **Step 5: Implement editor error navigation**
 
+Deferred: this pass implements runtime line/column capture and viewer-side log display. Opening the designer editor from viewer logs requires a cross-package navigation contract and should be handled in the next event-editor integration pass.
+
 When an event error is opened from the log, open the event editor and place Monaco cursor on the logged line and column.
 
-- [ ] **Step 6: Run focused tests**
+- [x] **Step 6: Run focused tests**
 
 Run: `pnpm --filter @report-designer/core test -- phase-36-event-runtime.test.ts; pnpm --filter @report-designer/viewer test -- phase-36-event-log-panel.test.tsx; pnpm --filter @report-designer/designer test -- phase-36-event-productization.test.tsx`
 
@@ -607,19 +609,19 @@ git commit -m "feat(events): 增加事件日志和错误定位"
 **Files:**
 - Modify only if verification reveals a real regression.
 
-- [ ] **Step 1: Run all tests**
+- [x] **Step 1: Run all tests**
 
 Run: `pnpm test`
 
 Expected: PASS.
 
-- [ ] **Step 2: Run build**
+- [x] **Step 2: Run build**
 
 Run: `pnpm build`
 
 Expected: PASS. Existing chunk size warnings are acceptable.
 
-- [ ] **Step 3: Run forbidden naming scan**
+- [x] **Step 3: Run forbidden naming scan**
 
 Run:
 
@@ -636,7 +638,7 @@ Get-ChildItem -Recurse docs,packages -File |
 
 Expected: no forbidden product names or unreleased-version markers in touched source and docs.
 
-- [ ] **Step 4: Run example smoke**
+- [x] **Step 4: Run example smoke**
 
 Run: `pnpm --filter @report-designer/example dev --host 127.0.0.1 --port 5184`
 
@@ -644,7 +646,7 @@ Open `http://127.0.0.1:5184/`, open the example designer, enable page watermark 
 
 Expected: designer, preview, print HTML, and PDF visually match for the edited report.
 
-- [ ] **Step 5: Restore generated dist hash if unrelated**
+- [x] **Step 5: Restore generated dist hash if unrelated**
 
 Run: `git status --short`
 

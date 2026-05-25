@@ -8,6 +8,7 @@ import {
   FullscreenOutlined,
   LeftOutlined,
   RightOutlined,
+  BugOutlined,
 } from '@ant-design/icons';
 
 interface ViewerToolbarProps {
@@ -18,6 +19,8 @@ interface ViewerToolbarProps {
   onZoomChange: (zoom: number) => void;
   onPrint: () => void;
   onExportPDF: () => void;
+  eventLogCount?: number;
+  onShowEventLogs?: () => void;
 }
 
 export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
@@ -28,6 +31,8 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   onZoomChange,
   onPrint,
   onExportPDF,
+  eventLogCount = 0,
+  onShowEventLogs,
 }) => {
   return (
     <div style={{
@@ -106,6 +111,19 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
       </Space>
 
       <div style={{ flex: 1 }} />
+
+      {eventLogCount > 0 ? (
+        <Tooltip title="Event Logs">
+          <Button
+            aria-label="Event Logs"
+            icon={<BugOutlined />}
+            size="small"
+            onClick={onShowEventLogs}
+          >
+            {eventLogCount}
+          </Button>
+        </Tooltip>
+      ) : null}
 
       <Tooltip title="Fullscreen">
         <Button icon={<FullscreenOutlined />} size="small" />

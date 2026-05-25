@@ -32,6 +32,10 @@ interface EventTargetState {
 interface EventLogEntry extends EventTargetState {
   level: EventLogLevel;
   message: string;
+  timestamp: string;
+  line?: number;
+  column?: number;
+  stackExcerpt?: string;
 }
 
 interface EventLogCollector {

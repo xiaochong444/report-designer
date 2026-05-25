@@ -107,7 +107,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
     { key: 'root:fields', title: t('events.fields'), children: fieldTreeItems },
     { key: 'root:components', title: t('events.components'), children: componentTreeItems },
     { key: 'root:context-helpers', title: t('events.contextHelpers'), children: helperTreeItems },
-    { key: 'root:examples', title: t('events.examples'), children: exampleTreeItems },
+    { key: 'root:examples', title: t('events.scriptTemplates'), children: exampleTreeItems },
   ];
   const filteredSideTree = useMemo(() => filterSideTree(sideTree, search), [search, sideTree]);
   const expandedSideTreeKeys = useMemo(() => collectTreeKeys(filteredSideTree), [filteredSideTree]);

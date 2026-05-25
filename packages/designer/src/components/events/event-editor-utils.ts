@@ -9,6 +9,7 @@ import type {
 } from '@report-designer/core';
 import { validateEventScript } from '@report-designer/core';
 import type { EventCompletionTextItem } from './event-script-monaco';
+import { buildEventScriptTemplates } from './event-script-templates';
 
 export type EventTargetType = 'report' | 'band' | 'component';
 export type DesignerEventName = ReportEventName | BandEventName | ComponentEventName;
@@ -83,45 +84,5 @@ export function buildEventExampleItems(
   eventName: DesignerEventName,
   t: (key: string) => string,
 ): EventCompletionTextItem[] {
-  const examples: EventCompletionTextItem[] = [];
-
-  if (targetType === 'component' && eventName === 'getValue') {
-    examples.push({
-      label: t('events.example.setValue'),
-      insertText: 'ctx.setValue?.("");',
-      detail: t('events.example.setValue.detail'),
-    });
-  }
-
-  if (targetType === 'component') {
-    examples.push({
-      label: t('events.example.hideComponent'),
-      insertText: 'ctx.hide?.();',
-      detail: t('events.example.hideComponent.detail'),
-    });
-  }
-
-  if (targetType === 'band') {
-    examples.push({
-      label: t('events.example.readRow'),
-      insertText: 'const row = ctx.row ?? {};\nctx.log.info(JSON.stringify(row));',
-      detail: t('events.example.readRow.detail'),
-    });
-  }
-
-  if (targetType === 'report') {
-    examples.push({
-      label: t('events.example.reportState'),
-      insertText: 'ctx.state.lastEvent = ctx.target.eventName;',
-      detail: t('events.example.reportState.detail'),
-    });
-  }
-
-  examples.push({
-    label: t('events.example.logMessage'),
-    insertText: 'ctx.log.info("message");',
-    detail: t('events.example.logMessage.detail'),
-  });
-
-  return examples;
+  return buildEventScriptTemplates(targetType, eventName, t);
 }

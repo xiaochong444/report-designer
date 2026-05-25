@@ -1,6 +1,7 @@
 import { createEventLogCollector } from './event-log';
 import type {
   EventLogCollector,
+  EventLogEntry,
   EventRuntimeState,
   EventScriptValidationResult,
   EventTargetState,
@@ -97,7 +98,7 @@ export function runEventScript(options: RunEventScriptOptions): void {
     const fn = new Function('ctx', buildWrapper(event.script));
     fn(ctx);
   } catch (error) {
-    writeError(eventLogs, target, toErrorMessage(error));
+    writeError(eventLogs, target, toErrorMessage(error), extractScriptErrorLocation(error));
   } finally {
     ctx.log = originalLog;
   }
@@ -113,8 +114,13 @@ ${script}
 }).call(undefined);`;
 }
 
-function writeError(log: { error(message: string, target?: Partial<EventTargetState>): void }, target: EventTargetState, message: string): void {
-  log.error(message, target);
+function writeError(
+  log: { error(message: string, target?: Partial<EventLogEntry>): void },
+  target: EventTargetState,
+  message: string,
+  diagnostics: Partial<Pick<EventLogEntry, 'line' | 'column' | 'stackExcerpt'>> = {},
+): void {
+  log.error(message, { ...target, ...diagnostics });
 }
 
 function createScopedLogCollector(log: EventLogCollector, target: EventTargetState): EventLogCollector {
@@ -144,6 +150,26 @@ function toErrorMessage(error: unknown): string {
   }
 
   return String(error);
+}
+
+function extractScriptErrorLocation(error: unknown): Partial<Pick<EventLogEntry, 'line' | 'column' | 'stackExcerpt'>> {
+  if (!(error instanceof Error) || !error.stack) {
+    return {};
+  }
+
+  const stackLines = error.stack.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+  const anonymousFrame = stackLines.find(line => /<anonymous>:\d+:\d+/.test(line));
+  const match = anonymousFrame?.match(/<anonymous>:(\d+):(\d+)/);
+  const wrapperLineOffset = shadowedGlobals.length + 4;
+  const line = match ? Number(match[1]) - wrapperLineOffset : undefined;
+  const column = match ? Number(match[2]) : undefined;
+  const normalizedLine = line && line > 0 ? line : undefined;
+
+  return {
+    line: normalizedLine,
+    column: column && column > 0 ? column : undefined,
+    stackExcerpt: stackLines.slice(0, 4).join('\n'),
+  };
 }
 
 function escapeRegExp(value: string): string {

@@ -244,7 +244,7 @@ describe('phase 23 event engine', () => {
     ]);
   });
 
-  it('does not add wall-clock timestamps to event logs', () => {
+  it('adds timestamps to event logs', () => {
     const eventLogs = createEventLogCollector();
 
     eventLogs.info('stable');
@@ -257,20 +257,22 @@ describe('phase 23 event engine', () => {
     });
 
     expect(eventLogs.entries).toEqual([
-      {
+      expect.objectContaining({
         level: 'info',
         message: 'stable',
         ownerType: 'report',
         ownerId: '',
         eventName: '',
-      },
-      {
+        timestamp: expect.any(String),
+      }),
+      expect.objectContaining({
         level: 'warning',
         message: 'pushed',
         ownerType: 'report',
         ownerId: 'report1',
         eventName: 'beforeRender',
-      },
+        timestamp: expect.any(String),
+      }),
     ]);
   });
 });
