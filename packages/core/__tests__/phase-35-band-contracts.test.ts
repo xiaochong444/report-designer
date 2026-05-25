@@ -121,4 +121,46 @@ describe('phase 35 band contracts', () => {
     expect(document.pages.map(page => page.items.find(item => item.bandType === 'pageFooter')?.components[0].content)).toEqual(['300', '200']);
     expect(document.pages.flatMap(page => page.items).find(item => item.bandType === 'reportSummary')?.components[0].content).toBe('500');
   });
+
+  it('keeps header and footer ownership scoped to their following data band', () => {
+    const template = makeTemplate([
+      band('orders-header', 'header'),
+      band('orders-data', 'data', { dataBand: { dataSourceId: 'orders' } }),
+      band('orders-footer', 'footer'),
+      band('employees-header', 'header'),
+      band('employees-data', 'data', { dataBand: { dataSourceId: 'employees' } }),
+      band('employees-footer', 'footer'),
+    ]);
+    template.dataSources.push({ id: 'orders', name: 'Orders', type: 'json', fields: [] });
+
+    const sequence = executeBandPlan(buildBandPlan(template), {
+      orders: [{ id: 1 }, { id: 2 }],
+      employees: [{ Name: 'A' }],
+    }).filter(item => item.kind === 'band').map(item => item.band.id);
+
+    expect(sequence).toEqual([
+      'orders-header',
+      'orders-data',
+      'orders-data',
+      'orders-footer',
+      'employees-header',
+      'employees-data',
+      'employees-footer',
+    ]);
+  });
+
+  it('does not print section header or footer when the data section uses EmptyData', () => {
+    const template = makeTemplate([
+      band('section-header', 'header'),
+      band('data', 'data', { dataBand: { dataSourceId: 'employees' } }),
+      band('empty', 'emptyData'),
+      band('section-footer', 'footer'),
+    ]);
+
+    const sequence = executeBandPlan(buildBandPlan(template), { employees: [] })
+      .filter(item => item.kind === 'band')
+      .map(item => item.band.id);
+
+    expect(sequence).toEqual(['empty']);
+  });
 });
