@@ -1,6 +1,7 @@
 import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
 import type { PageBorder, PageWatermark, RenderDocument } from '@report-designer/core';
 import { drawRenderComponent } from './pdf-draw-component';
+import { safePdfText } from './pdf-component-rendering';
 
 const MM_TO_PT = 72 / 25.4;
 
@@ -51,12 +52,14 @@ export async function exportRenderDocumentToPDF(
 
 function drawPageWatermark(page: ReturnType<PDFDocument['addPage']>, pageWidthMm: number, pageHeightMm: number, watermark?: PageWatermark, font?: Awaited<ReturnType<PDFDocument['embedFont']>>): void {
   if (!watermark?.enabled || !watermark.text || !font) return;
+  const text = safePdfText(watermark.text);
   const fontSize = watermark.fontSize * MM_TO_PT;
-  const textWidth = font.widthOfTextAtSize(watermark.text, fontSize);
+  const textWidth = font.widthOfTextAtSize(text, fontSize);
+  const textHeight = font.heightAtSize(fontSize, { descender: false });
   const x = watermarkTextX(pageWidthMm * MM_TO_PT, textWidth, watermark.horizontalAlign);
-  const y = watermarkTextY(pageHeightMm * MM_TO_PT, fontSize, watermark.verticalAlign);
+  const y = watermarkTextY(pageHeightMm * MM_TO_PT, textHeight, watermark.verticalAlign);
 
-  page.drawText(watermark.text, {
+  page.drawText(text, {
     x,
     y,
     size: fontSize,
@@ -101,10 +104,10 @@ function watermarkTextX(pageWidth: number, textWidth: number, align: PageWaterma
   return 0;
 }
 
-function watermarkTextY(pageHeight: number, fontSize: number, align: PageWatermark['verticalAlign']): number {
-  if (align === 'middle') return (pageHeight - fontSize) / 2;
+function watermarkTextY(pageHeight: number, textHeight: number, align: PageWatermark['verticalAlign']): number {
+  if (align === 'middle') return (pageHeight - textHeight) / 2;
   if (align === 'bottom') return 0;
-  return pageHeight - fontSize;
+  return pageHeight - textHeight;
 }
 
 function parsePdfColor(color: string) {

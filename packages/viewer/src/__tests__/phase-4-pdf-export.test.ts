@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PDFPage } from 'pdf-lib';
+import { PDFFont, PDFPage } from 'pdf-lib';
 import { vi } from 'vitest';
 import { exportRenderDocumentToPDF } from '../export/pdf/export-render-document';
 import { barcodePattern, dataUrlToUint8Array, stripHtmlToPdfText } from '../export/pdf/pdf-component-rendering';
@@ -131,6 +131,60 @@ describe('Phase 4 PDF export', () => {
     drawRectangle.mockRestore();
     drawText.mockRestore();
     drawLine.mockRestore();
+  });
+
+  it('uses safe PDF text when exporting a Chinese page watermark', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].watermark = {
+      enabled: true,
+      text: '内部',
+      fontFamily: 'SimSun',
+      fontSize: 18,
+      color: '#000000',
+      opacity: 0.2,
+      angle: 0,
+      horizontalAlign: 'center',
+      verticalAlign: 'middle',
+      showBehind: true,
+    };
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+
+    await expect(exportRenderDocumentToPDF(document)).resolves.toBeInstanceOf(Uint8Array);
+
+    expect(drawText.mock.calls.some(([text]) => text === '??')).toBe(true);
+
+    drawText.mockRestore();
+  });
+
+  it('centers the PDF watermark draw position around the text box for middle alignment', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Internal',
+      fontFamily: 'Arial',
+      fontSize: 18,
+      color: '#000000',
+      opacity: 0.2,
+      angle: -30,
+      horizontalAlign: 'center',
+      verticalAlign: 'middle',
+      showBehind: true,
+    };
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+    const widthOfTextAtSize = vi.spyOn(PDFFont.prototype, 'widthOfTextAtSize').mockReturnValue(120);
+    const heightAtSize = vi.spyOn(PDFFont.prototype, 'heightAtSize').mockReturnValue(40);
+
+    await exportRenderDocumentToPDF(document);
+
+    const watermarkCall = drawText.mock.calls.find(([text]) => text === 'Internal');
+    expect(watermarkCall?.[1]).toEqual(expect.objectContaining({
+      x: expect.closeTo((210 * 72 / 25.4) / 2 - 60, 2),
+      y: expect.closeTo((297 * 72 / 25.4) / 2 - 20, 2),
+    }));
+
+    drawText.mockRestore();
+    widthOfTextAtSize.mockRestore();
+    heightAtSize.mockRestore();
   });
 
   it('provides deterministic browser-compatible helpers for component PDF rendering', () => {
