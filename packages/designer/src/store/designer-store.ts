@@ -584,11 +584,14 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
           const sorted = [...comps].sort((a, b) => a.x - b.x);
           const minLeft = sorted[0].x;
           const maxRight = sorted[sorted.length - 1].x + sorted[sorted.length - 1].width;
-          const spacing = (maxRight - minLeft) / (sorted.length - 1);
-          for (let i = 0; i < sorted.length; i++) {
+          const totalWidth = sorted.reduce((sum, c) => sum + c.width, 0);
+          const gap = (maxRight - minLeft - totalWidth) / (sorted.length - 1);
+          let cursor = minLeft;
+          for (let i = 0; i < sorted.length; i += 1) {
             const c = sorted[i];
             previous.push({ x: c.x });
-            updates.push({ x: minLeft + spacing * i });
+            updates.push({ x: Math.round(cursor * 10) / 10 });
+            cursor += c.width + gap;
           }
           break;
         }
@@ -597,11 +600,14 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
           const sorted = [...comps].sort((a, b) => a.y - b.y);
           const minTop = sorted[0].y;
           const maxBottom = sorted[sorted.length - 1].y + sorted[sorted.length - 1].height;
-          const spacing = (maxBottom - minTop) / (sorted.length - 1);
-          for (let i = 0; i < sorted.length; i++) {
+          const totalHeight = sorted.reduce((sum, c) => sum + c.height, 0);
+          const gap = (maxBottom - minTop - totalHeight) / (sorted.length - 1);
+          let cursor = minTop;
+          for (let i = 0; i < sorted.length; i += 1) {
             const c = sorted[i];
             previous.push({ y: c.y });
-            updates.push({ y: minTop + spacing * i });
+            updates.push({ y: Math.round(cursor * 10) / 10 });
+            cursor += c.height + gap;
           }
           break;
         }
@@ -696,15 +702,22 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       const bandComps = band.components.filter(c => selectedComponentIds.includes(c.id));
       if (bandComps.length === 0) continue;
 
-      const maxZ = Math.max(...band.components.map(c => c.zOrder ?? 0), 0);
-      for (const comp of bandComps) {
-        newTemplate = dispatcher.execute(newTemplate, {
-          type: 'bring-to-front',
-          payload: { pageId: currentPageId, bandId: band.id, componentId: comp.id, zOrder: maxZ + 1, previousZOrder: comp.zOrder ?? 0 },
-          execute: () => newTemplate,
-          undo: () => newTemplate,
-        });
-      }
+      const orderedComps = [...bandComps].sort((a, b) => selectedComponentIds.indexOf(a.id) - selectedComponentIds.indexOf(b.id));
+      const zOrders = band.components.map(c => c.zOrder ?? 0);
+      const maxZ = zOrders.length > 0 ? Math.max(...zOrders) : 0;
+      newTemplate = dispatcher.execute(newTemplate, {
+        type: 'align-components',
+        payload: {
+          pageId: currentPageId,
+          bandId: band.id,
+          componentIds: orderedComps.map(comp => comp.id),
+          alignment: 'bring-to-front',
+          updates: orderedComps.map((comp, index) => ({ zOrder: maxZ + index + 1 })),
+          previous: orderedComps.map(comp => ({ zOrder: comp.zOrder })),
+        },
+        execute: () => newTemplate,
+        undo: () => newTemplate,
+      });
     }
 
     set({ template: newTemplate });
@@ -722,42 +735,42 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       const bandComps = band.components.filter(c => selectedComponentIds.includes(c.id));
       if (bandComps.length === 0) continue;
 
-      const minZ = Math.min(...band.components.map(c => c.zOrder ?? 0), 0);
-      for (const comp of bandComps) {
-        newTemplate = dispatcher.execute(newTemplate, {
-          type: 'send-to-back',
-          payload: { pageId: currentPageId, bandId: band.id, componentId: comp.id, zOrder: minZ - 1, previousZOrder: comp.zOrder ?? 0 },
-          execute: () => newTemplate,
-          undo: () => newTemplate,
-        });
-      }
+      const orderedComps = [...bandComps].sort((a, b) => selectedComponentIds.indexOf(a.id) - selectedComponentIds.indexOf(b.id));
+      const zOrders = band.components.map(c => c.zOrder ?? 0);
+      const minZ = zOrders.length > 0 ? Math.min(...zOrders) : 0;
+      newTemplate = dispatcher.execute(newTemplate, {
+        type: 'align-components',
+        payload: {
+          pageId: currentPageId,
+          bandId: band.id,
+          componentIds: orderedComps.map(comp => comp.id),
+          alignment: 'send-to-back',
+          updates: orderedComps.map((comp, index) => ({ zOrder: minZ - orderedComps.length + index })),
+          previous: orderedComps.map(comp => ({ zOrder: comp.zOrder })),
+        },
+        execute: () => newTemplate,
+        undo: () => newTemplate,
+      });
     }
 
     set({ template: newTemplate });
   },
 
   deleteSelected: () => {
-    const { template, currentPageId, selectedComponentIds } = get();
+    const { template, currentPageId, selectedComponentIds, dispatcher } = get();
     const page = template.pages.find(p => p.id === currentPageId);
     if (!page) return;
     let newTemplate = template;
     for (const band of page.bands) {
-      for (const id of selectedComponentIds) {
-        if (band.components.some(c => c.id === id)) {
-          newTemplate = {
-            ...newTemplate,
-            pages: newTemplate.pages.map(p => {
-              if (p.id !== currentPageId) return p;
-              return {
-                ...p,
-                bands: p.bands.map(b => {
-                  if (b.id !== band.id) return b;
-                  return { ...b, components: b.components.filter(c => c.id !== id) };
-                }),
-              };
-            }),
-          };
-        }
+      const components = band.components.filter(c => selectedComponentIds.includes(c.id));
+      if (components.length === 0) continue;
+      for (const component of components) {
+        newTemplate = dispatcher.execute(newTemplate, {
+          type: 'remove-component',
+          payload: { pageId: currentPageId, bandId: band.id, componentId: component.id, component },
+          execute: () => newTemplate,
+          undo: () => newTemplate,
+        });
       }
     }
     set({ template: newTemplate, selectedComponentIds: [] });
@@ -789,63 +802,83 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   },
 
   pasteClipboard: () => {
-    const { template, currentPageId, selectedComponentIds, clipboard } = get();
+    const { template, currentPageId, selectedComponentIds, clipboard, dispatcher } = get();
     if (clipboard.length === 0) return;
     const page = template.pages.find(p => p.id === currentPageId);
     if (!page) return;
-    let newTemplate = template;
     const pasteBandId = selectedComponentIds.length > 0
       ? page.bands.find(b => b.components.some(c => c.id === selectedComponentIds[0]))?.id
-      : page.bands.find(b => b.type === 'data')?.id;
+      : page.bands.find(b => b.type === 'data')?.id ?? page.bands[0]?.id;
     if (!pasteBandId) return;
-    const newIds: string[] = [];
-    for (const comp of clipboard) {
-      const preparedComp = prepareComponentForInsert(newTemplate, { ...comp, name: comp.name });
-      const newComp = { ...preparedComp, id: `${comp.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, x: comp.x + 5, y: comp.y + 5 };
-      newIds.push(newComp.id);
-      const band = page.bands.find(b => b.id === pasteBandId)!;
-      newTemplate = {
-        ...newTemplate,
-        pages: newTemplate.pages.map(p => {
-          if (p.id !== currentPageId) return p;
-          return {
-            ...p,
-            bands: p.bands.map(b => {
-              if (b.id !== pasteBandId) return b;
-              return { ...b, components: [...b.components, newComp] };
-            }),
-          };
-        }),
+    const newComponents = clipboard.map(comp => {
+      const preparedComp = prepareComponentForInsert(template, { ...comp, name: comp.name });
+      return {
+        ...preparedComp,
+        id: `${comp.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+        x: comp.x + 5,
+        y: comp.y + 5,
       };
+    });
+    let newTemplate = template;
+    for (const component of newComponents) {
+      newTemplate = dispatcher.execute(newTemplate, {
+        type: 'add-component',
+        payload: { pageId: currentPageId, bandId: pasteBandId, component },
+        execute: () => newTemplate,
+        undo: () => newTemplate,
+      });
     }
+    const newIds = newComponents.map(component => component.id);
     set({ template: newTemplate, selectedComponentIds: newIds });
   },
 
   getClipboard: () => get().clipboard,
 
   moveSelectedBy: (dx, dy) => {
-    const { template, currentPageId, selectedComponentIds } = get();
+    const { template, currentPageId, selectedComponentIds, dispatcher } = get();
     const page = template.pages.find(p => p.id === currentPageId);
     if (!page || selectedComponentIds.length === 0) return;
 
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => ({
-      ...comp,
-      x: Math.round((comp.x + dx) * 10) / 10,
-      y: Math.round((comp.y + dy) * 10) / 10,
-    }));
+    let newTemplate = template;
+    for (const band of page.bands) {
+      const comps = band.components.filter(comp => selectedComponentIds.includes(comp.id));
+      if (comps.length === 0) continue;
+      const updates = comps.map(comp => ({
+        x: Math.round((comp.x + dx) * 10) / 10,
+        y: Math.round((comp.y + dy) * 10) / 10,
+      }));
+      const previous = comps.map(comp => ({ x: comp.x, y: comp.y }));
+      newTemplate = dispatcher.execute(newTemplate, {
+        type: 'align-components',
+        payload: { pageId: currentPageId, bandId: band.id, componentIds: comps.map(comp => comp.id), alignment: 'move', updates, previous },
+        execute: () => newTemplate,
+        undo: () => newTemplate,
+      });
+    }
     set({ template: newTemplate });
   },
 
   resizeSelectedBy: (dw, dh) => {
-    const { template, currentPageId, selectedComponentIds } = get();
+    const { template, currentPageId, selectedComponentIds, dispatcher } = get();
     const page = template.pages.find(p => p.id === currentPageId);
     if (!page || selectedComponentIds.length === 0) return;
 
-    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => ({
-      ...comp,
-      width: Math.max(1, Math.round((comp.width + dw) * 10) / 10),
-      height: Math.max(1, Math.round((comp.height + dh) * 10) / 10),
-    }));
+    let newTemplate = template;
+    for (const band of page.bands) {
+      const comps = band.components.filter(comp => selectedComponentIds.includes(comp.id));
+      if (comps.length === 0) continue;
+      const updates = comps.map(comp => ({
+        width: Math.max(1, Math.round((comp.width + dw) * 10) / 10),
+        height: Math.max(1, Math.round((comp.height + dh) * 10) / 10),
+      }));
+      const previous = comps.map(comp => ({ width: comp.width, height: comp.height }));
+      newTemplate = dispatcher.execute(newTemplate, {
+        type: 'size-components',
+        payload: { pageId: currentPageId, bandId: band.id, componentIds: comps.map(comp => comp.id), sizeMode: 'nudge-size', updates, previous },
+        execute: () => newTemplate,
+        undo: () => newTemplate,
+      });
+    }
     set({ template: newTemplate });
   },
 
