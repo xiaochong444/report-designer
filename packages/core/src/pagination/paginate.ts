@@ -2,8 +2,8 @@ import { buildBandPlan, executeBandPlan } from '../band-planner';
 import type { LogicalBandItem, RenderContext } from '../band-planner';
 import { layoutBand } from '../layout-engine/layout-band';
 import type { LayoutEventRuntime } from '../layout-engine/layout-band';
-import type { RenderBandBox, RenderComponentBox, RenderDocument, RenderPage } from '../render-document/types';
-import type { Band, Page, PageBorder, PageWatermark, ReportTemplate, SubreportComponent } from '../template-model/types';
+import type { RenderBandBox, RenderComponentBox, RenderDocument, RenderPage, RenderTable, RenderTableCell } from '../render-document/types';
+import type { Band, Page, PageBorder, PageWatermark, ReportTemplate, SubreportComponent, TableComponent } from '../template-model/types';
 import { normalizeTemplate } from '../template-model';
 import { evalExpression } from '../expression-engine/evaluator';
 import { applyPageNumberPass } from './page-number-pass';
@@ -213,6 +213,23 @@ export function paginate(
       preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false) });
     }
 
+    const splitTable = !force ? splitTableBand(eventBand, preview, cursorY, pageBottomY, templatePage.margins.top) : undefined;
+    if (splitTable) {
+      let placedBox: RenderBandBox | undefined;
+      for (const chunk of splitTable.chunks) {
+        if (cursorY + chunk.height > pageBottomY && currentPage!.items.length > 0) {
+          newPage();
+        }
+        const box = createTableChunkBandBox(preview, chunk, cursorY);
+        currentPage!.items.push(box);
+        collectPageRow(pageRows.get(currentPage!)!, eventBand, context);
+        cursorY += box.height;
+        placedBox = box;
+      }
+      finishBandInstance(eventBand, context, options, templatePage);
+      return placedBox;
+    }
+
     const targetY = behavior.printAtBottom ? pageBottomY - preview.height : cursorY;
     const box = layoutBand(eventBand, { x: printableX, y: targetY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, true), eventRuntime: withEventPage(options.eventRuntime, templatePage) });
     currentPage!.items.push(box);
@@ -329,6 +346,111 @@ function renderFixedBand(
   });
   finishBandInstance(eventBand, context, options, templatePage);
   return box;
+}
+
+interface TableChunk {
+  table: RenderTable;
+  height: number;
+}
+
+function splitTableBand(band: Band, box: RenderBandBox, cursorY: number, pageBottomY: number, pageTopY: number): { chunks: TableChunk[] } | undefined {
+  if (box.components.length !== 1) return undefined;
+  const component = box.components[0];
+  if (component.type !== 'table' || !('rows' in component) || !('columns' in component)) return undefined;
+  const templateTable = band.components.find(item => item.id === component.id && item.type === 'table') as TableComponent | undefined;
+  if (templateTable?.canBreak === false) return undefined;
+
+  const table = component as RenderTable;
+  const rows = table.rows ?? [];
+  const headerRows = rows.filter(row => row.some(cell => cell.isHeader));
+  const bodyRows = rows.filter(row => !row.some(cell => cell.isHeader) && !row.some(cell => cell.isFooter));
+  const footerRows = rows.filter(row => row.some(cell => cell.isFooter));
+  if (bodyRows.length === 0) return undefined;
+  const availableFirstPage = pageBottomY - cursorY - table.y + box.y;
+  const totalTableHeight = rowsHeight(rows);
+  if (availableFirstPage >= totalTableHeight) return undefined;
+
+  const chunks: TableChunk[] = [];
+  let remainingBodyRows = bodyRows;
+  let availableHeight = availableFirstPage;
+
+  while (remainingBodyRows.length > 0) {
+    const chunk = takeTableRowsForPage(table, headerRows, remainingBodyRows, [], availableHeight);
+    if (chunk.bodyRows.length === 0) {
+      chunk.bodyRows = [remainingBodyRows[0]];
+    }
+    const isLast = chunk.bodyRows.length >= remainingBodyRows.length;
+    const chunkRows = normalizeTableChunkRows([...headerRows, ...chunk.bodyRows, ...(isLast ? footerRows : [])]);
+    chunks.push({
+      table: {
+        ...table,
+        y: 0,
+        height: rowsHeight(chunkRows),
+        rows: chunkRows,
+      },
+      height: rowsHeight(chunkRows),
+    });
+    remainingBodyRows = remainingBodyRows.slice(chunk.bodyRows.length);
+    availableHeight = pageBottomY - pageTopY;
+  }
+
+  return chunks.length > 1 ? { chunks } : undefined;
+}
+
+function takeTableRowsForPage(
+  table: RenderTable,
+  headerRows: RenderTableCell[][],
+  bodyRows: RenderTableCell[][],
+  footerRows: RenderTableCell[][],
+  availableHeight: number,
+): { bodyRows: RenderTableCell[][] } {
+  const minimumHeaderHeight = rowsHeight(headerRows);
+  const footerHeight = rowsHeight(footerRows);
+  const bodyBudget = Math.max(0, availableHeight - minimumHeaderHeight - footerHeight);
+  const selected: RenderTableCell[][] = [];
+  let used = 0;
+
+  for (const row of bodyRows) {
+    const rowHeight = renderTableRowHeight(row);
+    if (selected.length > 0 && used + rowHeight > bodyBudget) break;
+    if (selected.length === 0 && minimumHeaderHeight + rowHeight > Math.max(0, availableHeight)) break;
+    selected.push(row);
+    used += rowHeight;
+  }
+
+  if (selected.length === 0 && bodyRows.length > 0 && rowsHeight(headerRows) + renderTableRowHeight(bodyRows[0]) <= table.height) {
+    selected.push(bodyRows[0]);
+  }
+  return { bodyRows: selected };
+}
+
+function createTableChunkBandBox(source: RenderBandBox, chunk: TableChunk, y: number): RenderBandBox {
+  return {
+    ...source,
+    id: `${source.id}-table-chunk-${y}`,
+    y,
+    height: chunk.height,
+    components: [{
+      ...chunk.table,
+      y,
+      height: chunk.height,
+    }],
+  };
+}
+
+function normalizeTableChunkRows(rows: RenderTableCell[][]): RenderTableCell[][] {
+  return rows.map((row, rowIndex) => row.map(cell => ({
+    ...cell,
+    row: rowIndex,
+  })));
+}
+
+function rowsHeight(rows: RenderTableCell[][]): number {
+  return rows.reduce((sum, row) => sum + renderTableRowHeight(row), 0);
+}
+
+function renderTableRowHeight(row: RenderTableCell[]): number {
+  return row[0]?.height ?? 0;
 }
 
 function prepareBandInstance(
