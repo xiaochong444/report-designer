@@ -31,6 +31,7 @@ export function buildPrintHtml(document: RenderDocument): string {
     html, body { margin: 0; padding: 0; }
     .rd-print-page { position: relative; page-break-after: always; overflow: hidden; background: #fff; }
     .rd-print-band, .rd-print-component { position: absolute; box-sizing: border-box; }
+    .rd-print-band { z-index: 2; }
     .rd-print-watermark, .rd-print-page-border { position: absolute; box-sizing: border-box; pointer-events: none; }
   </style>
 </head>

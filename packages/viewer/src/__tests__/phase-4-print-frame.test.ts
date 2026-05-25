@@ -71,6 +71,27 @@ describe('Phase 4 print frame', () => {
     expect(html).not.toContain('border-right:0.4mm dashed #1677ff');
   });
 
+  it('keeps behind print watermarks below printable band content', () => {
+    const document = makeRenderDocument();
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Internal',
+      fontFamily: 'SimSun',
+      fontSize: 36,
+      color: '#ff4d4f',
+      opacity: 0.25,
+      angle: -30,
+      horizontalAlign: 'center',
+      verticalAlign: 'middle',
+      showBehind: true,
+    };
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('.rd-print-band { z-index: 2; }');
+    expect(html).toContain('z-index:1');
+  });
+
   it('renders component coordinates relative to their containing band', () => {
     const html = buildPrintHtml(makeRenderDocument());
 

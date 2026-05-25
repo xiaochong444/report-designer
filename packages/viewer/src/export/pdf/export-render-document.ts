@@ -56,8 +56,9 @@ function drawPageWatermark(page: ReturnType<PDFDocument['addPage']>, pageWidthMm
   const fontSize = watermark.fontSize * MM_TO_PT;
   const textWidth = font.widthOfTextAtSize(text, fontSize);
   const textHeight = font.heightAtSize(fontSize, { descender: false });
-  const x = watermarkTextX(pageWidthMm * MM_TO_PT, textWidth, watermark.horizontalAlign);
-  const y = watermarkTextY(pageHeightMm * MM_TO_PT, textHeight, watermark.verticalAlign);
+  const centerX = watermarkTextCenterX(pageWidthMm * MM_TO_PT, textWidth, watermark.horizontalAlign);
+  const centerY = watermarkTextCenterY(pageHeightMm * MM_TO_PT, textHeight, watermark.verticalAlign);
+  const { x, y } = rotatedWatermarkOrigin(centerX, centerY, textWidth, textHeight, watermark.angle);
 
   page.drawText(text, {
     x,
@@ -83,9 +84,11 @@ function drawPageBorder(page: ReturnType<PDFDocument['addPage']>, pageWidthMm: n
     : pageBorder.style === 'dotted'
       ? [1, 3]
       : undefined;
-  const insets = pageBorder.style === 'double'
-    ? [offset, doubleBorderInnerInset(offset, thickness, width, height)]
-    : [offset];
+  if (pageBorder.style === 'double') {
+    drawDoublePageBorder(page, width, height, offset, pageBorder.width * MM_TO_PT, color, pageBorder);
+    return;
+  }
+  const insets = [offset];
 
   for (const inset of insets) {
     if (inset < 0 || inset * 2 > width || inset * 2 > height) continue;
@@ -104,22 +107,58 @@ function drawPageBorder(page: ReturnType<PDFDocument['addPage']>, pageWidthMm: n
   }
 }
 
-function doubleBorderInnerInset(offset: number, thickness: number, width: number, height: number): number {
-  const gap = Math.max(thickness * 2, 1);
-  const maxInset = Math.max(offset, Math.min(width, height) / 2);
-  return Math.min(offset + gap, maxInset);
+function drawDoublePageBorder(
+  page: ReturnType<PDFDocument['addPage']>,
+  width: number,
+  height: number,
+  offset: number,
+  totalThickness: number,
+  color: ReturnType<typeof parsePdfColor>,
+  pageBorder: PageBorder,
+): void {
+  if (totalThickness <= 0) return;
+  const lineThickness = totalThickness / 3;
+  const outerInset = offset + lineThickness / 2;
+  const innerInset = offset + totalThickness - lineThickness / 2;
+  const insets = [outerInset, innerInset];
+
+  for (const inset of insets) {
+    if (inset < 0 || inset * 2 > width || inset * 2 > height) continue;
+    if (pageBorder.sides.top) {
+      page.drawLine({ start: { x: inset, y: height - inset }, end: { x: width - inset, y: height - inset }, thickness: lineThickness, color });
+    }
+    if (pageBorder.sides.right) {
+      page.drawLine({ start: { x: width - inset, y: height - inset }, end: { x: width - inset, y: inset }, thickness: lineThickness, color });
+    }
+    if (pageBorder.sides.bottom) {
+      page.drawLine({ start: { x: inset, y: inset }, end: { x: width - inset, y: inset }, thickness: lineThickness, color });
+    }
+    if (pageBorder.sides.left) {
+      page.drawLine({ start: { x: inset, y: height - inset }, end: { x: inset, y: inset }, thickness: lineThickness, color });
+    }
+  }
 }
 
-function watermarkTextX(pageWidth: number, textWidth: number, align: PageWatermark['horizontalAlign']): number {
-  if (align === 'center') return (pageWidth - textWidth) / 2;
-  if (align === 'right') return pageWidth - textWidth;
-  return 0;
+function rotatedWatermarkOrigin(centerX: number, centerY: number, textWidth: number, textHeight: number, angleDegrees: number): { x: number; y: number } {
+  const angle = angleDegrees * Math.PI / 180;
+  const halfWidth = textWidth / 2;
+  const halfHeight = textHeight / 2;
+  return {
+    x: centerX - (Math.cos(angle) * halfWidth - Math.sin(angle) * halfHeight),
+    y: centerY - (Math.sin(angle) * halfWidth + Math.cos(angle) * halfHeight),
+  };
 }
 
-function watermarkTextY(pageHeight: number, textHeight: number, align: PageWatermark['verticalAlign']): number {
-  if (align === 'middle') return (pageHeight - textHeight) / 2;
-  if (align === 'bottom') return 0;
-  return pageHeight - textHeight;
+function watermarkTextCenterX(pageWidth: number, textWidth: number, align: PageWatermark['horizontalAlign']): number {
+  if (align === 'center') return pageWidth / 2;
+  if (align === 'right') return pageWidth - textWidth / 2;
+  return textWidth / 2;
+}
+
+function watermarkTextCenterY(pageHeight: number, textHeight: number, align: PageWatermark['verticalAlign']): number {
+  if (align === 'middle') return pageHeight / 2;
+  if (align === 'bottom') return textHeight / 2;
+  return pageHeight - textHeight / 2;
 }
 
 function parsePdfColor(color: string) {

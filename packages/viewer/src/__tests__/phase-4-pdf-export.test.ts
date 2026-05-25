@@ -147,21 +147,21 @@ describe('Phase 4 PDF export', () => {
 
     await exportRenderDocumentToPDF(document);
 
-    const thickness = 0.4 * 72 / 25.4;
+    const totalBorderWidth = 0.4 * 72 / 25.4;
+    const expectedLineThickness = totalBorderWidth / 3;
     const borderLines = drawLine.mock.calls
       .map(([options]) => options)
-      .filter((options) => Math.abs((options.thickness ?? 0) - thickness) < 0.01);
+      .filter((options) => Math.abs((options.thickness ?? 0) - expectedLineThickness) < 0.01);
     expect(borderLines).toHaveLength(8);
 
     const pageHeight = 297 * 72 / 25.4;
-    const expectedGap = Math.max(thickness * 2, 1);
     const topLines = borderLines.filter((options) => (
       Math.abs(options.start.y - options.end.y) < 0.01
       && options.start.y > pageHeight / 2
     ));
     const topYs = topLines.map((options) => options.start.y).sort((a, b) => b - a);
     expect(topYs).toHaveLength(2);
-    expect(topYs[0] - topYs[1]).toBeCloseTo(expectedGap, 2);
+    expect(topYs[0] - topYs[1] + expectedLineThickness).toBeCloseTo(totalBorderWidth, 2);
 
     drawLine.mockRestore();
   });
@@ -198,7 +198,7 @@ describe('Phase 4 PDF export', () => {
       fontSize: 18,
       color: '#000000',
       opacity: 0.2,
-      angle: -30,
+      angle: 0,
       horizontalAlign: 'center',
       verticalAlign: 'middle',
       showBehind: true,
@@ -218,6 +218,66 @@ describe('Phase 4 PDF export', () => {
     drawText.mockRestore();
     widthOfTextAtSize.mockRestore();
     heightAtSize.mockRestore();
+  });
+
+  it('keeps the rotated PDF watermark visual center on the target anchor', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].watermark = {
+      enabled: true,
+      text: 'Internal',
+      fontFamily: 'Arial',
+      fontSize: 18,
+      color: '#000000',
+      opacity: 0.2,
+      angle: 90,
+      horizontalAlign: 'center',
+      verticalAlign: 'middle',
+      showBehind: true,
+    };
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+    const widthOfTextAtSize = vi.spyOn(PDFFont.prototype, 'widthOfTextAtSize').mockReturnValue(120);
+    const heightAtSize = vi.spyOn(PDFFont.prototype, 'heightAtSize').mockReturnValue(40);
+
+    await exportRenderDocumentToPDF(document);
+
+    const watermarkCall = drawText.mock.calls.find(([text]) => text === 'Internal');
+    expect(watermarkCall?.[1]).toEqual(expect.objectContaining({
+      x: expect.closeTo((210 * 72 / 25.4) / 2 + 20, 2),
+      y: expect.closeTo((297 * 72 / 25.4) / 2 - 60, 2),
+    }));
+
+    drawText.mockRestore();
+    widthOfTextAtSize.mockRestore();
+    heightAtSize.mockRestore();
+  });
+
+  it('keeps PDF double page border strokes within the configured total border width', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].pageBorder = {
+      enabled: true,
+      style: 'double',
+      width: 0.9,
+      color: '#1677ff',
+      sides: { top: true, right: false, bottom: false, left: false },
+      offset: 5,
+    };
+    const drawLine = vi.spyOn(PDFPage.prototype, 'drawLine');
+
+    await exportRenderDocumentToPDF(document);
+
+    const pageHeight = 297 * 72 / 25.4;
+    const totalBorderWidth = 0.9 * 72 / 25.4;
+    const topLines = drawLine.mock.calls
+      .map(([options]) => options)
+      .filter((options) => Math.abs(options.start.y - options.end.y) < 0.01 && options.start.y > pageHeight / 2)
+      .sort((a, b) => b.start.y - a.start.y);
+    expect(topLines).toHaveLength(2);
+    expect(topLines[0].thickness).toBeCloseTo(totalBorderWidth / 3, 2);
+    expect(topLines[1].thickness).toBeCloseTo(totalBorderWidth / 3, 2);
+    const occupiedWidth = topLines[0].start.y - topLines[1].start.y + (topLines[0].thickness ?? 0);
+    expect(occupiedWidth).toBeLessThanOrEqual(totalBorderWidth + 0.01);
+
+    drawLine.mockRestore();
   });
 
   it('provides deterministic browser-compatible helpers for component PDF rendering', () => {
