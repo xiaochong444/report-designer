@@ -130,6 +130,31 @@ describe('phase 34 table cell selection', () => {
     });
   });
 
+  it('renders selected table cell styles on the design canvas', () => {
+    loadWith({
+      ...tableComponent(),
+      cells: [{
+        row: 1,
+        column: 1,
+        text: 'Styled',
+        backgroundColor: '#fffbe6',
+        textAlign: 'right',
+        verticalAlign: 'middle',
+        padding: { top: 1, right: 2, bottom: 1, left: 3 },
+        border: { style: 'dashed', width: 0.4, color: '#faad14', sides: { top: true, right: true, bottom: true, left: true } },
+      }],
+    } as TableComponent);
+    render(<Canvas />);
+
+    expect(screen.getByTestId('designer-table-cell-1-1')).toHaveStyle({
+      backgroundColor: '#fffbe6',
+      textAlign: 'right',
+      alignItems: 'center',
+      borderTopStyle: 'dashed',
+      borderTopColor: '#faad14',
+    });
+  });
+
   it('applies cell appearance updates to every selected cell in the range', () => {
     loadWith(tableComponent());
     render(

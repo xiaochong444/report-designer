@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { sanitizeRichHtml, type ReportComponent, type Band, type PageBorder, type PageWatermark, type PanelComponent, type ReportFont, type RichTextDocument, type TableComponent } from '@report-designer/core';
+import { sanitizeRichHtml, type ReportComponent, type Band, type BorderConfig, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type RichTextDocument, type TableCell, type TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import type { TableCellSelection } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
@@ -1819,6 +1819,18 @@ const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTa
     );
     const label = customCell?.text
       ?? (isHeader ? normalized.columns[column]?.header || `Header ${column + 1}` : '');
+    const baseBackgroundColor = isHeader ? '#f0f5ff' : isFooter ? '#fff7e6' : '#fff';
+    const cellStyle = designTableCellStyle(customCell, {
+      defaultBorder: cellBorder,
+      baseBackgroundColor,
+      isSelected,
+      row,
+      column,
+      rowSpan,
+      colSpan,
+      rowCount,
+      columnCount,
+    });
 
     cells.push(
       <div
@@ -1829,19 +1841,16 @@ const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTa
         data-table-column={column}
         data-testid={`designer-table-cell-${row}-${column}`}
         style={{
+          ...cellStyle,
           gridColumn: colSpan > 1 ? `span ${colSpan}` : undefined,
           gridRow: rowSpan > 1 ? `span ${rowSpan}` : undefined,
           minWidth: 0,
           minHeight: 0,
-          borderRight: column + colSpan >= columnCount ? 'none' : cellBorder,
-          borderBottom: row + rowSpan >= rowCount ? 'none' : cellBorder,
-          backgroundColor: isSelected ? '#e6f4ff' : isHeader ? '#f0f5ff' : isFooter ? '#fff7e6' : '#fff',
           color: isHeader || isFooter ? '#333' : '#999',
           outline: isSelected ? '2px solid #1677ff' : undefined,
           outlineOffset: -2,
           fontSize: 10,
           lineHeight: 1.2,
-          padding: '2px 3px',
           overflow: 'hidden',
           whiteSpace: 'nowrap',
           textOverflow: 'ellipsis',
@@ -1871,3 +1880,56 @@ const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTa
     </div>
   );
 };
+
+function designTableCellStyle(
+  cell: TableCell | undefined,
+  options: {
+    defaultBorder: string;
+    baseBackgroundColor: string;
+    isSelected: boolean;
+    row: number;
+    column: number;
+    rowSpan: number;
+    colSpan: number;
+    rowCount: number;
+    columnCount: number;
+  },
+): React.CSSProperties {
+  const style: React.CSSProperties = {
+    display: 'flex',
+    justifyContent: tableTextAlignToFlex(cell?.textAlign),
+    alignItems: verticalAlignToFlex(cell?.verticalAlign),
+    textAlign: cell?.textAlign ?? 'left',
+    backgroundColor: cell?.backgroundColor ?? (options.isSelected ? '#e6f4ff' : options.baseBackgroundColor),
+    padding: tablePaddingToCss(cell?.padding),
+  };
+  const border = cell?.border;
+  if (border && border.style !== 'none' && (border.width ?? 0) > 0) {
+    Object.assign(style, tableBorderToCss(border));
+  } else {
+    style.borderRight = options.column + options.colSpan >= options.columnCount ? 'none' : options.defaultBorder;
+    style.borderBottom = options.row + options.rowSpan >= options.rowCount ? 'none' : options.defaultBorder;
+  }
+  return style;
+}
+
+function tablePaddingToCss(padding?: Padding): string {
+  if (!padding) return '2px 3px';
+  return `${mmToPx(padding.top)}px ${mmToPx(padding.right)}px ${mmToPx(padding.bottom)}px ${mmToPx(padding.left)}px`;
+}
+
+function tableBorderToCss(border: BorderConfig): React.CSSProperties {
+  const value = `${border.width}mm ${border.style} ${border.color}`;
+  return {
+    borderTop: border.sides.top ? value : 'none',
+    borderRight: border.sides.right ? value : 'none',
+    borderBottom: border.sides.bottom ? value : 'none',
+    borderLeft: border.sides.left ? value : 'none',
+  };
+}
+
+function tableTextAlignToFlex(value?: string): React.CSSProperties['justifyContent'] {
+  if (value === 'center') return 'center';
+  if (value === 'right') return 'flex-end';
+  return 'flex-start';
+}
