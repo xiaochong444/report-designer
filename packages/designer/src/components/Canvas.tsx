@@ -295,7 +295,16 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       // Right click context menu
       const ch = findComponentAtPoint(e.clientX, e.clientY);
       const tableCell = findTableCellAtPoint(e.clientX, e.clientY);
-      if (ch && !selectedComponentIds.includes(ch.compId)) {
+      if (tableCell) {
+        selectTableCell({
+          tableId: tableCell.tableId,
+          bandId: tableCell.bandId,
+          startRow: tableCell.row,
+          startColumn: tableCell.column,
+          endRow: tableCell.row,
+          endColumn: tableCell.column,
+        });
+      } else if (ch && !selectedComponentIds.includes(ch.compId)) {
         selectComponents([ch.compId]);
       }
       if (pageRef.current) {

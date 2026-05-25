@@ -42,8 +42,21 @@ function loadWith(component: ReportComponent) {
   useDesignerStore.getState().selectComponents([component.id]);
 }
 
+function loadWithComponents(components: ReportComponent[], selectedIds: string[]) {
+  const template = createDefaultTemplate('Phase 34 Context Menu');
+  template.pages[0].bands.find(band => band.type === 'data')!.components.push(...components);
+  useDesignerStore.getState().loadTemplate(template);
+  useDesignerStore.getState().selectComponents(selectedIds);
+}
+
 function selectedTable() {
   return useDesignerStore.getState().template.pages[0].bands.flatMap(band => band.components)[0] as TableComponent;
+}
+
+function tableById(id: string) {
+  return useDesignerStore.getState().template.pages[0].bands
+    .flatMap(band => band.components)
+    .find(component => component.id === id) as TableComponent;
 }
 
 function snapshotSelectedTable() {
@@ -73,6 +86,25 @@ describe('phase 34 table context menu', () => {
     fireEvent.click(screen.getByText('插入行到上方'));
     expect(selectedTable().rowCount).toBe(4);
     expect(selectedTable().cells).toContainEqual({ row: 3, column: 3, text: 'Tail' });
+  });
+
+  it('applies table context menu operations only to the right-clicked table', () => {
+    loadWithComponents([
+      tableComponent({ id: 'table-1', x: 10 }),
+      tableComponent({ id: 'table-2', x: 120 }),
+    ], ['table-1', 'table-2']);
+    render(<Canvas />);
+
+    const table2Cell = screen.getAllByTestId('designer-table-cell-1-1')[1];
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: vi.fn(() => table2Cell),
+    });
+    fireEvent.mouseDown(table2Cell, { button: 2, clientX: 20, clientY: 20 });
+    fireEvent.click(screen.getByText('插入列到右侧'));
+
+    expect(tableById('table-1').columnCount).toBe(3);
+    expect(tableById('table-2').columnCount).toBe(4);
   });
 
   it('sets header and footer rows from the clicked row', () => {
