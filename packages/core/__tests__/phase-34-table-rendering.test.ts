@@ -64,6 +64,46 @@ describe('phase 34 table rendering', () => {
     });
   });
 
+  it('uses the current DataBand row for a table bound to the same data source', () => {
+    const template = createDefaultTemplate('Table In DataBand Current Row');
+    template.dataSources = [{
+      id: 'orders',
+      name: 'orders',
+      type: 'json',
+      schema: [{ name: 'amount', type: 'number' }],
+    }];
+    const dataBand = template.pages[0].bands.find(band => band.type === 'data');
+    if (!dataBand) throw new Error('Missing data band');
+    dataBand.dataBand = { dataSourceId: 'orders' };
+    dataBand.height = 20;
+    dataBand.components = [{
+      id: 'table-1',
+      type: 'table',
+      x: 0,
+      y: 0,
+      width: 80,
+      height: 16,
+      dataSource: 'orders',
+      columns: [{ id: 'amount', header: 'Amount', field: 'amount', width: 80, cellType: 'text' }],
+      rowCount: 2,
+      columnCount: 1,
+      headerRowsCount: 1,
+      footerRowsCount: 0,
+      headerHeight: 8,
+      rowHeight: 8,
+      showBorder: true,
+      cells: [{ row: 1, column: 0, text: '{orders.amount}' }],
+    } as TableComponent];
+
+    const document = renderReport(template, { orders: [{ amount: 10 }, { amount: 20 }] });
+    const tableContents = document.pages[0].items
+      .filter(item => item.bandId === dataBand.id)
+      .map(item => item.components.find(component => component.id === 'table-1'))
+      .map(table => table?.type === 'table' ? table.rows[1]?.[0]?.content : undefined);
+
+    expect(tableContents).toEqual(['10', '20']);
+  });
+
   it('splits tall tables across pages and repeats header rows', () => {
     const template = createDefaultTemplate('Table Header Repeat');
     const page = template.pages[0];

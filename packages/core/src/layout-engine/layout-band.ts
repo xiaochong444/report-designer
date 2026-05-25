@@ -529,6 +529,9 @@ function tableSourceRows(
   rowsByBand: Record<string, Record<string, unknown>[]>,
 ): Record<string, unknown>[] {
   if (component.dataSource) {
+    if (component.dataSource === context.dataSourceId && context.row) {
+      return [context.row];
+    }
     return context.rowsByBand?.[component.dataSource] ?? rowsByBand[component.dataSource] ?? [];
   }
   return context.row ? [context.row] : [];
