@@ -14,12 +14,23 @@ interface ViewerProps {
   className?: string;
   subreports?: RenderReportOptions['subreports'];
   onEventLogSelect?: (entry: EventLogEntry) => void;
+  onEventLogsClear?: () => void;
+  onEventLogsExport?: (logs: EventLogEntry[]) => void;
 }
 
-export const Viewer: React.FC<ViewerProps> = ({ template, data, className, onEventLogSelect, subreports }) => {
+export const Viewer: React.FC<ViewerProps> = ({
+  template,
+  data,
+  className,
+  onEventLogSelect,
+  onEventLogsClear,
+  onEventLogsExport,
+  subreports,
+}) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(100);
   const [eventLogOpen, setEventLogOpen] = useState(false);
+  const [eventLogsCleared, setEventLogsCleared] = useState(false);
   const previewScrollRef = React.useRef<HTMLElement | null>(null);
 
   const document = useMemo(
@@ -27,6 +38,11 @@ export const Viewer: React.FC<ViewerProps> = ({ template, data, className, onEve
     [template, data, subreports],
   );
   const totalPages = document.pages.length;
+  const eventLogs = eventLogsCleared ? [] : (document.eventLogs ?? []);
+
+  React.useEffect(() => {
+    setEventLogsCleared(false);
+  }, [document]);
 
   const handleExportPDF = async () => {
     const pdfDocument = renderReport(template, data, { subreports, mode: 'pdf' });
@@ -50,7 +66,7 @@ export const Viewer: React.FC<ViewerProps> = ({ template, data, className, onEve
           onZoomChange={setZoom}
           onPrint={handlePrint}
           onExportPDF={handleExportPDF}
-          eventLogCount={document.eventLogs?.length ?? 0}
+          eventLogCount={eventLogs.length}
           onShowEventLogs={() => setEventLogOpen(true)}
         />
       </div>
@@ -64,9 +80,14 @@ export const Viewer: React.FC<ViewerProps> = ({ template, data, className, onEve
       </Content>
       <EventLogPanel
         open={eventLogOpen}
-        logs={document.eventLogs ?? []}
+        logs={eventLogs}
         onClose={() => setEventLogOpen(false)}
         onSelect={onEventLogSelect}
+        onExport={onEventLogsExport}
+        onClear={() => {
+          setEventLogsCleared(true);
+          onEventLogsClear?.();
+        }}
       />
     </Layout>
   );

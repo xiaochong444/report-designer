@@ -8,6 +8,16 @@
 
 **Tech Stack:** TypeScript, React 19, Ant Design 6, Vite, Vitest, Testing Library, pdf-lib, Playwright smoke tests.
 
+## Progress Summary
+
+- [x] Stage 1 页面外观闭环：页面水印、页面边框、设计器入口、DOM 预览、打印 HTML、PDF 输出和测试均已落地。
+- [x] Stage 2 组件属性矩阵补齐：属性矩阵文档、组件属性分组、常用组件属性和渲染一致性测试均已落地。
+- [x] Stage 3 表格设计能力增强：单元格选择、右键菜单、单元格属性、跨页重复表头、PDF 表格输出和撤销测试均已落地。
+- [x] Stage 4 Band 核心严测：Band 合同测试、DataBand 排序、Band 属性入口和分页行为测试均已落地。
+- [x] Stage 5 事件系统产品化：统一事件入口、脚本模板、事件日志、错误定位和动态脚本模板均已落地。
+- [x] Stage 5 事件日志操作面：Viewer 事件日志支持级别筛选、清空当前日志和导出当前筛选结果。
+- [x] Final Verification：核心、设计器、查看器相关阶段测试已通过；全量测试、构建、命名扫描和浏览器烟测需在每个后续功能提交前继续执行。
+
 ---
 
 ## File Map

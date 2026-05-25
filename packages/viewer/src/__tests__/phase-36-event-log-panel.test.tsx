@@ -75,6 +75,36 @@ describe('phase 36 event log panel', () => {
       message: 'line boom',
     }));
   });
+
+  it('filters, clears, and exports event logs from the viewer', () => {
+    const onEventLogsClear = vi.fn();
+    const onEventLogsExport = vi.fn();
+
+    render(
+      <Viewer
+        template={eventLogTemplate()}
+        data={{}}
+        onEventLogsClear={onEventLogsClear}
+        onEventLogsExport={onEventLogsExport}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Event Logs' }));
+    expect(screen.getByText('start')).toBeInTheDocument();
+    expect(screen.getByText('line boom')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('radio', { name: 'Error' }));
+    expect(screen.queryByText('start')).not.toBeInTheDocument();
+    expect(screen.getByText('line boom')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export Event Logs' }));
+    expect(onEventLogsExport).toHaveBeenCalledWith([
+      expect.objectContaining({ level: 'error', message: 'line boom' }),
+    ]);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Clear Event Logs' }));
+    expect(onEventLogsClear).toHaveBeenCalledTimes(1);
+  });
 });
 
 function eventLogTemplate(): ReportTemplate {
