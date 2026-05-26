@@ -189,6 +189,7 @@ export function paginate(
   const printableWidth = templatePage.width - templatePage.margins.left - templatePage.margins.right;
   const footerHeight = pageBands.pageFooter.reduce((sum, band) => sum + band.height, 0);
   const pageBottomY = templatePage.height - templatePage.margins.bottom - footerHeight;
+  const lastPageBandIds = collectLastPageBandIds(templatePage);
   const repeatedGroups: Band[] = [];
   const pageRows = new WeakMap<RenderPage, Record<string, Record<string, unknown>[]>>();
   let activeSectionRepeatBands: Band[] = [];
@@ -243,6 +244,10 @@ export function paginate(
     }
     const currentPageRows = currentPage ? pageRows.get(currentPage) ?? {} : {};
     let preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: currentPageRows, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false) });
+    if (behavior.printIfEmpty === false && preview.components.length === 0) {
+      finishBandInstance(eventBand, context, options, templatePage);
+      return undefined;
+    }
     const breakIfLessThan = behavior.breakIfLessThan ?? 0;
     if (!force && breakIfLessThan > 0 && pageBottomY - cursorY < breakIfLessThan && currentPage!.items.length > 0) {
       newPage();
@@ -327,7 +332,7 @@ export function paginate(
 
   for (const page of pages) {
     for (const overlay of pageBands.overlay) {
-      const box = renderFixedBand(overlay, createEmptyContext(options.parameters), templatePage.margins.top, pageRows.get(page) ?? {}, templatePage, printableX, printableWidth, rowsByBand, styles, options);
+      const box = renderFixedBand(overlay, createEmptyContext(options.parameters), templatePage.margins.top, pageRows.get(page) ?? {}, templatePage, page.pageNumber, printableX, printableWidth, rowsByBand, styles, options);
       if (box) {
         page.items.unshift(box);
       }
@@ -335,7 +340,7 @@ export function paginate(
 
     let footerY = templatePage.height - templatePage.margins.bottom - footerHeight;
     for (const footer of pageBands.pageFooter) {
-      const box = renderFixedBand(footer, createEmptyContext(options.parameters), footerY, pageRows.get(page) ?? {}, templatePage, printableX, printableWidth, rowsByBand, styles, options);
+      const box = renderFixedBand(footer, createEmptyContext(options.parameters), footerY, pageRows.get(page) ?? {}, templatePage, page.pageNumber, printableX, printableWidth, rowsByBand, styles, options);
       if (box) {
         page.items.push(box);
         footerY += box.height;
@@ -344,6 +349,7 @@ export function paginate(
     runPageEvent(templatePage, 'afterPrint', options.eventRuntime);
   }
 
+  removeNonFinalLastPageBands(pages, lastPageBandIds);
   return pages;
 }
 
@@ -357,12 +363,26 @@ function clonePageBorder(pageBorder: Page['pageBorder']): PageBorder | undefined
     : undefined;
 }
 
+function collectLastPageBandIds(page: Page): Set<string> {
+  return new Set(page.bands.filter((band) => getBandBehavior(band).printOn === 'lastPage').map((band) => band.id));
+}
+
+function removeNonFinalLastPageBands(pages: RenderPage[], lastPageBandIds: Set<string>): void {
+  if (lastPageBandIds.size === 0) return;
+  const finalPage = pages.at(-1);
+  for (const page of pages) {
+    if (page === finalPage) continue;
+    page.items = page.items.filter((item) => !lastPageBandIds.has(item.bandId));
+  }
+}
+
 function renderFixedBand(
   band: Band,
   context: RenderContext,
   y: number,
   pageRowsByBand: Record<string, Record<string, unknown>[]>,
   templatePage: Page,
+  pageNumber: number,
   x: number,
   width: number,
   rowsByBand: Record<string, Record<string, unknown>[]>,
@@ -375,6 +395,12 @@ function renderFixedBand(
   }
 
   const layoutContext = withParameters(context, options.parameters);
+  const behavior = getBandBehavior(eventBand);
+  if (!shouldPrintBand(behavior, pageNumber, layoutContext, rowsByBand)) {
+    finishBandInstance(eventBand, context, options, templatePage);
+    return undefined;
+  }
+
   const box = layoutBand(eventBand, {
     x,
     y,
@@ -386,6 +412,11 @@ function renderFixedBand(
     renderSubreport: createSubreportRenderer(rowsByBand, options, true),
     eventRuntime: withEventPage(options.eventRuntime, templatePage),
   });
+  if (behavior.printIfEmpty === false && box.components.length === 0) {
+    finishBandInstance(eventBand, context, options, templatePage);
+    return undefined;
+  }
+
   finishBandInstance(eventBand, context, options, templatePage);
   return box;
 }

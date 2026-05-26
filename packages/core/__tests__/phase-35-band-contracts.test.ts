@@ -242,4 +242,90 @@ describe('phase 35 band contracts', () => {
 
     expect(document.pages[0].items.map(item => item.bandId)).toEqual(['data']);
   });
+
+  it('prints last-page fixed bands only on the final page', () => {
+    const template = makeTemplate([
+      band('data', 'data', {
+        height: 20,
+        dataBand: { dataSourceId: 'employees' },
+        components: [{
+          id: 'detail',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 8,
+          text: '{employees.Name}',
+          ...textBase,
+        }],
+      }),
+      band('last-page-footer', 'pageFooter', {
+        height: 8,
+        behavior: { enabled: true, printOn: 'lastPage', printIfEmpty: true, printOnAllPages: true, keepTogether: false, canBreak: false, printAtBottom: true },
+        components: [{
+          id: 'last-page-text',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 8,
+          text: 'Last page only',
+          ...textBase,
+        }],
+      }),
+    ]);
+    template.pages[0].height = 65;
+    template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
+
+    const document = renderReport(template, {
+      employees: [
+        { Name: 'A' },
+        { Name: 'B' },
+        { Name: 'C' },
+        { Name: 'D' },
+      ],
+    });
+
+    expect(document.pages.length).toBeGreaterThan(1);
+    expect(document.pages[0].items.map(item => item.bandId)).not.toContain('last-page-footer');
+    expect(document.pages.at(-1)?.items.map(item => item.bandId)).toContain('last-page-footer');
+  });
+
+  it('skips bands with no rendered components when printIfEmpty is false', () => {
+    const template = makeTemplate([
+      band('empty-header', 'header', {
+        height: 8,
+        behavior: { enabled: true, printOn: 'allPages', printIfEmpty: false, printOnAllPages: false, keepTogether: false, canBreak: false, printAtBottom: false },
+        components: [{
+          id: 'hidden-header-text',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 8,
+          text: 'Hidden',
+          visible: '{Parameters.ShowHeader}',
+          ...textBase,
+        }],
+      }),
+      band('data', 'data', {
+        height: 10,
+        dataBand: { dataSourceId: 'employees' },
+        components: [{
+          id: 'detail',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 8,
+          text: '{employees.Name}',
+          ...textBase,
+        }],
+      }),
+    ]);
+
+    const document = renderReport(template, { employees: [{ Name: 'A' }] }, { parameters: { ShowHeader: false } });
+
+    expect(document.pages[0].items.map(item => item.bandId)).toEqual(['data']);
+  });
 });
