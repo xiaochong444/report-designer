@@ -252,6 +252,7 @@ const TableComponent: React.FC<{ component: RenderTable; style: React.CSSPropert
 
 function tableCellStyle(cell: StyledRenderTableCell, rowCount: number, columnCount: number, gridBorder: string, scale: number): React.CSSProperties {
   const border = cell.style?.border;
+  const font = cell.style?.font;
   return {
     gridColumn: cell.colSpan > 1 ? `span ${cell.colSpan}` : undefined,
     gridRow: cell.rowSpan > 1 ? `span ${cell.rowSpan}` : undefined,
@@ -260,8 +261,12 @@ function tableCellStyle(cell: StyledRenderTableCell, rowCount: number, columnCou
     borderTop: border?.sides.top ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
     borderLeft: border?.sides.left ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
     backgroundColor: cell.style?.backgroundColor ?? (cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined),
-    color: '#111',
-    fontSize: 10 * 1.333 * scale,
+    color: font?.color ?? '#111',
+    fontFamily: font?.family,
+    fontSize: (font?.size ?? 10) * 1.333 * scale,
+    fontWeight: font?.bold ? 700 : 400,
+    fontStyle: font?.italic ? 'italic' : undefined,
+    textDecoration: textDecorationValue(font),
     lineHeight: 1.2,
     paddingTop: `${(cell.style?.padding?.top ?? 1) * MM_TO_PX * scale}px`,
     paddingRight: `${(cell.style?.padding?.right ?? 1.5) * MM_TO_PX * scale}px`,

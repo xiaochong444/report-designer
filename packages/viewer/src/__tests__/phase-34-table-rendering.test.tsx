@@ -44,6 +44,15 @@ function makeDocument(): RenderDocument {
               padding: { top: 1, right: 2, bottom: 1, left: 2 },
               textAlign: 'right',
               verticalAlign: 'middle',
+              font: {
+                family: 'Arial',
+                size: 11,
+                bold: true,
+                italic: true,
+                underline: true,
+                strikethrough: true,
+                color: '#1677ff',
+              },
               border: { style: 'solid', width: 0.2, color: '#1677ff', sides: { top: true, right: true, bottom: true, left: true } },
             },
           }]],
@@ -62,6 +71,12 @@ describe('phase 34 table rendering viewer', () => {
       backgroundColor: '#fffbe6',
       textAlign: 'right',
       borderTopColor: '#1677ff',
+      fontFamily: 'Arial',
+      fontSize: '14.663px',
+      fontWeight: '700',
+      fontStyle: 'italic',
+      textDecoration: 'underline line-through',
+      color: '#1677ff',
     });
   });
 
@@ -72,5 +87,11 @@ describe('phase 34 table rendering viewer', () => {
     expect(html).toContain('padding:1mm 2mm 1mm 2mm');
     expect(html).toContain('text-align:right');
     expect(html).toContain('border-top:0.2mm solid #1677ff');
+    expect(html).toContain('font-family:Arial');
+    expect(html).toContain('font-size:14.663px');
+    expect(html).toContain('font-weight:700');
+    expect(html).toContain('font-style:italic');
+    expect(html).toContain('text-decoration:underline line-through');
+    expect(html).toContain('color:#1677ff');
   });
 });

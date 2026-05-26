@@ -83,7 +83,7 @@ export async function drawRenderComponent(
   }
 
   if (component.type === 'table' && 'rows' in component && 'columns' in component) {
-    drawTable(page, component as RenderTable, x, y, width, height, font);
+    drawTable(page, component as RenderTable, x, y, width, height, font, boldFont);
   }
 }
 
@@ -213,7 +213,7 @@ function drawCheckbox(page: PDFPage, checkbox: RenderCheckbox, x: number, y: num
   }
 }
 
-function drawTable(page: PDFPage, table: RenderTable, x: number, y: number, width: number, height: number, font: PDFFont): void {
+function drawTable(page: PDFPage, table: RenderTable, x: number, y: number, width: number, height: number, font: PDFFont, boldFont: PDFFont): void {
   page.drawRectangle({ x, y, width, height, color: parsePdfColor('#ffffff') });
   page.drawRectangle({
     x,
@@ -237,7 +237,7 @@ function drawTable(page: PDFPage, table: RenderTable, x: number, y: number, widt
       const cellWidth = spanSize(columnWidths, cell.column, cell.colSpan);
       const cellHeight = spanSize(rowHeights, cell.row, cell.rowSpan);
       const cellY = y + height - rowTopOffset - cellHeight;
-      drawTableCell(page, cell, cellX, cellY, cellWidth, cellHeight, table.columns.length, table.rows.length, font, table.showBorder);
+      drawTableCell(page, cell, cellX, cellY, cellWidth, cellHeight, table.columns.length, table.rows.length, font, boldFont, table.showBorder);
     }
   }
 }
@@ -252,6 +252,7 @@ function drawTableCell(
   columnCount: number,
   rowCount: number,
   font: PDFFont,
+  boldFont: PDFFont,
   showBorder: boolean,
 ): void {
   const backgroundColor = cell.style?.backgroundColor ?? (cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined);
@@ -263,16 +264,49 @@ function drawTableCell(
 
   const padding = cell.style?.padding ?? { top: 1, right: 1.5, bottom: 1, left: 1.5 };
   const fontSize = cell.style?.font?.size ?? 10;
-  const textX = textAlignedX(x, width, padding, safePdfText(cell.content), font, fontSize, cell.style?.textAlign);
+  const pdfFont = cell.style?.font?.bold ? boldFont : font;
+  const safeText = safePdfText(cell.content);
+  const textX = textAlignedX(x, width, padding, safeText, pdfFont, fontSize, cell.style?.textAlign);
   const textY = textAlignedY(y, height, padding, fontSize, cell.style?.verticalAlign);
-  page.drawText(safePdfText(cell.content), {
+  const color = parsePdfColor(cell.style?.font?.color ?? '#111111');
+  const maxWidth = Math.max(1, width - (padding.left + padding.right) * MM_TO_PT);
+  page.drawText(safeText, {
     x: textX,
     y: textY,
     size: fontSize,
-    font,
-    color: parsePdfColor(cell.style?.font?.color ?? '#111111'),
-    maxWidth: Math.max(1, width - (padding.left + padding.right) * MM_TO_PT),
+    font: pdfFont,
+    color,
+    maxWidth,
   });
+  drawTableTextDecorations(page, cell, textX, textY, Math.min(pdfFont.widthOfTextAtSize(safeText, fontSize), maxWidth), fontSize, color);
+}
+
+function drawTableTextDecorations(
+  page: PDFPage,
+  cell: RenderTableCell,
+  x: number,
+  baselineY: number,
+  textWidth: number,
+  fontSize: number,
+  color: ReturnType<typeof parsePdfColor>,
+): void {
+  if (textWidth <= 0) return;
+  const thickness = 0.5;
+  const drawDecorationLine = (y: number) => {
+    page.drawLine({
+      start: { x, y },
+      end: { x: x + textWidth, y },
+      thickness,
+      color,
+    });
+  };
+
+  if (cell.style?.font?.underline) {
+    drawDecorationLine(baselineY - fontSize * 0.12);
+  }
+  if (cell.style?.font?.strikethrough) {
+    drawDecorationLine(baselineY + fontSize * 0.32);
+  }
 }
 
 function drawTableCellBorders(

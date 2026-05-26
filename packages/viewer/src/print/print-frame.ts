@@ -184,7 +184,7 @@ function renderTableHtml(component: RenderComponentBox, dataAttribute: string, s
       `padding:${paddingCssValue(cell.style?.padding ?? { top: 1, right: 1.5, bottom: 1, left: 1.5 })}`,
       cell.style?.textAlign ? `text-align:${cell.style.textAlign}` : undefined,
       cell.style?.verticalAlign ? `align-content:${cell.style.verticalAlign === 'middle' ? 'center' : cell.style.verticalAlign === 'bottom' ? 'end' : 'start'}` : undefined,
-      'font-size:10px',
+      fontCssDeclarations(cell.style?.font, safeCssColor(cell.style?.font?.color, '#111111'), 10),
       'line-height:1.2',
     ].filter(Boolean).join(';');
     return `<div class="rd-print-table-cell" style="${declarations};">${escapeHtml(cell.content)}</div>`;

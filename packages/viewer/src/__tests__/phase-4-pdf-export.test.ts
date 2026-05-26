@@ -439,6 +439,15 @@ describe('Phase 4 PDF export', () => {
               padding: { top: 2, right: 3, bottom: 1, left: 4 },
               textAlign: 'left',
               verticalAlign: 'top',
+              font: {
+                family: 'Arial',
+                size: 11,
+                bold: true,
+                italic: true,
+                underline: true,
+                strikethrough: true,
+                color: '#1677ff',
+              },
               border: { style: 'dashed', width: 0.4, color: '#ff4d4f', sides: { top: true, right: true, bottom: true, left: true } },
             },
           },
@@ -461,6 +470,11 @@ describe('Phase 4 PDF export', () => {
     expect(drawText.mock.calls.some(([text]) => text === 'Name')).toBe(true);
     expect(drawText.mock.calls.some(([text]) => text === 'Alice')).toBe(true);
     expect(drawText.mock.calls.some(([text]) => text === 'Total')).toBe(true);
+    const aliceCall = drawText.mock.calls.find(([text]) => text === 'Alice');
+    expect(aliceCall?.[1]).toEqual(expect.objectContaining({
+      size: 11,
+      color: expect.objectContaining({ red: 22 / 255, green: 119 / 255, blue: 255 / 255 }),
+    }));
     expect(drawRectangle.mock.calls.some(([options]) => options.color?.red === 240 / 255 && options.color?.green === 245 / 255 && options.color?.blue === 255 / 255)).toBe(true);
     expect(drawRectangle.mock.calls.some(([options]) => options.color?.red === 255 / 255 && options.color?.green === 247 / 255 && options.color?.blue === 230 / 255)).toBe(true);
     expect(drawLine.mock.calls.some(([options]) => (
@@ -470,6 +484,12 @@ describe('Phase 4 PDF export', () => {
       && Math.abs((options.thickness ?? 0) - 0.4 * 72 / 25.4) < 0.01
       && JSON.stringify(options.dashArray) === '[6,4]'
     ))).toBe(true);
+    expect(drawLine.mock.calls.filter(([options]) => (
+      options.color?.red === 22 / 255
+      && options.color?.green === 119 / 255
+      && options.color?.blue === 255 / 255
+      && Math.abs((options.thickness ?? 0) - 0.5) < 0.01
+    ))).toHaveLength(2);
 
     drawRectangle.mockRestore();
     drawText.mockRestore();
