@@ -262,9 +262,16 @@ export interface TableCell {
   format?: TextFormatConfig;
 }
 
+export interface TableBinding {
+  mode: 'fixed' | 'detail';
+  dataSourceId?: string;
+  arrayPath?: string;
+}
+
 export interface TableComponent extends ReportComponent {
   type: 'table';
   dataSource: string;
+  binding?: TableBinding;
   columns: TableColumn[];
   rowCount?: number;
   columnCount?: number;

@@ -424,6 +424,9 @@ function layoutTable(component: TableComponent, options: LayoutBandOptions): Ren
     pageRowsByBand: options.pageRowsByBand ?? {},
     context: options.context,
   });
+  const tableHeight = component.binding?.mode === 'detail'
+    ? Math.max(component.height, tableRowsHeight(rows, component.rowHeight))
+    : component.height;
 
   return {
     id: component.id,
@@ -431,7 +434,7 @@ function layoutTable(component: TableComponent, options: LayoutBandOptions): Ren
     x: options.x + component.x,
     y: options.y + component.y,
     width: component.width,
-    height: component.height,
+    height: tableHeight,
     columns,
     rows,
     showBorder: component.showBorder,
@@ -497,6 +500,10 @@ function buildTableRows(
     context: RenderContext;
   },
 ) {
+  if (component.binding?.mode === 'detail') {
+    return buildDetailTableRows(component, columns, options);
+  }
+
   const sourceRows = tableSourceRows(component, options.context, options.rowsByBand);
   const covered = tableCoveredCells(component.cells, options.rowCount, columns.length);
   const rows = [];
@@ -544,6 +551,136 @@ function buildTableRows(
   return rows;
 }
 
+function buildDetailTableRows(
+  component: TableComponent,
+  columns: TableComponent['columns'],
+  options: {
+    rowCount: number;
+    headerRowsCount: number;
+    footerRowsCount: number;
+    rowsByBand: Record<string, Record<string, unknown>[]>;
+    pageRowsByBand: Record<string, Record<string, unknown>[]>;
+    context: RenderContext;
+  },
+) {
+  const detailRows = tableDetailRows(component, options.context, options.rowsByBand);
+  const bodyStart = options.headerRowsCount;
+  const bodyEnd = Math.max(bodyStart, options.rowCount - options.footerRowsCount);
+  const bodyTemplateRows = Array.from(
+    { length: Math.max(1, bodyEnd - bodyStart) },
+    (_, index) => bodyStart + index,
+  );
+  const footerStart = Math.max(options.headerRowsCount, options.rowCount - options.footerRowsCount);
+  const rows: ReturnType<typeof buildTableRows> = [];
+  const covered = new Set<string>();
+  let outputRow = 0;
+
+  for (let templateRow = 0; templateRow < options.headerRowsCount; templateRow += 1) {
+    rows.push(renderTableRow(component, columns, options, {
+      templateRow,
+      outputRow,
+      outputRowCount: 0,
+      isHeader: true,
+      isFooter: false,
+      rowContext: options.context,
+      covered,
+    }));
+    outputRow += 1;
+  }
+
+  const outputRowCount = options.headerRowsCount + detailRows.length * bodyTemplateRows.length + options.footerRowsCount;
+  detailRows.forEach((detailRow, detailIndex) => {
+    const rowContext = createDetailTableContext(component, options.context, detailRow, detailIndex);
+    for (const templateRow of bodyTemplateRows) {
+      rows.push(renderTableRow(component, columns, options, {
+        templateRow,
+        outputRow,
+        outputRowCount,
+        isHeader: false,
+        isFooter: false,
+        rowContext,
+        covered,
+      }));
+      outputRow += 1;
+    }
+  });
+
+  for (let templateRow = footerStart; templateRow < options.rowCount; templateRow += 1) {
+    rows.push(renderTableRow(component, columns, options, {
+      templateRow,
+      outputRow,
+      outputRowCount,
+      isHeader: false,
+      isFooter: true,
+      rowContext: options.context,
+      covered,
+    }));
+    outputRow += 1;
+  }
+
+  return rows;
+}
+
+function renderTableRow(
+  component: TableComponent,
+  columns: TableComponent['columns'],
+  options: {
+    rowCount: number;
+    rowsByBand: Record<string, Record<string, unknown>[]>;
+    pageRowsByBand: Record<string, Record<string, unknown>[]>;
+  },
+  args: {
+    templateRow: number;
+    outputRow: number;
+    outputRowCount: number;
+    isHeader: boolean;
+    isFooter: boolean;
+    rowContext: RenderContext;
+    covered: Set<string>;
+  },
+) {
+  const renderedRow = [];
+  const totalRows = Math.max(options.rowCount, args.outputRowCount || options.rowCount);
+  for (let column = 0; column < columns.length; column += 1) {
+    if (args.covered.has(`${args.outputRow}-${column}`)) continue;
+    const customCell = component.cells?.find(cell => cell.row === args.templateRow && cell.column === column);
+    const rowSpan = Math.max(1, Math.min(customCell?.rowSpan ?? 1, totalRows - args.outputRow));
+    const colSpan = Math.max(1, Math.min(customCell?.colSpan ?? 1, columns.length - column));
+    markCoveredCells(args.covered, args.outputRow, column, rowSpan, colSpan);
+    const content = tableCellContent({
+      cell: customCell,
+      column: columns[column],
+      isHeader: args.isHeader,
+      isFooter: args.isFooter,
+      context: args.rowContext,
+      rowsByBand: options.rowsByBand,
+      pageRowsByBand: options.pageRowsByBand,
+    });
+    renderedRow.push({
+      row: args.outputRow,
+      column,
+      content,
+      field: columns[column]?.field,
+      rowSpan,
+      colSpan,
+      height: args.isHeader ? component.headerHeight : component.rowHeight,
+      isHeader: args.isHeader,
+      isFooter: args.isFooter,
+      style: tableCellStyle(customCell),
+    });
+  }
+  return renderedRow;
+}
+
+function markCoveredCells(covered: Set<string>, row: number, column: number, rowSpan: number, colSpan: number): void {
+  for (let coveredRow = row; coveredRow < row + rowSpan; coveredRow += 1) {
+    for (let coveredColumn = column; coveredColumn < column + colSpan; coveredColumn += 1) {
+      if (coveredRow === row && coveredColumn === column) continue;
+      covered.add(`${coveredRow}-${coveredColumn}`);
+    }
+  }
+}
+
 function tableSourceRows(
   component: TableComponent,
   context: RenderContext,
@@ -556,6 +693,71 @@ function tableSourceRows(
     return context.rowsByBand?.[component.dataSource] ?? rowsByBand[component.dataSource] ?? [];
   }
   return context.row ? [context.row] : [];
+}
+
+function tableDetailRows(
+  component: TableComponent,
+  context: RenderContext,
+  rowsByBand: Record<string, Record<string, unknown>[]>,
+): Record<string, unknown>[] {
+  const binding = component.binding;
+  if (binding?.arrayPath) {
+    return asRecordArray(valueAtPath(context.row, binding.arrayPath));
+  }
+  const dataSourceId = binding?.dataSourceId || component.dataSource;
+  return dataSourceId
+    ? context.rowsByBand?.[dataSourceId] ?? rowsByBand[dataSourceId] ?? []
+    : [];
+}
+
+function createDetailTableContext(
+  component: TableComponent,
+  outerContext: RenderContext,
+  detailRow: Record<string, unknown>,
+  detailIndex: number,
+): RenderContext {
+  const alias = tableDetailAlias(component);
+  const outerRow = outerContext.row && outerContext.dataSourceId
+    ? { [outerContext.dataSourceId]: outerContext.row }
+    : {};
+  return {
+    ...outerContext,
+    row: {
+      ...(outerContext.row ?? {}),
+      ...detailRow,
+      ...outerRow,
+      ...(alias ? { [alias]: detailRow } : {}),
+    },
+    rowIndex: detailIndex,
+    dataSourceId: alias || component.binding?.dataSourceId || component.dataSource || outerContext.dataSourceId,
+  };
+}
+
+function tableDetailAlias(component: TableComponent): string | undefined {
+  const arrayPath = component.binding?.arrayPath?.trim();
+  if (arrayPath) {
+    return arrayPath.split('.').filter(Boolean).at(-1);
+  }
+  return component.binding?.dataSourceId || component.dataSource || undefined;
+}
+
+function valueAtPath(row: Record<string, unknown> | undefined, path: string): unknown {
+  return path.split('.').filter(Boolean).reduce<unknown>((value, segment) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return (value as Record<string, unknown>)[segment];
+    }
+    return undefined;
+  }, row);
+}
+
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : [];
+}
+
+function tableRowsHeight(rows: Array<Array<{ height?: number }>>, fallbackHeight: number): number {
+  return rows.reduce((sum, row) => sum + (row[0]?.height ?? fallbackHeight), 0);
 }
 
 function tableCoveredCells(cells: TableCell[] | undefined, rowCount: number, columnCount: number): Set<string> {

@@ -1,4 +1,4 @@
-import type { Band, DataField, DataSource, Page, PageBorder, PageWatermark, ReportTemplate } from './types';
+import type { Band, DataField, DataSource, Page, PageBorder, PageWatermark, ReportComponent, ReportTemplate, TableComponent } from './types';
 import { normalizeReportFonts } from '../fonts';
 import { mapDataField } from './types';
 import { createDefaultPageBorder, createDefaultPageWatermark } from './template';
@@ -99,10 +99,29 @@ function normalizeBand(band: Band): Band {
     },
     dataBand,
     group,
-    components: band.components.map(component => (
-      component.type === 'panel' && Array.isArray((component as any).components)
-        ? { ...component, components: (component as any).components.map((child: any) => ({ ...child })) }
-        : { ...component }
-    )),
+    components: band.components.map(normalizeComponent),
   };
+}
+
+function normalizeComponent(component: ReportComponent): ReportComponent {
+  if (component.type === 'panel' && Array.isArray((component as any).components)) {
+    return {
+      ...component,
+      components: (component as any).components.map((child: ReportComponent) => normalizeComponent(child)),
+    };
+  }
+
+  if (component.type === 'table') {
+    const table = component as TableComponent;
+    return {
+      ...table,
+      binding: {
+        mode: table.binding?.mode ?? 'fixed',
+        dataSourceId: table.binding?.dataSourceId,
+        arrayPath: table.binding?.arrayPath,
+      },
+    };
+  }
+
+  return { ...component };
 }
