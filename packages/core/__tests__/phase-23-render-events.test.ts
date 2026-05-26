@@ -154,6 +154,71 @@ describe('phase 23 render events', () => {
     expect(textContents(template)).toEqual(['Visible']);
   });
 
+  it('uses component beforePrint visibility when reserving page space', () => {
+    const template = reportTemplate({
+      components: [
+        textComponent({ id: 'visible-text', name: 'VisibleText', text: '{orders.Amount}' }),
+        textComponent({
+          id: 'hidden-spacer',
+          name: 'HiddenSpacer',
+          y: 30,
+          height: 10,
+          text: 'Hidden spacer',
+          events: {
+            beforePrint: { enabled: true, script: 'ctx.hide();' },
+          },
+        }),
+      ],
+    });
+    template.pages[0].height = 60;
+    template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
+
+    const document = renderReport(template, {
+      orders: [{ Amount: 1 }, { Amount: 2 }, { Amount: 3 }],
+    });
+
+    expect(document.pages).toHaveLength(1);
+    expect(textContentsFromDocument(document)).toEqual(['1', '2', '3']);
+  });
+
+  it('does not run band after events when a band is skipped before printing', () => {
+    const template = reportTemplate({
+      bands: [
+        {
+          id: 'hidden-empty-band',
+          name: 'HiddenEmptyBand',
+          type: 'header',
+          height: 8,
+          behavior: { enabled: true, printOn: 'allPages', printIfEmpty: false, printOnAllPages: false, keepTogether: false, canBreak: false, printAtBottom: false },
+          components: [
+            textComponent({
+              id: 'hidden-header-text',
+              name: 'HiddenHeaderText',
+              text: 'Hidden',
+              visible: '{Parameters.ShowHeader}',
+            }),
+          ],
+          events: {
+            afterPrint: { enabled: true, script: 'ctx.log.info("after hidden empty");' },
+          },
+        },
+        {
+          id: 'orders-band',
+          name: 'OrdersBand',
+          type: 'data',
+          height: 16,
+          dataBand: { dataSourceId: 'orders' },
+          components: [textComponent()],
+        },
+      ],
+    });
+
+    const document = renderReport(template, { orders: [{ Amount: 1 }] }, { parameters: { ShowHeader: false } });
+
+    expect(document.pages[0].items.map(item => item.bandId)).toEqual(['orders-band']);
+    expect(document.eventLogs?.map(entry => entry.message)).not.toContain('after hidden empty');
+  });
+
   it('lets component beforePrint cancel the component', () => {
     const template = reportTemplate({
       components: [

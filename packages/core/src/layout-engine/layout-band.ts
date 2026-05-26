@@ -38,6 +38,8 @@ export interface LayoutBandOptions {
   styles?: ReportStyle[];
   renderSubreport?: (component: SubreportComponent, x: number, y: number, context: RenderContext) => { children: RenderComponentBox[]; missing: boolean; height?: number };
   eventRuntime?: LayoutEventRuntime;
+  eventState?: LayoutEventState;
+  eventMode?: 'measure' | 'render';
 }
 
 export interface LayoutEventRuntime {
@@ -50,6 +52,18 @@ export interface LayoutEventRuntime {
   state: Record<string, unknown>;
   log: EventLogCollector;
   runtime: EventRuntimeState;
+}
+
+export interface LayoutEventState {
+  componentExecutions: WeakMap<ReportComponent, EventExecutionState>;
+  componentAfterPrint: WeakSet<ReportComponent>;
+}
+
+export function createLayoutEventState(): LayoutEventState {
+  return {
+    componentExecutions: new WeakMap(),
+    componentAfterPrint: new WeakSet(),
+  };
 }
 
 export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBox {
@@ -80,16 +94,23 @@ function layoutComponentWithEvents(component: ReportComponent, band: Band, optio
     return layoutComponent(component, band, options);
   }
 
-  const execution: EventExecutionState = { canceled: false, hidden: false, hasValue: false };
-  runComponentEvent(component, band, options, 'getValue', execution);
-  runComponentEvent(component, band, options, 'beforePrint', execution);
+  const cachedExecution = options.eventState?.componentExecutions.get(component);
+  const execution: EventExecutionState = cachedExecution ?? { canceled: false, hidden: false, hasValue: false };
+  if (!cachedExecution) {
+    runComponentEvent(component, band, options, 'getValue', execution);
+    runComponentEvent(component, band, options, 'beforePrint', execution);
+    options.eventState?.componentExecutions.set(component, execution);
+  }
 
   if (execution.hidden || execution.canceled) {
     return undefined;
   }
 
   const box = layoutComponent(component, band, options, execution);
-  runComponentEvent(component, band, options, 'afterPrint', execution);
+  if (options.eventMode !== 'measure' && !options.eventState?.componentAfterPrint.has(component)) {
+    runComponentEvent(component, band, options, 'afterPrint', execution);
+    options.eventState?.componentAfterPrint.add(component);
+  }
   return box;
 }
 

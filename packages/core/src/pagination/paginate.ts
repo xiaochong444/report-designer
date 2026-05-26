@@ -1,7 +1,7 @@
 import { buildBandPlan, executeBandPlan } from '../band-planner';
 import type { LogicalBandItem, RenderContext } from '../band-planner';
-import { layoutBand } from '../layout-engine/layout-band';
-import type { LayoutEventRuntime } from '../layout-engine/layout-band';
+import { createLayoutEventState, layoutBand } from '../layout-engine/layout-band';
+import type { LayoutEventRuntime, LayoutEventState } from '../layout-engine/layout-band';
 import type { RenderBandBox, RenderComponentBox, RenderDocument, RenderPage, RenderTable, RenderTableCell } from '../render-document/types';
 import type { Band, Page, PageBorder, PageWatermark, ReportTemplate, SubreportComponent, TableComponent } from '../template-model/types';
 import { normalizeTemplate } from '../template-model';
@@ -239,24 +239,23 @@ export function paginate(
     const layoutContext = withParameters(context, options.parameters);
     const behavior = getBandBehavior(eventBand);
     if (!shouldPrintBand(behavior, currentPage!.pageNumber, layoutContext, rowsByBand)) {
-      finishBandInstance(eventBand, context, options, templatePage);
       return undefined;
     }
+    let layoutState = createLayoutState(options);
     const currentPageRows = currentPage ? pageRows.get(currentPage) ?? {} : {};
-    let preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: currentPageRows, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false) });
+    let preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: currentPageRows, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'measure' });
     if (behavior.printIfEmpty === false && preview.components.length === 0) {
-      finishBandInstance(eventBand, context, options, templatePage);
       return undefined;
     }
     const breakIfLessThan = behavior.breakIfLessThan ?? 0;
     if (!force && breakIfLessThan > 0 && pageBottomY - cursorY < breakIfLessThan && currentPage!.items.length > 0) {
       newPage();
-      preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false) });
+      preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'measure' });
     }
 
     if (!force && cursorY + preview.height > pageBottomY && currentPage!.items.length > 0) {
       newPage();
-      preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false) });
+      preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'measure' });
     }
 
     const splitTable = !force ? splitTableBand(eventBand, preview, cursorY, pageBottomY, templatePage.margins.top) : undefined;
@@ -277,7 +276,7 @@ export function paginate(
     }
 
     const targetY = behavior.printAtBottom ? pageBottomY - preview.height : cursorY;
-    const box = layoutBand(eventBand, { x: printableX, y: targetY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, true), eventRuntime: withEventPage(options.eventRuntime, templatePage) });
+    const box = layoutBand(eventBand, { x: printableX, y: targetY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, true), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'render' });
     currentPage!.items.push(box);
     collectPageRow(pageRows.get(currentPage!)!, eventBand, context);
     cursorY = behavior.printAtBottom ? pageBottomY : cursorY + box.height;
@@ -353,6 +352,10 @@ export function paginate(
   return pages;
 }
 
+function createLayoutState(options: InternalRenderReportOptions): LayoutEventState | undefined {
+  return options.eventRuntime ? createLayoutEventState() : undefined;
+}
+
 function clonePageWatermark(watermark: Page['watermark']): PageWatermark | undefined {
   return watermark ? { ...watermark } : undefined;
 }
@@ -397,7 +400,6 @@ function renderFixedBand(
   const layoutContext = withParameters(context, options.parameters);
   const behavior = getBandBehavior(eventBand);
   if (!shouldPrintBand(behavior, pageNumber, layoutContext, rowsByBand)) {
-    finishBandInstance(eventBand, context, options, templatePage);
     return undefined;
   }
 
@@ -413,7 +415,6 @@ function renderFixedBand(
     eventRuntime: withEventPage(options.eventRuntime, templatePage),
   });
   if (behavior.printIfEmpty === false && box.components.length === 0) {
-    finishBandInstance(eventBand, context, options, templatePage);
     return undefined;
   }
 
