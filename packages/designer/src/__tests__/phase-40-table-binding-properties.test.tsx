@@ -140,4 +140,21 @@ describe('phase 40 table binding properties', () => {
 
     expect(options).toEqual(['name', 'qty']);
   });
+
+  it('only exposes text table column type for the current table rendering contract', () => {
+    loadSelectedTable();
+
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <PropertyEditor />
+      </DesignerI18nProvider>,
+    );
+
+    fireEvent.mouseDown(screen.getByLabelText('Column 1 type'));
+
+    expect(screen.getAllByText('Text').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Image')).not.toBeInTheDocument();
+    expect(screen.queryByText('Barcode')).not.toBeInTheDocument();
+    expect(screen.queryByText('Checkbox')).not.toBeInTheDocument();
+  });
 });

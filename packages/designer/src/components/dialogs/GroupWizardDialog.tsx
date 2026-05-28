@@ -3,6 +3,7 @@ import { Button, Empty, Modal, Space } from 'antd';
 import type { Band, DataSource } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { createTextComponent, uid } from './dialog-utils';
+import { useDesignerI18n } from '../../i18n';
 
 interface GroupWizardDialogProps {
   open: boolean;
@@ -10,6 +11,7 @@ interface GroupWizardDialogProps {
 }
 
 export const GroupWizardDialog: React.FC<GroupWizardDialogProps> = ({ open, onClose }) => {
+  const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const updateTemplate = useDesignerStore(s => s.updateTemplate);
   const fields = useMemo(() => getGroupFields(template.dataSources), [template.dataSources]);
@@ -65,12 +67,12 @@ export const GroupWizardDialog: React.FC<GroupWizardDialogProps> = ({ open, onCl
   return (
     <Modal
       open={open}
-      title="Group Wizard"
+      title={t('groupWizard.title')}
       onCancel={onClose}
       footer={[
-        <Button key="cancel" onClick={onClose}>Cancel</Button>,
+        <Button key="cancel" onClick={onClose}>{t('common.cancel')}</Button>,
         <Button key="create" type="primary" onClick={createGroup} disabled={fields.length === 0}>
-          Create group
+          {t('groupWizard.createGroup')}
         </Button>,
       ]}
     >

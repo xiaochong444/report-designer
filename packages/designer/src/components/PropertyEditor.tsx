@@ -1276,11 +1276,11 @@ const propertyEditorMessages = {
     width: '宽度',
     height: '高度',
     visibleExpression: '可见表达式',
-    visibleExpressionPlaceholder: '留空表示始终可见，例如 {Parameters.ShowTitle}',
+    visibleExpressionPlaceholder: '留空表示始终可见，例如 {Orders.ShowTitle}',
     enabledExpression: '启用表达式',
-    enabledExpressionPlaceholder: '留空表示始终启用，例如 {Parameters.EnableTitle}',
+    enabledExpressionPlaceholder: '留空表示始终启用，例如 {Orders.EnableTitle}',
     printableExpression: '可打印表达式',
-    printableExpressionPlaceholder: '留空表示始终打印，例如 {Parameters.PrintTitle}',
+    printableExpressionPlaceholder: '留空表示始终打印，例如 {Orders.PrintTitle}',
     textContent: '文本内容',
     textContentPlaceholder: '普通文本或 {DataSource.Field}',
     openExpressionEditor: '打开表达式编辑器',
@@ -1425,11 +1425,11 @@ const propertyEditorMessages = {
     width: 'Width',
     height: 'Height',
     visibleExpression: 'Visible expression',
-    visibleExpressionPlaceholder: 'Leave empty to always show, for example {Parameters.ShowTitle}',
+    visibleExpressionPlaceholder: 'Leave empty to always show, for example {Orders.ShowTitle}',
     enabledExpression: 'Enabled expression',
-    enabledExpressionPlaceholder: 'Leave empty to always enable, for example {Parameters.EnableTitle}',
+    enabledExpressionPlaceholder: 'Leave empty to always enable, for example {Orders.EnableTitle}',
     printableExpression: 'Printable expression',
-    printableExpressionPlaceholder: 'Leave empty to always print, for example {Parameters.PrintTitle}',
+    printableExpressionPlaceholder: 'Leave empty to always print, for example {Orders.PrintTitle}',
     textContent: 'Text content',
     textContentPlaceholder: 'Plain text or {DataSource.Field}',
     openExpressionEditor: 'Open expression editor',
@@ -1690,9 +1690,6 @@ const TablePropertyPanel: React.FC<{
   }));
   const cellTypeOptions: Array<{ value: TableColumn['cellType']; label: string }> = [
     { value: 'text', label: t('tableCellTypeText') },
-    { value: 'image', label: t('tableCellTypeImage') },
-    { value: 'barcode', label: t('tableCellTypeBarcode') },
-    { value: 'checkbox', label: t('tableCellTypeCheckbox') },
   ];
   const updateColumn = (index: number, updates: Partial<TableColumn>) => {
     onChange({
@@ -1823,15 +1820,6 @@ const TablePropertyPanel: React.FC<{
             style={{ width: '100%' }}
             min={0.1}
             step={0.1}
-          />
-        </Form.Item>
-        <Form.Item label={t('alternateRowStyle')}>
-          <Input
-            aria-label={t('alternateRowStyle')}
-            value={table.alternateRowStyle ?? ''}
-            onChange={(event) => onChange({ alternateRowStyle: event.target.value })}
-            size="small"
-            allowClear
           />
         </Form.Item>
         <Form.Item label={t('canBreak')}>

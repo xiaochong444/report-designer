@@ -36,7 +36,7 @@ Object.defineProperty(window, 'ResizeObserver', {
 
 describe('Phase 10 canvas layout', () => {
   it('shows screenshot-like ruler labels and horizontal band title strips', () => {
-    render(<Designer template={createDefaultTemplate('Canvas Layout')} />);
+    render(<Designer template={createDefaultTemplate('Canvas Layout')} locale="en-US" />);
 
     expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('0');
     expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('10');

@@ -3,6 +3,7 @@ import { Alert, Button, Input, Modal, Space, Table, Typography } from 'antd';
 import type { DataField, DataSource } from '@report-designer/core';
 import { inferJsonDictionary } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
+import { useDesignerI18n } from '../../i18n';
 
 interface JsonDataSourceDialogProps {
   open: boolean;
@@ -10,21 +11,21 @@ interface JsonDataSourceDialogProps {
 }
 
 export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open, onClose }) => {
+  const { t } = useDesignerI18n();
   const [json, setJson] = useState('');
-  const [error, setError] = useState<string | null>(null);
   const updateTemplate = useDesignerStore(s => s.updateTemplate);
   const setDataSources = useDesignerStore(s => s.setDataSources);
 
-  const parsed = useMemo(() => {
-    if (!json.trim()) return null;
+  const parsedResult = useMemo((): { value: Record<string, unknown> | null; error: string | null } => {
+    if (!json.trim()) return { value: null, error: null };
     try {
-      setError(null);
-      return JSON.parse(json) as Record<string, unknown>;
+      return { value: JSON.parse(json) as Record<string, unknown>, error: null };
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Invalid JSON');
-      return null;
+      return { value: null, error: err instanceof Error ? err.message : t('jsonDataSource.invalidJson') };
     }
-  }, [json]);
+  }, [json, t]);
+  const parsed = parsedResult.value;
+  const error = parsedResult.error;
 
   const inferred = useMemo(() => parsed ? inferJsonDictionary(parsed) : { dataSources: [] }, [parsed]);
 
@@ -63,12 +64,12 @@ export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open
   return (
     <Modal
       open={open}
-      title="JSON Data Source"
+      title={t('jsonDataSource.title')}
       onCancel={onClose}
       footer={[
-        <Button key="cancel" onClick={onClose}>Cancel</Button>,
+        <Button key="cancel" onClick={onClose}>{t('common.cancel')}</Button>,
         <Button key="add" type="primary" onClick={addDataSources} disabled={inferred.dataSources.length === 0}>
-          Add data sources
+          {t('jsonDataSource.addDataSources')}
         </Button>,
       ]}
       width={720}
@@ -88,10 +89,10 @@ export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open
           pagination={false}
           dataSource={inferred.dataSources}
           columns={[
-            { title: 'Name', dataIndex: 'id', key: 'id' },
-            { title: 'Path', key: 'path', render: (_, source) => source.path === source.id ? 'root array' : source.path },
+            { title: t('jsonDataSource.column.name'), dataIndex: 'id', key: 'id' },
+            { title: t('jsonDataSource.column.path'), key: 'path', render: (_, source) => source.path === source.id ? t('jsonDataSource.rootArray') : source.path },
             {
-              title: 'Fields',
+              title: t('jsonDataSource.column.fields'),
               key: 'fields',
               render: (_, source) => (
                 <Typography.Text>{(source.fields ?? []).map(field => field.name).join(', ')}</Typography.Text>

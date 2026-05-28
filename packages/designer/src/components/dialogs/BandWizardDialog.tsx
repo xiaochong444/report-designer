@@ -3,6 +3,7 @@ import { Button, Modal, Radio, Select, Space } from 'antd';
 import type { Band } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { createTextComponent, uid } from './dialog-utils';
+import { useDesignerI18n } from '../../i18n';
 
 interface BandWizardDialogProps {
   open: boolean;
@@ -12,6 +13,7 @@ interface BandWizardDialogProps {
 type BandPreset = 'header-data-footer' | 'data-only';
 
 export const BandWizardDialog: React.FC<BandWizardDialogProps> = ({ open, onClose }) => {
+  const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const updateTemplate = useDesignerStore(s => s.updateTemplate);
   const [preset, setPreset] = useState<BandPreset>('header-data-footer');
@@ -63,18 +65,18 @@ export const BandWizardDialog: React.FC<BandWizardDialogProps> = ({ open, onClos
   return (
     <Modal
       open={open}
-      title="Band Wizard"
+      title={t('bandWizard.title')}
       onCancel={onClose}
       footer={[
-        <Button key="cancel" onClick={onClose}>Cancel</Button>,
+        <Button key="cancel" onClick={onClose}>{t('common.cancel')}</Button>,
         <Button key="create" type="primary" onClick={createBands} disabled={!dataSourceId}>
-          Create bands
+          {t('bandWizard.createBands')}
         </Button>,
       ]}
     >
       <Space orientation="vertical" size={16} style={{ width: '100%' }}>
         <Select
-          aria-label="Data source"
+          aria-label={t('bandWizard.dataSource')}
           value={dataSourceId || undefined}
           options={sourceOptions}
           style={{ width: '100%' }}
@@ -82,8 +84,8 @@ export const BandWizardDialog: React.FC<BandWizardDialogProps> = ({ open, onClos
         />
         <Radio.Group value={preset} onChange={event => setPreset(event.target.value)}>
           <Space orientation="vertical">
-            <Radio value="header-data-footer" aria-label="HeaderBand + DataBand + FooterBand">HeaderBand + DataBand + FooterBand</Radio>
-            <Radio value="data-only" aria-label="DataBand only">DataBand only</Radio>
+            <Radio value="header-data-footer" aria-label={t('bandWizard.preset.headerDataFooter')}>{t('bandWizard.preset.headerDataFooter')}</Radio>
+            <Radio value="data-only" aria-label={t('bandWizard.preset.dataOnly')}>{t('bandWizard.preset.dataOnly')}</Radio>
           </Space>
         </Radio.Group>
       </Space>

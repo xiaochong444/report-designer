@@ -70,7 +70,7 @@ export const viewerMessages: Record<ViewerLocale, ViewerMessages> = {
     eventLogsError: '错误',
     ownerReport: '报表',
     ownerPage: '页面',
-    ownerBand: 'Band',
+    ownerBand: '带区',
     ownerComponent: '组件',
     line: '行',
   },

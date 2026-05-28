@@ -16,6 +16,8 @@ export type DesignerMessageKey =
   | 'canvas.zoomReset'
   | 'canvas.zoomIn'
   | 'canvas.imagePlaceholder'
+  | 'canvas.subreportPlaceholder'
+  | 'canvas.localTemplatePlaceholder'
   | 'expressionEditor.title'
   | 'expressionEditor.category.expression'
   | 'expressionEditor.category.expressionSubtitle'
@@ -35,6 +37,10 @@ export type DesignerMessageKey =
   | 'expressionEditor.tree.aggregateFunctions'
   | 'expressionEditor.tree.pageReportTotals'
   | 'expressionEditor.tree.logicFunctions'
+  | 'expressionEditor.html.tag'
+  | 'expressionEditor.html.bold'
+  | 'expressionEditor.html.italic'
+  | 'expressionEditor.html.lineBreak'
   | 'shell.new'
   | 'shell.open'
   | 'shell.save'
@@ -106,6 +112,43 @@ export type DesignerMessageKey =
   | 'ribbon.narrowMargins'
   | 'ribbon.wideMargins'
   | 'ribbon.printPreview'
+  | 'bandWizard.title'
+  | 'bandWizard.createBands'
+  | 'bandWizard.dataSource'
+  | 'bandWizard.preset.headerDataFooter'
+  | 'bandWizard.preset.dataOnly'
+  | 'groupWizard.title'
+  | 'groupWizard.createGroup'
+  | 'jsonDataSource.title'
+  | 'jsonDataSource.addDataSources'
+  | 'jsonDataSource.invalidJson'
+  | 'jsonDataSource.column.name'
+  | 'jsonDataSource.column.path'
+  | 'jsonDataSource.column.fields'
+  | 'jsonDataSource.rootArray'
+  | 'status.selection.components'
+  | 'status.selection.band'
+  | 'status.selection.none'
+  | 'status.pageOf'
+  | 'status.margins'
+  | 'status.grid'
+  | 'status.snapOn'
+  | 'propertyPanel.noObjectSelected'
+  | 'band.type.reportTitle'
+  | 'band.type.reportSummary'
+  | 'band.type.pageHeader'
+  | 'band.type.pageFooter'
+  | 'band.type.header'
+  | 'band.type.footer'
+  | 'band.type.columnHeader'
+  | 'band.type.columnFooter'
+  | 'band.type.groupHeader'
+  | 'band.type.groupFooter'
+  | 'band.type.data'
+  | 'band.type.hierarchicalData'
+  | 'band.type.child'
+  | 'band.type.emptyData'
+  | 'band.type.overlay'
   | 'styleLibrary.title'
   | 'styleLibrary.searchPlaceholder'
   | 'styleLibrary.preview'
@@ -575,6 +618,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'canvas.zoomReset': '重置为 100%',
     'canvas.zoomIn': '放大',
     'canvas.imagePlaceholder': '图片',
+    'canvas.subreportPlaceholder': '子报表',
+    'canvas.localTemplatePlaceholder': '本地模板',
     'expressionEditor.title': '文本',
     'expressionEditor.category.expression': '表达式',
     'expressionEditor.category.expressionSubtitle': 'Expression',
@@ -594,6 +639,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.tree.aggregateFunctions': '聚合函数',
     'expressionEditor.tree.pageReportTotals': '页/报表合计',
     'expressionEditor.tree.logicFunctions': '条件函数',
+    'expressionEditor.html.tag': 'HTML 标签',
+    'expressionEditor.html.bold': '加粗',
+    'expressionEditor.html.italic': '斜体',
+    'expressionEditor.html.lineBreak': '换行',
     'shell.new': '新建',
     'shell.open': '打开',
     'shell.save': '保存',
@@ -665,6 +714,43 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.narrowMargins': '窄',
     'ribbon.wideMargins': '宽',
     'ribbon.printPreview': '打印预览',
+    'bandWizard.title': '带区向导',
+    'bandWizard.createBands': '创建带区',
+    'bandWizard.dataSource': '数据源',
+    'bandWizard.preset.headerDataFooter': '表头 + 数据带 + 表尾',
+    'bandWizard.preset.dataOnly': '仅数据带',
+    'groupWizard.title': '分组向导',
+    'groupWizard.createGroup': '创建分组',
+    'jsonDataSource.title': 'JSON 数据源',
+    'jsonDataSource.addDataSources': '添加数据源',
+    'jsonDataSource.invalidJson': 'JSON 格式不正确',
+    'jsonDataSource.column.name': '名称',
+    'jsonDataSource.column.path': '路径',
+    'jsonDataSource.column.fields': '字段',
+    'jsonDataSource.rootArray': '根数组',
+    'status.selection.components': '已选择 {count} 个组件',
+    'status.selection.band': '已选择 1 个带区',
+    'status.selection.none': '无选择',
+    'status.pageOf': '第 {current} 页，共 {total} 页',
+    'status.margins': '边距',
+    'status.grid': '网格',
+    'status.snapOn': '吸附开启',
+    'propertyPanel.noObjectSelected': '未选择对象',
+    'band.type.reportTitle': '报表标题带',
+    'band.type.reportSummary': '报表汇总带',
+    'band.type.pageHeader': '页眉带',
+    'band.type.pageFooter': '页脚带',
+    'band.type.header': '表头带',
+    'band.type.footer': '表尾带',
+    'band.type.columnHeader': '列头带',
+    'band.type.columnFooter': '列尾带',
+    'band.type.groupHeader': '分组头带',
+    'band.type.groupFooter': '分组尾带',
+    'band.type.data': '数据带',
+    'band.type.hierarchicalData': '层级数据带',
+    'band.type.child': '子带',
+    'band.type.emptyData': '空数据带',
+    'band.type.overlay': '覆盖带',
     'styleLibrary.title': '文本样式库',
     'styleLibrary.searchPlaceholder': '搜索样式',
     'styleLibrary.preview': '预览',
@@ -1131,6 +1217,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'canvas.zoomReset': 'Reset to 100%',
     'canvas.zoomIn': 'Zoom in',
     'canvas.imagePlaceholder': 'Image',
+    'canvas.subreportPlaceholder': 'Subreport',
+    'canvas.localTemplatePlaceholder': 'Local template',
     'expressionEditor.title': 'Text',
     'expressionEditor.category.expression': 'Expression',
     'expressionEditor.category.expressionSubtitle': 'Build content',
@@ -1150,6 +1238,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.tree.aggregateFunctions': 'Aggregate functions',
     'expressionEditor.tree.pageReportTotals': 'Page/report totals',
     'expressionEditor.tree.logicFunctions': 'Logic functions',
+    'expressionEditor.html.tag': 'HTML Tag',
+    'expressionEditor.html.bold': 'Bold',
+    'expressionEditor.html.italic': 'Italic',
+    'expressionEditor.html.lineBreak': 'Line break',
     'shell.new': 'New',
     'shell.open': 'Open',
     'shell.save': 'Save',
@@ -1221,6 +1313,43 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.narrowMargins': 'Narrow',
     'ribbon.wideMargins': 'Wide',
     'ribbon.printPreview': 'Print Preview',
+    'bandWizard.title': 'Band Wizard',
+    'bandWizard.createBands': 'Create bands',
+    'bandWizard.dataSource': 'Data source',
+    'bandWizard.preset.headerDataFooter': 'HeaderBand + DataBand + FooterBand',
+    'bandWizard.preset.dataOnly': 'DataBand only',
+    'groupWizard.title': 'Group Wizard',
+    'groupWizard.createGroup': 'Create group',
+    'jsonDataSource.title': 'JSON Data Source',
+    'jsonDataSource.addDataSources': 'Add data sources',
+    'jsonDataSource.invalidJson': 'Invalid JSON',
+    'jsonDataSource.column.name': 'Name',
+    'jsonDataSource.column.path': 'Path',
+    'jsonDataSource.column.fields': 'Fields',
+    'jsonDataSource.rootArray': 'root array',
+    'status.selection.components': '{count} component(s)',
+    'status.selection.band': '1 band',
+    'status.selection.none': 'No selection',
+    'status.pageOf': 'Page {current} of {total}',
+    'status.margins': 'Margins',
+    'status.grid': 'Grid',
+    'status.snapOn': 'Snap on',
+    'propertyPanel.noObjectSelected': 'No object selected',
+    'band.type.reportTitle': 'ReportTitleBand',
+    'band.type.reportSummary': 'ReportSummaryBand',
+    'band.type.pageHeader': 'PageHeaderBand',
+    'band.type.pageFooter': 'PageFooterBand',
+    'band.type.header': 'HeaderBand',
+    'band.type.footer': 'FooterBand',
+    'band.type.columnHeader': 'ColumnHeaderBand',
+    'band.type.columnFooter': 'ColumnFooterBand',
+    'band.type.groupHeader': 'GroupHeaderBand',
+    'band.type.groupFooter': 'GroupFooterBand',
+    'band.type.data': 'DataBand',
+    'band.type.hierarchicalData': 'HierarchicalDataBand',
+    'band.type.child': 'ChildBand',
+    'band.type.emptyData': 'EmptyDataBand',
+    'band.type.overlay': 'OverlayBand',
     'styleLibrary.title': 'Text Style Library',
     'styleLibrary.searchPlaceholder': 'Search styles',
     'styleLibrary.preview': 'Preview',

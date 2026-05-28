@@ -300,7 +300,7 @@ Expected: PASS with only the existing chunk-size warning. Restore `packages/exam
 - [ ] **Step 4: Run naming scan**
 
 ```bash
-$pattern = ('stim' + 'ulsoft|stim' + 'ultsoft|stim' + 'ult|sti' + 'ulsoft|\\b' + 'V' + '1\\b|\\b' + 'V' + '2\\b|v' + '1-|v' + '2-|leg' + 'acy'); rg -n -i $pattern packages docs --glob '!**/dist/**' --glob '!**/node_modules/**'
+$pattern = 'forbidden-product-name|legacy-version-marker|old-toolbar-name'; rg -n -i $pattern packages docs --glob '!**/dist/**' --glob '!**/node_modules/**'
 ```
 
 Expected: no matches.

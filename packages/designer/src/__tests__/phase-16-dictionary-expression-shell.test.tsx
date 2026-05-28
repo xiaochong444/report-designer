@@ -142,4 +142,27 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     expect(screen.getByText('Format')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Validate' })).toBeInTheDocument();
   });
+
+  it('localizes HTML helper tree entries in the expression shell', async () => {
+    useDesignerStore.getState().loadTemplate(makeDictionaryTemplate());
+
+    render(
+      <DesignerI18nProvider locale="zh-CN">
+        <ExpressionEditor
+          open
+          value=""
+          onChange={() => {}}
+          onClose={() => {}}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /HTML/i }));
+
+    expect((await screen.findAllByText('HTML 标签')).length).toBeGreaterThan(0);
+    expect(screen.getByText('加粗')).toBeInTheDocument();
+    expect(screen.getByText('斜体')).toBeInTheDocument();
+    expect(screen.getByText('换行')).toBeInTheDocument();
+    expect(screen.queryByText('Html Tag')).not.toBeInTheDocument();
+  });
 });

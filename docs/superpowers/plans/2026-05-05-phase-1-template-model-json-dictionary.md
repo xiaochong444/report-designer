@@ -188,5 +188,5 @@ Expected: PASS.
 
 ```bash
 git add packages/core/src packages/core/__tests__
-git commit -m "feat(core): 增加报表模板v2和json数据字典"
+git commit -m "feat(core): 增加报表模板和json数据字典"
 ```

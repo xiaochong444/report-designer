@@ -24,7 +24,7 @@ export const BandPropertyGrid: React.FC = () => {
   const band = page?.bands.find(item => item.id === selectedBandId);
 
   if (!band || !page) {
-    return <Typography.Text type="secondary">No object selected</Typography.Text>;
+    return <Typography.Text type="secondary">{t('propertyPanel.noObjectSelected')}</Typography.Text>;
   }
 
   const unitStep = getUnitStep(reportUnit);
@@ -292,7 +292,7 @@ export const BandPropertyGrid: React.FC = () => {
                 <Input
                   aria-label={t('bandProperties.visibleExpression')}
                   value={behavior.visibleExpression ?? ''}
-                  placeholder="{Parameters.ShowDetails}"
+                  placeholder="{Orders.ShowDetails}"
                   onChange={event => updateBehavior({ visibleExpression: event.target.value })}
                 />
               </Form.Item>

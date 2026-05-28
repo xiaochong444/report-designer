@@ -188,7 +188,7 @@ describe('Phase 7 designer shortcuts and table context menu', () => {
     render(<PropertyEditor />);
     fireEvent.change(screen.getByLabelText('表头高度'), { target: { value: '12' } });
     fireEvent.change(screen.getByLabelText('明细行高'), { target: { value: '9' } });
-    fireEvent.change(screen.getByLabelText('交替行样式'), { target: { value: 'zebra' } });
+    expect(screen.queryByLabelText('交替行样式')).not.toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('第 1 列标题'), { target: { value: 'Employee' } });
     fireEvent.change(screen.getByLabelText('第 1 列字段'), { target: { value: 'salary' } });
     fireEvent.change(screen.getByLabelText('第 1 列宽度'), { target: { value: '55' } });
@@ -196,7 +196,6 @@ describe('Phase 7 designer shortcuts and table context menu', () => {
     const table = selectedComponent();
     expect(table.headerHeight).toBe(12);
     expect(table.rowHeight).toBe(9);
-    expect(table.alternateRowStyle).toBe('zebra');
     expect(table.columns[0]).toMatchObject({
       header: 'Employee',
       field: 'salary',

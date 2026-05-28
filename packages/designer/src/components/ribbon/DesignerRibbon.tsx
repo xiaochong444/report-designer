@@ -15,8 +15,6 @@ import {
   CopyOutlined,
   CompressOutlined,
   DeleteOutlined,
-  FileAddOutlined,
-  FolderOpenOutlined,
   FontSizeOutlined,
   LineOutlined,
   PlusOutlined,
@@ -402,12 +400,6 @@ export const DesignerRibbon: React.FC = () => {
     return (
       <>
         <RibbonGroup title={t('ribbon.file')}>
-          <Tooltip title={t('ribbon.newReport')}>
-            <Button size="small" icon={<FileAddOutlined />} />
-          </Tooltip>
-          <Tooltip title={t('ribbon.openTemplate')}>
-            <Button size="small" icon={<FolderOpenOutlined />} />
-          </Tooltip>
           <Tooltip title={t('ribbon.saveTemplate')}>
             <Button size="small" icon={<SaveOutlined />} onClick={saveTemplate} />
           </Tooltip>

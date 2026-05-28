@@ -43,10 +43,10 @@ const FORMAT_PATTERNS = [
 ];
 
 const HTML_TAGS = [
-  { name: 'Html Tag', insert: '<span></span>' },
-  { name: 'Bold', insert: '<b></b>' },
-  { name: 'Italic', insert: '<i></i>' },
-  { name: 'Line break', insert: '<br />' },
+  { labelKey: 'expressionEditor.html.tag', insert: '<span></span>' },
+  { labelKey: 'expressionEditor.html.bold', insert: '<b></b>' },
+  { labelKey: 'expressionEditor.html.italic', insert: '<i></i>' },
+  { labelKey: 'expressionEditor.html.lineBreak', insert: '<br />' },
 ];
 
 type ExpressionCategory = 'expression' | 'data' | 'system' | 'aggregates' | 'html';
@@ -243,12 +243,12 @@ export const ExpressionEditor: React.FC<{
   const htmlNodes = useMemo<TreeNodeMeta[]>(
     () =>
       HTML_TAGS.map((item) =>
-        makeTreeNode(`html.${item.name}`, item.name, 'html', {
+        makeTreeNode(`html.${item.labelKey}`, t(item.labelKey as DesignerMessageKey), 'html', {
           insertValue: item.insert,
-          searchText: item.name.toLowerCase(),
+          searchText: t(item.labelKey as DesignerMessageKey).toLowerCase(),
         }),
       ),
-    [],
+    [t],
   );
 
   const treeData = useMemo<TreeNodeMeta[]>(() => {
@@ -260,20 +260,14 @@ export const ExpressionEditor: React.FC<{
       case 'aggregates':
         return [makeTreeNode('tree.function', t('leftPanel.functions'), 'folder', { children: functionNodes })];
       case 'html':
-        return [makeTreeNode('tree.html', 'Html Tag', 'folder', { children: htmlNodes })];
+        return [makeTreeNode('tree.html', t('expressionEditor.html.tag'), 'folder', { children: htmlNodes })];
       case 'expression':
       default:
         return [
           makeTreeNode('tree.data', t('leftPanel.dataSources'), 'folder', { children: dataSourceNodes }),
-          makeTreeNode('tree.variables', t('leftPanel.variables'), 'folder', {
-            children: [makeTreeNode('tree.variables.empty', t('leftPanel.noVariables'), 'resource')],
-          }),
           makeTreeNode('tree.system', t('leftPanel.systemVariables'), 'folder', { children: systemNodes }),
           makeTreeNode('tree.function', t('leftPanel.functions'), 'folder', { children: functionNodes }),
           makeTreeNode('tree.format', t('styleLibrary.format'), 'folder', { children: formatNodes }),
-          makeTreeNode('tree.resources', t('leftPanel.resources'), 'folder', {
-            children: [makeTreeNode('tree.resources.empty', t('leftPanel.noResources'), 'resource')],
-          }),
         ];
     }
   }, [activeCategory, dataSourceNodes, formatNodes, functionNodes, htmlNodes, systemNodes, t]);
@@ -362,6 +356,7 @@ export const ExpressionEditor: React.FC<{
           />
           <div className="rd-expression-browser-tree">
             <Tree
+              key={activeCategory}
               className="rd-expression-tree"
               treeData={filteredTree}
               defaultExpandAll

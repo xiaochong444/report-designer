@@ -1,8 +1,6 @@
 import React from 'react';
 import type { ReportTemplate } from '@report-designer/core';
 import {
-  FileAddOutlined,
-  FolderOpenOutlined,
   RedoOutlined,
   SaveOutlined,
   UndoOutlined,
@@ -60,18 +58,22 @@ interface QuickAccessProps {
 
 const QuickAccess: React.FC<QuickAccessProps> = ({ template, undo, redo, canUndo, canRedo }) => {
   const { t } = useDesignerI18n();
+  const saveTemplate = () => {
+    const json = JSON.stringify(useDesignerStore.getState().template, null, 2);
+    const blob = new Blob([json], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${template.name || 'report'}.json`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <header className="rd-quick-access" data-testid="designer-quick-access">
       <div className="rd-quick-access-buttons">
-        <Tooltip title={t('shell.new')}>
-          <Button size="small" type="text" icon={<FileAddOutlined />} />
-        </Tooltip>
-        <Tooltip title={t('shell.open')}>
-          <Button size="small" type="text" icon={<FolderOpenOutlined />} />
-        </Tooltip>
         <Tooltip title={t('shell.save')}>
-          <Button size="small" type="text" icon={<SaveOutlined />} />
+          <Button size="small" type="text" icon={<SaveOutlined />} onClick={saveTemplate} />
         </Tooltip>
         <span className="rd-quick-access-separator" />
         <Tooltip title={t('shell.undo')}>

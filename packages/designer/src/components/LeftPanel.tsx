@@ -217,8 +217,7 @@ type DictionaryNodeKind =
   | 'variable'
   | 'system'
   | 'function'
-  | 'format'
-  | 'resource';
+  | 'format';
 
 type SearchableDataNode = DataNode & {
   searchText?: string;
@@ -307,24 +306,6 @@ const DataDictionary: React.FC = () => {
       })),
     },
     {
-      key: 'dictionary-variables',
-      searchText: t('leftPanel.variables'),
-      title: (
-        <div className="rd-dictionary-node">
-          {renderDictionaryGlyph('variable')}
-          <span>{t('leftPanel.variables')}</span>
-        </div>
-      ),
-      children: [
-        {
-          key: 'dictionary-variable-empty',
-          selectable: false,
-          searchText: t('leftPanel.noVariables'),
-          title: <span className="rd-dictionary-empty">{t('leftPanel.noVariables')}</span>,
-        },
-      ],
-    },
-    {
       key: 'dictionary-system-variables',
       searchText: t('leftPanel.systemVariables'),
       title: (
@@ -351,24 +332,6 @@ const DataDictionary: React.FC = () => {
       children: [
         { key: 'function.Sum', searchText: 'SUM', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('function')}<span>SUM</span></div> },
         { key: 'function.Count', searchText: 'COUNT', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('function')}<span>COUNT</span></div> },
-      ],
-    },
-    {
-      key: 'dictionary-resources',
-      searchText: t('leftPanel.resources'),
-      title: (
-        <div className="rd-dictionary-node">
-          {renderDictionaryGlyph('resource')}
-          <span>{t('leftPanel.resources')}</span>
-        </div>
-      ),
-      children: [
-        {
-          key: 'dictionary-resource-empty',
-          selectable: false,
-          searchText: t('leftPanel.noResources'),
-          title: <span className="rd-dictionary-empty">{t('leftPanel.noResources')}</span>,
-        },
       ],
     },
   ];

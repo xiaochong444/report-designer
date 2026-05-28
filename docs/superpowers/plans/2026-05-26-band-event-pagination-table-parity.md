@@ -78,7 +78,7 @@ it('skips empty bands when printIfEmpty is false', () => {
         width: 50,
         height: 8,
         text: 'Hidden',
-        visible: '{Parameters.ShowFooter}',
+        visible: '{Orders.ShowFooter}',
         ...textBase,
       }],
     }),
@@ -338,7 +338,7 @@ Expected: build passes. If `packages/example/dist/index.html` changes only becau
 Run:
 
 ```bash
-$pattern = ('stim' + 'ulsoft|stim' + 'ultsoft|stim' + 'ult|sti' + 'ulsoft|\\b' + 'V' + '1\\b|\\b' + 'V' + '2\\b|v' + '1-|v' + '2-|leg' + 'acy'); rg -n -i $pattern packages docs --glob '!**/dist/**' --glob '!**/node_modules/**'
+$pattern = 'forbidden-product-name|legacy-version-marker|old-toolbar-name'; rg -n -i $pattern packages docs --glob '!**/dist/**' --glob '!**/node_modules/**'
 ```
 
 Expected: no matches.

@@ -5,7 +5,7 @@ import type { TableCellSelection } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
 import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
 import { RichTextInlineEditor } from './richtext/RichTextInlineEditor';
-import { useDesignerI18n } from '../i18n';
+import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
 
 const MM_TO_PX = 3.78;
 const SNAP_THRESHOLD = 5;
@@ -98,21 +98,22 @@ const BAND_COLORS: Record<string, string> = {
   data: '#6a1b9a', groupHeader: '#00838f', groupFooter: '#4527a0', child: '#ad1457',
 };
 
-const BAND_LABELS: Record<string, string> = {
-  reportTitle: 'ReportTitleBand',
-  reportSummary: 'ReportSummaryBand',
-  pageHeader: 'PageHeaderBand',
-  pageFooter: 'PageFooterBand',
-  header: 'HeaderBand',
-  footer: 'FooterBand',
-  columnHeader: 'ColumnHeaderBand',
-  columnFooter: 'ColumnFooterBand',
-  groupHeader: 'GroupHeaderBand',
-  groupFooter: 'GroupFooterBand',
-  data: 'DataBand',
-  child: 'ChildBand',
-  emptyData: 'EmptyDataBand',
-  overlay: 'OverlayBand',
+const BAND_LABEL_KEYS: Record<string, DesignerMessageKey> = {
+  reportTitle: 'band.type.reportTitle',
+  reportSummary: 'band.type.reportSummary',
+  pageHeader: 'band.type.pageHeader',
+  pageFooter: 'band.type.pageFooter',
+  header: 'band.type.header',
+  footer: 'band.type.footer',
+  columnHeader: 'band.type.columnHeader',
+  columnFooter: 'band.type.columnFooter',
+  groupHeader: 'band.type.groupHeader',
+  groupFooter: 'band.type.groupFooter',
+  data: 'band.type.data',
+  hierarchicalData: 'band.type.hierarchicalData',
+  child: 'band.type.child',
+  emptyData: 'band.type.emptyData',
+  overlay: 'band.type.overlay',
 };
 
 function findPanelDropTarget(band: Band, xMm: number, yMm: number): { panelId: string; xMm: number; yMm: number } | null {
@@ -1277,13 +1278,14 @@ const BandView: React.FC<{
   onUpdateComponent: (pageId: string, bandId: string, compId: string, updates: Record<string, any>, prev?: Record<string, any>) => void;
   currentPageId: string;
 }> = ({ band, visualY, labelIndex, isSelected, selectedIds, selectedTableCell, fonts, onUpdateComponent, currentPageId }) => {
+  const { t } = useDesignerI18n();
   const [editId, setEditId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<'text' | 'richtext' | null>(null);
   const [editText, setEditText] = useState('');
   const selectBand = useDesignerStore((state) => state.selectBand);
   const selectComponents = useDesignerStore((state) => state.selectComponents);
   const baseColor = BAND_COLORS[band.type] || '#757575';
-  const baseLabel = BAND_LABELS[band.type] ?? band.type;
+  const baseLabel = BAND_LABEL_KEYS[band.type] ? t(BAND_LABEL_KEYS[band.type]) : band.type;
   const bandLabel = `${baseLabel}${labelIndex}`;
   const headerHeight = mmToPx(BAND_HEADER_MM);
   const bodyHeight = mmToPx(band.height);
@@ -1522,7 +1524,11 @@ const ComponentView: React.FC<{
             onSave={onFinishRichText}
             onCancel={onCancelEdit}
           />
-        ) : getCompContent(component, bandId, selectedTableCell, { imagePlaceholder: t('canvas.imagePlaceholder') })}
+        ) : getCompContent(component, bandId, selectedTableCell, {
+          imagePlaceholder: t('canvas.imagePlaceholder'),
+          subreportPlaceholder: t('canvas.subreportPlaceholder'),
+          localTemplatePlaceholder: t('canvas.localTemplatePlaceholder'),
+        })}
       </div>
 
       {selected && !editing && RESIZE_HANDLES.map(handle => (
@@ -1617,7 +1623,7 @@ function getCompContent(
   comp: ReportComponent,
   bandId: string,
   selectedTableCell: TableCellSelection | null,
-  labels: { imagePlaceholder: string },
+  labels: { imagePlaceholder: string; subreportPlaceholder: string; localTemplatePlaceholder: string },
 ): React.ReactNode {
   switch (comp.type) {
     case 'text':
@@ -1689,7 +1695,7 @@ function getCompContent(
     case 'subreport':
       return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b', fontSize: 10, border: '1px dashed #cbd5e1', backgroundColor: '#f8fafc' }}>
-          {`Subreport: ${(comp as any).templateUrl || 'local template'}`}
+          {`${labels.subreportPlaceholder}: ${(comp as any).templateUrl || labels.localTemplatePlaceholder}`}
         </div>
       );
     case 'panel':
@@ -1804,7 +1810,11 @@ const PanelChildPreview: React.FC<{ component: ReportComponent }> = ({ component
         ...getCompStyle(component),
       }}
     >
-      {getCompContent(component, '', null, { imagePlaceholder: t('canvas.imagePlaceholder') })}
+      {getCompContent(component, '', null, {
+        imagePlaceholder: t('canvas.imagePlaceholder'),
+        subreportPlaceholder: t('canvas.subreportPlaceholder'),
+        localTemplatePlaceholder: t('canvas.localTemplatePlaceholder'),
+      })}
     </div>
   );
 };

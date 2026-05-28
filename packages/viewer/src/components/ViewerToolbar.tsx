@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Button, Space, Select, Tooltip } from 'antd';
 import {
   PrinterOutlined,
@@ -37,6 +37,15 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
   messages,
   onShowEventLogs,
 }) => {
+  const toggleFullscreen = () => {
+    const element = document.documentElement;
+    if (document.fullscreenElement) {
+      void document.exitFullscreen?.();
+      return;
+    }
+    void element.requestFullscreen?.();
+  };
+
   return (
     <div style={{
       padding: '4px 12px',
@@ -131,7 +140,7 @@ export const ViewerToolbar: React.FC<ViewerToolbarProps> = ({
       ) : null}
 
       <Tooltip title={messages.fullscreen}>
-        <Button aria-label={messages.fullscreen} icon={<FullscreenOutlined />} size="small" />
+        <Button aria-label={messages.fullscreen} icon={<FullscreenOutlined />} size="small" onClick={toggleFullscreen} />
       </Tooltip>
     </div>
   );
