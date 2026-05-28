@@ -16,6 +16,7 @@ The installer:
 - registers Chrome Native Messaging for the fixed extension id
 - copies the extension to a stable local folder
 - creates a desktop shortcut that launches Chrome with the extension loaded
+- writes the Host default printer from the Windows default printer when available
 
 ## Why a launcher is used
 

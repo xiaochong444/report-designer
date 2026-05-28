@@ -2,7 +2,7 @@ using System.Text.Json;
 
 namespace ReportDesigner.WindowsPrintHost;
 
-public sealed record PrintHostConfig(string RootDir, string PrintCommand, string[] PrintArgs);
+public sealed record PrintHostConfig(string RootDir, string PrintCommand, string[] PrintArgs, string? DefaultPrinterId = null);
 
 public static class PrintHostConfigLoader
 {
@@ -26,7 +26,10 @@ public static class PrintHostConfigLoader
                     : string.Empty,
                 root.TryGetProperty("printArgs", out JsonElement argsValue) && argsValue.ValueKind == JsonValueKind.Array
                     ? argsValue.EnumerateArray().Where(x => x.ValueKind == JsonValueKind.String).Select(x => x.GetString() ?? string.Empty).ToArray()
-                    : Array.Empty<string>()
+                    : Array.Empty<string>(),
+                root.TryGetProperty("defaultPrinterId", out JsonElement printerValue) && printerValue.ValueKind == JsonValueKind.String
+                    ? printerValue.GetString()
+                    : null
             );
         }
         catch (IOException) when (FileNotFound(resolvedPath))

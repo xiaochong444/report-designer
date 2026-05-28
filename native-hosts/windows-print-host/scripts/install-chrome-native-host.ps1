@@ -3,6 +3,7 @@ param(
 
   [string]$InstallDir = "$env:LOCALAPPDATA\Programs\ReportDesignerPrintHost",
   [string]$DataDir = "$env:LOCALAPPDATA\ReportDesignerPrintHost",
+  [string]$DefaultPrinter = "",
   [string]$PrintCommand = "",
   [string[]]$PrintArgs = @("-print-to", "{printerId}", "-print-settings", "{copies}x", "-silent", "{file}"),
   [switch]$SelfContained,
@@ -71,6 +72,16 @@ $configPath = Join-Path $DataDir "config.json"
 $nativeHostName = "com.report_designer.print_host"
 $registryPath = "HKCU:\Software\Google\Chrome\NativeMessagingHosts\$nativeHostName"
 $resolvedPrintCommand = Resolve-SumatraPdf
+if (-not $DefaultPrinter) {
+  try {
+    $defaultPrinterInstance = Get-CimInstance Win32_Printer -ErrorAction Stop | Where-Object { $_.Default -eq $true } | Select-Object -First 1
+    if ($defaultPrinterInstance) {
+      $DefaultPrinter = [string]$defaultPrinterInstance.Name
+    }
+  } catch {
+    $DefaultPrinter = ""
+  }
+}
 
 if (-not $ExtensionId) {
   $ExtensionId = Resolve-FixedExtensionId -RepoRoot $repoRoot
@@ -93,6 +104,7 @@ if (-not (Test-Path -LiteralPath $exePath)) {
 
 Write-Utf8Json -Path $configPath -Value @{
   rootDir = $DataDir
+  defaultPrinterId = $DefaultPrinter
   printCommand = $resolvedPrintCommand
   printArgs = $PrintArgs
 }
@@ -118,4 +130,9 @@ Write-Host "Registry:  HKCU\Software\Google\Chrome\NativeMessagingHosts\$nativeH
 if (-not $resolvedPrintCommand) {
   Write-Host ""
   Write-Host "Warning: printCommand is empty. Install SumatraPDF or rerun with -PrintCommand before real silent printing."
+}
+
+if (-not $DefaultPrinter) {
+  Write-Host ""
+  Write-Host "Warning: no default printer detected. The Host will require printerId from the payload until one is configured."
 }

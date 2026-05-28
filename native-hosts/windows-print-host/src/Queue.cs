@@ -31,7 +31,7 @@ public sealed class PrintQueue
             jobId,
             payload.RequestId,
             string.IsNullOrWhiteSpace(payload.JobName) ? "Report" : payload.JobName.Trim(),
-            payload.PrinterId,
+            payload.PrinterId ?? throw new InvalidOperationException("Resolved printerId is required"),
             payload.Copies < 1 ? 1 : payload.Copies,
             payload.Silent,
             payload.Offset ?? new PrintOffset(0, 0),

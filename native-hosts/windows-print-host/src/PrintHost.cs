@@ -6,11 +6,13 @@ public sealed class PrintHost
 {
     private readonly PrintQueue _queue;
     private readonly IPrintAdapter _printAdapter;
+    private readonly string? _defaultPrinterId;
 
-    public PrintHost(PrintQueue queue, IPrintAdapter printAdapter)
+    public PrintHost(PrintQueue queue, IPrintAdapter printAdapter, string? defaultPrinterId = null)
     {
         _queue = queue;
         _printAdapter = printAdapter;
+        _defaultPrinterId = defaultPrinterId;
     }
 
     public async Task<PrintHostResponse> HandleMessageAsync(NativeMessage message, CancellationToken cancellationToken = default)
@@ -20,11 +22,13 @@ public sealed class PrintHost
             return new PrintHostResponse(false, Error: $"Unsupported message type: {message.Type}");
         }
 
-        PrintPdfPayload payload = ValidatePayload(message.Payload);
         string? jobId = null;
         try
         {
-            PrintJobRecord queued = await _queue.EnqueuePdfAsync(payload, cancellationToken);
+            PrintPdfPayload payload = ValidatePayload(message.Payload);
+            string resolvedPrinterId = ResolvePrinterId(payload.PrinterId);
+            PrintPdfPayload normalizedPayload = payload with { PrinterId = resolvedPrinterId };
+            PrintJobRecord queued = await _queue.EnqueuePdfAsync(normalizedPayload, cancellationToken);
             jobId = queued.JobId;
             PrintJobRecord printing = await _queue.MarkPrintingAsync(queued.JobId, cancellationToken);
             PrintAdapterResult result = await _printAdapter.PrintAsync(new PrintAdapterJob(
@@ -52,6 +56,21 @@ public sealed class PrintHost
         }
     }
 
+    private string ResolvePrinterId(string? payloadPrinterId)
+    {
+        if (!string.IsNullOrWhiteSpace(_defaultPrinterId))
+        {
+            return _defaultPrinterId;
+        }
+
+        if (!string.IsNullOrWhiteSpace(payloadPrinterId))
+        {
+            return payloadPrinterId;
+        }
+
+        throw new InvalidOperationException("printerId is required when no default printer is configured");
+    }
+
     private static PrintPdfPayload ValidatePayload(JsonElement? payload)
     {
         if (payload is null || payload.Value.ValueKind != JsonValueKind.Object)
@@ -61,7 +80,7 @@ public sealed class PrintHost
 
         JsonElement root = payload.Value;
         string requestId = ReadRequiredString(root, "requestId");
-        string printerId = ReadRequiredString(root, "printerId");
+        string? printerId = ReadOptionalString(root, "printerId");
         string pdfBase64 = ReadRequiredString(root, "pdfBase64");
         string? jobName = ReadOptionalString(root, "jobName");
         string? sourceOrigin = ReadOptionalString(root, "sourceOrigin");

@@ -98,6 +98,8 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\windows\install.
 
 The script publishes the host, creates the config, creates the native host manifest, registers the Chrome Native Messaging registry key under `HKCU`, and creates a Chrome launcher with the fixed-id extension loaded.
 
+The Host owns printer selection when a default printer is available in its config.
+
 Manual build and publish:
 
 ```powershell

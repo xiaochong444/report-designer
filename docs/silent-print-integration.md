@@ -54,6 +54,7 @@ await printReport(renderDocument, {
 ```
 
 `printerId` 第一版直接传 Windows 打印机名称。
+如果 Host 已配置默认打印机，Host 会优先使用自己的默认值。
 
 ## 联调检查
 
@@ -65,6 +66,10 @@ await printReport(renderDocument, {
 成功时 job 记录里的 `status` 是 `completed`。
 
 失败时 job 记录里的 `status` 是 `failed`，`error` 会记录失败原因。
+
+## 打印机归属
+
+打印机选择现在由 Host 负责。安装器会尝试读取 Windows 默认打印机并写入 Host 配置；如果没有默认打印机，Host 仍可接受 payload 里的 `printerId` 作为兜底。
 
 ## 卸载
 

@@ -14,7 +14,7 @@ public sealed record PrintOffset(double XMm, double YMm);
 
 public sealed record PrintPdfPayload(
     string RequestId,
-    string PrinterId,
+    string? PrinterId,
     string PdfBase64,
     string? JobName = null,
     int Copies = 1,

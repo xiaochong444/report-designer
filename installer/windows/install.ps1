@@ -1,6 +1,7 @@
 param(
   [string]$InstallRoot = "$env:LOCALAPPDATA\Programs\ReportDesignerPrint",
   [string]$ProfileDir = "$env:LOCALAPPDATA\ReportDesignerPrintChromeProfile",
+  [string]$DefaultPrinter = "",
   [string]$PrintCommand = "",
   [switch]$SelfContained,
   [switch]$NoShortcut,
@@ -104,6 +105,10 @@ if ($PrintCommand) {
   $hostArgs += @("-PrintCommand", $PrintCommand)
 }
 
+if ($DefaultPrinter) {
+  $hostArgs += @("-DefaultPrinter", $DefaultPrinter)
+}
+
 if ($SelfContained) {
   $hostArgs += "-SelfContained"
 }
@@ -123,6 +128,9 @@ Write-Host "Chrome:    $chromePath"
 Write-Host "Extension: $extensionDir"
 Write-Host "Host:      $hostInstallDir"
 Write-Host "Profile:   $ProfileDir"
+if ($DefaultPrinter) {
+  Write-Host "Printer:   $DefaultPrinter"
+}
 
 if ($Launch) {
   Start-Process -FilePath $chromePath -ArgumentList "--user-data-dir=`"$ProfileDir`" --load-extension=`"$extensionDir`" --no-first-run about:blank"
