@@ -5,7 +5,9 @@ using ReportDesigner.WindowsPrintHost;
 CancellationTokenSource cts = new();
 PrintHostConfig config = await PrintHostConfigLoader.LoadAsync();
 PrintQueue queue = new(config.RootDir);
-IPrintAdapter printAdapter = new CommandPrintAdapter(config.PrintCommand, config.PrintArgs);
+IPrintAdapter printAdapter = string.IsNullOrWhiteSpace(config.PrintCommand)
+  ? new ShellPrintToAdapter()
+  : new CommandPrintAdapter(config.PrintCommand, config.PrintArgs);
 PrintHost host = new(queue, printAdapter, config.DefaultPrinterId);
 
 await RunAsync(host, cts.Token);

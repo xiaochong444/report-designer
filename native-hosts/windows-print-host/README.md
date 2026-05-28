@@ -49,3 +49,4 @@ Create `%LOCALAPPDATA%\\ReportDesignerPrintHost\\config.json`:
 
 - The host communicates with Chrome through the standard Native Messaging length-prefixed JSON protocol.
 - `OutputType=WinExe` keeps the host hidden while still allowing redirected stdin/stdout.
+- If `printCommand` is empty, the host uses Windows shell `printto` as a fallback. For production silent printing, prefer a known command-line PDF printer such as SumatraPDF.

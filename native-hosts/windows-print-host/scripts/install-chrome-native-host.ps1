@@ -129,7 +129,7 @@ Write-Host "Registry:  HKCU\Software\Google\Chrome\NativeMessagingHosts\$nativeH
 
 if (-not $resolvedPrintCommand) {
   Write-Host ""
-  Write-Host "Warning: printCommand is empty. Install SumatraPDF or rerun with -PrintCommand before real silent printing."
+  Write-Host "Info: printCommand is empty. The Host will use Windows shell printto with the default PDF application."
 }
 
 if (-not $DefaultPrinter) {

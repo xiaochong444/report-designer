@@ -39,6 +39,8 @@ ehppgngdhfmokcmjihddljjfjmcponik
 powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\windows\install.ps1 -PrintCommand "C:\Tools\SumatraPDF.exe"
 ```
 
+如果不指定 `PrintCommand`，Host 会使用 Windows `printto` 方式调用系统默认 PDF 应用进行打印。正式部署更建议配置 SumatraPDF 或其它明确支持静默命令行打印的 PDF 程序。
+
 ## Viewer 打印配置
 
 ```ts

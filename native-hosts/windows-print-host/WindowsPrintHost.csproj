@@ -7,6 +7,7 @@
     <RootNamespace>ReportDesigner.WindowsPrintHost</RootNamespace>
     <AssemblyName>ReportDesignerPrintHost</AssemblyName>
     <LangVersion>latest</LangVersion>
+    <RuntimeIdentifiers>win-x64</RuntimeIdentifiers>
   </PropertyGroup>
 
   <ItemGroup>
