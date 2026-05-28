@@ -1222,39 +1222,54 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: 4,
       boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 10000,
       minWidth: 210, padding: '4px 0',
-    }}>
-      <ContextMenuItem label={t('contextMenu.copy')} shortcut="Ctrl+C" disabled={!hasSelection} onClick={onCopy} />
-      <ContextMenuItem label={t('contextMenu.cut')} shortcut="Ctrl+X" disabled={!hasSelection} onClick={onCut} />
-      <ContextMenuItem label={t('contextMenu.paste')} shortcut="Ctrl+V" disabled={!hasClipboard} onClick={onPaste} />
-      <ContextMenuItem label={t('contextMenu.duplicate')} shortcut="Ctrl+D" disabled={!hasSelection} onClick={onDuplicate} />
-      <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
-      <ContextMenuItem label={t('contextMenu.bringToFront')} shortcut="Ctrl+Alt+↑" disabled={!hasSelection} onClick={onBringToFront} />
-      <ContextMenuItem label={t('contextMenu.sendToBack')} shortcut="Ctrl+Alt+↓" disabled={!hasSelection} onClick={onSendToBack} />
+    }}
+      onMouseDown={stopEvent}
+      onContextMenu={stopEvent}
+      onClick={stopEvent}
+    >
+      <ContextMenuSection title={t('contextMenu.section.edit')}>
+        <ContextMenuItem label={t('contextMenu.copy')} shortcut="Ctrl+C" disabled={!hasSelection} onClick={onCopy} />
+        <ContextMenuItem label={t('contextMenu.cut')} shortcut="Ctrl+X" disabled={!hasSelection} onClick={onCut} />
+        <ContextMenuItem label={t('contextMenu.paste')} shortcut="Ctrl+V" disabled={!hasClipboard} onClick={onPaste} />
+        <ContextMenuItem label={t('contextMenu.duplicate')} shortcut="Ctrl+D" disabled={!hasSelection} onClick={onDuplicate} />
+      </ContextMenuSection>
+      <ContextMenuDivider />
+      <ContextMenuSection title={t('contextMenu.section.arrange')}>
+        <ContextMenuItem label={t('contextMenu.bringToFront')} shortcut="Ctrl+Alt+↑" disabled={!hasSelection} onClick={onBringToFront} />
+        <ContextMenuItem label={t('contextMenu.sendToBack')} shortcut="Ctrl+Alt+↓" disabled={!hasSelection} onClick={onSendToBack} />
+      </ContextMenuSection>
       {selectedType === 'table' && (
         <>
-          <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
-          <ContextMenuItem label={t('contextMenu.table.insertColumnLeft')} onClick={onInsertTableColumnLeft} />
-          <ContextMenuItem label={t('contextMenu.table.insertColumnRight')} onClick={onInsertTableColumnRight} />
-          <ContextMenuItem label={t('contextMenu.table.deleteColumn')} onClick={onDeleteTableColumn} />
-          <ContextMenuItem label={t('contextMenu.table.insertRowAbove')} onClick={onInsertTableRowAbove} />
-          <ContextMenuItem label={t('contextMenu.table.insertRowBelow')} onClick={onInsertTableRowBelow} />
-          <ContextMenuItem label={t('contextMenu.table.deleteRow')} onClick={onDeleteTableRow} />
-          <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
-          <ContextMenuItem label={t('contextMenu.table.mergeRight')} disabled={!tableCell} onClick={onMergeTableCellRight} />
-          <ContextMenuItem label={t('contextMenu.table.mergeSelected')} disabled={!tableCell} onClick={onMergeSelectedTableCells} />
-          <ContextMenuItem label={t('contextMenu.table.splitCell')} disabled={!tableCell} onClick={onSplitTableCell} />
-          <ContextMenuItem label={t('contextMenu.table.clearCell')} disabled={!tableCell} onClick={onClearTableCell} />
-          <ContextMenuItem label={t('contextMenu.table.copyCellStyle')} disabled={!tableCell} onClick={onCopyTableCellStyle} />
-          <ContextMenuItem label={t('contextMenu.table.pasteCellStyle')} disabled={!tableCell} onClick={onPasteTableCellStyle} />
-          <ContextMenuItem label={t('contextMenu.table.clearCellStyle')} disabled={!tableCell} onClick={onClearTableCellStyle} />
-          <ContextMenuItem label={t('contextMenu.table.setHeaderRow')} disabled={!tableCell} onClick={onSetHeaderRow} />
-          <ContextMenuItem label={t('contextMenu.table.setFooterRow')} disabled={!tableCell} onClick={onSetFooterRow} />
-          <ContextMenuItem label={t('contextMenu.table.equalizeColumns')} onClick={onEqualizeTableColumns} />
-          <ContextMenuItem label={t('contextMenu.table.equalizeRows')} onClick={onEqualizeTableRows} />
-          <ContextMenuItem label={t('contextMenu.table.toggleBorder')} onClick={onToggleTableBorder} />
+          <ContextMenuDivider />
+          <ContextMenuSection title={t('contextMenu.section.tableStructure')}>
+            <ContextMenuItem label={t('contextMenu.table.insertColumnLeft')} onClick={onInsertTableColumnLeft} />
+            <ContextMenuItem label={t('contextMenu.table.insertColumnRight')} onClick={onInsertTableColumnRight} />
+            <ContextMenuItem label={t('contextMenu.table.deleteColumn')} onClick={onDeleteTableColumn} />
+            <ContextMenuItem label={t('contextMenu.table.insertRowAbove')} onClick={onInsertTableRowAbove} />
+            <ContextMenuItem label={t('contextMenu.table.insertRowBelow')} onClick={onInsertTableRowBelow} />
+            <ContextMenuItem label={t('contextMenu.table.deleteRow')} onClick={onDeleteTableRow} />
+            <ContextMenuItem label={t('contextMenu.table.setHeaderRow')} disabled={!tableCell} onClick={onSetHeaderRow} />
+            <ContextMenuItem label={t('contextMenu.table.setFooterRow')} disabled={!tableCell} onClick={onSetFooterRow} />
+          </ContextMenuSection>
+          <ContextMenuDivider />
+          <ContextMenuSection title={t('contextMenu.section.tableCell')}>
+            <ContextMenuItem label={t('contextMenu.table.mergeRight')} disabled={!tableCell} onClick={onMergeTableCellRight} />
+            <ContextMenuItem label={t('contextMenu.table.mergeSelected')} disabled={!tableCell} onClick={onMergeSelectedTableCells} />
+            <ContextMenuItem label={t('contextMenu.table.splitCell')} disabled={!tableCell} onClick={onSplitTableCell} />
+            <ContextMenuItem label={t('contextMenu.table.clearCell')} disabled={!tableCell} onClick={onClearTableCell} />
+            <ContextMenuItem label={t('contextMenu.table.copyCellStyle')} disabled={!tableCell} onClick={onCopyTableCellStyle} />
+            <ContextMenuItem label={t('contextMenu.table.pasteCellStyle')} disabled={!tableCell} onClick={onPasteTableCellStyle} />
+            <ContextMenuItem label={t('contextMenu.table.clearCellStyle')} disabled={!tableCell} onClick={onClearTableCellStyle} />
+          </ContextMenuSection>
+          <ContextMenuDivider />
+          <ContextMenuSection title={t('contextMenu.section.tableStyle')}>
+            <ContextMenuItem label={t('contextMenu.table.equalizeColumns')} onClick={onEqualizeTableColumns} />
+            <ContextMenuItem label={t('contextMenu.table.equalizeRows')} onClick={onEqualizeTableRows} />
+            <ContextMenuItem label={t('contextMenu.table.toggleBorder')} onClick={onToggleTableBorder} />
+          </ContextMenuSection>
         </>
       )}
-      <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
+      <ContextMenuDivider />
       <ContextMenuItem label={t('contextMenu.delete')} shortcut="Del" disabled={!hasSelection} onClick={onDelete} danger />
     </div>
   );
@@ -1265,20 +1280,41 @@ const ContextMenuItem: React.FC<{
   onClick: () => void;
 }> = ({ label, shortcut, disabled, danger, onClick }) => (
   <div
-    onClick={disabled ? undefined : onClick}
+    onMouseDown={stopEvent}
+    onClick={(event) => {
+      event.stopPropagation();
+      if (!disabled) onClick();
+    }}
     style={{
       padding: '4px 16px', cursor: disabled ? 'default' : 'pointer',
       color: disabled ? '#ccc' : danger ? '#ff4d4f' : '#333',
       fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
       backgroundColor: disabled ? 'transparent' : 'transparent',
     }}
-    onMouseEnter={(e) => { if (!disabled) (e.target as HTMLElement).style.backgroundColor = '#f0f0f0'; }}
-    onMouseLeave={(e) => { (e.target as HTMLElement).style.backgroundColor = 'transparent'; }}
+    onMouseEnter={(e) => { if (!disabled) (e.currentTarget as HTMLElement).style.backgroundColor = '#f0f0f0'; }}
+    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
   >
     <span>{label}</span>
     {shortcut && <span style={{ color: '#999', fontSize: 11 }}>{shortcut}</span>}
   </div>
 );
+
+const ContextMenuSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
+  <div>
+    <div style={{ padding: '4px 16px 2px', fontSize: 11, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0 }}>
+      {title}
+    </div>
+    {children}
+  </div>
+);
+
+const ContextMenuDivider: React.FC = () => (
+  <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
+);
+
+function stopEvent(event: React.SyntheticEvent) {
+  event.stopPropagation();
+}
 
 // ---- Band View ----
 

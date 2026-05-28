@@ -73,6 +73,24 @@ function openCellMenu(row: number, column: number) {
 }
 
 describe('phase 34 table context menu', () => {
+  it('shows grouped table actions and handles a real mouse click on the menu item', () => {
+    loadWith(tableComponent({ cells: [{ row: 2, column: 2, text: 'Tail' }] }));
+    render(<Canvas />);
+
+    openCellMenu(1, 1);
+    expect(screen.getByText('编辑')).toBeInTheDocument();
+    expect(screen.getByText('结构')).toBeInTheDocument();
+    expect(screen.getByText('单元格')).toBeInTheDocument();
+    expect(screen.getByText('样式')).toBeInTheDocument();
+
+    const insertRowBelow = screen.getByText('插入行到下方');
+    fireEvent.mouseDown(insertRowBelow);
+    fireEvent.click(insertRowBelow);
+
+    expect(selectedTable().rowCount).toBe(4);
+    expect(selectedTable().cells).toContainEqual({ row: 3, column: 2, text: 'Tail' });
+  });
+
   it('inserts rows and columns before or after the clicked cell', () => {
     loadWith(tableComponent({ cells: [{ row: 2, column: 2, text: 'Tail' }] }));
     render(<Canvas />);

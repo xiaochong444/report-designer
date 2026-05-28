@@ -334,6 +334,11 @@ export type DesignerMessageKey =
   | 'selection.components'
   | 'selection.band'
   | 'selection.tableCell'
+  | 'contextMenu.section.edit'
+  | 'contextMenu.section.arrange'
+  | 'contextMenu.section.tableStructure'
+  | 'contextMenu.section.tableCell'
+  | 'contextMenu.section.tableStyle'
   | 'contextMenu.copy'
   | 'contextMenu.cut'
   | 'contextMenu.paste'
@@ -951,6 +956,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'selection.components': '{count} 个组件',
     'selection.band': '带区',
     'selection.tableCell': '表格单元格',
+    'contextMenu.section.edit': '编辑',
+    'contextMenu.section.arrange': '排列',
+    'contextMenu.section.tableStructure': '结构',
+    'contextMenu.section.tableCell': '单元格',
+    'contextMenu.section.tableStyle': '样式',
     'contextMenu.copy': '复制',
     'contextMenu.cut': '剪切',
     'contextMenu.paste': '粘贴',
@@ -1565,6 +1575,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'selection.components': '{count} components',
     'selection.band': 'Band',
     'selection.tableCell': 'Table Cell',
+    'contextMenu.section.edit': 'Edit',
+    'contextMenu.section.arrange': 'Arrange',
+    'contextMenu.section.tableStructure': 'Structure',
+    'contextMenu.section.tableCell': 'Cell',
+    'contextMenu.section.tableStyle': 'Style',
     'contextMenu.copy': 'Copy',
     'contextMenu.cut': 'Cut',
     'contextMenu.paste': 'Paste',
