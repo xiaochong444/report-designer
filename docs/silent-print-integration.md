@@ -60,7 +60,7 @@ await printReport(renderDocument, {
 
 1. 确认扩展选项页里的 `backend` 是 `nativeMessaging`
 2. 打开示例 Viewer
-3. 点击打印
+3. 点击顶部的 `静默打印测试`
 4. 查看 `%LOCALAPPDATA%\ReportDesignerPrintHost\jobs`
 
 成功时 job 记录里的 `status` 是 `completed`。

@@ -1,8 +1,8 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Button, Layout, Select, Typography } from 'antd';
-import type { EventLogEntry, ReportTemplate } from '@report-designer/core';
+import { renderReport, type EventLogEntry, type ReportTemplate } from '@report-designer/core';
 import { Designer, type DesignerEventNavigationTarget, type DesignerLocale } from '@report-designer/designer';
-import { Viewer } from '@report-designer/viewer';
+import { printReport, Viewer } from '@report-designer/viewer';
 import { sampleReports } from './templates';
 
 const { Content, Header } = Layout;
@@ -12,16 +12,25 @@ const exampleMessages: Record<DesignerLocale, {
   reportSamples: string;
   openDesigner: string;
   returnPreview: string;
+  silentPrint: string;
+  silentPrintSent: string;
+  silentPrintFailed: string;
 }> = {
   'zh-CN': {
     reportSamples: '报表示例',
     openDesigner: '打开设计器',
     returnPreview: '返回预览',
+    silentPrint: '静默打印测试',
+    silentPrintSent: '已发送给本机打印 Host',
+    silentPrintFailed: '静默打印失败',
   },
   'en-US': {
     reportSamples: 'Report Samples',
     openDesigner: 'Open Designer',
     returnPreview: 'Return to Preview',
+    silentPrint: 'Silent Print Test',
+    silentPrintSent: 'Sent to local print host',
+    silentPrintFailed: 'Silent print failed',
   },
 };
 
@@ -32,6 +41,8 @@ function App() {
   const [eventNavigationTarget, setEventNavigationTarget] = useState<DesignerEventNavigationTarget | undefined>();
   const [designerDrafts, setDesignerDrafts] = useState<Record<string, ReportTemplate>>({});
   const [previewDrafts, setPreviewDrafts] = useState<Record<string, ReportTemplate>>({});
+  const [silentPrintStatus, setSilentPrintStatus] = useState('');
+  const [silentPrintLoading, setSilentPrintLoading] = useState(false);
   const labels = exampleMessages[locale];
   const selected = useMemo(
     () => sampleReports.find(report => report.key === sampleKey) ?? sampleReports[0],
@@ -59,6 +70,30 @@ function App() {
     });
     setViewMode('designer');
   }, []);
+  const handleSilentPrint = useCallback(async () => {
+    setSilentPrintLoading(true);
+    setSilentPrintStatus('');
+    try {
+      const printDocument = renderReport(previewTemplate, selected.data, {
+        subreports: 'subreports' in selected ? selected.subreports : undefined,
+        mode: 'print',
+      });
+      await printReport(printDocument, {
+        adapter: 'chrome-extension',
+        chromeExtension: {
+          backend: 'nativeMessaging',
+          jobName: previewTemplate.name,
+          silent: true,
+        },
+      });
+      setSilentPrintStatus(labels.silentPrintSent);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setSilentPrintStatus(`${labels.silentPrintFailed}: ${message}`);
+    } finally {
+      setSilentPrintLoading(false);
+    }
+  }, [labels.silentPrintFailed, labels.silentPrintSent, previewTemplate, selected]);
 
   return (
     <Layout style={{ height: '100vh', minWidth: 900, background: '#eef1f5' }}>
@@ -83,6 +118,27 @@ function App() {
         />
         <Typography.Text type="secondary">{previewTemplate.name}</Typography.Text>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
+          {viewMode === 'preview' ? (
+            <>
+              {silentPrintStatus ? (
+                <Typography.Text
+                  type={silentPrintStatus.startsWith(labels.silentPrintFailed) ? 'danger' : 'success'}
+                  style={{ fontSize: 12, maxWidth: 260 }}
+                  ellipsis
+                >
+                  {silentPrintStatus}
+                </Typography.Text>
+              ) : null}
+              <Button
+                data-testid="silent-print-demo-button"
+                size="small"
+                loading={silentPrintLoading}
+                onClick={() => void handleSilentPrint()}
+              >
+                {labels.silentPrint}
+              </Button>
+            </>
+          ) : null}
           <div data-testid="example-locale-picker">
             <Select
               value={locale}
