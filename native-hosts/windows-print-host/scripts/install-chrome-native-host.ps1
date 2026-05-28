@@ -1,7 +1,5 @@
 param(
-  [Parameter(Mandatory = $true)]
-  [ValidateNotNullOrEmpty()]
-  [string]$ExtensionId,
+  [string]$ExtensionId = "",
 
   [string]$InstallDir = "$env:LOCALAPPDATA\Programs\ReportDesignerPrintHost",
   [string]$DataDir = "$env:LOCALAPPDATA\ReportDesignerPrintHost",
@@ -21,6 +19,16 @@ function Resolve-RepoRoot {
 function Resolve-HostProject {
   param([string]$RepoRoot)
   return Join-Path $RepoRoot "native-hosts\windows-print-host\WindowsPrintHost.csproj"
+}
+
+function Resolve-FixedExtensionId {
+  param([string]$RepoRoot)
+  $configPath = Join-Path $RepoRoot "extensions\chrome-silent-print\fixed-extension.json"
+  if (-not (Test-Path -LiteralPath $configPath)) {
+    return ""
+  }
+  $config = Get-Content -Raw -LiteralPath $configPath | ConvertFrom-Json
+  return [string]$config.extensionId
 }
 
 function Resolve-SumatraPdf {
@@ -63,6 +71,14 @@ $configPath = Join-Path $DataDir "config.json"
 $nativeHostName = "com.report_designer.print_host"
 $registryPath = "HKCU:\Software\Google\Chrome\NativeMessagingHosts\$nativeHostName"
 $resolvedPrintCommand = Resolve-SumatraPdf
+
+if (-not $ExtensionId) {
+  $ExtensionId = Resolve-FixedExtensionId -RepoRoot $repoRoot
+}
+
+if (-not $ExtensionId) {
+  throw "ExtensionId is required and fixed-extension.json was not found."
+}
 
 New-Item -ItemType Directory -Force -Path $InstallDir, $DataDir, $manifestDir | Out-Null
 

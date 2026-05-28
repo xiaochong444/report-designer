@@ -15,6 +15,7 @@ This extension bridges the web viewer to silent printing.
 - `backend`: `nativeMessaging`
 - `nativeHostName`: `com.report_designer.print_host`
 - `allowedOrigins`: empty list, which allows localhost and file URLs during development
+- fixed development extension id: `ehppgngdhfmokcmjihddljjfjmcponik`
 
 ## Viewer usage
 
@@ -89,13 +90,13 @@ or
 
 The Windows host lives in `native-hosts/windows-print-host`. It is a .NET `WinExe` Native Messaging host, so Chrome can launch it with redirected stdin/stdout without showing a console window.
 
-For local integration, load this extension in `chrome://extensions`, copy the extension id, then run from the repository root:
+For local integration, run the one-click installer from the repository root:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\native-hosts\windows-print-host\scripts\install-chrome-native-host.ps1 -ExtensionId "your_chrome_extension_id"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\windows\install.ps1
 ```
 
-The script publishes the host, creates the config, creates the native host manifest, and registers the Chrome Native Messaging registry key under `HKCU`.
+The script publishes the host, creates the config, creates the native host manifest, registers the Chrome Native Messaging registry key under `HKCU`, and creates a Chrome launcher with the fixed-id extension loaded.
 
 Manual build and publish:
 

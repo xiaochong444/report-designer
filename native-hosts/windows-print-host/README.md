@@ -23,7 +23,7 @@ dotnet publish .\WindowsPrintHost.csproj -c Release -r win-x64 --self-contained 
 For local integration, use the one-command installer from the repository root:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\native-hosts\windows-print-host\scripts\install-chrome-native-host.ps1 -ExtensionId "your_chrome_extension_id"
+powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\windows\install.ps1
 ```
 
 ## Configuration
