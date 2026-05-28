@@ -138,6 +138,15 @@ function findPanelDropTarget(band: Band, xMm: number, yMm: number): { panelId: s
   return null;
 }
 
+function hasDragPayload(event: React.DragEvent, type: 'componentType' | 'fieldBinding'): boolean {
+  const expected = type.toLowerCase();
+  return Array.from(event.dataTransfer.types ?? []).some(item => item.toLowerCase() === expected);
+}
+
+function getDragData(event: React.DragEvent, type: 'componentType' | 'fieldBinding'): string {
+  return event.dataTransfer.getData(type) || event.dataTransfer.getData(type.toLowerCase());
+}
+
 // ---- Context Menu ----
 
 interface ContextMenuPos {
@@ -296,14 +305,22 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       const ch = findComponentAtPoint(e.clientX, e.clientY);
       const tableCell = findTableCellAtPoint(e.clientX, e.clientY);
       if (tableCell) {
-        selectTableCell({
-          tableId: tableCell.tableId,
-          bandId: tableCell.bandId,
-          startRow: tableCell.row,
-          startColumn: tableCell.column,
-          endRow: tableCell.row,
-          endColumn: tableCell.column,
-        });
+        const currentSelection = useDesignerStore.getState().selectedTableCell;
+        const isInsideCurrentSelection = currentSelection?.tableId === tableCell.tableId
+          && tableCell.row >= currentSelection.startRow
+          && tableCell.row <= currentSelection.endRow
+          && tableCell.column >= currentSelection.startColumn
+          && tableCell.column <= currentSelection.endColumn;
+        if (!isInsideCurrentSelection) {
+          selectTableCell({
+            tableId: tableCell.tableId,
+            bandId: tableCell.bandId,
+            startRow: tableCell.row,
+            startColumn: tableCell.column,
+            endRow: tableCell.row,
+            endColumn: tableCell.column,
+          });
+        }
       } else if (ch && !selectedComponentIds.includes(ch.compId)) {
         selectComponents([ch.compId]);
       }
@@ -770,8 +787,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   }, [bands, currentPage?.bands, zoom]);
 
   const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
-    const types = Array.from(event.dataTransfer.types ?? []);
-    const hasSupportedPayload = types.includes('componentType') || types.includes('fieldBinding');
+    const hasSupportedPayload = hasDragPayload(event, 'componentType') || hasDragPayload(event, 'fieldBinding');
     if (!hasSupportedPayload) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
@@ -781,8 +797,8 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     const position = getDropPosition(event);
     if (!position || !currentPageId) return;
 
-    const fieldBinding = event.dataTransfer.getData('fieldBinding');
-    const componentType = event.dataTransfer.getData('componentType');
+    const fieldBinding = getDragData(event, 'fieldBinding');
+    const componentType = getDragData(event, 'componentType');
     if (!fieldBinding && !componentType) return;
 
     event.preventDefault();
@@ -964,6 +980,10 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
               }
               setContextMenu(null);
             }}
+            onMergeSelectedTableCells={() => {
+              useDesignerStore.getState().mergeSelectedTableCellRange();
+              setContextMenu(null);
+            }}
             onSplitTableCell={() => {
               if (contextMenu.tableCell) {
                 useDesignerStore.getState().splitSelectedTableCell(contextMenu.tableCell.row, contextMenu.tableCell.column);
@@ -973,6 +993,24 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             onClearTableCell={() => {
               if (contextMenu.tableCell) {
                 useDesignerStore.getState().clearSelectedTableCell(contextMenu.tableCell.row, contextMenu.tableCell.column);
+              }
+              setContextMenu(null);
+            }}
+            onClearTableCellStyle={() => {
+              if (contextMenu.tableCell) {
+                useDesignerStore.getState().clearSelectedTableCellStyle(contextMenu.tableCell.row, contextMenu.tableCell.column);
+              }
+              setContextMenu(null);
+            }}
+            onCopyTableCellStyle={() => {
+              if (contextMenu.tableCell) {
+                useDesignerStore.getState().copySelectedTableCellStyle(contextMenu.tableCell.row, contextMenu.tableCell.column);
+              }
+              setContextMenu(null);
+            }}
+            onPasteTableCellStyle={() => {
+              if (contextMenu.tableCell) {
+                useDesignerStore.getState().pasteSelectedTableCellStyle(contextMenu.tableCell.row, contextMenu.tableCell.column);
               }
               setContextMenu(null);
             }}
@@ -1122,7 +1160,8 @@ interface ContextMenuProps {
   onInsertTableColumnLeft: () => void; onInsertTableColumnRight: () => void; onDeleteTableColumn: () => void;
   onInsertTableRowAbove: () => void; onInsertTableRowBelow: () => void; onDeleteTableRow: () => void; onToggleTableBorder: () => void;
   onSetHeaderRow: () => void; onSetFooterRow: () => void;
-  onMergeTableCellRight: () => void; onSplitTableCell: () => void; onClearTableCell: () => void;
+  onMergeTableCellRight: () => void; onMergeSelectedTableCells: () => void; onSplitTableCell: () => void; onClearTableCell: () => void;
+  onClearTableCellStyle: () => void; onCopyTableCellStyle: () => void; onPasteTableCellStyle: () => void;
   onEqualizeTableColumns: () => void; onEqualizeTableRows: () => void;
 }
 
@@ -1150,8 +1189,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onSetHeaderRow,
   onSetFooterRow,
   onMergeTableCellRight,
+  onMergeSelectedTableCells,
   onSplitTableCell,
   onClearTableCell,
+  onClearTableCellStyle,
+  onCopyTableCellStyle,
+  onPasteTableCellStyle,
   onEqualizeTableColumns,
   onEqualizeTableRows,
 }) => {
@@ -1181,8 +1224,12 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
           <ContextMenuItem label={t('contextMenu.table.deleteRow')} onClick={onDeleteTableRow} />
           <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
           <ContextMenuItem label={t('contextMenu.table.mergeRight')} disabled={!tableCell} onClick={onMergeTableCellRight} />
+          <ContextMenuItem label={t('contextMenu.table.mergeSelected')} disabled={!tableCell} onClick={onMergeSelectedTableCells} />
           <ContextMenuItem label={t('contextMenu.table.splitCell')} disabled={!tableCell} onClick={onSplitTableCell} />
           <ContextMenuItem label={t('contextMenu.table.clearCell')} disabled={!tableCell} onClick={onClearTableCell} />
+          <ContextMenuItem label={t('contextMenu.table.copyCellStyle')} disabled={!tableCell} onClick={onCopyTableCellStyle} />
+          <ContextMenuItem label={t('contextMenu.table.pasteCellStyle')} disabled={!tableCell} onClick={onPasteTableCellStyle} />
+          <ContextMenuItem label={t('contextMenu.table.clearCellStyle')} disabled={!tableCell} onClick={onClearTableCellStyle} />
           <ContextMenuItem label={t('contextMenu.table.setHeaderRow')} disabled={!tableCell} onClick={onSetHeaderRow} />
           <ContextMenuItem label={t('contextMenu.table.setFooterRow')} disabled={!tableCell} onClick={onSetFooterRow} />
           <ContextMenuItem label={t('contextMenu.table.equalizeColumns')} onClick={onEqualizeTableColumns} />
@@ -1855,10 +1902,14 @@ const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTa
           gridRow: rowSpan > 1 ? `span ${rowSpan}` : undefined,
           minWidth: 0,
           minHeight: 0,
-          color: isHeader || isFooter ? '#333' : '#999',
+          color: customCell?.font?.color ?? (isHeader || isFooter ? '#333' : '#999'),
           outline: isSelected ? '2px solid #1677ff' : undefined,
           outlineOffset: -2,
-          fontSize: 10,
+          fontFamily: customCell?.font?.family,
+          fontSize: customCell?.font?.size ?? 10,
+          fontWeight: customCell?.font?.bold ? 700 : 400,
+          fontStyle: customCell?.font?.italic ? 'italic' : undefined,
+          textDecoration: tableFontTextDecoration(customCell?.font),
           lineHeight: 1.2,
           overflow: 'hidden',
           whiteSpace: 'nowrap',
@@ -1920,6 +1971,14 @@ function designTableCellStyle(
     style.borderBottom = options.row + options.rowSpan >= options.rowCount ? 'none' : options.defaultBorder;
   }
   return style;
+}
+
+function tableFontTextDecoration(font?: TableCell['font']): string | undefined {
+  const decorations = [
+    font?.underline ? 'underline' : undefined,
+    font?.strikethrough ? 'line-through' : undefined,
+  ].filter(Boolean);
+  return decorations.length ? decorations.join(' ') : undefined;
 }
 
 function tablePaddingToCss(padding?: Padding): string {

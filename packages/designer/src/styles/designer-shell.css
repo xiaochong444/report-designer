@@ -63,7 +63,7 @@
 }
 
 .rd-ribbon {
-  min-height: 92px;
+  min-height: 86px;
   background: var(--rd-surface);
   border-bottom: 1px solid var(--rd-border-strong);
 }
@@ -74,9 +74,12 @@
   padding-left: 8px;
   border-bottom: 1px solid var(--rd-border);
   background: #f4f7fb;
+  overflow-x: auto;
+  overflow-y: hidden;
 }
 
 .rd-ribbon-tab {
+  flex: 0 0 auto;
   min-width: 74px;
   height: 26px;
   border: 0;
@@ -97,27 +100,30 @@
 }
 
 .rd-ribbon-content {
-  height: 66px;
+  min-height: 60px;
   display: flex;
   align-items: stretch;
   gap: 0;
-  padding: 5px 8px 4px;
-  overflow: hidden;
+  padding: 4px 8px 3px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  white-space: nowrap;
 }
 
 .rd-ribbon-group {
   position: relative;
-  min-width: 76px;
+  flex: 0 0 auto;
+  min-width: 0;
   display: grid;
   grid-template-rows: 1fr 16px;
-  padding: 0 9px 0 4px;
+  padding: 0 10px 0 4px;
 }
 
 .rd-ribbon-group-controls {
   display: flex;
   align-items: flex-start;
   gap: 4px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-content: flex-start;
 }
 

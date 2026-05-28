@@ -31,6 +31,74 @@ function createColumn(index: number, width: number): TableColumn {
   };
 }
 
+export interface TableStructureUpdate {
+  rowCount?: number;
+  columnCount?: number;
+  headerRowsCount?: number;
+  footerRowsCount?: number;
+  headerHeight?: number;
+  rowHeight?: number;
+  alternateRowStyle?: string;
+  canBreak?: boolean;
+  showBorder?: boolean;
+  dataSource?: string;
+  binding?: {
+    mode: 'fixed' | 'detail';
+    dataSourceId?: string;
+    arrayPath?: string;
+  };
+  columns?: TableComponent['columns'];
+}
+
+export type TableCellStyleClipboard = Pick<TableCell,
+  'backgroundColor' | 'font' | 'border' | 'padding' | 'textAlign' | 'verticalAlign' | 'format'
+>;
+
+const TABLE_CELL_STYLE_KEYS: (keyof TableCellStyleClipboard)[] = [
+  'backgroundColor',
+  'font',
+  'border',
+  'padding',
+  'textAlign',
+  'verticalAlign',
+  'format',
+];
+
+function cloneCellStyleValue<T>(value: T): T {
+  if (value === undefined || value === null || typeof value !== 'object') return value;
+  return JSON.parse(JSON.stringify(value)) as T;
+}
+
+function extractTableCellStyle(cell: TableCell): TableCellStyleClipboard {
+  const style: TableCellStyleClipboard = {};
+  for (const key of TABLE_CELL_STYLE_KEYS) {
+    const value = cell[key];
+    if (value !== undefined) {
+      style[key] = cloneCellStyleValue(value) as never;
+    }
+  }
+  return style;
+}
+
+function cloneTableCellStyle(style: TableCellStyleClipboard): TableCellStyleClipboard {
+  const next: TableCellStyleClipboard = {};
+  for (const key of TABLE_CELL_STYLE_KEYS) {
+    const value = style[key];
+    if (value !== undefined) {
+      next[key] = cloneCellStyleValue(value) as never;
+    }
+  }
+  return next;
+}
+
+function omitTableCellStyle(cell: TableCell): TableCell {
+  const next = { ...cell };
+  for (const key of TABLE_CELL_STYLE_KEYS) {
+    delete next[key];
+  }
+  return next;
+}
+
 function resizeColumns(columns: TableColumn[], count: number, totalWidth: number): TableColumn[] {
   const safeCount = Math.max(MIN_TABLE_COLUMNS, count);
   const width = Math.round((totalWidth / safeCount) * 10) / 10;
@@ -115,19 +183,7 @@ export function normalizeTable(table: TableComponent): TableComponent {
   };
 }
 
-export function setTableStructure(table: TableComponent, structure: {
-  rowCount?: number;
-  columnCount?: number;
-  headerRowsCount?: number;
-  footerRowsCount?: number;
-  headerHeight?: number;
-  rowHeight?: number;
-  alternateRowStyle?: string;
-  canBreak?: boolean;
-  showBorder?: boolean;
-  dataSource?: string;
-  columns?: TableComponent['columns'];
-}): TableComponent {
+export function setTableStructure(table: TableComponent, structure: TableStructureUpdate): TableComponent {
   const normalized = normalizeTable(table);
   const rowCount = normalizePositive(structure.rowCount, normalized.rowCount ?? 3);
   const baseColumns = structure.columns ?? normalized.columns;
@@ -140,6 +196,7 @@ export function setTableStructure(table: TableComponent, structure: {
     ...('canBreak' in structure ? { canBreak: structure.canBreak } : {}),
     ...('showBorder' in structure ? { showBorder: structure.showBorder } : {}),
     ...('dataSource' in structure ? { dataSource: structure.dataSource || '' } : {}),
+    ...('binding' in structure ? { binding: structure.binding } : {}),
     ...('headerHeight' in structure ? { headerHeight: normalizePositiveMm(structure.headerHeight, normalized.headerHeight) } : {}),
     ...('rowHeight' in structure ? { rowHeight: normalizePositiveMm(structure.rowHeight, normalized.rowHeight) } : {}),
     ...('alternateRowStyle' in structure ? { alternateRowStyle: structure.alternateRowStyle } : {}),
@@ -219,6 +276,35 @@ export function mergeTableCellRight(table: TableComponent, row: number, column: 
   };
 }
 
+export function mergeTableCellRange(
+  table: TableComponent,
+  startRow: number,
+  startColumn: number,
+  endRow: number,
+  endColumn: number,
+): TableComponent {
+  const normalized = normalizeTable(table);
+  const rowCount = normalized.rowCount ?? MIN_TABLE_ROWS;
+  const columnCount = normalized.columnCount ?? normalized.columns.length;
+  const top = Math.max(0, Math.min(startRow, endRow));
+  const left = Math.max(0, Math.min(startColumn, endColumn));
+  const bottom = Math.min(rowCount - 1, Math.max(startRow, endRow));
+  const right = Math.min(columnCount - 1, Math.max(startColumn, endColumn));
+  if (top > bottom || left > right) return normalized;
+
+  const owner = {
+    ...getTableCell(normalized, top, left),
+    rowSpan: bottom - top + 1,
+    colSpan: right - left + 1,
+  };
+  const withoutCovered = removeCellsCoveredBy(owner, normalized.cells);
+
+  return {
+    ...normalized,
+    cells: upsertCell({ ...normalized, cells: withoutCovered }, owner),
+  };
+}
+
 export function splitTableCell(table: TableComponent, row: number, column: number): TableComponent {
   const normalized = normalizeTable(table);
   const rowCount = normalized.rowCount ?? MIN_TABLE_ROWS;
@@ -248,6 +334,47 @@ export function clearTableCell(table: TableComponent, row: number, column: numbe
   return {
     ...normalized,
     cells: upsertCell(normalized, cell),
+  };
+}
+
+export function copyTableCellStyle(table: TableComponent, row: number, column: number): TableCellStyleClipboard | null {
+  const normalized = normalizeTable(table);
+  const rowCount = normalized.rowCount ?? MIN_TABLE_ROWS;
+  const columnCount = normalized.columnCount ?? normalized.columns.length;
+  if (row < 0 || row >= rowCount || column < 0 || column >= columnCount) return null;
+
+  return extractTableCellStyle(getTableCell(normalized, row, column));
+}
+
+export function clearTableCellStyle(table: TableComponent, row: number, column: number): TableComponent {
+  const normalized = normalizeTable(table);
+  const rowCount = normalized.rowCount ?? MIN_TABLE_ROWS;
+  const columnCount = normalized.columnCount ?? normalized.columns.length;
+  if (row < 0 || row >= rowCount || column < 0 || column >= columnCount) return normalized;
+
+  return {
+    ...normalized,
+    cells: upsertCell(normalized, omitTableCellStyle(getTableCell(normalized, row, column))),
+  };
+}
+
+export function pasteTableCellStyle(
+  table: TableComponent,
+  row: number,
+  column: number,
+  style: TableCellStyleClipboard | null,
+): TableComponent {
+  const normalized = normalizeTable(table);
+  const rowCount = normalized.rowCount ?? MIN_TABLE_ROWS;
+  const columnCount = normalized.columnCount ?? normalized.columns.length;
+  if (!style || row < 0 || row >= rowCount || column < 0 || column >= columnCount) return normalized;
+
+  return {
+    ...normalized,
+    cells: upsertCell(normalized, {
+      ...getTableCell(normalized, row, column),
+      ...cloneTableCellStyle(style),
+    }),
   };
 }
 

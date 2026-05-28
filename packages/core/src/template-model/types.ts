@@ -255,6 +255,7 @@ export interface TableCell {
   rowSpan?: number;
   colSpan?: number;
   backgroundColor?: string;
+  font?: FontConfig;
   border?: BorderConfig;
   padding?: Padding;
   textAlign?: TextAlign;

@@ -180,4 +180,34 @@ describe('phase 34 table cell selection', () => {
       '2-2',
     ]);
   });
+
+  it('updates selected table cell font from the property panel', () => {
+    loadWith(tableComponent());
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 1);
+    fireEvent.change(screen.getByLabelText('字号'), { target: { value: '14' } });
+    fireEvent.change(screen.getByLabelText('字体颜色'), { target: { value: '#112233' } });
+    fireEvent.click(screen.getByRole('button', { name: '加粗' }));
+    fireEvent.click(screen.getByRole('button', { name: '斜体' }));
+    fireEvent.click(screen.getByRole('button', { name: '下划线' }));
+    fireEvent.click(screen.getByRole('button', { name: '删除线' }));
+
+    const table = useDesignerStore.getState().template.pages[0].bands
+      .flatMap(band => band.components)
+      .find(component => component.id === 'table-1') as TableComponent;
+    expect(table.cells?.find(cell => cell.row === 1 && cell.column === 1)?.font).toMatchObject({
+      size: 14,
+      color: '#112233',
+      bold: true,
+      italic: true,
+      underline: true,
+      strikethrough: true,
+    });
+  });
 });

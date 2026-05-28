@@ -1,13 +1,22 @@
 import { degrees, PDFDocument, rgb, StandardFonts } from 'pdf-lib';
+import fontkit from '@pdf-lib/fontkit';
 import type { PageBorder, PageWatermark, RenderDocument } from '@report-designer/core';
-import { drawRenderComponent } from './pdf-draw-component';
+import { drawRenderComponent, normalizeFontFamilyKey, type PdfFontSet, type PdfFontVariants } from './pdf-draw-component';
 import { safePdfText } from './pdf-component-rendering';
 
 const MM_TO_PT = 72 / 25.4;
 
 export interface PdfExportOptions {
   fontBytes?: Uint8Array;
+  fontBytesByFamily?: Record<string, Uint8Array | PdfFontFamilyBytes>;
   fallbackFontName?: string;
+}
+
+export interface PdfFontFamilyBytes {
+  regular?: Uint8Array;
+  bold?: Uint8Array;
+  italic?: Uint8Array;
+  boldItalic?: Uint8Array;
 }
 
 export async function exportRenderDocumentToPDF(
@@ -15,12 +24,10 @@ export async function exportRenderDocumentToPDF(
   options: PdfExportOptions = {},
 ): Promise<Uint8Array> {
   const pdfDoc = await PDFDocument.create();
-  const font = options.fontBytes
-    ? await pdfDoc.embedFont(options.fontBytes)
-    : await pdfDoc.embedFont(StandardFonts.Helvetica);
-  const boldFont = options.fontBytes
-    ? font
-    : await pdfDoc.embedFont(StandardFonts.HelveticaBold);
+  if (options.fontBytes || hasFamilyFontBytes(options.fontBytesByFamily)) {
+    pdfDoc.registerFontkit(fontkit);
+  }
+  const fonts = await createPdfFontSet(pdfDoc, options);
 
   for (const renderPage of document.pages) {
     const page = pdfDoc.addPage([renderPage.width * MM_TO_PT, renderPage.height * MM_TO_PT]);
@@ -34,20 +41,119 @@ export async function exportRenderDocumentToPDF(
       });
     }
     if (renderPage.watermark?.showBehind !== false) {
-      drawPageWatermark(page, renderPage.width, renderPage.height, renderPage.watermark, font);
+      drawPageWatermark(page, renderPage.width, renderPage.height, renderPage.watermark, fonts.regular);
     }
     for (const band of renderPage.items) {
       for (const component of band.components) {
-        await drawRenderComponent(pdfDoc, page, component, renderPage.height, font, boldFont);
+        await drawRenderComponent(pdfDoc, page, component, renderPage.height, fonts);
       }
     }
     if (renderPage.watermark?.showBehind === false) {
-      drawPageWatermark(page, renderPage.width, renderPage.height, renderPage.watermark, font);
+      drawPageWatermark(page, renderPage.width, renderPage.height, renderPage.watermark, fonts.regular);
     }
     drawPageBorder(page, renderPage.width, renderPage.height, renderPage.pageBorder);
   }
 
   return pdfDoc.save();
+}
+
+async function createPdfFontSet(pdfDoc: PDFDocument, options: PdfExportOptions): Promise<PdfFontSet> {
+  const base = options.fontBytes
+    ? await embedSingleFontForAllStyles(pdfDoc, options.fontBytes)
+    : await embedStandardFontFamily(pdfDoc, StandardFonts.Helvetica);
+  const families = await embedFamilyFonts(pdfDoc, options.fontBytesByFamily);
+
+  for (const [family, standardFont] of standardFontFamilies()) {
+    if (!families.has(family)) {
+      families.set(family, await embedStandardFontFamily(pdfDoc, standardFont));
+    }
+  }
+
+  return { ...base, families };
+}
+
+async function embedFamilyFonts(
+  pdfDoc: PDFDocument,
+  sources: PdfExportOptions['fontBytesByFamily'],
+): Promise<Map<string, Partial<PdfFontVariants>>> {
+  const families = new Map<string, Partial<PdfFontVariants>>();
+  for (const [family, source] of Object.entries(sources ?? {})) {
+    const key = normalizeFontFamilyKey(family);
+    if (!key) continue;
+    families.set(key, await embedFontFamilyBytes(pdfDoc, source));
+  }
+  return families;
+}
+
+async function embedFontFamilyBytes(
+  pdfDoc: PDFDocument,
+  source: Uint8Array | PdfFontFamilyBytes,
+): Promise<Partial<PdfFontVariants>> {
+  if (source instanceof Uint8Array) {
+    return { regular: await pdfDoc.embedFont(source) };
+  }
+  return {
+    ...(source.regular ? { regular: await pdfDoc.embedFont(source.regular) } : {}),
+    ...(source.bold ? { bold: await pdfDoc.embedFont(source.bold) } : {}),
+    ...(source.italic ? { italic: await pdfDoc.embedFont(source.italic) } : {}),
+    ...(source.boldItalic ? { boldItalic: await pdfDoc.embedFont(source.boldItalic) } : {}),
+  };
+}
+
+async function embedSingleFontForAllStyles(pdfDoc: PDFDocument, bytes: Uint8Array): Promise<PdfFontVariants> {
+  const font = await pdfDoc.embedFont(bytes);
+  return { regular: font, bold: font, italic: font, boldItalic: font };
+}
+
+async function embedStandardFontFamily(pdfDoc: PDFDocument, regular: StandardFonts): Promise<PdfFontVariants> {
+  const variants = standardFontFamilyVariants(regular);
+  return {
+    regular: await pdfDoc.embedFont(variants.regular),
+    bold: await pdfDoc.embedFont(variants.bold),
+    italic: await pdfDoc.embedFont(variants.italic),
+    boldItalic: await pdfDoc.embedFont(variants.boldItalic),
+  };
+}
+
+function standardFontFamilies(): Array<[string, StandardFonts]> {
+  return [
+    ['arial', StandardFonts.Helvetica],
+    ['helvetica', StandardFonts.Helvetica],
+    ['times new roman', StandardFonts.TimesRoman],
+    ['times', StandardFonts.TimesRoman],
+    ['times-roman', StandardFonts.TimesRoman],
+    ['courier new', StandardFonts.Courier],
+    ['courier', StandardFonts.Courier],
+  ];
+}
+
+function standardFontFamilyVariants(regular: StandardFonts): Record<keyof PdfFontVariants, StandardFonts> {
+  if (regular === StandardFonts.TimesRoman) {
+    return {
+      regular: StandardFonts.TimesRoman,
+      bold: StandardFonts.TimesRomanBold,
+      italic: StandardFonts.TimesRomanItalic,
+      boldItalic: StandardFonts.TimesRomanBoldItalic,
+    };
+  }
+  if (regular === StandardFonts.Courier) {
+    return {
+      regular: StandardFonts.Courier,
+      bold: StandardFonts.CourierBold,
+      italic: StandardFonts.CourierOblique,
+      boldItalic: StandardFonts.CourierBoldOblique,
+    };
+  }
+  return {
+    regular: StandardFonts.Helvetica,
+    bold: StandardFonts.HelveticaBold,
+    italic: StandardFonts.HelveticaOblique,
+    boldItalic: StandardFonts.HelveticaBoldOblique,
+  };
+}
+
+function hasFamilyFontBytes(sources: PdfExportOptions['fontBytesByFamily']): boolean {
+  return Object.keys(sources ?? {}).length > 0;
 }
 
 function drawPageWatermark(page: ReturnType<PDFDocument['addPage']>, pageWidthMm: number, pageHeightMm: number, watermark?: PageWatermark, font?: Awaited<ReturnType<PDFDocument['embedFont']>>): void {

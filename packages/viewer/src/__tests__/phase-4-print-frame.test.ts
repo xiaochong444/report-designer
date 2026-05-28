@@ -317,7 +317,27 @@ describe('Phase 4 print frame', () => {
         ],
         [
           { row: 1, column: 0, content: 'Alice', field: 'name', height: 8, rowSpan: 1, colSpan: 1 },
-          { row: 1, column: 1, content: '98000', field: 'salary', height: 8, rowSpan: 1, colSpan: 1 },
+          {
+            row: 1,
+            column: 1,
+            content: '98000',
+            field: 'salary',
+            height: 8,
+            rowSpan: 1,
+            colSpan: 1,
+            style: {
+              textAlign: 'right',
+              font: {
+                family: 'Arial',
+                size: 11,
+                bold: true,
+                italic: true,
+                underline: true,
+                strikethrough: true,
+                color: '#1677ff',
+              },
+            },
+          },
         ],
       ],
       showBorder: true,
@@ -330,6 +350,13 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('grid-template-columns:50mm 30mm');
     expect(html).toContain('Alice');
     expect(html).toContain('98000');
+    expect(html).toContain('text-align:right');
+    expect(html).toContain('font-family:Arial');
+    expect(html).toContain('font-size:14.663px');
+    expect(html).toContain('font-weight:700');
+    expect(html).toContain('font-style:italic');
+    expect(html).toContain('text-decoration:underline line-through');
+    expect(html).toContain('color:#1677ff');
   });
 
   it('applies centered print text alignment to a full-width text content box', () => {

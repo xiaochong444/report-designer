@@ -6,7 +6,7 @@ export { exportRenderDocumentToPDF } from './pdf/export-render-document';
 export type { PdfExportOptions } from './pdf/export-render-document';
 export { buildPrintHtml, printRenderDocument } from '../print/print-frame';
 
-/** Export a RenderDocument report to PDF. Chinese text requires fontBytes. */
+/** Export a RenderDocument report to PDF. Chinese text requires fontBytes or fontBytesByFamily. */
 export async function exportToPDF(
   document: RenderDocument,
   options: PdfExportOptions = {},

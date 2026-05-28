@@ -3,7 +3,7 @@ import { AggregateRuntime } from '../aggregate-engine';
 import type { RenderContext } from '../band-planner/band-plan';
 import { createEventContext, runEventScript } from '../event-engine';
 import type { EventLogCollector, EventMode, EventRuntimeState, EventExecutionState } from '../event-engine';
-import type { RenderBandBox, RenderComponentBox } from '../render-document/types';
+import type { RenderBandBox, RenderComponentBox, RenderTable } from '../render-document/types';
 import type {
   Band,
   BarcodeComponent,
@@ -499,16 +499,16 @@ function buildTableRows(
     pageRowsByBand: Record<string, Record<string, unknown>[]>;
     context: RenderContext;
   },
-) {
+): RenderTable['rows'] {
   if (component.binding?.mode === 'detail') {
     return buildDetailTableRows(component, columns, options);
   }
 
   const sourceRows = tableSourceRows(component, options.context, options.rowsByBand);
   const covered = tableCoveredCells(component.cells, options.rowCount, columns.length);
-  const rows = [];
+  const rows: RenderTable['rows'] = [];
   for (let row = 0; row < options.rowCount; row += 1) {
-    const renderedRow = [];
+    const renderedRow: RenderTable['rows'][number] = [];
     const isHeader = row < options.headerRowsCount;
     const isFooter = row >= options.rowCount - options.footerRowsCount;
     const detailIndex = Math.max(0, row - options.headerRowsCount);
@@ -562,7 +562,7 @@ function buildDetailTableRows(
     pageRowsByBand: Record<string, Record<string, unknown>[]>;
     context: RenderContext;
   },
-) {
+): RenderTable['rows'] {
   const detailRows = tableDetailRows(component, options.context, options.rowsByBand);
   const bodyStart = options.headerRowsCount;
   const bodyEnd = Math.max(bodyStart, options.rowCount - options.footerRowsCount);
@@ -571,7 +571,7 @@ function buildDetailTableRows(
     (_, index) => bodyStart + index,
   );
   const footerStart = Math.max(options.headerRowsCount, options.rowCount - options.footerRowsCount);
-  const rows: ReturnType<typeof buildTableRows> = [];
+  const rows: RenderTable['rows'] = [];
   const covered = new Set<string>();
   let outputRow = 0;
 
@@ -638,8 +638,8 @@ function renderTableRow(
     rowContext: RenderContext;
     covered: Set<string>;
   },
-) {
-  const renderedRow = [];
+): RenderTable['rows'][number] {
+  const renderedRow: RenderTable['rows'][number] = [];
   const totalRows = Math.max(options.rowCount, args.outputRowCount || options.rowCount);
   for (let column = 0; column < columns.length; column += 1) {
     if (args.covered.has(`${args.outputRow}-${column}`)) continue;
@@ -702,7 +702,10 @@ function tableDetailRows(
 ): Record<string, unknown>[] {
   const binding = component.binding;
   if (binding?.arrayPath) {
-    return asRecordArray(valueAtPath(context.row, binding.arrayPath));
+    const currentRowArray = asRecordArray(valueAtPath(context.row, binding.arrayPath));
+    if (currentRowArray.length > 0) {
+      return currentRowArray;
+    }
   }
   const dataSourceId = binding?.dataSourceId || component.dataSource;
   return dataSourceId
@@ -805,6 +808,7 @@ function tableCellStyle(cell?: TableCell) {
   if (!cell) return undefined;
   const style = {
     backgroundColor: cell.backgroundColor,
+    font: cell.font,
     border: cell.border,
     padding: cell.padding,
     textAlign: cell.textAlign,
@@ -880,7 +884,7 @@ function resolveText(
     );
     return formatValue(value, component.format);
   } catch {
-    return component.text;
+    return resolveTemplateValue(component.text, context, rowsByBand, pageRowsByBand);
   }
 }
 

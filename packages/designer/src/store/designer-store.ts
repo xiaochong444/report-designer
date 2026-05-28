@@ -12,7 +12,6 @@ import type {
   ReportEventName,
   ReportStyle,
   ReportTemplate,
-  TableColumn,
   TableCell,
   TableComponent,
   TextComponent,
@@ -31,16 +30,21 @@ import {
 } from '../text-style-bindings';
 import {
   clearTableCell,
+  clearTableCellStyle,
+  copyTableCellStyle,
   deleteTableColumn,
   deleteTableRow,
   equalizeTableColumns,
   equalizeTableRows,
   insertTableColumn,
   insertTableRow,
+  mergeTableCellRange,
   mergeTableCellRight,
+  pasteTableCellStyle,
   setTableStructure,
   splitTableCell,
   normalizeTable,
+  type TableCellStyleClipboard,
 } from '../table/table-structure';
 
 export interface TableCellSelection {
@@ -74,6 +78,7 @@ export interface DesignerState {
   selectedComponentIds: string[];
   selectedBandId: string | null;
   selectedTableCell: TableCellSelection | null;
+  tableCellStyleClipboard: TableCellStyleClipboard | null;
   pendingEventEditorTarget: PendingEventEditorTarget | null;
   dataSources: Record<string, any[]>;
   dispatcher: CommandDispatcher;
@@ -140,19 +145,7 @@ export interface DesignerState {
   moveSelectedBy: (dx: number, dy: number) => void;
   resizeSelectedBy: (dw: number, dh: number) => void;
   toggleSelectedFontStyle: (style: 'bold' | 'italic' | 'underline' | 'strikethrough') => void;
-  updateSelectedTable: (updates: {
-    rowCount?: number;
-    columnCount?: number;
-    headerRowsCount?: number;
-    footerRowsCount?: number;
-    headerHeight?: number;
-    rowHeight?: number;
-    alternateRowStyle?: string;
-    canBreak?: boolean;
-    showBorder?: boolean;
-    dataSource?: string;
-    columns?: TableColumn[];
-  }) => void;
+  updateSelectedTable: (updates: Parameters<typeof setTableStructure>[1]) => void;
   updateSelectedTableCell: (updates: Partial<TableCell>) => void;
   applySelectedStyle: (styleId: string | undefined) => void;
   createTextStyle: (style?: Partial<ReportStyle> & { name?: string }) => string;
@@ -173,8 +166,12 @@ export interface DesignerState {
   insertSelectedTableRow: (afterRow?: number) => void;
   deleteSelectedTableRow: (rowIndex?: number) => void;
   mergeSelectedTableCellRight: (row: number, column: number) => void;
+  mergeSelectedTableCellRange: () => void;
   splitSelectedTableCell: (row: number, column: number) => void;
   clearSelectedTableCell: (row: number, column: number) => void;
+  clearSelectedTableCellStyle: (row: number, column: number) => void;
+  copySelectedTableCellStyle: (row: number, column: number) => void;
+  pasteSelectedTableCellStyle: (row: number, column: number) => void;
   equalizeSelectedTableColumns: () => void;
   equalizeSelectedTableRows: () => void;
 
@@ -294,6 +291,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     selectedComponentIds: [],
     selectedBandId: null,
     selectedTableCell: null,
+    tableCellStyleClipboard: null,
     pendingEventEditorTarget: null,
     dataSources: {},
     dispatcher,
@@ -312,6 +310,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       selectedComponentIds: [],
       selectedBandId: null,
       selectedTableCell: null,
+      tableCellStyleClipboard: null,
       pendingEventEditorTarget: null,
       clipboard: [],
       reportUnit: 'mm',
@@ -1171,12 +1170,46 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     updateSelectedTableComponents(table => mergeTableCellRight(table, row, column));
   },
 
+  mergeSelectedTableCellRange: () => {
+    const { selectedTableCell } = get();
+    if (!selectedTableCell) return;
+    const selection = normalizeTableCellSelection(selectedTableCell);
+    updateSelectedTableComponents(table => mergeTableCellRange(
+      table,
+      selection.startRow,
+      selection.startColumn,
+      selection.endRow,
+      selection.endColumn,
+    ));
+  },
+
   splitSelectedTableCell: (row, column) => {
     updateSelectedTableComponents(table => splitTableCell(table, row, column));
   },
 
   clearSelectedTableCell: (row, column) => {
     updateSelectedTableComponents(table => clearTableCell(table, row, column));
+  },
+
+  clearSelectedTableCellStyle: (row, column) => {
+    updateSelectedTableComponents(table => clearTableCellStyle(table, row, column));
+  },
+
+  copySelectedTableCellStyle: (row, column) => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const page = template.pages.find(item => item.id === currentPageId);
+    const selected = new Set(selectedComponentIds);
+    const table = page?.bands
+      .flatMap(band => band.components)
+      .find(component => selected.has(component.id) && component.type === 'table') as TableComponent | undefined;
+    if (!table) return;
+
+    set({ tableCellStyleClipboard: copyTableCellStyle(table, row, column) });
+  },
+
+  pasteSelectedTableCellStyle: (row, column) => {
+    const { tableCellStyleClipboard } = get();
+    updateSelectedTableComponents(table => pasteTableCellStyle(table, row, column, tableCellStyleClipboard));
   },
 
   equalizeSelectedTableColumns: () => {

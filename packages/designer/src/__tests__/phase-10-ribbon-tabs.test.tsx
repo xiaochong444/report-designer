@@ -32,7 +32,7 @@ Object.defineProperty(window, 'ResizeObserver', {
 });
 
 describe('Phase 10 ribbon tabs', () => {
-  it('switches Home, Insert, Page Layout, and Preview tab groups', () => {
+  it('switches Home, Insert, Page Layout, Layout, and Preview tab groups', () => {
     render(<Designer template={createDefaultTemplate('Ribbon Tabs')} locale="en-US" />);
 
     const ribbonContent = screen.getByTestId('designer-ribbon-content');
@@ -40,6 +40,7 @@ describe('Phase 10 ribbon tabs', () => {
     expect(ribbonContent).toHaveTextContent('Clipboard');
     expect(ribbonContent).toHaveTextContent('Font');
     expect(ribbonContent).toHaveTextContent('Styles');
+    expect(ribbonContent).not.toHaveTextContent('Distribute');
     expect(screen.getByText('Style Designer')).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Insert' }));
@@ -51,6 +52,13 @@ describe('Phase 10 ribbon tabs', () => {
     expect(screen.getByRole('button', { name: 'Page Layout' })).toHaveClass('rd-ribbon-tab-active');
     expect(ribbonContent).toHaveTextContent('Page Setup');
     expect(ribbonContent).toHaveTextContent('Margins');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Layout' }));
+    expect(screen.getByRole('button', { name: 'Layout' })).toHaveClass('rd-ribbon-tab-active');
+    expect(ribbonContent).toHaveTextContent('Arrange');
+    expect(ribbonContent).toHaveTextContent('Align');
+    expect(ribbonContent).toHaveTextContent('Distribute');
+    expect(ribbonContent).toHaveTextContent('Size');
 
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
     expect(screen.getByRole('button', { name: 'Preview' })).toHaveClass('rd-ribbon-tab-active');

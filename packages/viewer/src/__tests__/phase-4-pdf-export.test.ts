@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { PDFFont, PDFPage } from 'pdf-lib';
+import { PDFFont, PDFDocument, PDFPage, StandardFonts } from 'pdf-lib';
 import { vi } from 'vitest';
 import { exportRenderDocumentToPDF } from '../export/pdf/export-render-document';
 import { barcodePattern, dataUrlToUint8Array, stripHtmlToPdfText } from '../export/pdf/pdf-component-rendering';
@@ -473,6 +473,7 @@ describe('Phase 4 PDF export', () => {
     const aliceCall = drawText.mock.calls.find(([text]) => text === 'Alice');
     expect(aliceCall?.[1]).toEqual(expect.objectContaining({
       size: 11,
+      font: expect.objectContaining({ name: 'Helvetica-BoldOblique' }),
       color: expect.objectContaining({ red: 22 / 255, green: 119 / 255, blue: 255 / 255 }),
     }));
     expect(drawRectangle.mock.calls.some(([options]) => options.color?.red === 240 / 255 && options.color?.green === 245 / 255 && options.color?.blue === 255 / 255)).toBe(true);
@@ -494,6 +495,73 @@ describe('Phase 4 PDF export', () => {
     drawRectangle.mockRestore();
     drawText.mockRestore();
     drawLine.mockRestore();
+  });
+
+  it('resolves PDF table fonts by registered font family', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components.push({
+      id: 'family-table',
+      type: 'table',
+      x: 30,
+      y: 45,
+      width: 90,
+      height: 16,
+      columns: [
+        { id: 'standard', title: 'Standard', width: 45, field: 'standard' },
+        { id: 'custom', title: 'Custom', width: 45, field: 'custom' },
+      ],
+      rows: [[
+        {
+          row: 0,
+          column: 0,
+          content: 'Times cell',
+          rowSpan: 1,
+          colSpan: 1,
+          height: 8,
+          style: { font: { family: 'Times New Roman', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#111111' } },
+        },
+        {
+          row: 0,
+          column: 1,
+          content: 'Brand cell',
+          rowSpan: 1,
+          colSpan: 1,
+          height: 8,
+          style: { font: { family: 'Brand Song', size: 10, bold: true, italic: true, underline: false, strikethrough: false, color: '#111111' } },
+        },
+      ]],
+      showBorder: true,
+      style: {},
+    });
+    const brandRegular = new Uint8Array([1, 2, 3]);
+    const brandBoldItalic = new Uint8Array([4, 5, 6]);
+    const originalEmbedFont = PDFDocument.prototype.embedFont;
+    const embedFont = vi.spyOn(PDFDocument.prototype, 'embedFont').mockImplementation(function mockEmbedFont(this: PDFDocument, input: Parameters<PDFDocument['embedFont']>[0], options?: Parameters<PDFDocument['embedFont']>[1]) {
+      if (input === brandRegular) {
+        return originalEmbedFont.call(this, StandardFonts.Courier, options);
+      }
+      if (input === brandBoldItalic) {
+        return originalEmbedFont.call(this, StandardFonts.CourierBoldOblique, options);
+      }
+      return originalEmbedFont.call(this, input, options);
+    });
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+
+    await exportRenderDocumentToPDF(document, {
+      fontBytesByFamily: {
+        'Brand Song': {
+          regular: brandRegular,
+          boldItalic: brandBoldItalic,
+        },
+      },
+    });
+
+    expect(drawText.mock.calls.find(([text]) => text === 'Times cell')?.[1]?.font).toEqual(expect.objectContaining({ name: 'Times-Roman' }));
+    expect(drawText.mock.calls.find(([text]) => text === 'Brand cell')?.[1]?.font).toEqual(expect.objectContaining({ name: 'Courier-BoldOblique' }));
+    expect(embedFont.mock.calls.some(([input]) => input === brandBoldItalic)).toBe(true);
+
+    drawText.mockRestore();
+    embedFont.mockRestore();
   });
 
   it('lays out PDF table rows from the table top when rows do not fill the component height', async () => {

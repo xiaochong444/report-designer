@@ -41,11 +41,19 @@ function loadSingleComponent(component: ReportComponent) {
 
 function dataTransfer(data: Record<string, string>) {
   return {
+    types: Object.keys(data),
     getData: (key: string) => data[key] ?? '',
     setData: () => {},
     effectAllowed: 'copy',
     dropEffect: 'copy',
   };
+}
+
+function dispatchDragOver(target: HTMLElement, data: Record<string, string>) {
+  const event = new Event('dragover', { bubbles: true, cancelable: true }) as DragEvent & { dataTransfer: ReturnType<typeof dataTransfer> };
+  Object.defineProperty(event, 'dataTransfer', { value: dataTransfer(data) });
+  target.dispatchEvent(event);
+  return event;
 }
 
 function mockCanvasRects() {
@@ -123,6 +131,17 @@ describe('Phase 18 component properties and canvas drag drop', () => {
     expect(useDesignerStore.getState().selectedComponentIds).toEqual([inserted.id]);
     expect(errorSpy.mock.calls.some(call => call.some(arg => String(arg).includes('NaN')))).toBe(false);
     errorSpy.mockRestore();
+  });
+
+  it('allows real browser palette drags whose data transfer types are lowercased', async () => {
+    const template = createDefaultTemplate('Phase 18 Browser Drag');
+    render(<Designer template={template} locale="zh-CN" />);
+
+    await waitFor(() => expect(screen.getByTestId('designer-page-sheet')).toBeInTheDocument());
+    const event = dispatchDragOver(screen.getByTestId('designer-page-sheet'), { componenttype: 'text' });
+
+    expect(event.defaultPrevented).toBe(true);
+    expect(event.dataTransfer.dropEffect).toBe('copy');
   });
 
   it('drops a dictionary field as a single text expression without component dataSource metadata', async () => {

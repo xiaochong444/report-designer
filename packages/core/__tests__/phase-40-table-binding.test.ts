@@ -91,4 +91,20 @@ describe('phase 40 table binding', () => {
 
     expect(renderedTable(document).rows.map(row => row[0].content)).toEqual(['Name', 'A', 'B']);
   });
+
+  it('falls back to the child array data source when no current-row array is available', () => {
+    const template = tableTemplate({
+      binding: { mode: 'detail', dataSourceId: 'orders.items', arrayPath: 'Items' },
+      dataSource: '',
+      cells: [{ row: 1, column: 0, text: '{Name}' }],
+    } as Partial<TableComponent>);
+    template.dataSources.push({ id: 'orders.items', name: 'Items', type: 'json', parentSourceId: 'orders', path: 'orders.Items', fields: [] });
+
+    const document = renderReport(template, {
+      orders: [{ Name: 'Order A' }],
+      'orders.items': [{ Name: 'A' }, { Name: 'B' }],
+    });
+
+    expect(renderedTable(document).rows.map(row => row[0].content)).toEqual(['Name', 'A', 'B']);
+  });
 });

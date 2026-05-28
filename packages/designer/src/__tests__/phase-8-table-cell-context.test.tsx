@@ -87,6 +87,64 @@ describe('Phase 8 table cell context menu', () => {
     expect(selectedTable().rowHeight).toBe(10);
   });
 
+  it('copies, pastes, and clears table cell style from the context menu', () => {
+    loadWith(tableComponent({
+      cells: [{
+        row: 1,
+        column: 1,
+        text: 'Subtotal',
+        backgroundColor: '#ffeecc',
+        font: { family: 'Arial', size: 12, bold: true, italic: false, underline: false, strikethrough: false, color: '#224466' },
+        textAlign: 'center',
+        padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      }],
+    }));
+    render(<Canvas />);
+
+    openCellMenu(1, 1);
+    fireEvent.click(screen.getByText('复制单元格样式'));
+
+    openCellMenu(2, 0);
+    fireEvent.click(screen.getByText('粘贴单元格样式'));
+    expect(selectedTable().cells).toContainEqual(expect.objectContaining({
+      row: 2,
+      column: 0,
+      backgroundColor: '#ffeecc',
+      font: expect.objectContaining({ bold: true, color: '#224466' }),
+      textAlign: 'center',
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+    }));
+
+    openCellMenu(1, 1);
+    fireEvent.click(screen.getByText('清空单元格样式'));
+    expect(selectedTable().cells).toContainEqual({ row: 1, column: 1, text: 'Subtotal' });
+  });
+
+  it('keeps the selected cell range on right-click and merges it from the context menu', () => {
+    loadWith(tableComponent());
+    render(<Canvas />);
+
+    const start = screen.getByTestId('designer-table-cell-1-0');
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: vi.fn(() => start),
+    });
+    fireEvent.mouseDown(start, { button: 0, clientX: 20, clientY: 20 });
+
+    const end = screen.getByTestId('designer-table-cell-2-2');
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: vi.fn(() => end),
+    });
+    fireEvent.mouseDown(end, { button: 0, clientX: 20, clientY: 20, shiftKey: true });
+    fireEvent.mouseDown(end, { button: 2, clientX: 20, clientY: 20 });
+
+    fireEvent.click(screen.getByText('合并选中单元格'));
+
+    expect(selectedTable().cells).toContainEqual({ row: 1, column: 0, rowSpan: 2, colSpan: 3 });
+    expect(screen.queryByTestId('designer-table-cell-1-1')).not.toBeInTheDocument();
+  });
+
   it('inserts columns and rows relative to the right-clicked table cell', () => {
     loadWith(tableComponent({ cells: [{ row: 2, column: 2, text: 'Tail' }] }));
     render(<Canvas />);
@@ -145,6 +203,9 @@ describe('Phase 8 table cell context menu', () => {
 
     expect(screen.getByText('Insert Column Right')).toBeInTheDocument();
     expect(screen.getByText('Merge Cell Right')).toBeInTheDocument();
+    expect(screen.getByText('Merge Selected Cells')).toBeInTheDocument();
+    expect(screen.getByText('Copy Cell Style')).toBeInTheDocument();
+    expect(screen.getByText('Clear Cell Style')).toBeInTheDocument();
     expect(screen.getByText('Distribute Columns')).toBeInTheDocument();
     expect(screen.queryByText('插入列到右侧')).not.toBeInTheDocument();
   });

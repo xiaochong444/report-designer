@@ -42,9 +42,18 @@ import { GroupWizardDialog } from '../dialogs/GroupWizardDialog';
 import { JsonDataSourceDialog } from '../dialogs/JsonDataSourceDialog';
 import { PageSetupDialog } from '../dialogs/PageSetupDialog';
 import { useDesignerI18n } from '../../i18n';
+import type { DesignerMessageKey } from '../../i18n';
 
-const TAB_KEYS = ['home', 'insert', 'pageLayout', 'preview'] as const;
+const TAB_KEYS = ['home', 'insert', 'pageLayout', 'layout', 'preview'] as const;
 type RibbonTab = typeof TAB_KEYS[number];
+
+const TAB_LABEL_KEYS: Record<RibbonTab, DesignerMessageKey> = {
+  home: 'ribbon.home',
+  insert: 'ribbon.insert',
+  pageLayout: 'ribbon.pageLayout',
+  layout: 'ribbon.layout',
+  preview: 'ribbon.preview',
+};
 
 const DEFAULT_FONT: FontConfig = {
   family: 'Arial',
@@ -258,6 +267,41 @@ export const DesignerRibbon: React.FC = () => {
 
   const setMargins = (margins: Margins) => updateCurrentPage({ margins });
 
+  const renderMultiSelectLayoutGroups = () => (
+    <>
+      <RibbonGroup title={t('ribbon.arrange')}>
+        <RibbonButton label={t('ribbon.bringToFront')} icon={<ArrowUpOutlined aria-hidden />} onClick={bringToFront} disabled={!hasSelection} />
+        <RibbonButton label={t('ribbon.sendToBack')} icon={<ArrowDownOutlined aria-hidden />} onClick={sendToBack} disabled={!hasSelection} />
+      </RibbonGroup>
+
+      <RibbonGroup title={t('ribbon.align')}>
+        <RibbonButton label={t('ribbon.alignLeft')} icon={<AlignLeftOutlined aria-hidden />} onClick={() => alignComponents('left')} disabled={!hasMultiSelection} />
+        <RibbonButton label={t('ribbon.alignCenter')} icon={<AlignCenterOutlined aria-hidden />} onClick={() => alignComponents('center-h')} disabled={!hasMultiSelection} />
+        <RibbonButton label={t('ribbon.alignRight')} icon={<AlignRightOutlined aria-hidden />} onClick={() => alignComponents('right')} disabled={!hasMultiSelection} />
+        <RibbonButton label={t('ribbon.alignTop')} icon={<VerticalAlignTopOutlined aria-hidden />} onClick={() => alignComponents('top')} disabled={!hasMultiSelection} />
+        <RibbonButton label={t('ribbon.alignMiddle')} icon={<VerticalAlignMiddleOutlined aria-hidden />} onClick={() => alignComponents('center-v')} disabled={!hasMultiSelection} />
+        <RibbonButton label={t('ribbon.alignBottom')} icon={<VerticalAlignBottomOutlined aria-hidden />} onClick={() => alignComponents('bottom')} disabled={!hasMultiSelection} />
+      </RibbonGroup>
+
+      <RibbonGroup title={t('ribbon.distribute')}>
+        <RibbonButton label={t('ribbon.distributeHorizontal')} icon={<ColumnWidthOutlined aria-hidden />} onClick={() => alignComponents('distribute-h')} disabled={!hasDistributableSelection} />
+        <RibbonButton label={t('ribbon.distributeVertical')} icon={<ColumnHeightOutlined aria-hidden />} onClick={() => alignComponents('distribute-v')} disabled={!hasDistributableSelection} />
+      </RibbonGroup>
+
+      <RibbonGroup title={t('ribbon.sizeTools')}>
+        <RibbonButton label={t('ribbon.sameWidth')} icon={<ColumnWidthOutlined aria-hidden />} onClick={() => sizeComponents('same-width')} disabled={!hasMultiSelection} />
+        <RibbonButton label={t('ribbon.sameHeight')} icon={<ColumnHeightOutlined aria-hidden />} onClick={() => sizeComponents('same-height')} disabled={!hasMultiSelection} />
+        <RibbonButton label={t('ribbon.sameSize')} icon={<CompressOutlined aria-hidden />} onClick={() => sizeComponents('same-size')} disabled={!hasMultiSelection} />
+      </RibbonGroup>
+
+      <RibbonGroup title={t('ribbon.borders')}>
+        <Tooltip title={t('ribbon.allBorders')}>
+          <Button aria-label={t('ribbon.allBorders')} size="small" icon={<BorderOuterOutlined aria-hidden />} disabled={selectedCount === 0} onClick={() => setBorderAll(true)} />
+        </Tooltip>
+      </RibbonGroup>
+    </>
+  );
+
   const renderRibbonGroups = () => {
     if (activeTab === 'insert') {
       return (
@@ -322,6 +366,10 @@ export const DesignerRibbon: React.FC = () => {
       );
     }
 
+    if (activeTab === 'layout') {
+      return renderMultiSelectLayoutGroups();
+    }
+
     if (activeTab === 'preview') {
       return (
         <>
@@ -367,11 +415,6 @@ export const DesignerRibbon: React.FC = () => {
           <RibbonButton label={t('ribbon.deleteSelected')} icon={<DeleteOutlined aria-hidden />} onClick={deleteSelected} disabled={!hasSelection} danger />
         </RibbonGroup>
 
-        <RibbonGroup title={t('ribbon.arrange')}>
-          <RibbonButton label={t('ribbon.bringToFront')} icon={<ArrowUpOutlined aria-hidden />} onClick={bringToFront} disabled={!hasSelection} />
-          <RibbonButton label={t('ribbon.sendToBack')} icon={<ArrowDownOutlined aria-hidden />} onClick={sendToBack} disabled={!hasSelection} />
-        </RibbonGroup>
-
         <RibbonGroup title={t('ribbon.font')}>
           <Select
             size="small"
@@ -388,29 +431,9 @@ export const DesignerRibbon: React.FC = () => {
         </RibbonGroup>
 
         <RibbonGroup title={t('ribbon.align')}>
-          <RibbonButton label={t('ribbon.alignLeft')} icon={<AlignLeftOutlined aria-hidden />} onClick={() => alignComponents('left')} disabled={!hasMultiSelection} />
-          <RibbonButton label={t('ribbon.alignCenter')} icon={<AlignCenterOutlined aria-hidden />} onClick={() => alignComponents('center-h')} disabled={!hasMultiSelection} />
-          <RibbonButton label={t('ribbon.alignRight')} icon={<AlignRightOutlined aria-hidden />} onClick={() => alignComponents('right')} disabled={!hasMultiSelection} />
-          <RibbonButton label={t('ribbon.alignTop')} icon={<VerticalAlignTopOutlined aria-hidden />} onClick={() => alignComponents('top')} disabled={!hasMultiSelection} />
-          <RibbonButton label={t('ribbon.alignMiddle')} icon={<VerticalAlignMiddleOutlined aria-hidden />} onClick={() => alignComponents('center-v')} disabled={!hasMultiSelection} />
-          <RibbonButton label={t('ribbon.alignBottom')} icon={<VerticalAlignBottomOutlined aria-hidden />} onClick={() => alignComponents('bottom')} disabled={!hasMultiSelection} />
           <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.left')}`} size="small" icon={<AlignLeftOutlined aria-hidden />} disabled={textAlign === null} type={textAlign === 'left' ? 'primary' : 'default'} onClick={() => setTextAlign('left')} />
           <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.center')}`} size="small" icon={<AlignCenterOutlined aria-hidden />} disabled={textAlign === null} type={textAlign === 'center' ? 'primary' : 'default'} onClick={() => setTextAlign('center')} />
           <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.right')}`} size="small" icon={<AlignRightOutlined aria-hidden />} disabled={textAlign === null} type={textAlign === 'right' ? 'primary' : 'default'} onClick={() => setTextAlign('right')} />
-          <Tooltip title={t('ribbon.allBorders')}>
-            <Button aria-label={t('ribbon.allBorders')} size="small" icon={<BorderOuterOutlined aria-hidden />} disabled={selectedCount === 0} onClick={() => setBorderAll(true)} />
-          </Tooltip>
-        </RibbonGroup>
-
-        <RibbonGroup title={t('ribbon.distribute')}>
-          <RibbonButton label={t('ribbon.distributeHorizontal')} icon={<ColumnWidthOutlined aria-hidden />} onClick={() => alignComponents('distribute-h')} disabled={!hasDistributableSelection} />
-          <RibbonButton label={t('ribbon.distributeVertical')} icon={<ColumnHeightOutlined aria-hidden />} onClick={() => alignComponents('distribute-v')} disabled={!hasDistributableSelection} />
-        </RibbonGroup>
-
-        <RibbonGroup title={t('ribbon.sizeTools')}>
-          <RibbonButton label={t('ribbon.sameWidth')} icon={<ColumnWidthOutlined aria-hidden />} onClick={() => sizeComponents('same-width')} disabled={!hasMultiSelection} />
-          <RibbonButton label={t('ribbon.sameHeight')} icon={<ColumnHeightOutlined aria-hidden />} onClick={() => sizeComponents('same-height')} disabled={!hasMultiSelection} />
-          <RibbonButton label={t('ribbon.sameSize')} icon={<CompressOutlined aria-hidden />} onClick={() => sizeComponents('same-size')} disabled={!hasMultiSelection} />
         </RibbonGroup>
 
         <RibbonGroup title={t('ribbon.styles')}>
@@ -440,7 +463,7 @@ export const DesignerRibbon: React.FC = () => {
             type="button"
             onClick={() => handleTabClick(tab)}
           >
-            {t(tab === 'home' ? 'ribbon.home' : tab === 'insert' ? 'ribbon.insert' : tab === 'pageLayout' ? 'ribbon.pageLayout' : 'ribbon.preview')}
+            {t(TAB_LABEL_KEYS[tab])}
           </button>
         ))}
       </div>

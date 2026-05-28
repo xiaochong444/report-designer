@@ -49,18 +49,30 @@ function renderRibbon(locale: 'zh-CN' | 'en-US' = 'zh-CN') {
 }
 
 describe('phase 38 editing productivity ribbon', () => {
-  it('shows editing command entrypoints on the Home ribbon and wires align/size actions', () => {
+  it('keeps clipboard commands on Home and exposes multi-select layout commands on the Layout ribbon', () => {
     loadTemplate(['text-a', 'text-b', 'text-c']);
     useDesignerStore.getState().copySelected();
     renderRibbon();
 
     const ribbon = screen.getByTestId('designer-ribbon-content');
-    const labels = [
+    const homeLabels = [
       '复制',
       '剪切',
       '粘贴',
       '复制一份',
       '删除选中对象',
+    ];
+
+    for (const label of homeLabels) {
+      expect(within(ribbon).getByRole('button', { name: label })).toBeInTheDocument();
+    }
+
+    expect(within(ribbon).queryByRole('button', { name: '左对齐' })).not.toBeInTheDocument();
+    expect(within(ribbon).queryByRole('button', { name: '水平分布' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: '布局' }));
+
+    const layoutLabels = [
       '置于顶层',
       '置于底层',
       '左对齐',
@@ -76,7 +88,7 @@ describe('phase 38 editing productivity ribbon', () => {
       '等尺寸',
     ];
 
-    for (const label of labels) {
+    for (const label of layoutLabels) {
       expect(within(ribbon).getByRole('button', { name: label })).toBeInTheDocument();
     }
 
@@ -95,6 +107,9 @@ describe('phase 38 editing productivity ribbon', () => {
 
     expect(screen.getByRole('button', { name: '复制' })).toBeEnabled();
     expect(screen.getByRole('button', { name: '粘贴' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: '布局' }));
+
     expect(screen.getByRole('button', { name: '左对齐' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '水平分布' })).toBeDisabled();
     expect(screen.getByRole('button', { name: '等宽' })).toBeDisabled();
@@ -107,6 +122,9 @@ describe('phase 38 editing productivity ribbon', () => {
 
     expect(screen.getByRole('button', { name: 'Cut' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Duplicate' })).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Layout' }));
+
     expect(screen.getByRole('button', { name: 'Bring to Front' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Align Middle' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Distribute Horizontal' })).toBeInTheDocument();

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Checkbox, Collapse, ColorPicker, Form, Input, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
-import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, DeleteOutlined, PlusOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
-import { createDefaultPageBorder, createDefaultPageWatermark, normalizeReportFonts } from '@report-designer/core';
+import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, BoldOutlined, DeleteOutlined, ItalicOutlined, PlusOutlined, StrikethroughOutlined, UnderlineOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
+import { createDefaultPageBorder, createDefaultPageWatermark, getReportFontOptions, normalizeReportFonts } from '@report-designer/core';
 import type { BorderConfig, EventMap, Margins, Padding, Page, PageBorder, PageEventName, PageWatermark, ReportFont, TableCell, TableComponent, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import {
@@ -75,6 +75,8 @@ const TableCellProperties: React.FC = () => {
   const border = cell?.border ?? DEFAULT_CELL_BORDER;
   const padding = cell?.padding ?? DEFAULT_CELL_PADDING;
   const format = cell?.format ?? DEFAULT_CELL_FORMAT;
+  const font = cell?.font ?? DEFAULT_CELL_FONT;
+  const reportFontOptions = getReportFontOptions(template.fonts);
   const selectionText = selectedTableCell
     ? `${selectedTableCell.startRow + 1}:${selectedTableCell.startColumn + 1} - ${selectedTableCell.endRow + 1}:${selectedTableCell.endColumn + 1}`
     : '';
@@ -96,12 +98,15 @@ const TableCellProperties: React.FC = () => {
   const updatePadding = (field: keyof Padding, value?: number | string | null) => {
     updateCell({ padding: { ...padding, [field]: Number(value ?? padding[field]) } });
   };
+  const updateFont = (updates: Partial<NonNullable<TableCell['font']>>) => {
+    updateCell({ font: { ...font, ...updates } });
+  };
 
   return (
     <div className="rd-property-grid-band" data-testid="designer-table-cell-properties">
       <Collapse
         size="small"
-        defaultActiveKey={['cell', 'appearance', 'format']}
+        defaultActiveKey={['cell', 'font', 'appearance', 'format']}
         items={[{
           key: 'cell',
           label: t('tableCell.properties'),
@@ -134,6 +139,75 @@ const TableCellProperties: React.FC = () => {
                   style={{ width: '100%' }}
                   onChange={value => updateCell({ colSpan: Number(value ?? 1) })}
                 />
+              </Form.Item>
+            </Form>
+          ),
+        }, {
+          key: 'font',
+          label: t('tableCell.font'),
+          children: (
+            <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+              <Form.Item label={t('tableCell.fontFamily')}>
+                <Select
+                  aria-label={t('tableCell.fontFamily')}
+                  value={font.family}
+                  options={reportFontOptions}
+                  showSearch
+                  onChange={family => updateFont({ family })}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableCell.fontSize')}>
+                <InputNumber
+                  aria-label={t('tableCell.fontSize')}
+                  value={font.size}
+                  min={1}
+                  max={200}
+                  step={1}
+                  style={{ width: '100%' }}
+                  onChange={size => updateFont({ size: Number(size ?? font.size) })}
+                />
+              </Form.Item>
+              <Form.Item label={t('tableCell.textColor')}>
+                <Space.Compact style={{ width: '100%' }}>
+                  <ColorPicker value={font.color} onChange={color => updateFont({ color: color.toHexString() })} />
+                  <Input
+                    aria-label={t('tableCell.textColor')}
+                    value={font.color}
+                    onChange={event => updateFont({ color: event.target.value })}
+                  />
+                </Space.Compact>
+              </Form.Item>
+              <Form.Item label="">
+                <Space size={4} wrap>
+                  <Button
+                    aria-label={t('tableCell.bold')}
+                    title={t('tableCell.bold')}
+                    icon={<BoldOutlined />}
+                    type={font.bold ? 'primary' : 'default'}
+                    onClick={() => updateFont({ bold: !font.bold })}
+                  />
+                  <Button
+                    aria-label={t('tableCell.italic')}
+                    title={t('tableCell.italic')}
+                    icon={<ItalicOutlined />}
+                    type={font.italic ? 'primary' : 'default'}
+                    onClick={() => updateFont({ italic: !font.italic })}
+                  />
+                  <Button
+                    aria-label={t('tableCell.underline')}
+                    title={t('tableCell.underline')}
+                    icon={<UnderlineOutlined />}
+                    type={font.underline ? 'primary' : 'default'}
+                    onClick={() => updateFont({ underline: !font.underline })}
+                  />
+                  <Button
+                    aria-label={t('tableCell.strikethrough')}
+                    title={t('tableCell.strikethrough')}
+                    icon={<StrikethroughOutlined />}
+                    type={font.strikethrough ? 'primary' : 'default'}
+                    onClick={() => updateFont({ strikethrough: !font.strikethrough })}
+                  />
+                </Space>
               </Form.Item>
             </Form>
           ),
@@ -239,6 +313,15 @@ const DEFAULT_CELL_BORDER: BorderConfig = {
   sides: { top: true, right: true, bottom: true, left: true },
 };
 
+const DEFAULT_CELL_FONT = {
+  family: 'Arial',
+  size: 10,
+  bold: false,
+  italic: false,
+  underline: false,
+  strikethrough: false,
+  color: '#111111',
+};
 const DEFAULT_CELL_PADDING = { top: 1, right: 1.5, bottom: 1, left: 1.5 };
 const DEFAULT_CELL_FORMAT: TextFormatConfig = { type: 'none' };
 

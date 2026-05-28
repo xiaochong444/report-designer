@@ -2,13 +2,28 @@ import { type PDFDocument, type PDFPage, type PDFFont } from 'pdf-lib';
 import type { BorderConfig, Padding, RenderBarcode, RenderCheckbox, RenderComponentBox, RenderImage, RenderLine, RenderRichText, RenderShape, RenderTable, RenderTableCell, RenderText } from '@report-designer/core';
 import { barcodePattern, dataUrlMimeType, dataUrlToUint8Array, MM_TO_PT, parsePdfColor, safePdfText, stripHtmlToPdfText } from './pdf-component-rendering';
 
+export interface PdfFontSet {
+  regular: PDFFont;
+  bold: PDFFont;
+  italic: PDFFont;
+  boldItalic: PDFFont;
+  families?: Map<string, Partial<PdfFontVariants>>;
+}
+
+export type PdfFontVariants = Pick<PdfFontSet, 'regular' | 'bold' | 'italic' | 'boldItalic'>;
+
+type PdfFontStyle = {
+  family?: string;
+  bold?: boolean;
+  italic?: boolean;
+};
+
 export async function drawRenderComponent(
   pdfDoc: PDFDocument,
   page: PDFPage,
   component: RenderComponentBox,
   pageHeightMm: number,
-  font: PDFFont,
-  boldFont: PDFFont,
+  fonts: PdfFontSet,
 ): Promise<void> {
   const x = component.x * MM_TO_PT;
   const y = (pageHeightMm - component.y - component.height) * MM_TO_PT;
@@ -34,13 +49,13 @@ export async function drawRenderComponent(
 
   if ((component.type === 'panel' || component.type === 'subreport') && 'children' in component) {
     for (const child of component.children) {
-      await drawRenderComponent(pdfDoc, page, child, pageHeightMm, font, boldFont);
+      await drawRenderComponent(pdfDoc, page, child, pageHeightMm, fonts);
     }
     return;
   }
 
   if (component.type === 'text' && 'content' in component) {
-    drawText(page, component as RenderText, x, y, width, height, font, boldFont);
+    drawText(page, component as RenderText, x, y, width, height, fonts);
     return;
   }
 
@@ -65,7 +80,7 @@ export async function drawRenderComponent(
       x: x + 2,
       y: y + height - 12,
       size: richtext.style?.font?.size ?? 10,
-      font: richtext.style?.font?.bold ? boldFont : font,
+      font: selectPdfFont(fonts, richtext.style?.font),
       color: parsePdfColor(richtext.style?.font?.color ?? '#000000'),
       maxWidth: Math.max(1, width - 4),
     });
@@ -73,23 +88,38 @@ export async function drawRenderComponent(
   }
 
   if (component.type === 'barcode' && 'value' in component) {
-    drawBarcode(page, component as RenderBarcode, x, y, width, height, font, boldFont);
+    drawBarcode(page, component as RenderBarcode, x, y, width, height, fonts);
     return;
   }
 
   if (component.type === 'checkbox' && 'checked' in component) {
-    drawCheckbox(page, component as RenderCheckbox, x, y, width, height, font, boldFont);
+    drawCheckbox(page, component as RenderCheckbox, x, y, width, height, fonts);
     return;
   }
 
   if (component.type === 'table' && 'rows' in component && 'columns' in component) {
-    drawTable(page, component as RenderTable, x, y, width, height, font, boldFont);
+    drawTable(page, component as RenderTable, x, y, width, height, fonts);
   }
 }
 
-function drawText(page: PDFPage, text: RenderText, x: number, y: number, width: number, height: number, font: PDFFont, boldFont: PDFFont): void {
+function selectPdfFont(fonts: PdfFontSet, style?: PdfFontStyle): PDFFont {
+  const familyFonts = style?.family ? fonts.families?.get(normalizeFontFamilyKey(style.family)) : undefined;
+  if (style?.bold && style.italic) return familyFonts?.boldItalic ?? familyFonts?.bold ?? familyFonts?.italic ?? familyFonts?.regular ?? fonts.boldItalic;
+  if (style?.bold) return familyFonts?.bold ?? familyFonts?.regular ?? fonts.bold;
+  if (style?.italic) return familyFonts?.italic ?? familyFonts?.regular ?? fonts.italic;
+  return familyFonts?.regular ?? fonts.regular;
+}
+
+export function normalizeFontFamilyKey(value: string): string {
+  return value
+    .trim()
+    .replace(/^['"]|['"]$/g, '')
+    .toLowerCase();
+}
+
+function drawText(page: PDFPage, text: RenderText, x: number, y: number, width: number, height: number, fonts: PdfFontSet): void {
   const fontSize = text.style?.font?.size ?? 10;
-  const pdfFont = text.style?.font?.bold ? boldFont : font;
+  const pdfFont = selectPdfFont(fonts, text.style?.font);
   page.drawText(safePdfText(text.content), {
     x: x + 2,
     y: y + height - fontSize - 2,
@@ -180,7 +210,7 @@ async function drawImage(pdfDoc: PDFDocument, page: PDFPage, image: RenderImage,
   }
 }
 
-function drawBarcode(page: PDFPage, barcode: RenderBarcode, x: number, y: number, width: number, height: number, font: PDFFont, boldFont: PDFFont): void {
+function drawBarcode(page: PDFPage, barcode: RenderBarcode, x: number, y: number, width: number, height: number, fonts: PdfFontSet): void {
   const fontSize = barcode.font?.size ?? 8;
   const textHeight = barcode.showText ? fontSize + 2 : 0;
   const barHeight = Math.max(1, height - textHeight);
@@ -194,11 +224,11 @@ function drawBarcode(page: PDFPage, barcode: RenderBarcode, x: number, y: number
     }
   });
   if (barcode.showText) {
-    page.drawText(safePdfText(barcode.value), { x, y: y + 1, size: fontSize, font: barcode.font?.bold ? boldFont : font, maxWidth: width, color: parsePdfColor(textColor) });
+    page.drawText(safePdfText(barcode.value), { x, y: y + 1, size: fontSize, font: selectPdfFont(fonts, barcode.font), maxWidth: width, color: parsePdfColor(textColor) });
   }
 }
 
-function drawCheckbox(page: PDFPage, checkbox: RenderCheckbox, x: number, y: number, width: number, height: number, font: PDFFont, boldFont: PDFFont): void {
+function drawCheckbox(page: PDFPage, checkbox: RenderCheckbox, x: number, y: number, width: number, height: number, fonts: PdfFontSet): void {
   const boxSize = Math.min(height, 12);
   const foregroundColor = checkbox.foregroundColor ?? '#333333';
   const labelColor = checkbox.font?.color ?? foregroundColor;
@@ -209,11 +239,11 @@ function drawCheckbox(page: PDFPage, checkbox: RenderCheckbox, x: number, y: num
   }
   if (checkbox.label) {
     const fontSize = checkbox.font?.size ?? 10;
-    page.drawText(safePdfText(checkbox.label), { x: x + boxSize + 4, y: y + height - boxSize + 2, size: fontSize, font: checkbox.font?.bold ? boldFont : font, maxWidth: Math.max(1, width - boxSize - 4), color: parsePdfColor(labelColor) });
+    page.drawText(safePdfText(checkbox.label), { x: x + boxSize + 4, y: y + height - boxSize + 2, size: fontSize, font: selectPdfFont(fonts, checkbox.font), maxWidth: Math.max(1, width - boxSize - 4), color: parsePdfColor(labelColor) });
   }
 }
 
-function drawTable(page: PDFPage, table: RenderTable, x: number, y: number, width: number, height: number, font: PDFFont, boldFont: PDFFont): void {
+function drawTable(page: PDFPage, table: RenderTable, x: number, y: number, width: number, height: number, fonts: PdfFontSet): void {
   page.drawRectangle({ x, y, width, height, color: parsePdfColor('#ffffff') });
   page.drawRectangle({
     x,
@@ -237,7 +267,7 @@ function drawTable(page: PDFPage, table: RenderTable, x: number, y: number, widt
       const cellWidth = spanSize(columnWidths, cell.column, cell.colSpan);
       const cellHeight = spanSize(rowHeights, cell.row, cell.rowSpan);
       const cellY = y + height - rowTopOffset - cellHeight;
-      drawTableCell(page, cell, cellX, cellY, cellWidth, cellHeight, table.columns.length, table.rows.length, font, boldFont, table.showBorder);
+      drawTableCell(page, cell, cellX, cellY, cellWidth, cellHeight, table.columns.length, table.rows.length, fonts, table.showBorder);
     }
   }
 }
@@ -251,8 +281,7 @@ function drawTableCell(
   height: number,
   columnCount: number,
   rowCount: number,
-  font: PDFFont,
-  boldFont: PDFFont,
+  fonts: PdfFontSet,
   showBorder: boolean,
 ): void {
   const backgroundColor = cell.style?.backgroundColor ?? (cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined);
@@ -264,7 +293,7 @@ function drawTableCell(
 
   const padding = cell.style?.padding ?? { top: 1, right: 1.5, bottom: 1, left: 1.5 };
   const fontSize = cell.style?.font?.size ?? 10;
-  const pdfFont = cell.style?.font?.bold ? boldFont : font;
+  const pdfFont = selectPdfFont(fonts, cell.style?.font);
   const safeText = safePdfText(cell.content);
   const textX = textAlignedX(x, width, padding, safeText, pdfFont, fontSize, cell.style?.textAlign);
   const textY = textAlignedY(y, height, padding, fontSize, cell.style?.verticalAlign);

@@ -198,7 +198,8 @@ describe('phase 33 component property matrix', () => {
     render(<PropertyEditor />);
 
     expectVisible('表格');
-    expect(screen.getByLabelText('表格数据源')).toBeInTheDocument();
+    expect(screen.getByLabelText('绑定数组属性')).toBeInTheDocument();
+    expect(screen.queryByLabelText('表格数据源')).not.toBeInTheDocument();
     expectHidden('字体', '线条属性', '形状属性', '页码属性', '日期时间属性');
   });
 

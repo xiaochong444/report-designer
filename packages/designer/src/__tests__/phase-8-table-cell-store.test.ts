@@ -58,6 +58,10 @@ function selectedComponent() {
   return useDesignerStore.getState().template.pages[0].bands.flatMap(band => band.components)[0] as any;
 }
 
+function selectedBandId() {
+  return useDesignerStore.getState().template.pages[0].bands.find(band => band.components.some(component => component.id === 'table-1'))!.id;
+}
+
 describe('Phase 8 selected table cell store operations', () => {
   it('merges, splits, and clears the selected table cell by row and column', () => {
     loadWith(tableComponent());
@@ -90,5 +94,89 @@ describe('Phase 8 selected table cell store operations', () => {
     useDesignerStore.getState().equalizeSelectedTableColumns();
 
     expect(selectedComponent()).toEqual(before);
+  });
+
+  it('copies, pastes, and clears selected table cell style without changing content or spans', () => {
+    loadWith(tableComponent());
+    useDesignerStore.getState().selectTableCell({
+      tableId: 'table-1',
+      bandId: selectedBandId(),
+      startRow: 1,
+      startColumn: 1,
+      endRow: 1,
+      endColumn: 1,
+    });
+    useDesignerStore.getState().updateSelectedTableCell({
+      rowSpan: 1,
+      colSpan: 2,
+      text: 'Styled',
+      backgroundColor: '#ffeecc',
+      font: { family: 'Arial', size: 12, bold: true, italic: false, underline: false, strikethrough: false, color: '#224466' },
+      textAlign: 'center',
+      verticalAlign: 'middle',
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      border: { style: 'solid', width: 0.2, color: '#112233', sides: { top: true, right: true, bottom: true, left: true } },
+      format: { type: 'number', decimalDigits: 2, useGroupSeparator: true },
+    });
+
+    useDesignerStore.getState().selectTableCell({
+      tableId: 'table-1',
+      bandId: selectedBandId(),
+      startRow: 1,
+      startColumn: 1,
+      endRow: 1,
+      endColumn: 1,
+    });
+    useDesignerStore.getState().copySelectedTableCellStyle(1, 1);
+    useDesignerStore.getState().selectTableCell({
+      tableId: 'table-1',
+      bandId: selectedBandId(),
+      startRow: 2,
+      startColumn: 0,
+      endRow: 2,
+      endColumn: 0,
+    });
+    useDesignerStore.getState().updateSelectedTableCell({ text: 'Target' });
+    useDesignerStore.getState().pasteSelectedTableCellStyle(2, 0);
+
+    expect(selectedComponent().cells).toContainEqual(expect.objectContaining({
+      row: 2,
+      column: 0,
+      text: 'Target',
+      backgroundColor: '#ffeecc',
+      textAlign: 'center',
+      verticalAlign: 'middle',
+      font: expect.objectContaining({ bold: true, color: '#224466' }),
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      border: { style: 'solid', width: 0.2, color: '#112233', sides: { top: true, right: true, bottom: true, left: true } },
+      format: { type: 'number', decimalDigits: 2, useGroupSeparator: true },
+    }));
+
+    useDesignerStore.getState().clearSelectedTableCellStyle(1, 1);
+
+    expect(selectedComponent().cells).toContainEqual({
+      row: 1,
+      column: 1,
+      rowSpan: 1,
+      colSpan: 2,
+      text: 'Styled',
+    });
+  });
+
+  it('merges the selected rectangular table cell range from the top-left cell', () => {
+    loadWith(tableComponent());
+    useDesignerStore.getState().selectTableCell({
+      tableId: 'table-1',
+      bandId: selectedBandId(),
+      startRow: 1,
+      startColumn: 0,
+      endRow: 2,
+      endColumn: 2,
+    });
+
+    useDesignerStore.getState().mergeSelectedTableCellRange();
+
+    expect(selectedComponent().cells).toContainEqual({ row: 1, column: 0, rowSpan: 2, colSpan: 3 });
+    expect(selectedComponent().cells?.some((cell: any) => cell.row === 1 && cell.column === 1)).toBe(false);
   });
 });

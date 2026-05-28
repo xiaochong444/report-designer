@@ -36,6 +36,28 @@ describe('Phase 9 text rendering', () => {
     expect(document.pages[0].items[0].components[0].content).toBe('1,234.50');
   });
 
+  it('expands qualified field placeholders inside literal text', () => {
+    const template = makeTemplate([
+      band('data', 'data', {
+        dataBand: { dataSourceId: 'employees' },
+        components: [{
+          id: 'employee-label',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 80,
+          height: 8,
+          text: 'Employee: {employees.Name}',
+          ...textBase,
+        }],
+      }),
+    ]);
+
+    const document = renderReport(template, { employees: [{ Name: 'Alice' }] });
+
+    expect(document.pages[0].items[0].components[0].content).toBe('Employee: Alice');
+  });
+
   it('resolves named report style sets into render styles', () => {
     const template = makeTemplate([
       band('data', 'data', {

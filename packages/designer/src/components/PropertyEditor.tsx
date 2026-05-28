@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Checkbox, Typography } from 'antd';
+import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Checkbox, Typography, Segmented } from 'antd';
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
@@ -1207,6 +1207,53 @@ function buildComponentEventItems(template: ReportTemplate): EventTreeItem[] {
   }));
 }
 
+function createDataSourceOptions(
+  sourceNames: string[],
+  dataSources: ReportTemplate['dataSources'],
+): Array<{ value: string; label: string }> {
+  const options: Array<{ value: string; label: string }> = [];
+  const seen = new Set<string>();
+  const push = (value: string, label: string) => {
+    const key = `${value}::${label}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+    options.push({ value, label });
+  };
+
+  for (const source of dataSources) {
+    const label = source.parentSourceId
+      ? `${source.name || source.id.split('.').at(-1) || source.id} (${source.id})`
+      : (source.name || source.id);
+    push(source.id, label);
+    if (!source.parentSourceId && source.name && source.name !== source.id) {
+      push(source.name, source.name);
+    }
+  }
+
+  for (const sourceName of sourceNames) {
+    push(sourceName, sourceName);
+  }
+
+  return options;
+}
+
+function arrayPathForDataSource(
+  dataSourceId: string,
+  dataSources: ReportTemplate['dataSources'],
+): string | undefined {
+  const source = dataSources.find(item => item.id === dataSourceId || item.name === dataSourceId);
+  if (!source) return undefined;
+  if (!source.parentSourceId) return undefined;
+
+  const parent = dataSources.find(item => item.id === source.parentSourceId);
+  const parentPath = parent?.path ?? parent?.id ?? source.parentSourceId;
+  const sourcePath = source.path ?? source.id;
+  if (sourcePath.startsWith(`${parentPath}.`)) {
+    return sourcePath.slice(parentPath.length + 1);
+  }
+  return sourcePath.split('.').at(-1);
+}
+
 const propertyEditorMessages = {
   'zh-CN': {
     selectComponent: '选择组件以编辑属性',
@@ -1300,6 +1347,12 @@ const propertyEditorMessages = {
     paddingBottom: '内边距下',
     paddingLeft: '内边距左',
     tableDataSource: '表格数据源',
+    tableBindingMode: '绑定模式',
+    tableBindingFixed: '固定',
+    tableBindingDetail: '明细',
+    tableBindingDataSourceId: '绑定数组属性',
+    tableBindingArrayPath: '数组路径',
+    tableBindingArrayPathPlaceholder: '例如：Items 或 Customer.Orders',
     dataSource: '数据源',
     chooseDataSource: '选择数据源',
     columnCount: '列数',
@@ -1443,6 +1496,12 @@ const propertyEditorMessages = {
     paddingBottom: 'Padding bottom',
     paddingLeft: 'Padding left',
     tableDataSource: 'Table data source',
+    tableBindingMode: 'Binding mode',
+    tableBindingFixed: 'Fixed',
+    tableBindingDetail: 'Detail',
+    tableBindingDataSourceId: 'Bound array property',
+    tableBindingArrayPath: 'Array path',
+    tableBindingArrayPathPlaceholder: 'For example: Items or Customer.Orders',
     dataSource: 'Data source',
     chooseDataSource: 'Select data source',
     columnCount: 'Columns',
@@ -1613,10 +1672,18 @@ const TablePropertyPanel: React.FC<{
     canBreak?: boolean;
     showBorder?: boolean;
     dataSource?: string;
+    binding?: TableComponent['binding'];
     columns?: TableColumn[];
   }) => void;
 }> = ({ table, dataSources, dataSourceDefinitions, onChange, t }) => {
-  const source = dataSourceDefinitions.find(item => item.name === table.dataSource || item.id === table.dataSource);
+  const binding = table.binding ?? { mode: 'fixed' as const };
+  const source = dataSourceDefinitions.find(item => (
+    item.id === binding.dataSourceId
+    || item.name === binding.dataSourceId
+    || item.name === table.dataSource
+    || item.id === table.dataSource
+  ));
+  const dataSourceOptions = createDataSourceOptions(dataSources, dataSourceDefinitions);
   const fieldOptions = (source?.schema ?? source?.fields ?? []).map(field => ({
     value: field.name,
     label: field.label || field.name,
@@ -1634,20 +1701,60 @@ const TablePropertyPanel: React.FC<{
       )),
     });
   };
+  const updateBinding = (updates: Partial<NonNullable<TableComponent['binding']>>) => {
+    const next = {
+      ...binding,
+      ...updates,
+      mode: updates.mode ?? binding.mode ?? 'fixed',
+    };
+    onChange({
+      binding: {
+        mode: next.mode,
+        ...(next.dataSourceId ? { dataSourceId: next.dataSourceId } : {}),
+        ...(next.arrayPath ? { arrayPath: next.arrayPath } : {}),
+      },
+    });
+  };
 
   return (
     <Space orientation="vertical" size={12} style={{ width: '100%' }}>
       <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-        <Form.Item label={t('dataSource')}>
+        <Form.Item label={t('tableBindingMode')}>
+          <Segmented
+            aria-label={t('tableBindingMode')}
+            block
+            value={binding.mode ?? 'fixed'}
+            options={[
+              { value: 'fixed', label: t('tableBindingFixed') },
+              { value: 'detail', label: t('tableBindingDetail') },
+            ]}
+            onChange={(value) => updateBinding({ mode: value as NonNullable<TableComponent['binding']>['mode'] })}
+          />
+        </Form.Item>
+        <Form.Item label={t('tableBindingDataSourceId')}>
           <Select
-            aria-label={t('tableDataSource')}
-            value={table.dataSource || undefined}
-            onChange={(value) => onChange({ dataSource: value })}
+            aria-label={t('tableBindingDataSourceId')}
+            value={binding.dataSourceId || undefined}
+            onChange={(value) => updateBinding({
+              dataSourceId: value,
+              arrayPath: value ? arrayPathForDataSource(value, dataSourceDefinitions) : binding.arrayPath,
+            })}
             size="small"
             style={{ width: '100%' }}
             allowClear
+            disabled={(binding.mode ?? 'fixed') !== 'detail'}
             placeholder={t('chooseDataSource')}
-            options={dataSources.map(sourceName => ({ value: sourceName, label: sourceName }))}
+            options={dataSourceOptions}
+          />
+        </Form.Item>
+        <Form.Item label={t('tableBindingArrayPath')}>
+          <Input
+            aria-label={t('tableBindingArrayPath')}
+            value={binding.arrayPath ?? ''}
+            onChange={(event) => updateBinding({ arrayPath: event.target.value })}
+            size="small"
+            disabled={(binding.mode ?? 'fixed') !== 'detail'}
+            placeholder={t('tableBindingArrayPathPlaceholder')}
           />
         </Form.Item>
         <Form.Item label={t('columnCount')}>

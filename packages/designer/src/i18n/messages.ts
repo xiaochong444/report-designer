@@ -20,6 +20,7 @@ export type DesignerMessageKey =
   | 'ribbon.home'
   | 'ribbon.insert'
   | 'ribbon.pageLayout'
+  | 'ribbon.layout'
   | 'ribbon.preview'
   | 'ribbon.file'
   | 'ribbon.history'
@@ -250,8 +251,12 @@ export type DesignerMessageKey =
   | 'contextMenu.table.insertRowAbove'
   | 'contextMenu.table.deleteRow'
   | 'contextMenu.table.mergeRight'
+  | 'contextMenu.table.mergeSelected'
   | 'contextMenu.table.splitCell'
   | 'contextMenu.table.clearCell'
+  | 'contextMenu.table.clearCellStyle'
+  | 'contextMenu.table.copyCellStyle'
+  | 'contextMenu.table.pasteCellStyle'
   | 'contextMenu.table.equalizeColumns'
   | 'contextMenu.table.equalizeRows'
   | 'contextMenu.table.toggleBorder'
@@ -289,6 +294,14 @@ export type DesignerMessageKey =
   | 'tableCell.rowSpan'
   | 'tableCell.colSpan'
   | 'tableCell.appearance'
+  | 'tableCell.font'
+  | 'tableCell.fontFamily'
+  | 'tableCell.fontSize'
+  | 'tableCell.textColor'
+  | 'tableCell.bold'
+  | 'tableCell.italic'
+  | 'tableCell.underline'
+  | 'tableCell.strikethrough'
   | 'tableCell.backgroundColor'
   | 'tableCell.textAlign'
   | 'tableCell.verticalAlign'
@@ -469,6 +482,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.home': '主页',
     'ribbon.insert': '插入',
     'ribbon.pageLayout': '页面布局',
+    'ribbon.layout': '布局',
     'ribbon.preview': '预览',
     'ribbon.file': '文件',
     'ribbon.history': '历史',
@@ -699,8 +713,12 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.insertRowAbove': '插入行到上方',
     'contextMenu.table.deleteRow': '删除行',
     'contextMenu.table.mergeRight': '合并右侧单元格',
+    'contextMenu.table.mergeSelected': '合并选中单元格',
     'contextMenu.table.splitCell': '拆分单元格',
     'contextMenu.table.clearCell': '清空单元格',
+    'contextMenu.table.clearCellStyle': '清空单元格样式',
+    'contextMenu.table.copyCellStyle': '复制单元格样式',
+    'contextMenu.table.pasteCellStyle': '粘贴单元格样式',
     'contextMenu.table.equalizeColumns': '均分列宽',
     'contextMenu.table.equalizeRows': '均分行高',
     'contextMenu.table.toggleBorder': '切换表格边框',
@@ -738,6 +756,14 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableCell.rowSpan': '合并行数',
     'tableCell.colSpan': '合并列数',
     'tableCell.appearance': '外观',
+    'tableCell.font': '字体',
+    'tableCell.fontFamily': '字体系列',
+    'tableCell.fontSize': '字号',
+    'tableCell.textColor': '字体颜色',
+    'tableCell.bold': '加粗',
+    'tableCell.italic': '斜体',
+    'tableCell.underline': '下划线',
+    'tableCell.strikethrough': '删除线',
     'tableCell.backgroundColor': '背景色',
     'tableCell.textAlign': '水平对齐',
     'tableCell.verticalAlign': '垂直对齐',
@@ -915,6 +941,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.home': 'Home',
     'ribbon.insert': 'Insert',
     'ribbon.pageLayout': 'Page Layout',
+    'ribbon.layout': 'Layout',
     'ribbon.preview': 'Preview',
     'ribbon.file': 'File',
     'ribbon.history': 'History',
@@ -1145,8 +1172,12 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.insertRowAbove': 'Insert Row Above',
     'contextMenu.table.deleteRow': 'Delete Row',
     'contextMenu.table.mergeRight': 'Merge Cell Right',
+    'contextMenu.table.mergeSelected': 'Merge Selected Cells',
     'contextMenu.table.splitCell': 'Split Cell',
     'contextMenu.table.clearCell': 'Clear Cell',
+    'contextMenu.table.clearCellStyle': 'Clear Cell Style',
+    'contextMenu.table.copyCellStyle': 'Copy Cell Style',
+    'contextMenu.table.pasteCellStyle': 'Paste Cell Style',
     'contextMenu.table.equalizeColumns': 'Distribute Columns',
     'contextMenu.table.equalizeRows': 'Distribute Rows',
     'contextMenu.table.toggleBorder': 'Toggle Table Border',
@@ -1184,6 +1215,14 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableCell.rowSpan': 'Row Span',
     'tableCell.colSpan': 'Column Span',
     'tableCell.appearance': 'Appearance',
+    'tableCell.font': 'Font',
+    'tableCell.fontFamily': 'Font family',
+    'tableCell.fontSize': 'Font size',
+    'tableCell.textColor': 'Font color',
+    'tableCell.bold': 'Bold',
+    'tableCell.italic': 'Italic',
+    'tableCell.underline': 'Underline',
+    'tableCell.strikethrough': 'Strikethrough',
     'tableCell.backgroundColor': 'Background Color',
     'tableCell.textAlign': 'Horizontal Align',
     'tableCell.verticalAlign': 'Vertical Align',
