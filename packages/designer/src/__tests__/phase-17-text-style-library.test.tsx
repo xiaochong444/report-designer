@@ -863,7 +863,7 @@ describe('Phase 17 text style library store behavior', () => {
 
     const dialog = await openTextStyleLibraryFromRibbon();
     fireEvent.click(within(dialog).getByRole('button', { name: /Style A/ }));
-    fireEvent.change(within(dialog).getByLabelText('样式字号'), { target: { value: '22' } });
+    fireEvent.change(within(dialog).getByLabelText('Style font size'), { target: { value: '22' } });
 
     await waitFor(() => expect(selectedText()?.font.size).toBe(22));
   });
@@ -955,10 +955,10 @@ describe('Phase 17 text style library store behavior', () => {
 
     const dialog = await openTextStyleLibraryFromRibbon();
 
-    expect(within(dialog).getByLabelText('样式内边距上').closest('label')).toHaveTextContent('Top');
-    expect(within(dialog).getByLabelText('样式内边距右').closest('label')).toHaveTextContent('Right');
-    expect(within(dialog).getByLabelText('样式内边距下').closest('label')).toHaveTextContent('Bottom');
-    expect(within(dialog).getByLabelText('样式内边距左').closest('label')).toHaveTextContent('Left');
+    expect(within(dialog).getByLabelText('Top padding').closest('label')).toHaveTextContent('Top');
+    expect(within(dialog).getByLabelText('Right padding').closest('label')).toHaveTextContent('Right');
+    expect(within(dialog).getByLabelText('Bottom padding').closest('label')).toHaveTextContent('Bottom');
+    expect(within(dialog).getByLabelText('Left padding').closest('label')).toHaveTextContent('Left');
   });
 
   it('creates a new style from the dialog even when search is filtering and allows inline renaming', async () => {
@@ -980,14 +980,14 @@ describe('Phase 17 text style library store behavior', () => {
     await renderDesignerWithSelection(template);
 
     const dialog = await openTextStyleLibraryFromRibbon();
-    fireEvent.change(within(dialog).getByLabelText('样式搜索'), { target: { value: 'missing-style' } });
+    fireEvent.change(within(dialog).getByLabelText('Search styles'), { target: { value: 'missing-style' } });
     fireEvent.click(within(dialog).getByRole('button', { name: 'New' }));
 
-    await waitFor(() => expect(within(dialog).getByLabelText('样式名称')).toHaveValue('New Style'));
+    await waitFor(() => expect(within(dialog).getByLabelText('Style name')).toHaveValue('New Style'));
     expect(within(dialog).getAllByText('New Style').length).toBeGreaterThan(0);
 
-    fireEvent.change(within(dialog).getByLabelText('样式名称'), { target: { value: 'Summary Text' } });
-    fireEvent.blur(within(dialog).getByLabelText('样式名称'));
+    fireEvent.change(within(dialog).getByLabelText('Style name'), { target: { value: 'Summary Text' } });
+    fireEvent.blur(within(dialog).getByLabelText('Style name'));
 
     await waitFor(() => {
       const currentStyles = useDesignerStore.getState().template.styles.map(item => item.name);
@@ -1104,16 +1104,16 @@ describe('Phase 17 text style library store behavior', () => {
     const dialog = await openTextStyleLibraryFromRibbon();
     fireEvent.click(within(dialog).getByRole('button', { name: /Style A/ }));
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }));
-    fireEvent.change(within(dialog).getByLabelText('样式搜索'), { target: { value: 'Style C' } });
+    fireEvent.change(within(dialog).getByLabelText('Search styles'), { target: { value: 'Style C' } });
 
-    await waitFor(() => expect(within(dialog).getByLabelText('样式名称')).toHaveValue('Style C'));
+    await waitFor(() => expect(within(dialog).getByLabelText('Style name')).toHaveValue('Style C'));
 
     await act(async () => {
       await capturedConfig?.onOk?.();
     });
 
     expect(useDesignerStore.getState().template.styles.map(style => style.id)).toEqual(['style-b', 'style-c']);
-    await waitFor(() => expect(within(dialog).getByLabelText('样式名称')).toHaveValue('Style C'));
+    await waitFor(() => expect(within(dialog).getByLabelText('Style name')).toHaveValue('Style C'));
   });
 
   it('edits extended format fields and border sides in the style dialog', async () => {
@@ -1150,7 +1150,7 @@ describe('Phase 17 text style library store behavior', () => {
 
     fireEvent.change(within(dialog).getByLabelText('Null text'), { target: { value: '(empty)' } });
     fireEvent.change(within(dialog).getByLabelText('Decimal digits'), { target: { value: '3' } });
-    expect(within(dialog).getByLabelText('样式边框样式')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Style border style')).toBeInTheDocument();
     expect(within(dialog).getByText('Apply sides')).toBeInTheDocument();
     expect(within(dialog).getByLabelText('Border side preview')).toBeInTheDocument();
     fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Right' }));

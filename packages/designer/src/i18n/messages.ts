@@ -143,6 +143,21 @@ export type DesignerMessageKey =
   | 'styleLibrary.sideRight'
   | 'styleLibrary.sideBottom'
   | 'styleLibrary.sideLeft'
+  | 'styleLibrary.aria.search'
+  | 'styleLibrary.aria.name'
+  | 'styleLibrary.aria.fontFamily'
+  | 'styleLibrary.aria.fontSize'
+  | 'styleLibrary.aria.textColorIcon'
+  | 'styleLibrary.aria.textColor'
+  | 'styleLibrary.aria.backgroundIcon'
+  | 'styleLibrary.aria.background'
+  | 'styleLibrary.aria.borderStyle'
+  | 'styleLibrary.aria.borderWidth'
+  | 'styleLibrary.aria.borderColor'
+  | 'styleLibrary.aria.paddingTop'
+  | 'styleLibrary.aria.paddingRight'
+  | 'styleLibrary.aria.paddingBottom'
+  | 'styleLibrary.aria.paddingLeft'
   | 'styleLibrary.borderPreview'
   | 'styleLibrary.noStyles'
   | 'styleLibrary.selectStyle'
@@ -484,7 +499,62 @@ export type DesignerMessageKey =
   | 'events.template.reportState'
   | 'events.template.reportState.detail'
   | 'events.template.logMessage'
-  | 'events.template.logMessage.detail';
+  | 'events.template.logMessage.detail'
+  | 'conditionalFormat.title'
+  | 'conditionalFormat.search'
+  | 'conditionalFormat.new'
+  | 'conditionalFormat.duplicate'
+  | 'conditionalFormat.delete'
+  | 'conditionalFormat.applyToSelected'
+  | 'conditionalFormat.done'
+  | 'conditionalFormat.cancel'
+  | 'conditionalFormat.confirm'
+  | 'conditionalFormat.empty'
+  | 'conditionalFormat.newFormatName'
+  | 'conditionalFormat.ruleCount'
+  | 'conditionalFormat.deleteTitle'
+  | 'conditionalFormat.deleteDescription'
+  | 'conditionalFormat.name'
+  | 'conditionalFormat.rules'
+  | 'conditionalFormat.enabled'
+  | 'conditionalFormat.disabled'
+  | 'conditionalFormat.noRules'
+  | 'conditionalFormat.conditionField'
+  | 'conditionalFormat.dataType'
+  | 'conditionalFormat.operator'
+  | 'conditionalFormat.value'
+  | 'conditionalFormat.expression'
+  | 'conditionalFormat.breakIfTrue'
+  | 'conditionalFormat.formatting'
+  | 'conditionalFormat.bold'
+  | 'conditionalFormat.italic'
+  | 'conditionalFormat.underline'
+  | 'conditionalFormat.textColor'
+  | 'conditionalFormat.backgroundColor'
+  | 'conditionalFormat.borderStyle'
+  | 'conditionalFormat.borderNone'
+  | 'conditionalFormat.borderSolid'
+  | 'conditionalFormat.borderDashed'
+  | 'conditionalFormat.borderDotted'
+  | 'conditionalFormat.borderDouble'
+  | 'conditionalFormat.selectOrCreate'
+  | 'conditionalFormat.typeString'
+  | 'conditionalFormat.typeNumber'
+  | 'conditionalFormat.typeDate'
+  | 'conditionalFormat.typeBoolean'
+  | 'conditionalFormat.typeExpression'
+  | 'conditionalFormat.opEqualTo'
+  | 'conditionalFormat.opNotEqualTo'
+  | 'conditionalFormat.opBetween'
+  | 'conditionalFormat.opNotBetween'
+  | 'conditionalFormat.opGreaterThan'
+  | 'conditionalFormat.opGreaterThanOrEqualTo'
+  | 'conditionalFormat.opLessThan'
+  | 'conditionalFormat.opLessThanOrEqualTo'
+  | 'conditionalFormat.opContaining'
+  | 'conditionalFormat.opNotContaining'
+  | 'conditionalFormat.opBeginningWith'
+  | 'conditionalFormat.opEndingWith';
 
 export type DesignerMessages = Record<DesignerMessageKey, string>;
 
@@ -632,6 +702,21 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.sideRight': '右',
     'styleLibrary.sideBottom': '下',
     'styleLibrary.sideLeft': '左',
+    'styleLibrary.aria.search': '样式搜索',
+    'styleLibrary.aria.name': '样式名称',
+    'styleLibrary.aria.fontFamily': '样式字体系列',
+    'styleLibrary.aria.fontSize': '样式字号',
+    'styleLibrary.aria.textColorIcon': '文本颜色图标',
+    'styleLibrary.aria.textColor': '样式文本颜色',
+    'styleLibrary.aria.backgroundIcon': '背景色图标',
+    'styleLibrary.aria.background': '样式背景色',
+    'styleLibrary.aria.borderStyle': '样式边框样式',
+    'styleLibrary.aria.borderWidth': '样式边框宽度',
+    'styleLibrary.aria.borderColor': '样式边框颜色',
+    'styleLibrary.aria.paddingTop': '样式内边距上',
+    'styleLibrary.aria.paddingRight': '样式内边距右',
+    'styleLibrary.aria.paddingBottom': '样式内边距下',
+    'styleLibrary.aria.paddingLeft': '样式内边距左',
     'styleLibrary.borderPreview': '边框应用边预览',
     'styleLibrary.noStyles': '没有样式',
     'styleLibrary.selectStyle': '选择一个样式进行编辑',
@@ -974,6 +1059,61 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.template.reportState.detail': '在报表事件中记录可复用状态',
     'events.template.logMessage': '记录日志',
     'events.template.logMessage.detail': '向事件日志写入调试信息',
+    'conditionalFormat.title': '条件格式库',
+    'conditionalFormat.search': '搜索条件格式',
+    'conditionalFormat.new': '新建',
+    'conditionalFormat.duplicate': '复制',
+    'conditionalFormat.delete': '删除',
+    'conditionalFormat.applyToSelected': '应用到选中项',
+    'conditionalFormat.done': '完成',
+    'conditionalFormat.cancel': '取消',
+    'conditionalFormat.confirm': '确认',
+    'conditionalFormat.empty': '没有条件格式',
+    'conditionalFormat.newFormatName': '新建条件格式',
+    'conditionalFormat.ruleCount': '{count} 条规则',
+    'conditionalFormat.deleteTitle': '删除“{name}”？',
+    'conditionalFormat.deleteDescription': '删除后会清除已选择该条件格式的组件引用。',
+    'conditionalFormat.name': '名称',
+    'conditionalFormat.rules': '规则',
+    'conditionalFormat.enabled': '已启用',
+    'conditionalFormat.disabled': '已禁用',
+    'conditionalFormat.noRules': '没有规则',
+    'conditionalFormat.conditionField': '条件字段',
+    'conditionalFormat.dataType': '数据类型',
+    'conditionalFormat.operator': '操作符',
+    'conditionalFormat.value': '值',
+    'conditionalFormat.expression': '表达式',
+    'conditionalFormat.breakIfTrue': '满足后停止',
+    'conditionalFormat.formatting': '格式设置',
+    'conditionalFormat.bold': '加粗',
+    'conditionalFormat.italic': '斜体',
+    'conditionalFormat.underline': '下划线',
+    'conditionalFormat.textColor': '文本颜色',
+    'conditionalFormat.backgroundColor': '背景色',
+    'conditionalFormat.borderStyle': '边框样式',
+    'conditionalFormat.borderNone': '无',
+    'conditionalFormat.borderSolid': '实线',
+    'conditionalFormat.borderDashed': '虚线',
+    'conditionalFormat.borderDotted': '点线',
+    'conditionalFormat.borderDouble': '双线',
+    'conditionalFormat.selectOrCreate': '选择或新建一个条件格式',
+    'conditionalFormat.typeString': '文本',
+    'conditionalFormat.typeNumber': '数字',
+    'conditionalFormat.typeDate': '日期',
+    'conditionalFormat.typeBoolean': '布尔值',
+    'conditionalFormat.typeExpression': '表达式',
+    'conditionalFormat.opEqualTo': '等于',
+    'conditionalFormat.opNotEqualTo': '不等于',
+    'conditionalFormat.opBetween': '介于',
+    'conditionalFormat.opNotBetween': '不介于',
+    'conditionalFormat.opGreaterThan': '大于',
+    'conditionalFormat.opGreaterThanOrEqualTo': '大于等于',
+    'conditionalFormat.opLessThan': '小于',
+    'conditionalFormat.opLessThanOrEqualTo': '小于等于',
+    'conditionalFormat.opContaining': '包含',
+    'conditionalFormat.opNotContaining': '不包含',
+    'conditionalFormat.opBeginningWith': '开头为',
+    'conditionalFormat.opEndingWith': '结尾为',
   },
   'en-US': {
     'common.cancel': 'Cancel',
@@ -1118,6 +1258,21 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.sideRight': 'Right',
     'styleLibrary.sideBottom': 'Bottom',
     'styleLibrary.sideLeft': 'Left',
+    'styleLibrary.aria.search': 'Search styles',
+    'styleLibrary.aria.name': 'Style name',
+    'styleLibrary.aria.fontFamily': 'Style font family',
+    'styleLibrary.aria.fontSize': 'Style font size',
+    'styleLibrary.aria.textColorIcon': 'Text color icon',
+    'styleLibrary.aria.textColor': 'Style text color',
+    'styleLibrary.aria.backgroundIcon': 'Background color icon',
+    'styleLibrary.aria.background': 'Style background color',
+    'styleLibrary.aria.borderStyle': 'Style border style',
+    'styleLibrary.aria.borderWidth': 'Style border width',
+    'styleLibrary.aria.borderColor': 'Style border color',
+    'styleLibrary.aria.paddingTop': 'Top padding',
+    'styleLibrary.aria.paddingRight': 'Right padding',
+    'styleLibrary.aria.paddingBottom': 'Bottom padding',
+    'styleLibrary.aria.paddingLeft': 'Left padding',
     'styleLibrary.borderPreview': 'Border side preview',
     'styleLibrary.noStyles': 'No styles',
     'styleLibrary.selectStyle': 'Select a style to edit',
@@ -1460,5 +1615,60 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.template.reportState.detail': 'Store reusable state in a report event',
     'events.template.logMessage': 'Log message',
     'events.template.logMessage.detail': 'Write debug information to the event log',
+    'conditionalFormat.title': 'Conditional Format Library',
+    'conditionalFormat.search': 'Search conditional formats',
+    'conditionalFormat.new': 'New',
+    'conditionalFormat.duplicate': 'Duplicate',
+    'conditionalFormat.delete': 'Delete',
+    'conditionalFormat.applyToSelected': 'Apply to Selected',
+    'conditionalFormat.done': 'Done',
+    'conditionalFormat.cancel': 'Cancel',
+    'conditionalFormat.confirm': 'Confirm',
+    'conditionalFormat.empty': 'No conditional formats',
+    'conditionalFormat.newFormatName': 'New Conditional Format',
+    'conditionalFormat.ruleCount': '{count} rule(s)',
+    'conditionalFormat.deleteTitle': 'Delete "{name}"?',
+    'conditionalFormat.deleteDescription': 'Deleting it clears this conditional format from referenced components.',
+    'conditionalFormat.name': 'Name',
+    'conditionalFormat.rules': 'Rules',
+    'conditionalFormat.enabled': 'Enabled',
+    'conditionalFormat.disabled': 'Disabled',
+    'conditionalFormat.noRules': 'No rules',
+    'conditionalFormat.conditionField': 'Condition field',
+    'conditionalFormat.dataType': 'Data type',
+    'conditionalFormat.operator': 'Operator',
+    'conditionalFormat.value': 'Value',
+    'conditionalFormat.expression': 'Expression',
+    'conditionalFormat.breakIfTrue': 'Break if True',
+    'conditionalFormat.formatting': 'Formatting',
+    'conditionalFormat.bold': 'Bold',
+    'conditionalFormat.italic': 'Italic',
+    'conditionalFormat.underline': 'Underline',
+    'conditionalFormat.textColor': 'Text color',
+    'conditionalFormat.backgroundColor': 'Background color',
+    'conditionalFormat.borderStyle': 'Border style',
+    'conditionalFormat.borderNone': 'None',
+    'conditionalFormat.borderSolid': 'Solid',
+    'conditionalFormat.borderDashed': 'Dashed',
+    'conditionalFormat.borderDotted': 'Dotted',
+    'conditionalFormat.borderDouble': 'Double',
+    'conditionalFormat.selectOrCreate': 'Select or create a conditional format',
+    'conditionalFormat.typeString': 'Text',
+    'conditionalFormat.typeNumber': 'Number',
+    'conditionalFormat.typeDate': 'Date',
+    'conditionalFormat.typeBoolean': 'Boolean',
+    'conditionalFormat.typeExpression': 'Expression',
+    'conditionalFormat.opEqualTo': 'Equal to',
+    'conditionalFormat.opNotEqualTo': 'Not equal to',
+    'conditionalFormat.opBetween': 'Between',
+    'conditionalFormat.opNotBetween': 'Not between',
+    'conditionalFormat.opGreaterThan': 'Greater than',
+    'conditionalFormat.opGreaterThanOrEqualTo': 'Greater than or equal to',
+    'conditionalFormat.opLessThan': 'Less than',
+    'conditionalFormat.opLessThanOrEqualTo': 'Less than or equal to',
+    'conditionalFormat.opContaining': 'Containing',
+    'conditionalFormat.opNotContaining': 'Not containing',
+    'conditionalFormat.opBeginningWith': 'Beginning with',
+    'conditionalFormat.opEndingWith': 'Ending with',
   },
 };

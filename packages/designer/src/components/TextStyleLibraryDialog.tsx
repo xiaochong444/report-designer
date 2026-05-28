@@ -295,7 +295,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
           }}
         >
           <Input.Search
-            aria-label="样式搜索"
+            aria-label={t('styleLibrary.aria.search')}
             value={search}
             onChange={(event) => setSearch(event.target.value)}
             placeholder={t('styleLibrary.searchPlaceholder')}
@@ -470,7 +470,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                 <div style={{ display: 'grid', gap: 10 }}>
                   <CompactField label={t('styleLibrary.name')}>
                     <Input
-                      aria-label="样式名称"
+                      aria-label={t('styleLibrary.aria.name')}
                       value={draftName}
                       onChange={(event) => setDraftName(event.target.value)}
                       onBlur={() => commitDraftName()}
@@ -484,7 +484,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                 <div style={{ display: 'grid', gap: 8 }}>
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) 96px', gap: 8 }}>
                     <Select
-                      aria-label="样式字体系列"
+                      aria-label={t('styleLibrary.aria.fontFamily')}
                       value={font.family}
                       virtual={false}
                       onChange={(value) => updateSelectedStyle({ font: { ...font, family: value } })}
@@ -494,7 +494,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                       ].map(value => ({ value, label: value }))}
                     />
                     <InputNumber
-                      aria-label="样式字号"
+                      aria-label={t('styleLibrary.aria.fontSize')}
                       value={font.size}
                       min={6}
                       max={72}
@@ -505,10 +505,10 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                   <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1fr) minmax(0, 1fr)', gap: 8 }}>
                     <Space.Compact block>
                       <Tooltip title={t('styleLibrary.textColor')}>
-                        <Button icon={<FontColorsOutlined />} aria-label="文本颜色图标" />
+                        <Button icon={<FontColorsOutlined />} aria-label={t('styleLibrary.aria.textColorIcon')} />
                       </Tooltip>
                       <ColorPicker
-                        aria-label="样式文本颜色"
+                        aria-label={t('styleLibrary.aria.textColor')}
                         value={font.color}
                         onChange={(value) => updateSelectedStyle({ font: { ...font, color: value.toHexString() } })}
                         style={{ width: '100%', justifyContent: 'space-between' }}
@@ -516,10 +516,10 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                     </Space.Compact>
                     <Space.Compact block>
                       <Tooltip title={t('styleLibrary.background')}>
-                        <Button icon={<BgColorsOutlined />} aria-label="背景色图标" />
+                        <Button icon={<BgColorsOutlined />} aria-label={t('styleLibrary.aria.backgroundIcon')} />
                       </Tooltip>
                       <ColorPicker
-                        aria-label="样式背景色"
+                        aria-label={t('styleLibrary.aria.background')}
                         value={selectedStyle.backgroundColor}
                         onChange={(value) => updateSelectedStyle({ backgroundColor: value.toHexString() })}
                         style={{ width: '100%', justifyContent: 'space-between' }}
@@ -743,7 +743,7 @@ const BorderEditor: React.FC<{
     <div style={{ display: 'grid', gap: 8 }}>
       <CompactField label={t('styleLibrary.borderStyle')}>
         <Select
-          aria-label="样式边框样式"
+          aria-label={t('styleLibrary.aria.borderStyle')}
           value={border.style}
           virtual={false}
           onChange={(value) => onChange({ ...border, style: value })}
@@ -758,7 +758,7 @@ const BorderEditor: React.FC<{
       </CompactField>
       <CompactField label={t('styleLibrary.borderWidth')}>
         <InputNumber
-          aria-label="样式边框宽度"
+          aria-label={t('styleLibrary.aria.borderWidth')}
           value={border.width}
           min={0}
           max={5}
@@ -769,7 +769,7 @@ const BorderEditor: React.FC<{
       </CompactField>
       <CompactField label={t('styleLibrary.borderColor')}>
         <ColorPicker
-          aria-label="样式边框颜色"
+          aria-label={t('styleLibrary.aria.borderColor')}
           value={border.color}
           onChange={(value) => onChange({ ...border, color: value.toHexString() })}
           style={{ width: 32 }}
@@ -815,16 +815,16 @@ const PaddingEditor: React.FC<{
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
         <PaddingField label={t('styleLibrary.sideTop')}>
-          <InputNumber aria-label="样式内边距上" value={padding.top} min={0} style={{ width: '100%' }} onChange={(value) => updateField('top', value)} />
+          <InputNumber aria-label={t('styleLibrary.aria.paddingTop')} value={padding.top} min={0} style={{ width: '100%' }} onChange={(value) => updateField('top', value)} />
         </PaddingField>
         <PaddingField label={t('styleLibrary.sideRight')}>
-          <InputNumber aria-label="样式内边距右" value={padding.right} min={0} style={{ width: '100%' }} onChange={(value) => updateField('right', value)} />
+          <InputNumber aria-label={t('styleLibrary.aria.paddingRight')} value={padding.right} min={0} style={{ width: '100%' }} onChange={(value) => updateField('right', value)} />
         </PaddingField>
         <PaddingField label={t('styleLibrary.sideBottom')}>
-          <InputNumber aria-label="样式内边距下" value={padding.bottom} min={0} style={{ width: '100%' }} onChange={(value) => updateField('bottom', value)} />
+          <InputNumber aria-label={t('styleLibrary.aria.paddingBottom')} value={padding.bottom} min={0} style={{ width: '100%' }} onChange={(value) => updateField('bottom', value)} />
         </PaddingField>
         <PaddingField label={t('styleLibrary.sideLeft')}>
-          <InputNumber aria-label="样式内边距左" value={padding.left} min={0} style={{ width: '100%' }} onChange={(value) => updateField('left', value)} />
+          <InputNumber aria-label={t('styleLibrary.aria.paddingLeft')} value={padding.left} min={0} style={{ width: '100%' }} onChange={(value) => updateField('left', value)} />
         </PaddingField>
       </div>
     </div>

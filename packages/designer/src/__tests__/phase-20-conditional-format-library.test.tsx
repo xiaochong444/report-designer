@@ -6,6 +6,7 @@ import '@testing-library/jest-dom/vitest';
 import type { ConditionalFormat, ReportComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { ConditionalFormatManager } from '../components/ConditionalFormatManager';
+import conditionalFormatManagerSource from '../components/ConditionalFormatManager.tsx?raw';
 import { DesignerShell } from '../components/shell/DesignerShell';
 import { PropertyEditor } from '../components/PropertyEditor';
 import { DesignerI18nProvider } from '../i18n';
@@ -58,6 +59,10 @@ async function findDialogByTitle(title: string) {
 }
 
 describe('Phase 20 conditional format library', () => {
+  it('keeps conditional format UI copy in the shared designer i18n catalog', () => {
+    expect(conditionalFormatManagerSource).not.toMatch(/[\u4e00-\u9fff]/);
+  });
+
   it('lets a selected component choose and clear a conditional format from the property panel', async () => {
     loadTemplate({
       id: 'cf_high',

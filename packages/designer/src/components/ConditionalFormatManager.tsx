@@ -9,11 +9,12 @@ import {
   UnderlineOutlined,
 } from '@ant-design/icons';
 import type { ConditionRule, ConditionalFormat } from '@report-designer/core';
-import { useDesignerI18n, type DesignerLocale } from '../i18n';
+import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 
 type ConditionDataType = NonNullable<ConditionRule['dataType']>;
 type ConditionOperator = NonNullable<ConditionRule['operator']>;
+type ConditionalFormatMessageKey = Extract<DesignerMessageKey, `conditionalFormat.${string}`>;
 
 interface ConditionalFormatManagerProps {
   open: boolean;
@@ -21,8 +22,7 @@ interface ConditionalFormatManagerProps {
 }
 
 export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> = ({ open, onClose }) => {
-  const { locale } = useDesignerI18n();
-  const t = createConditionT(locale);
+  const { t } = useDesignerI18n();
   const formats = useDesignerStore(state => state.template.conditionalFormats);
   const createConditionalFormat = useDesignerStore(state => state.createConditionalFormat);
   const duplicateConditionalFormat = useDesignerStore(state => state.duplicateConditionalFormat);
@@ -44,9 +44,10 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
   const selectedRule = selectedFormat?.rules[0] ?? null;
 
   const selectFormat = (format: ConditionalFormat) => setSelectedId(format.id);
+  const ct = (key: ConditionalFormatMessageKey, values?: Record<string, string | number>) => t(key, values);
 
   const handleCreate = () => {
-    const id = createConditionalFormat({ name: t('newFormatName') });
+    const id = createConditionalFormat({ name: ct('conditionalFormat.newFormatName') });
     setSelectedId(id);
   };
 
@@ -103,35 +104,35 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
   return (
     <div style={{ display: 'contents' }}>
     <Modal
-      title={<span>{t('title')}</span>}
+      title={<span>{ct('conditionalFormat.title')}</span>}
       open={open}
       onCancel={onClose}
       width={980}
       getContainer={false}
-      aria-label={t('title')}
+      aria-label={ct('conditionalFormat.title')}
       modalRender={modal => React.cloneElement(modal as React.ReactElement<any>, {
-        'aria-label': t('title'),
+        'aria-label': ct('conditionalFormat.title'),
         'aria-labelledby': undefined,
       })}
-      footer={<Button type="primary" onClick={onClose}>{t('done')}</Button>}
+      footer={<Button type="primary" onClick={onClose}>{ct('conditionalFormat.done')}</Button>}
     >
       <div style={{ display: 'flex', height: 560, minHeight: 0, gap: 12 }}>
         <aside style={{ width: 248, display: 'flex', minHeight: 0, flexDirection: 'column', borderRight: '1px solid #f0f0f0', paddingRight: 12 }}>
           <Input.Search
-            aria-label={t('search')}
-            placeholder={t('search')}
+            aria-label={ct('conditionalFormat.search')}
+            placeholder={ct('conditionalFormat.search')}
             value={searchText}
             onChange={event => setSearchText(event.target.value)}
             size="small"
             style={{ marginBottom: 8 }}
           />
           <Space size={6} style={{ marginBottom: 8 }}>
-            <Button aria-label={t('new')} size="small" icon={<PlusOutlined aria-hidden />} onClick={handleCreate}>{t('new')}</Button>
-            <Button aria-label={t('duplicate')} size="small" onClick={handleDuplicate} disabled={!selectedFormat}>{t('duplicate')}</Button>
-            <Button aria-label={t('delete')} size="small" danger icon={<DeleteOutlined aria-hidden />} onClick={handleDelete} disabled={!selectedFormat}>{t('delete')}</Button>
+            <Button aria-label={ct('conditionalFormat.new')} size="small" icon={<PlusOutlined aria-hidden />} onClick={handleCreate}>{ct('conditionalFormat.new')}</Button>
+            <Button aria-label={ct('conditionalFormat.duplicate')} size="small" onClick={handleDuplicate} disabled={!selectedFormat}>{ct('conditionalFormat.duplicate')}</Button>
+            <Button aria-label={ct('conditionalFormat.delete')} size="small" danger icon={<DeleteOutlined aria-hidden />} onClick={handleDelete} disabled={!selectedFormat}>{ct('conditionalFormat.delete')}</Button>
           </Space>
           <Button
-            aria-label={t('applyToSelected')}
+            aria-label={ct('conditionalFormat.applyToSelected')}
             size="small"
             type="primary"
             disabled={!selectedFormat || selectedComponentCount === 0}
@@ -139,11 +140,11 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
             style={{ marginBottom: 8 }}
             block
           >
-            {t('applyToSelected')}
+            {ct('conditionalFormat.applyToSelected')}
           </Button>
           <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
             {filteredFormats.length === 0 ? (
-              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('empty')} />
+              <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={ct('conditionalFormat.empty')} />
             ) : filteredFormats.map(format => (
               <button
                 key={format.id}
@@ -161,7 +162,7 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
                 }}
               >
                 <span style={{ display: 'block', fontSize: 13, lineHeight: '18px' }}>{format.name}</span>
-                <span style={{ color: '#8c8c8c', fontSize: 11 }}>{t('ruleCount', { count: format.rules.length })}</span>
+                <span style={{ color: '#8c8c8c', fontSize: 11 }}>{ct('conditionalFormat.ruleCount', { count: format.rules.length })}</span>
               </button>
             ))}
           </div>
@@ -172,9 +173,9 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
             <Space orientation="vertical" size={12} style={{ width: '100%' }}>
               <section>
                 <Form layout="vertical" size="small">
-                  <Form.Item label={t('name')}>
+                  <Form.Item label={ct('conditionalFormat.name')}>
                     <Input
-                      aria-label={t('name')}
+                      aria-label={ct('conditionalFormat.name')}
                       value={selectedFormat.name}
                       onChange={event => updateSelectedFormat({ name: event.target.value })}
                     />
@@ -184,27 +185,27 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
 
               <section style={{ border: '1px solid #f0f0f0', borderRadius: 6, padding: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-                  <strong>{t('rules')}</strong>
+                  <strong>{ct('conditionalFormat.rules')}</strong>
                   {selectedRule ? (
                     <Tag color={selectedRule.enabled === false ? 'default' : 'blue'}>
-                      {selectedRule.enabled === false ? t('disabled') : t('enabled')}
+                      {selectedRule.enabled === false ? ct('conditionalFormat.disabled') : ct('conditionalFormat.enabled')}
                     </Tag>
                   ) : null}
                 </div>
                 {selectedRule ? (
                   <Form layout="vertical" size="small">
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 140px 160px', gap: 8 }}>
-                    <Form.Item label={t('conditionField')}>
+                    <Form.Item label={ct('conditionalFormat.conditionField')}>
                       <Input
-                        aria-label={t('conditionField')}
+                        aria-label={ct('conditionalFormat.conditionField')}
                         value={selectedRule.field ?? ''}
                         onChange={event => updateRule(selectedRule.id, { conditionType: 'value', field: event.target.value })}
                         placeholder="{Orders.Amount}"
                       />
                     </Form.Item>
-                    <Form.Item label={t('dataType')}>
+                    <Form.Item label={ct('conditionalFormat.dataType')}>
                       <Select
-                        aria-label={t('dataType')}
+                        aria-label={ct('conditionalFormat.dataType')}
                         value={selectedRule.dataType ?? 'string'}
                         onChange={(value: ConditionDataType) => updateRule(selectedRule.id, {
                           conditionType: 'value',
@@ -212,31 +213,31 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
                           value: parseConditionValue(String(selectedRule.value ?? ''), value),
                         })}
                         virtual={false}
-                        options={DATA_TYPE_OPTIONS.map(option => ({ value: option.value, label: t(option.labelKey) }))}
+                        options={DATA_TYPE_OPTIONS.map(option => ({ value: option.value, label: ct(option.labelKey) }))}
                       />
                     </Form.Item>
-                    <Form.Item label={t('operator')}>
+                    <Form.Item label={ct('conditionalFormat.operator')}>
                       <Select
-                        aria-label={t('operator')}
+                        aria-label={ct('conditionalFormat.operator')}
                         value={selectedRule.operator ?? 'equalTo'}
                         onChange={(value: ConditionOperator) => updateRule(selectedRule.id, { conditionType: 'value', operator: value })}
                         virtual={false}
-                        options={OPERATOR_OPTIONS.map(option => ({ value: option.value, label: t(option.labelKey) }))}
+                        options={OPERATOR_OPTIONS.map(option => ({ value: option.value, label: ct(option.labelKey) }))}
                       />
                     </Form.Item>
                   </div>
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
-                    <Form.Item label={t('value')}>
+                    <Form.Item label={ct('conditionalFormat.value')}>
                       <Input
-                        aria-label={t('value')}
+                        aria-label={ct('conditionalFormat.value')}
                         value={String(selectedRule.value ?? '')}
                         onChange={event => updateRuleValue(selectedRule, event.target.value)}
                       />
                     </Form.Item>
-                    <Form.Item label={t('expression')}>
+                    <Form.Item label={ct('conditionalFormat.expression')}>
                       <Input
-                        aria-label={t('expression')}
+                        aria-label={ct('conditionalFormat.expression')}
                         value={selectedRule.expression ?? ''}
                         onChange={event => updateRule(selectedRule.id, { conditionType: 'expression', expression: event.target.value })}
                         placeholder="{Orders.Amount} > 1000"
@@ -248,36 +249,36 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
                     checked={selectedRule.breakIfTrue ?? false}
                     onChange={event => updateRule(selectedRule.id, { breakIfTrue: event.target.checked })}
                   >
-                    {t('breakIfTrue')}
+                    {ct('conditionalFormat.breakIfTrue')}
                   </Checkbox>
                   </Form>
                 ) : (
-                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t('noRules')} />
+                  <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={ct('conditionalFormat.noRules')} />
                 )}
               </section>
 
               {selectedRule ? (
               <section style={{ border: '1px solid #f0f0f0', borderRadius: 6, padding: 12 }}>
-                <strong>{t('formatting')}</strong>
+                <strong>{ct('conditionalFormat.formatting')}</strong>
                 <Divider style={{ margin: '10px 0' }} />
                 <Space size={6} wrap>
                   <Button
-                    aria-label={t('bold')}
-                    title={t('bold')}
+                    aria-label={ct('conditionalFormat.bold')}
+                    title={ct('conditionalFormat.bold')}
                     icon={<BoldOutlined />}
                     type={selectedRule.overrides?.fontWeight ? 'primary' : 'default'}
                     onClick={() => updateRuleOverride(selectedRule, 'fontWeight', !selectedRule.overrides?.fontWeight)}
                   />
                   <Button
-                    aria-label={t('italic')}
-                    title={t('italic')}
+                    aria-label={ct('conditionalFormat.italic')}
+                    title={ct('conditionalFormat.italic')}
                     icon={<ItalicOutlined />}
                     type={selectedRule.overrides?.fontStyle ? 'primary' : 'default'}
                     onClick={() => updateRuleOverride(selectedRule, 'fontStyle', !selectedRule.overrides?.fontStyle)}
                   />
                   <Button
-                    aria-label={t('underline')}
-                    title={t('underline')}
+                    aria-label={ct('conditionalFormat.underline')}
+                    title={ct('conditionalFormat.underline')}
                     icon={<UnderlineOutlined />}
                     type={selectedRule.overrides?.textDecoration ? 'primary' : 'default'}
                     onClick={() => updateRuleOverride(selectedRule, 'textDecoration', !selectedRule.overrides?.textDecoration)}
@@ -285,9 +286,9 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
                 </Space>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8, marginTop: 12 }}>
                   <Form layout="vertical" size="small">
-                    <Form.Item label={t('textColor')}>
+                    <Form.Item label={ct('conditionalFormat.textColor')}>
                       <Input
-                        aria-label={t('textColor')}
+                        aria-label={ct('conditionalFormat.textColor')}
                         type="color"
                         value={String(selectedRule.overrides?.fontColor ?? '#000000')}
                         onChange={event => updateRuleOverride(selectedRule, 'fontColor', event.target.value)}
@@ -295,9 +296,9 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
                     </Form.Item>
                   </Form>
                   <Form layout="vertical" size="small">
-                    <Form.Item label={t('backgroundColor')}>
+                    <Form.Item label={ct('conditionalFormat.backgroundColor')}>
                       <Input
-                        aria-label={t('backgroundColor')}
+                        aria-label={ct('conditionalFormat.backgroundColor')}
                         type="color"
                         prefix={<BgColorsOutlined />}
                         value={String(selectedRule.overrides?.backgroundColor ?? '#ffffff')}
@@ -306,18 +307,18 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
                     </Form.Item>
                   </Form>
                   <Form layout="vertical" size="small">
-                    <Form.Item label={t('borderStyle')}>
+                    <Form.Item label={ct('conditionalFormat.borderStyle')}>
                       <Select
-                        aria-label={t('borderStyle')}
+                        aria-label={ct('conditionalFormat.borderStyle')}
                         value={(selectedRule.overrides?.border as any)?.style ?? selectedRule.overrides?.border ?? 'none'}
                         onChange={value => updateRuleOverride(selectedRule, 'border', value)}
                         virtual={false}
                         options={[
-                          { value: 'none', label: t('borderNone') },
-                          { value: 'solid', label: t('borderSolid') },
-                          { value: 'dashed', label: t('borderDashed') },
-                          { value: 'dotted', label: t('borderDotted') },
-                          { value: 'double', label: t('borderDouble') },
+                          { value: 'none', label: ct('conditionalFormat.borderNone') },
+                          { value: 'solid', label: ct('conditionalFormat.borderSolid') },
+                          { value: 'dashed', label: ct('conditionalFormat.borderDashed') },
+                          { value: 'dotted', label: ct('conditionalFormat.borderDotted') },
+                          { value: 'double', label: ct('conditionalFormat.borderDouble') },
                         ]}
                       />
                     </Form.Item>
@@ -327,49 +328,49 @@ export const ConditionalFormatManager: React.FC<ConditionalFormatManagerProps> =
               ) : null}
             </Space>
           ) : (
-            <Empty description={t('selectOrCreate')} />
+            <Empty description={ct('conditionalFormat.selectOrCreate')} />
           )}
         </main>
       </div>
     </Modal>
     <Modal
-      title={deleteTarget ? t('deleteTitle', { name: deleteTarget.name }) : t('delete')}
+      title={deleteTarget ? ct('conditionalFormat.deleteTitle', { name: deleteTarget.name }) : ct('conditionalFormat.delete')}
       open={Boolean(deleteTarget)}
       getContainer={false}
       onOk={confirmDelete}
       onCancel={() => setDeleteTarget(null)}
-      okText={t('confirm')}
-      cancelText={t('cancel')}
-      okButtonProps={{ 'aria-label': t('confirm') }}
-      cancelButtonProps={{ 'aria-label': t('cancel') }}
+      okText={ct('conditionalFormat.confirm')}
+      cancelText={ct('conditionalFormat.cancel')}
+      okButtonProps={{ 'aria-label': ct('conditionalFormat.confirm') }}
+      cancelButtonProps={{ 'aria-label': ct('conditionalFormat.cancel') }}
     >
-      {t('deleteDescription')}
+      {ct('conditionalFormat.deleteDescription')}
     </Modal>
     </div>
   );
 };
 
-const DATA_TYPE_OPTIONS: Array<{ value: ConditionDataType; labelKey: ConditionMessageKey }> = [
-  { value: 'string', labelKey: 'typeString' },
-  { value: 'number', labelKey: 'typeNumber' },
-  { value: 'date', labelKey: 'typeDate' },
-  { value: 'boolean', labelKey: 'typeBoolean' },
-  { value: 'expression', labelKey: 'typeExpression' },
+const DATA_TYPE_OPTIONS: Array<{ value: ConditionDataType; labelKey: ConditionalFormatMessageKey }> = [
+  { value: 'string', labelKey: 'conditionalFormat.typeString' },
+  { value: 'number', labelKey: 'conditionalFormat.typeNumber' },
+  { value: 'date', labelKey: 'conditionalFormat.typeDate' },
+  { value: 'boolean', labelKey: 'conditionalFormat.typeBoolean' },
+  { value: 'expression', labelKey: 'conditionalFormat.typeExpression' },
 ];
 
-const OPERATOR_OPTIONS: Array<{ value: ConditionOperator; labelKey: ConditionMessageKey }> = [
-  { value: 'equalTo', labelKey: 'opEqualTo' },
-  { value: 'notEqualTo', labelKey: 'opNotEqualTo' },
-  { value: 'between', labelKey: 'opBetween' },
-  { value: 'notBetween', labelKey: 'opNotBetween' },
-  { value: 'greaterThan', labelKey: 'opGreaterThan' },
-  { value: 'greaterThanOrEqualTo', labelKey: 'opGreaterThanOrEqualTo' },
-  { value: 'lessThan', labelKey: 'opLessThan' },
-  { value: 'lessThanOrEqualTo', labelKey: 'opLessThanOrEqualTo' },
-  { value: 'containing', labelKey: 'opContaining' },
-  { value: 'notContaining', labelKey: 'opNotContaining' },
-  { value: 'beginningWith', labelKey: 'opBeginningWith' },
-  { value: 'endingWith', labelKey: 'opEndingWith' },
+const OPERATOR_OPTIONS: Array<{ value: ConditionOperator; labelKey: ConditionalFormatMessageKey }> = [
+  { value: 'equalTo', labelKey: 'conditionalFormat.opEqualTo' },
+  { value: 'notEqualTo', labelKey: 'conditionalFormat.opNotEqualTo' },
+  { value: 'between', labelKey: 'conditionalFormat.opBetween' },
+  { value: 'notBetween', labelKey: 'conditionalFormat.opNotBetween' },
+  { value: 'greaterThan', labelKey: 'conditionalFormat.opGreaterThan' },
+  { value: 'greaterThanOrEqualTo', labelKey: 'conditionalFormat.opGreaterThanOrEqualTo' },
+  { value: 'lessThan', labelKey: 'conditionalFormat.opLessThan' },
+  { value: 'lessThanOrEqualTo', labelKey: 'conditionalFormat.opLessThanOrEqualTo' },
+  { value: 'containing', labelKey: 'conditionalFormat.opContaining' },
+  { value: 'notContaining', labelKey: 'conditionalFormat.opNotContaining' },
+  { value: 'beginningWith', labelKey: 'conditionalFormat.opBeginningWith' },
+  { value: 'endingWith', labelKey: 'conditionalFormat.opEndingWith' },
 ];
 
 function parseConditionValue(value: string, dataType: ConditionDataType) {
@@ -381,135 +382,4 @@ function parseConditionValue(value: string, dataType: ConditionDataType) {
     return value === 'true' || value === '1';
   }
   return value;
-}
-
-const conditionMessages = {
-  'zh-CN': {
-    title: '条件格式库',
-    search: '搜索条件格式',
-    new: '新建',
-    duplicate: '复制',
-    delete: '删除',
-    applyToSelected: '应用到选中项',
-    done: '完成',
-    cancel: '取消',
-    confirm: '确认',
-    empty: '没有条件格式',
-    newFormatName: '新建条件格式',
-    ruleCount: '{count} 条规则',
-    deleteTitle: '删除“{name}”？',
-    deleteDescription: '删除后会清除已选择该条件格式的组件引用。',
-    name: '名称',
-    rules: '规则',
-    enabled: '已启用',
-    disabled: '已禁用',
-    noRules: '没有规则',
-    conditionField: '条件字段',
-    dataType: '数据类型',
-    operator: '操作符',
-    value: '值',
-    expression: '表达式',
-    breakIfTrue: '满足后停止',
-    formatting: '格式设置',
-    bold: '加粗',
-    italic: '斜体',
-    underline: '下划线',
-    textColor: '文本颜色',
-    backgroundColor: '背景色',
-    borderStyle: '边框样式',
-    borderNone: '无',
-    borderSolid: '实线',
-    borderDashed: '虚线',
-    borderDotted: '点线',
-    borderDouble: '双线',
-    selectOrCreate: '选择或新建一个条件格式',
-    typeString: '文本',
-    typeNumber: '数字',
-    typeDate: '日期',
-    typeBoolean: '布尔值',
-    typeExpression: '表达式',
-    opEqualTo: '等于',
-    opNotEqualTo: '不等于',
-    opBetween: '介于',
-    opNotBetween: '不介于',
-    opGreaterThan: '大于',
-    opGreaterThanOrEqualTo: '大于等于',
-    opLessThan: '小于',
-    opLessThanOrEqualTo: '小于等于',
-    opContaining: '包含',
-    opNotContaining: '不包含',
-    opBeginningWith: '开头为',
-    opEndingWith: '结尾为',
-  },
-  'en-US': {
-    title: 'Conditional Format Library',
-    search: 'Search conditional formats',
-    new: 'New',
-    duplicate: 'Duplicate',
-    delete: 'Delete',
-    applyToSelected: 'Apply to Selected',
-    done: 'Done',
-    cancel: 'Cancel',
-    confirm: 'Confirm',
-    empty: 'No conditional formats',
-    newFormatName: 'New Conditional Format',
-    ruleCount: '{count} rule(s)',
-    deleteTitle: 'Delete "{name}"?',
-    deleteDescription: 'Deleting it clears this conditional format from referenced components.',
-    name: 'Name',
-    rules: 'Rules',
-    enabled: 'Enabled',
-    disabled: 'Disabled',
-    noRules: 'No rules',
-    conditionField: 'Condition field',
-    dataType: 'Data type',
-    operator: 'Operator',
-    value: 'Value',
-    expression: 'Expression',
-    breakIfTrue: 'Break if True',
-    formatting: 'Formatting',
-    bold: 'Bold',
-    italic: 'Italic',
-    underline: 'Underline',
-    textColor: 'Text color',
-    backgroundColor: 'Background color',
-    borderStyle: 'Border style',
-    borderNone: 'None',
-    borderSolid: 'Solid',
-    borderDashed: 'Dashed',
-    borderDotted: 'Dotted',
-    borderDouble: 'Double',
-    selectOrCreate: 'Select or create a conditional format',
-    typeString: 'Text',
-    typeNumber: 'Number',
-    typeDate: 'Date',
-    typeBoolean: 'Boolean',
-    typeExpression: 'Expression',
-    opEqualTo: 'Equal to',
-    opNotEqualTo: 'Not equal to',
-    opBetween: 'Between',
-    opNotBetween: 'Not between',
-    opGreaterThan: 'Greater than',
-    opGreaterThanOrEqualTo: 'Greater than or equal to',
-    opLessThan: 'Less than',
-    opLessThanOrEqualTo: 'Less than or equal to',
-    opContaining: 'Containing',
-    opNotContaining: 'Not containing',
-    opBeginningWith: 'Beginning with',
-    opEndingWith: 'Ending with',
-  },
-} as const;
-
-type ConditionMessageKey = keyof typeof conditionMessages['zh-CN'];
-
-function createConditionT(locale: DesignerLocale) {
-  const messages = conditionMessages[locale] ?? conditionMessages['zh-CN'];
-  const fallback = conditionMessages['en-US'];
-  return (key: ConditionMessageKey, values?: Record<string, string | number>) => {
-    const message = messages[key] ?? fallback[key] ?? key;
-    if (!values) return message;
-    return message.replace(/\{(\w+)\}/g, (match, valueKey) => (
-      Object.prototype.hasOwnProperty.call(values, valueKey) ? String(values[valueKey]) : match
-    ));
-  };
 }
