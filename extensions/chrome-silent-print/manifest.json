@@ -1,0 +1,19 @@
+{
+  "manifest_version": 3,
+  "name": "Report Designer Silent Print Bridge",
+  "version": "0.0.1",
+  "description": "Receives report print jobs from the web viewer and forwards them to ChromeOS printing or a native print host.",
+  "permissions": ["nativeMessaging", "printing", "storage"],
+  "host_permissions": ["<all_urls>"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content-script.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "options_page": "options.html"
+}

@@ -1,4 +1,5 @@
 import type { BuiltinFunction, EvalContext } from './evaluator';
+import { formatChineseRmbUppercase } from './chinese-money';
 
 export function evaluateReportFunction(
   functionName: string,
@@ -14,6 +15,10 @@ export function evaluateReportFunction(
 
   if (name === 'TOTALPAGES') {
     return ctx.reportRuntime?.totalPages ?? 1;
+  }
+
+  if (name === 'RMBUPPER' || name === 'MONEYUPPER' || name === 'CNYUPPER' || name === 'CHINESEMONEY') {
+    return formatChineseRmbUppercase(args[0]);
   }
 
   if (ctx.reportRuntime && shouldDelegateToReportRuntime(name, args)) {

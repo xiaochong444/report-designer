@@ -1,10 +1,13 @@
 import type { RenderDocument } from '@report-designer/core';
 import { exportRenderDocumentToPDF, type PdfExportOptions } from './pdf/export-render-document';
 import { printRenderDocument } from '../print/print-frame';
+import { printRenderDocumentWithChromeExtension, type ChromeExtensionPrintOptions } from '../print/chrome-extension-print';
 
 export { exportRenderDocumentToPDF } from './pdf/export-render-document';
 export type { PdfExportOptions } from './pdf/export-render-document';
 export { buildPrintHtml, printRenderDocument } from '../print/print-frame';
+export { buildChromePrintRequest, printRenderDocumentWithChromeExtension, sendChromePrintRequest } from '../print/chrome-extension-print';
+export type { ChromeExtensionPrintOptions, ChromePrintBackend, ChromePrintRequest, ChromePrintResponse, ChromePrintTransport } from '../print/chrome-extension-print';
 
 /** Export a RenderDocument report to PDF. Chinese text requires fontBytes or fontBytesByFamily. */
 export async function exportToPDF(
@@ -14,9 +17,18 @@ export async function exportToPDF(
   return exportRenderDocumentToPDF(document, options);
 }
 
-/** Trigger browser print dialog */
-export async function printReport(document?: RenderDocument): Promise<void> {
+export interface PrintReportOptions {
+  adapter?: 'browser' | 'chrome-extension';
+  chromeExtension?: ChromeExtensionPrintOptions;
+}
+
+/** Trigger browser print dialog or send a PDF job to the Chrome print extension bridge */
+export async function printReport(document?: RenderDocument, options: PrintReportOptions = {}): Promise<void> {
   if (document) {
+    if (options.adapter === 'chrome-extension') {
+      await printRenderDocumentWithChromeExtension(document, options.chromeExtension);
+      return;
+    }
     await printRenderDocument(document);
     return;
   }

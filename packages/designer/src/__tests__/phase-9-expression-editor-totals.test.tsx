@@ -21,4 +21,15 @@ describe('Phase 9 expression editor total shortcuts', () => {
     expect(functionLabels.some(text => text.startsWith('TOTALS.PAGESUM'))).toBe(true);
     expect(functionLabels.some(text => text.startsWith('TOTALS.REPORTSUM'))).toBe(true);
   });
+
+  it('lists money uppercase helpers in the expression browser', async () => {
+    useDesignerStore.getState().loadTemplate(createDefaultTemplate('Expression Money'));
+
+    render(<ExpressionEditor open value="" onChange={() => {}} onClose={() => {}} />);
+
+    expect(await screen.findByText('金额大写')).toBeInTheDocument();
+    expect(screen.getByText('RMBUPPER')).toBeInTheDocument();
+    expect(screen.getByText('MONEYUPPER')).toBeInTheDocument();
+    expect(screen.getByText('CNYUPPER')).toBeInTheDocument();
+  });
 });

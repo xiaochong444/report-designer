@@ -169,6 +169,22 @@ reg('TOTALPAGES', (args, ctx) => {
   return evaluateReportFunction('TOTALPAGES', args, ctx, () => 1);
 });
 
+reg('RMBUPPER', (args, ctx) => {
+  return evaluateReportFunction('RMBUPPER', args, ctx, () => '');
+});
+
+reg('MONEYUPPER', (args, ctx) => {
+  return evaluateReportFunction('MONEYUPPER', args, ctx, () => '');
+});
+
+reg('CNYUPPER', (args, ctx) => {
+  return evaluateReportFunction('CNYUPPER', args, ctx, () => '');
+});
+
+reg('CHINESEMONEY', (args, ctx) => {
+  return evaluateReportFunction('CHINESEMONEY', args, ctx, () => '');
+});
+
 reg('ROUND', (args, ctx) => {
   const v = toNumber(args[0]);
   const d = args.length > 1 ? toNumber(args[1]) : 0;

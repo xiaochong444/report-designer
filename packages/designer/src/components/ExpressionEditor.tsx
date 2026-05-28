@@ -17,6 +17,10 @@ const BUILT_IN_FUNCTIONS = [
   { name: 'TOTALS.PAGESUM', desc: { 'zh-CN': '按页求和别名', 'en-US': 'Page sum alias' }, insert: 'TOTALS.PAGESUM("", "")' },
   { name: 'TOTALS.PAGECOUNT', desc: { 'zh-CN': '按页计数别名', 'en-US': 'Page count alias' }, insert: 'TOTALS.PAGECOUNT("")' },
   { name: 'TOTALS.REPORTSUM', desc: { 'zh-CN': '按报表求和别名', 'en-US': 'Report sum alias' }, insert: 'TOTALS.REPORTSUM("", "")' },
+  { name: 'RMBUPPER', desc: { 'zh-CN': '金额大写', 'en-US': 'RMB uppercase' }, insert: 'RMBUPPER()' },
+  { name: 'MONEYUPPER', desc: { 'zh-CN': '金额大写别名', 'en-US': 'Money uppercase alias' }, insert: 'MONEYUPPER()' },
+  { name: 'CNYUPPER', desc: { 'zh-CN': '人民币大写别名', 'en-US': 'CNY uppercase alias' }, insert: 'CNYUPPER()' },
+  { name: 'CHINESEMONEY', desc: { 'zh-CN': '中文金额大写别名', 'en-US': 'Chinese money uppercase alias' }, insert: 'CHINESEMONEY()' },
   { name: 'IF', desc: { 'zh-CN': '条件判断', 'en-US': 'Conditional' }, insert: 'IF(, , )' },
   { name: 'IIF', desc: { 'zh-CN': '条件判断', 'en-US': 'Conditional' }, insert: 'IIF(, , )' },
   { name: 'ISNULL', desc: { 'zh-CN': '是否为空', 'en-US': 'Is null' }, insert: 'ISNULL()' },
@@ -208,6 +212,14 @@ export const ExpressionEditor: React.FC<{
       }),
       makeTreeNode('fn.logic', t('expressionEditor.tree.logicFunctions'), 'folder', {
         children: BUILT_IN_FUNCTIONS.filter((item) => ['IF', 'IIF', 'ISNULL'].includes(item.name)).map((item) =>
+          makeTreeNode(`fn.${item.name}`, item.name, 'function', {
+            insertValue: item.insert,
+            searchText: `${item.name} ${item.desc[locale]}`.toLowerCase(),
+          }),
+        ),
+      }),
+      makeTreeNode('fn.money', t('expressionEditor.tree.moneyFunctions'), 'folder', {
+        children: BUILT_IN_FUNCTIONS.filter((item) => ['RMBUPPER', 'MONEYUPPER', 'CNYUPPER', 'CHINESEMONEY'].includes(item.name)).map((item) =>
           makeTreeNode(`fn.${item.name}`, item.name, 'function', {
             insertValue: item.insert,
             searchText: `${item.name} ${item.desc[locale]}`.toLowerCase(),

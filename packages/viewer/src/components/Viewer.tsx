@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Layout } from 'antd';
 import { renderReport, type EventLogEntry, type RenderReportOptions, type ReportTemplate } from '@report-designer/core';
 import { ViewerToolbar } from './ViewerToolbar';
-import { downloadPDF, exportToPDF, printReport } from '../export';
+import { downloadPDF, exportToPDF, printReport, type PrintReportOptions } from '../export';
 import { RenderDocumentView } from '../renderers/dom/RenderDocumentView';
 import { EventLogPanel } from './EventLogPanel';
 import { getViewerMessages, type ViewerLocale } from '../i18n';
@@ -14,6 +14,7 @@ interface ViewerProps {
   data: Record<string, any[]>;
   className?: string;
   subreports?: RenderReportOptions['subreports'];
+  printOptions?: PrintReportOptions;
   onEventLogSelect?: (entry: EventLogEntry) => void;
   onEventLogsClear?: () => void;
   onEventLogsExport?: (logs: EventLogEntry[]) => void;
@@ -29,6 +30,7 @@ export const Viewer: React.FC<ViewerProps> = ({
   onEventLogsClear,
   onEventLogsExport,
   subreports,
+  printOptions,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(100);
@@ -62,7 +64,7 @@ export const Viewer: React.FC<ViewerProps> = ({
     const printDocument = renderReport(template, data, { subreports, mode: 'print' });
     setEventLogsCleared(false);
     setOutputEventLogs(printDocument.eventLogs ?? []);
-    void printReport(printDocument);
+    void printReport(printDocument, printOptions);
   };
 
   return (

@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <title>Silent Print Bridge Settings</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 24px; color: #1f1f1f; }
+    label { display: block; margin-top: 16px; font-weight: 600; }
+    input, select, textarea { width: 520px; max-width: 100%; margin-top: 6px; padding: 6px 8px; box-sizing: border-box; }
+    textarea { min-height: 88px; }
+    button { margin-top: 16px; padding: 6px 14px; }
+    .hint { color: #666; font-size: 12px; margin-top: 4px; max-width: 640px; }
+    .status { margin-top: 12px; color: #1677ff; }
+  </style>
+</head>
+<body>
+  <h1>Silent Print Bridge Settings</h1>
+
+  <label for="backend">Backend</label>
+  <select id="backend">
+    <option value="nativeMessaging">Native messaging host</option>
+    <option value="chromePrinting">ChromeOS chrome.printing</option>
+  </select>
+  <div class="hint">Desktop Chrome silent printing should use Native Messaging. ChromeOS deployments may use chrome.printing with the required printer policy setup.</div>
+
+  <label for="nativeHostName">Native host name</label>
+  <input id="nativeHostName" value="com.report_designer.print_host">
+
+  <label for="allowedOrigins">Allowed origins</label>
+  <textarea id="allowedOrigins" placeholder="https://erp.example.com&#10;http://127.0.0.1:5173"></textarea>
+  <div class="hint">One origin per line. Leave empty to allow localhost, 127.0.0.1, ::1 and file:// during development.</div>
+
+  <button id="save">Save</button>
+  <div id="status" class="status" role="status"></div>
+
+  <script src="options.js"></script>
+</body>
+</html>

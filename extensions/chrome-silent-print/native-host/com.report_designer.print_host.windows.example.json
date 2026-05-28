@@ -1,0 +1,9 @@
+{
+  "name": "com.report_designer.print_host",
+  "description": "Report Designer native silent print host",
+  "path": "C:\\Program Files\\ReportDesignerPrintHost\\report-designer-print-host.exe",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://REPLACE_WITH_EXTENSION_ID/"
+  ]
+}

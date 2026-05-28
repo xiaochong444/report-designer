@@ -37,6 +37,7 @@ export type DesignerMessageKey =
   | 'expressionEditor.tree.aggregateFunctions'
   | 'expressionEditor.tree.pageReportTotals'
   | 'expressionEditor.tree.logicFunctions'
+  | 'expressionEditor.tree.moneyFunctions'
   | 'expressionEditor.html.tag'
   | 'expressionEditor.html.bold'
   | 'expressionEditor.html.italic'
@@ -653,6 +654,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.tree.aggregateFunctions': '聚合函数',
     'expressionEditor.tree.pageReportTotals': '页/报表合计',
     'expressionEditor.tree.logicFunctions': '条件函数',
+    'expressionEditor.tree.moneyFunctions': '金额大写',
     'expressionEditor.html.tag': 'HTML 标签',
     'expressionEditor.html.bold': '加粗',
     'expressionEditor.html.italic': '斜体',
@@ -1266,6 +1268,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.tree.aggregateFunctions': 'Aggregate functions',
     'expressionEditor.tree.pageReportTotals': 'Page/report totals',
     'expressionEditor.tree.logicFunctions': 'Logic functions',
+    'expressionEditor.tree.moneyFunctions': 'Money uppercase',
     'expressionEditor.html.tag': 'HTML Tag',
     'expressionEditor.html.bold': 'Bold',
     'expressionEditor.html.italic': 'Italic',

@@ -188,6 +188,13 @@ describe('Evaluator - Functions', () => {
     expect(evalExpr('FORMAT("C", 99.9)')).toBe('$99.90');
   });
 
+  it('should convert currency amounts to Chinese uppercase RMB text', () => {
+    expect(evalExpr('RMBUPPER(1234.56)')).toBe('壹仟贰佰叁拾肆元伍角陆分');
+    expect(evalExpr('MONEYUPPER(100100000.01)')).toBe('壹亿零壹拾万元零壹分');
+    expect(evalExpr('CNYUPPER(0)')).toBe('零元整');
+    expect(evalExpr('RMBUPPER(-12.3)')).toBe('负壹拾贰元叁角');
+  });
+
   it('should evaluate TOSTRING/TONUMBER', () => {
     expect(evalExpr('TOSTRING(42)')).toBe('42');
     expect(evalExpr('TONUMBER("42")')).toBe(42);
