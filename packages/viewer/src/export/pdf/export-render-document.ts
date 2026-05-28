@@ -3,6 +3,7 @@ import fontkit from '@pdf-lib/fontkit';
 import type { PageBorder, PageWatermark, RenderDocument } from '@report-designer/core';
 import { drawRenderComponent, normalizeFontFamilyKey, type PdfFontSet, type PdfFontVariants } from './pdf-draw-component';
 import { safePdfText } from './pdf-component-rendering';
+import { resolveChartSnapshots } from '../../renderers/chart/chart-snapshot';
 
 const MM_TO_PT = 72 / 25.4;
 
@@ -23,13 +24,14 @@ export async function exportRenderDocumentToPDF(
   document: RenderDocument,
   options: PdfExportOptions = {},
 ): Promise<Uint8Array> {
+  const resolvedDocument = await resolveChartSnapshots(document);
   const pdfDoc = await PDFDocument.create();
   if (options.fontBytes || hasFamilyFontBytes(options.fontBytesByFamily)) {
     pdfDoc.registerFontkit(fontkit);
   }
   const fonts = await createPdfFontSet(pdfDoc, options);
 
-  for (const renderPage of document.pages) {
+  for (const renderPage of resolvedDocument.pages) {
     const page = pdfDoc.addPage([renderPage.width * MM_TO_PT, renderPage.height * MM_TO_PT]);
     if (renderPage.backgroundColor) {
       page.drawRectangle({

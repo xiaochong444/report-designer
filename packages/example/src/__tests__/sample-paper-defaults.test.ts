@@ -103,4 +103,27 @@ describe('example sample paper defaults', () => {
       ['P-210', 'PDF Export Pack', '1', '180.00', '180.00'],
     ]);
   });
+
+  it('bundles a chart sample with common chart types bound to JSON data', () => {
+    const sample = sampleReports.find(report => report.key === 'charts');
+    const components = sample?.template.pages.flatMap(page => page.bands.flatMap(band => band.components)) ?? [];
+    const charts = components.filter(component => component.type === 'chart') as any[];
+
+    expect(sample?.label).toBe('Charts');
+    expect(charts.map(chart => chart.chartType)).toEqual(expect.arrayContaining(['bar', 'line', 'area', 'pie', 'point']));
+    expect(charts.every(chart => chart.binding.dataSourceId === 'chartSales')).toBe(true);
+
+    const document = renderReport(sample!.template, sample!.data);
+    const renderedCharts = document.pages.flatMap(page => page.items)
+      .flatMap(item => item.components)
+      .filter(component => component.type === 'chart') as any[];
+
+    expect(renderedCharts).toHaveLength(5);
+    expect(renderedCharts.find(chart => chart.chartType === 'bar')?.data.length).toBeGreaterThan(0);
+    expect(renderedCharts.find(chart => chart.chartType === 'pie')?.variant).toBe('donut');
+    expect(renderedCharts.find(chart => chart.chartType === 'point')?.data[0]).toMatchObject({
+      x: expect.any(Number),
+      y: expect.any(Number),
+    });
+  });
 });

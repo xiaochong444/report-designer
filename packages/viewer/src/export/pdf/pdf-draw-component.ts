@@ -1,5 +1,5 @@
 import { type PDFDocument, type PDFPage, type PDFFont } from 'pdf-lib';
-import type { BorderConfig, Padding, RenderBarcode, RenderCheckbox, RenderComponentBox, RenderImage, RenderLine, RenderRichText, RenderShape, RenderTable, RenderTableCell, RenderText } from '@report-designer/core';
+import type { BorderConfig, Padding, RenderBarcode, RenderChart, RenderCheckbox, RenderComponentBox, RenderImage, RenderLine, RenderRichText, RenderShape, RenderTable, RenderTableCell, RenderText } from '@report-designer/core';
 import { barcodePattern, dataUrlMimeType, dataUrlToUint8Array, MM_TO_PT, parsePdfColor, safePdfText, stripHtmlToPdfText } from './pdf-component-rendering';
 
 export interface PdfFontSet {
@@ -71,6 +71,24 @@ export async function drawRenderComponent(
 
   if (component.type === 'image' && 'src' in component) {
     await drawImage(pdfDoc, page, component as RenderImage, x, y, width, height);
+    return;
+  }
+
+  if (component.type === 'chart') {
+    const chart = component as RenderChart;
+    if (chart.imageDataUrl) {
+      await drawImage(pdfDoc, page, { ...chart, type: 'image', src: chart.imageDataUrl, fitMode: 'contain' }, x, y, width, height);
+      return;
+    }
+    page.drawRectangle({ x, y, width, height, borderColor: parsePdfColor('#d9d9d9'), borderWidth: 0.5 });
+    page.drawText(safePdfText(chart.emptyMessage ?? 'No data'), {
+      x: x + 4,
+      y: y + height / 2,
+      size: 10,
+      font: fonts.regular,
+      color: parsePdfColor('#8c8c8c'),
+      maxWidth: Math.max(1, width - 8),
+    });
     return;
   }
 

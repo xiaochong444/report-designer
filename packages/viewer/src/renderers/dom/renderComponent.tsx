@@ -1,6 +1,7 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import JsBarcode from 'jsbarcode';
-import { sanitizeRichHtml, type RenderBarcode, type RenderCheckbox, type RenderComponentBox, type RenderImage, type RenderLine, type RenderRichText, type RenderShape, type RenderTable, type RenderText } from '@report-designer/core';
+import { sanitizeRichHtml, type RenderBarcode, type RenderChart, type RenderCheckbox, type RenderComponentBox, type RenderImage, type RenderLine, type RenderRichText, type RenderShape, type RenderTable, type RenderText } from '@report-designer/core';
+import { buildVChartSpec } from '../chart/chart-spec';
 
 export const MM_TO_PX = 96 / 25.4;
 type RenderTextStyle = NonNullable<RenderText['style']> & {
@@ -42,6 +43,8 @@ export const RenderComponent: React.FC<RenderComponentProps> = ({ component, zoo
       );
     case 'image':
       return <img data-testid="render-component-image" {...dataProps} src={(component as RenderImage).src} alt="" style={{ ...style, objectFit: imageFitMode(component as RenderImage) }} />;
+    case 'chart':
+      return <ChartComponent component={component as RenderChart} style={style} scale={scale} dataProps={dataProps} />;
     case 'richtext':
       return (
         <div
@@ -64,6 +67,66 @@ export const RenderComponent: React.FC<RenderComponentProps> = ({ component, zoo
     default:
       return <div data-testid="render-component-unknown" {...dataProps} style={style} />;
   }
+};
+
+const ChartComponent: React.FC<{ component: RenderChart; style: React.CSSProperties; scale: number; dataProps: Record<string, string> }> = ({ component, style, scale, dataProps }) => {
+  const width = Math.max(1, Math.round(component.width * MM_TO_PX * scale));
+  const height = Math.max(1, Math.round(component.height * MM_TO_PX * scale));
+  if (component.imageDataUrl) {
+    return <img data-testid="render-component-chart" {...dataProps} src={component.imageDataUrl} alt="" style={{ ...style, objectFit: 'contain' }} />;
+  }
+  if (component.data.length === 0) {
+    return (
+      <div data-testid="render-component-chart" {...dataProps} style={{ ...style, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#8c8c8c', fontSize: 12 * scale, border: style.border ?? '1px dashed #d9d9d9' }}>
+        {component.emptyMessage ?? 'No data'}
+      </div>
+    );
+  }
+  return (
+    <div data-testid="render-component-chart" {...dataProps} style={{ ...style, overflow: 'hidden', backgroundColor: component.style?.backgroundColor ?? '#ffffff' }}>
+      <AsyncVChart spec={buildVChartSpec(component, { width, height })} />
+    </div>
+  );
+};
+
+const AsyncVChart: React.FC<{ spec: ReturnType<typeof buildVChartSpec> }> = ({ spec }) => {
+  const chartRef = useRef<{ release: () => void } | null>(null);
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const [failed, setFailed] = useState(false);
+
+  useEffect(() => {
+    let canceled = false;
+    const container = containerRef.current;
+    if (!container) return undefined;
+    setFailed(false);
+    container.innerHTML = '';
+
+    import('@visactor/vchart')
+      .then(module => {
+        if (canceled || !containerRef.current) return undefined;
+        const VChart = module.default;
+        const instance = new VChart(spec as any, { dom: containerRef.current });
+        chartRef.current = instance;
+        return instance.renderAsync();
+      })
+      .catch(() => {
+        if (!canceled) {
+          setFailed(true);
+        }
+      });
+    return () => {
+      canceled = true;
+      chartRef.current?.release();
+      chartRef.current = null;
+      container.innerHTML = '';
+    };
+  }, [spec]);
+
+  return (
+    <div ref={containerRef} data-testid="render-component-chart-vchart" style={{ width: '100%', height: '100%' }}>
+      {failed ? <div style={{ width: '100%', height: '100%' }} /> : null}
+    </div>
+  );
 };
 
 function imageFitMode(component: RenderImage): React.CSSProperties['objectFit'] {

@@ -1,4 +1,4 @@
-import type { Band, DataField, DataSource, Page, PageBorder, PageWatermark, PanelComponent, ReportComponent, ReportTemplate, TableComponent } from './types';
+import type { Band, ChartAppearance, ChartBinding, ChartComponent, ChartVariant, DataField, DataSource, Page, PageBorder, PageWatermark, PanelComponent, ReportComponent, ReportTemplate, TableComponent } from './types';
 import { normalizeReportFonts } from '../fonts';
 import { mapDataField } from './types';
 import { createDefaultPageBorder, createDefaultPageWatermark } from './template';
@@ -124,5 +124,59 @@ function normalizeComponent(component: ReportComponent): ReportComponent {
     } as TableComponent;
   }
 
+  if (component.type === 'chart') {
+    const chart = component as ChartComponent;
+    return {
+      ...chart,
+      chartType: chart.chartType ?? 'bar',
+      variant: chart.variant ?? defaultChartVariant(chart.chartType),
+      binding: normalizeChartBinding(chart.binding),
+      appearance: normalizeChartAppearance(chart.appearance),
+    } as ChartComponent;
+  }
+
   return { ...component };
+}
+
+function defaultChartVariant(type?: ChartComponent['chartType']): ChartVariant {
+  if (type === 'point') return 'scatter';
+  if (type === 'pie') return 'default';
+  return 'default';
+}
+
+function normalizeChartBinding(binding: ChartBinding | undefined): ChartBinding {
+  return {
+    dataSourceId: binding?.dataSourceId,
+    arrayPath: binding?.arrayPath,
+    categoryExpression: binding?.categoryExpression ?? '',
+    valueExpression: binding?.valueExpression ?? '',
+    xExpression: binding?.xExpression ?? '',
+    yExpression: binding?.yExpression ?? '',
+    seriesExpression: binding?.seriesExpression,
+    labelExpression: binding?.labelExpression,
+    sort: binding?.sort ?? [],
+    aggregate: binding?.aggregate ?? 'none',
+  };
+}
+
+function normalizeChartAppearance(appearance: ChartAppearance | undefined): ChartAppearance {
+  return {
+    title: appearance?.title ?? '',
+    subtitle: appearance?.subtitle ?? '',
+    showLegend: appearance?.showLegend ?? true,
+    legendPosition: appearance?.legendPosition ?? 'bottom',
+    showAxes: appearance?.showAxes ?? true,
+    showGrid: appearance?.showGrid ?? true,
+    showLabels: appearance?.showLabels ?? false,
+    palette: appearance?.palette?.length ? [...appearance.palette] : ['#2f6fed', '#16a34a', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+    valueFormat: appearance?.valueFormat,
+    categoryFormat: appearance?.categoryFormat,
+    labelFormat: appearance?.labelFormat,
+    axisTitleX: appearance?.axisTitleX ?? '',
+    axisTitleY: appearance?.axisTitleY ?? '',
+    backgroundColor: appearance?.backgroundColor,
+    padding: appearance?.padding,
+    innerRadius: appearance?.innerRadius ?? 0.55,
+    outerRadius: appearance?.outerRadius ?? 0.85,
+  };
 }

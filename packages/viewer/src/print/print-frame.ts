@@ -1,4 +1,5 @@
-import { buildReportFontCss, sanitizeRichHtml, type PageBorder, type PageWatermark, type RenderBarcode, type RenderCheckbox, type RenderComponentBox, type RenderDocument, type RenderLine } from '@report-designer/core';
+import { buildReportFontCss, sanitizeRichHtml, type PageBorder, type PageWatermark, type RenderBarcode, type RenderChart, type RenderCheckbox, type RenderComponentBox, type RenderDocument, type RenderLine } from '@report-designer/core';
+import { resolveChartSnapshots } from '../renderers/chart/chart-snapshot';
 
 type RenderTextStyle = NonNullable<Extract<RenderComponentBox, { type: 'text' }>['style']> & {
   padding?: { top: number; right: number; bottom: number; left: number };
@@ -85,6 +86,7 @@ function renderPageBorderHtml(pageBorder?: PageBorder): string {
 }
 
 export async function printRenderDocument(document: RenderDocument): Promise<void> {
+  const resolved = await resolveChartSnapshots(document);
   const iframe = window.document.createElement('iframe');
   iframe.style.position = 'fixed';
   iframe.style.right = '0';
@@ -101,7 +103,7 @@ export async function printRenderDocument(document: RenderDocument): Promise<voi
   }
 
   doc.open();
-  doc.write(buildPrintHtml(document));
+  doc.write(buildPrintHtml(resolved));
   doc.close();
   await new Promise((resolve) => window.setTimeout(resolve, 0));
   iframe.contentWindow.focus();
@@ -146,6 +148,13 @@ function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY
   }
   if (component.type === 'table' && 'rows' in component && 'columns' in component) {
     return renderTableHtml(component, dataAttribute, style);
+  }
+  if (component.type === 'chart') {
+    const chart = component as RenderChart;
+    if (chart.imageDataUrl) {
+      return `<img class="rd-print-component rd-print-chart" ${dataAttribute} src="${escapeAttribute(chart.imageDataUrl)}" alt="" style="${style}object-fit:contain;" />`;
+    }
+    return `<div class="rd-print-component rd-print-chart" ${dataAttribute} style="${style}display:flex;align-items:center;justify-content:center;color:#8c8c8c;">${escapeHtml(chart.emptyMessage ?? 'No data')}</div>`;
   }
   if (component.type === 'line') {
     const line = component as RenderLine;

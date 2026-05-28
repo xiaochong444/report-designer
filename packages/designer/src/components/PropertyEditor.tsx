@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
 import { getReportFontOptions } from '@report-designer/core';
-import type { BorderConfig, DataSource, ReportTemplate, TableColumn, TableComponent, TextFormatConfig } from '@report-designer/core';
+import type { BorderConfig, ChartAggregateMode, ChartComponent, ChartType, ChartVariant, DataSource, ReportTemplate, TableColumn, TableComponent, TextFormatConfig } from '@report-designer/core';
 import type { CSSProperties } from 'react';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { ExpressionEditor } from './ExpressionEditor';
@@ -152,8 +152,8 @@ export const PropertyEditor: React.FC = () => {
 
   const isTextComponent = component.type === 'text';
   const supportsFontProperties = ['text', 'barcode', 'checkbox', 'pagenumber', 'datetime'].includes(component.type);
-  const supportsBorderProperties = ['text', 'image', 'barcode', 'checkbox', 'panel', 'pagenumber', 'datetime'].includes(component.type);
-  const supportsAppearanceProperties = ['text', 'image', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport', 'pagenumber', 'datetime'].includes(component.type);
+  const supportsBorderProperties = ['text', 'image', 'chart', 'barcode', 'checkbox', 'panel', 'pagenumber', 'datetime'].includes(component.type);
+  const supportsAppearanceProperties = ['text', 'image', 'chart', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport', 'pagenumber', 'datetime'].includes(component.type);
   const supportsForegroundColor = component.type === 'barcode' || component.type === 'checkbox';
   const isTextStyleLocked = (pathOrPrefix: string) => (
     isTextComponent ? hasTextStyleBinding(component as { styleBindings?: string[] }, pathOrPrefix) : false
@@ -308,7 +308,7 @@ export const PropertyEditor: React.FC = () => {
           // ---- 文本内容 ----
           {
             key: 'text',
-            label: t('text'),
+            label: component.type === 'chart' ? t('chart') : t('text'),
             children: component.type === 'text' ? (
               <Form size="small" labelCol={{ span: 6 }} wrapperCol={{ span: 18 }}>
                 <Form.Item label={t('textContent')}>
@@ -425,6 +425,8 @@ export const PropertyEditor: React.FC = () => {
                 onChange={handleChange}
                 onOpenExpressionEditor={openFieldExpressionEditor}
                 t={t}
+                dataSources={dataSources}
+                dataSourceDefinitions={template.dataSources}
               />
             ),
           },
@@ -957,8 +959,21 @@ const ComponentContentProperties: React.FC<{
   onChange: (field: string, value: any) => void;
   onOpenExpressionEditor: (field: string, label: string) => void;
   t: ReturnType<typeof createPropertyT>;
-}> = ({ component, comp, onChange, onOpenExpressionEditor, t }) => {
+  dataSources: string[];
+  dataSourceDefinitions: DataSource[];
+}> = ({ component, comp, dataSourceDefinitions, dataSources, onChange, onOpenExpressionEditor, t }) => {
   switch (component.type) {
+    case 'chart':
+      return (
+        <ChartPropertyPanel
+          chart={comp as ChartComponent}
+          dataSources={dataSources}
+          dataSourceDefinitions={dataSourceDefinitions}
+          onChange={onChange}
+          onOpenExpressionEditor={onOpenExpressionEditor}
+          t={t}
+        />
+      );
     case 'image': {
       const uploadInputId = `rd-image-upload-${comp.id ?? 'selected'}`;
       const handleImageFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -1155,6 +1170,216 @@ const ComponentContentProperties: React.FC<{
   }
 };
 
+const ChartPropertyPanel: React.FC<{
+  chart: ChartComponent;
+  dataSources: string[];
+  dataSourceDefinitions: DataSource[];
+  onChange: (field: string, value: any) => void;
+  onOpenExpressionEditor: (field: string, label: string) => void;
+  t: ReturnType<typeof createPropertyT>;
+}> = ({ chart, dataSourceDefinitions, dataSources, onChange, t }) => {
+  const binding = chart.binding ?? {};
+  const appearance = chart.appearance ?? {};
+  const source = dataSourceDefinitions.find(item => item.id === binding.dataSourceId || item.name === binding.dataSourceId);
+  const fieldOptions = (source?.schema ?? source?.fields ?? []).map(field => ({
+    value: `{${field.name}}`,
+    label: field.label || field.name,
+  }));
+  const expressionListId = `rd-chart-fields-${chart.id}`;
+  const updateBinding = (updates: Partial<ChartComponent['binding']>) => {
+    onChange('binding', {
+      dataSourceId: '',
+      categoryExpression: '',
+      valueExpression: '',
+      xExpression: '',
+      yExpression: '',
+      seriesExpression: '',
+      labelExpression: '',
+      sort: [],
+      aggregate: 'none',
+      ...binding,
+      ...updates,
+    });
+  };
+  const updateAppearance = (updates: Partial<ChartComponent['appearance']>) => {
+    onChange('appearance', {
+      title: '',
+      subtitle: '',
+      showLegend: true,
+      legendPosition: 'bottom',
+      showAxes: true,
+      showGrid: true,
+      showLabels: false,
+      palette: ['#2f6fed', '#16a34a', '#f59e0b', '#ef4444'],
+      axisTitleX: '',
+      axisTitleY: '',
+      innerRadius: 0.55,
+      outerRadius: 0.85,
+      ...appearance,
+      ...updates,
+    });
+  };
+  const handleTypeChange = (chartType: ChartType) => {
+    onChange('chartType', chartType);
+    onChange('variant', defaultChartVariant(chartType));
+  };
+  const handleDataSourceChange = (dataSourceId?: string) => {
+    const nextSource = dataSourceDefinitions.find(item => item.id === dataSourceId || item.name === dataSourceId);
+    const fields = nextSource?.schema ?? nextSource?.fields ?? [];
+    const category = fields.find(field => field.type !== 'number') ?? fields[0];
+    const numberFields = fields.filter(field => field.type === 'number');
+    const value = numberFields[0] ?? fields[1] ?? fields[0];
+    const y = numberFields[1] ?? numberFields[0] ?? fields[1] ?? fields[0];
+    updateBinding({
+      dataSourceId: dataSourceId ?? '',
+      arrayPath: dataSourceId ? arrayPathForDataSource(dataSourceId, dataSourceDefinitions) : '',
+      categoryExpression: binding.categoryExpression || fieldExpression(category),
+      valueExpression: binding.valueExpression || fieldExpression(value),
+      xExpression: binding.xExpression || fieldExpression(value),
+      yExpression: binding.yExpression || fieldExpression(y),
+    });
+  };
+
+  return (
+    <Space orientation="vertical" size={12} style={{ width: '100%' }}>
+      <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+        <Form.Item label={t('chartType')}>
+          <Select
+            aria-label={t('chartType')}
+            value={chart.chartType}
+            onChange={handleTypeChange}
+            size="small"
+            options={chartTypeOptions(t)}
+          />
+        </Form.Item>
+        <Form.Item label={t('chartVariant')}>
+          <Select
+            aria-label={t('chartVariant')}
+            value={chart.variant}
+            onChange={(value) => onChange('variant', value)}
+            size="small"
+            options={chartVariantOptions(chart.chartType, t)}
+          />
+        </Form.Item>
+      </Form>
+
+      <Typography.Text strong>{t('chartBinding')}</Typography.Text>
+      <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+        <Form.Item label={t('chartDataSource')}>
+          <Select
+            aria-label={t('chartDataSource')}
+            value={binding.dataSourceId || undefined}
+            onChange={handleDataSourceChange}
+            allowClear
+            showSearch
+            size="small"
+            placeholder={t('chooseDataSource')}
+            options={createDataSourceOptions(dataSources, dataSourceDefinitions)}
+          />
+        </Form.Item>
+        <Form.Item label={t('chartArrayPath')}>
+          <Input
+            aria-label={t('chartArrayPath')}
+            value={binding.arrayPath ?? ''}
+            onChange={(event) => updateBinding({ arrayPath: event.target.value })}
+            size="small"
+            placeholder={t('tableBindingArrayPathPlaceholder')}
+          />
+        </Form.Item>
+        {chart.chartType === 'point' ? (
+          <>
+            {chartExpressionItem('xExpression', t('chartXField'))}
+            {chartExpressionItem('yExpression', t('chartYField'))}
+          </>
+        ) : (
+          <>
+            {chartExpressionItem('categoryExpression', t('chartCategoryField'))}
+            {chartExpressionItem('valueExpression', t('chartValueField'))}
+          </>
+        )}
+        {chartExpressionItem('seriesExpression', t('chartSeriesField'), false)}
+        {chartExpressionItem('labelExpression', t('chartLabelField'), false)}
+        <Form.Item label={t('chartAggregate')}>
+          <Select
+            aria-label={t('chartAggregate')}
+            value={binding.aggregate ?? 'none'}
+            onChange={(value) => updateBinding({ aggregate: value as ChartAggregateMode })}
+            size="small"
+            options={chartAggregateOptions(t)}
+          />
+        </Form.Item>
+      </Form>
+      <datalist id={expressionListId}>
+        {fieldOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
+      </datalist>
+
+      <Typography.Text strong>{t('chartAppearance')}</Typography.Text>
+      <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+        <Form.Item label={t('chartTitle')}>
+          <Input aria-label={t('chartTitle')} value={appearance.title ?? ''} onChange={(event) => updateAppearance({ title: event.target.value })} size="small" />
+        </Form.Item>
+        <Form.Item label={t('chartSubtitle')}>
+          <Input aria-label={t('chartSubtitle')} value={appearance.subtitle ?? ''} onChange={(event) => updateAppearance({ subtitle: event.target.value })} size="small" />
+        </Form.Item>
+        <Form.Item label={t('chartShowLegend')}>
+          <Switch aria-label={t('chartShowLegend')} size="small" checked={appearance.showLegend ?? true} onChange={(checked) => updateAppearance({ showLegend: checked })} />
+        </Form.Item>
+        <Form.Item label={t('chartLegendPosition')}>
+          <Select
+            aria-label={t('chartLegendPosition')}
+            value={appearance.legendPosition ?? 'bottom'}
+            onChange={(value) => updateAppearance({ legendPosition: value })}
+            size="small"
+            options={['top', 'right', 'bottom', 'left'].map(value => ({ value, label: t(value as 'top' | 'right' | 'bottom' | 'left') }))}
+          />
+        </Form.Item>
+        <Form.Item label={t('chartShowAxes')}>
+          <Switch aria-label={t('chartShowAxes')} size="small" checked={appearance.showAxes ?? true} onChange={(checked) => updateAppearance({ showAxes: checked })} disabled={chart.chartType === 'pie'} />
+        </Form.Item>
+        <Form.Item label={t('chartShowGrid')}>
+          <Switch aria-label={t('chartShowGrid')} size="small" checked={appearance.showGrid ?? true} onChange={(checked) => updateAppearance({ showGrid: checked })} disabled={chart.chartType === 'pie'} />
+        </Form.Item>
+        <Form.Item label={t('chartShowLabels')}>
+          <Switch aria-label={t('chartShowLabels')} size="small" checked={appearance.showLabels ?? false} onChange={(checked) => updateAppearance({ showLabels: checked })} />
+        </Form.Item>
+        <Form.Item label={t('chartAxisTitleX')}>
+          <Input aria-label={t('chartAxisTitleX')} value={appearance.axisTitleX ?? ''} onChange={(event) => updateAppearance({ axisTitleX: event.target.value })} size="small" disabled={chart.chartType === 'pie'} />
+        </Form.Item>
+        <Form.Item label={t('chartAxisTitleY')}>
+          <Input aria-label={t('chartAxisTitleY')} value={appearance.axisTitleY ?? ''} onChange={(event) => updateAppearance({ axisTitleY: event.target.value })} size="small" disabled={chart.chartType === 'pie'} />
+        </Form.Item>
+        <Form.Item label={t('chartPalette')}>
+          <Input
+            aria-label={t('chartPalette')}
+            value={(appearance.palette ?? []).join(',')}
+            onChange={(event) => updateAppearance({ palette: event.target.value.split(',').map(item => item.trim()).filter(Boolean) })}
+            size="small"
+            placeholder={t('chartPalettePlaceholder')}
+          />
+        </Form.Item>
+        <Form.Item label={t('chartEmptyMessage')}>
+          <Input aria-label={t('chartEmptyMessage')} value={chart.emptyMessage ?? ''} onChange={(event) => onChange('emptyMessage', event.target.value)} size="small" />
+        </Form.Item>
+      </Form>
+    </Space>
+  );
+
+  function chartExpressionItem(field: keyof ChartComponent['binding'], label: string, required = true) {
+    return (
+      <Form.Item label={label}>
+        <Input
+          aria-label={label}
+          value={String(binding[field] ?? '')}
+          onChange={(event) => updateBinding({ [field]: event.target.value })}
+          size="small"
+          list={expressionListId}
+          placeholder={required ? '{Field}' : t('expressionLikePlaceholder')}
+        />
+      </Form.Item>
+    );
+  }
+};
+
 const ExpressionFieldButton: React.FC<{
   label: string;
   onClick: () => void;
@@ -1254,6 +1479,68 @@ function arrayPathForDataSource(
   return sourcePath.split('.').at(-1);
 }
 
+function fieldExpression(field: { name: string } | undefined): string {
+  return field?.name ? `{${field.name}}` : '';
+}
+
+function defaultChartVariant(type: ChartType): ChartVariant {
+  if (type === 'point') return 'scatter';
+  return 'default';
+}
+
+function chartTypeOptions(t: ReturnType<typeof createPropertyT>): Array<{ value: ChartType; label: string }> {
+  return [
+    { value: 'bar', label: t('chartTypeBar') },
+    { value: 'line', label: t('chartTypeLine') },
+    { value: 'area', label: t('chartTypeArea') },
+    { value: 'pie', label: t('chartTypePie') },
+    { value: 'point', label: t('chartTypePoint') },
+  ];
+}
+
+function chartVariantOptions(type: ChartType, t: ReturnType<typeof createPropertyT>): Array<{ value: ChartVariant; label: string }> {
+  if (type === 'point') {
+    return [{ value: 'scatter', label: t('chartVariantScatter') }];
+  }
+  if (type === 'line') {
+    return [
+      { value: 'default', label: t('chartVariantDefault') },
+      { value: 'smooth', label: t('chartVariantSmooth') },
+      { value: 'step', label: t('chartVariantStep') },
+    ];
+  }
+  if (type === 'bar') {
+    return [
+      { value: 'default', label: t('chartVariantDefault') },
+      { value: 'grouped', label: t('chartVariantGrouped') },
+      { value: 'stacked', label: t('chartVariantStacked') },
+      { value: 'horizontal', label: t('chartVariantHorizontal') },
+    ];
+  }
+  if (type === 'area') {
+    return [
+      { value: 'default', label: t('chartVariantDefault') },
+      { value: 'smooth', label: t('chartVariantSmooth') },
+      { value: 'stacked', label: t('chartVariantStacked') },
+    ];
+  }
+  return [
+    { value: 'default', label: t('chartVariantDefault') },
+    { value: 'donut', label: t('chartVariantDonut') },
+  ];
+}
+
+function chartAggregateOptions(t: ReturnType<typeof createPropertyT>): Array<{ value: ChartAggregateMode; label: string }> {
+  return [
+    { value: 'none', label: t('chartAggregateNone') },
+    { value: 'sum', label: t('chartAggregateSum') },
+    { value: 'avg', label: t('chartAggregateAvg') },
+    { value: 'count', label: t('chartAggregateCount') },
+    { value: 'min', label: t('chartAggregateMin') },
+    { value: 'max', label: t('chartAggregateMax') },
+  ];
+}
+
 const propertyEditorMessages = {
   'zh-CN': {
     selectComponent: '选择组件以编辑属性',
@@ -1270,6 +1557,51 @@ const propertyEditorMessages = {
     shape: '形状属性',
     pageNumber: '页码属性',
     dateTime: '日期时间属性',
+    chart: '图表属性',
+    chartType: '图表类型',
+    chartVariant: '图表变种',
+    chartBinding: '数据绑定',
+    chartDataSource: '数据源',
+    chartArrayPath: '数组路径',
+    chartCategoryField: '类目字段',
+    chartValueField: '数值字段',
+    chartXField: 'X 轴字段',
+    chartYField: 'Y 轴字段',
+    chartSeriesField: '系列字段',
+    chartLabelField: '标签字段',
+    chartAggregate: '聚合',
+    chartAggregateNone: '不聚合',
+    chartAggregateSum: '求和',
+    chartAggregateAvg: '平均值',
+    chartAggregateCount: '计数',
+    chartAggregateMin: '最小值',
+    chartAggregateMax: '最大值',
+    chartAppearance: '图表外观',
+    chartTitle: '图表标题',
+    chartSubtitle: '副标题',
+    chartShowLegend: '显示图例',
+    chartLegendPosition: '图例位置',
+    chartShowAxes: '显示坐标轴',
+    chartShowGrid: '显示网格',
+    chartShowLabels: '显示标签',
+    chartAxisTitleX: 'X 轴标题',
+    chartAxisTitleY: 'Y 轴标题',
+    chartPalette: '调色板',
+    chartPalettePlaceholder: '使用逗号分隔，例如 #2f6fed,#16a34a',
+    chartEmptyMessage: '空数据提示',
+    chartTypePoint: '点图',
+    chartTypeLine: '折线图',
+    chartTypeBar: '柱状图',
+    chartTypeArea: '面积图',
+    chartTypePie: '饼图',
+    chartVariantDefault: '默认',
+    chartVariantSmooth: '平滑',
+    chartVariantStep: '阶梯',
+    chartVariantGrouped: '分组',
+    chartVariantStacked: '堆叠',
+    chartVariantHorizontal: '横向',
+    chartVariantDonut: '环形',
+    chartVariantScatter: '散点',
     name: '名称',
     type: '类型',
     componentName: '组件名称',
@@ -1418,6 +1750,51 @@ const propertyEditorMessages = {
     shape: 'Shape Properties',
     pageNumber: 'Page Number Properties',
     dateTime: 'Date/Time Properties',
+    chart: 'Chart Properties',
+    chartType: 'Chart type',
+    chartVariant: 'Variant',
+    chartBinding: 'Data binding',
+    chartDataSource: 'Data source',
+    chartArrayPath: 'Array path',
+    chartCategoryField: 'Category field',
+    chartValueField: 'Value field',
+    chartXField: 'X field',
+    chartYField: 'Y field',
+    chartSeriesField: 'Series field',
+    chartLabelField: 'Label field',
+    chartAggregate: 'Aggregate',
+    chartAggregateNone: 'None',
+    chartAggregateSum: 'Sum',
+    chartAggregateAvg: 'Average',
+    chartAggregateCount: 'Count',
+    chartAggregateMin: 'Min',
+    chartAggregateMax: 'Max',
+    chartAppearance: 'Chart appearance',
+    chartTitle: 'Chart title',
+    chartSubtitle: 'Subtitle',
+    chartShowLegend: 'Show legend',
+    chartLegendPosition: 'Legend position',
+    chartShowAxes: 'Show axes',
+    chartShowGrid: 'Show grid',
+    chartShowLabels: 'Show labels',
+    chartAxisTitleX: 'X axis title',
+    chartAxisTitleY: 'Y axis title',
+    chartPalette: 'Palette',
+    chartPalettePlaceholder: 'Comma separated, for example #2f6fed,#16a34a',
+    chartEmptyMessage: 'Empty message',
+    chartTypePoint: 'Point',
+    chartTypeLine: 'Line',
+    chartTypeBar: 'Bar',
+    chartTypeArea: 'Area',
+    chartTypePie: 'Pie',
+    chartVariantDefault: 'Default',
+    chartVariantSmooth: 'Smooth',
+    chartVariantStep: 'Step',
+    chartVariantGrouped: 'Grouped',
+    chartVariantStacked: 'Stacked',
+    chartVariantHorizontal: 'Horizontal',
+    chartVariantDonut: 'Donut',
+    chartVariantScatter: 'Scatter',
     name: 'Name',
     type: 'Type',
     componentName: 'Component name',

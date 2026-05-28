@@ -1,4 +1,4 @@
-import type { BorderConfig, FontConfig, Padding, PageBorder, PageWatermark, ReportFont, TableColumn } from '../template-model/types';
+import type { BorderConfig, ChartAggregateMode, ChartDataPoint, ChartLegendPosition, ChartType, ChartVariant, FontConfig, Padding, PageBorder, PageWatermark, ReportFont, TableColumn, TextFormatConfig } from '../template-model/types';
 import type { EventLogEntry } from '../event-engine/types';
 
 export interface RenderDocument {
@@ -64,6 +64,29 @@ export interface RenderImage extends RenderComponentBase {
   type: 'image';
   src: string;
   fitMode?: 'fill' | 'contain' | 'cover' | 'stretch';
+}
+
+export interface RenderChart extends RenderComponentBase {
+  type: 'chart';
+  chartType: ChartType;
+  variant: ChartVariant;
+  data: ChartDataPoint[];
+  title?: string;
+  subtitle?: string;
+  showLegend: boolean;
+  legendPosition: ChartLegendPosition;
+  showAxes: boolean;
+  showGrid: boolean;
+  showLabels: boolean;
+  palette: string[];
+  valueFormat?: TextFormatConfig;
+  categoryFormat?: TextFormatConfig;
+  labelFormat?: TextFormatConfig;
+  axisTitleX?: string;
+  axisTitleY?: string;
+  aggregate: ChartAggregateMode;
+  imageDataUrl?: string;
+  emptyMessage?: string;
 }
 
 export interface RenderRichText extends RenderComponentBase {
@@ -141,6 +164,7 @@ export interface RenderSubreport extends RenderContainerBase {
 export type RenderComponentBox =
   | RenderText
   | RenderImage
+  | RenderChart
   | RenderRichText
   | RenderLine
   | RenderShape

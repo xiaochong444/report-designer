@@ -304,6 +304,7 @@ export type DesignerMessageKey =
   | 'leftPanel.componentsHint'
   | 'leftPanel.componentText'
   | 'leftPanel.componentImage'
+  | 'leftPanel.componentChart'
   | 'leftPanel.componentBarcode'
   | 'leftPanel.componentTable'
   | 'leftPanel.componentCheckbox'
@@ -919,6 +920,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.componentsHint': '将常用报表组件拖入选中的带区。',
     'leftPanel.componentText': '文本',
     'leftPanel.componentImage': '图片',
+    'leftPanel.componentChart': '图表',
     'leftPanel.componentBarcode': '条码',
     'leftPanel.componentTable': '表格',
     'leftPanel.componentCheckbox': '复选框',
@@ -1531,6 +1533,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.componentsHint': 'Drag common report controls into the selected band.',
     'leftPanel.componentText': 'Text',
     'leftPanel.componentImage': 'Image',
+    'leftPanel.componentChart': 'Chart',
     'leftPanel.componentBarcode': 'Barcode',
     'leftPanel.componentTable': 'Table',
     'leftPanel.componentCheckbox': 'Checkbox',

@@ -49,6 +49,42 @@ export function createDefaultComponent(type: string, xMm: number, yMm: number): 
       } as ReportComponent;
     case 'image':
       return { id, type: 'image', x, y, width: 30, height: 30, src: '', fitMode: 'contain' } as ReportComponent;
+    case 'chart':
+      return {
+        id,
+        type: 'chart',
+        x,
+        y,
+        width: 80,
+        height: 50,
+        chartType: 'bar',
+        variant: 'default',
+        binding: {
+          dataSourceId: '',
+          categoryExpression: '',
+          valueExpression: '',
+          xExpression: '',
+          yExpression: '',
+          seriesExpression: '',
+          labelExpression: '',
+          sort: [],
+          aggregate: 'none',
+        },
+        appearance: {
+          title: '',
+          subtitle: '',
+          showLegend: true,
+          legendPosition: 'bottom',
+          showAxes: true,
+          showGrid: true,
+          showLabels: false,
+          palette: ['#2f6fed', '#16a34a', '#f59e0b', '#ef4444'],
+          axisTitleX: '',
+          axisTitleY: '',
+          innerRadius: 0.55,
+          outerRadius: 0.85,
+        },
+      } as ReportComponent;
     case 'barcode':
       return { id, type: 'barcode', x, y, width: 30, height: 30, value: '', format: 'CODE128', showText: true } as ReportComponent;
     case 'table':

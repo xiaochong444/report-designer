@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { sanitizeRichHtml, type ReportComponent, type Band, type BorderConfig, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type RichTextDocument, type TableCell, type TableComponent } from '@report-designer/core';
+import { sanitizeRichHtml, type ReportComponent, type Band, type BorderConfig, type ChartComponent, type ChartDataPoint, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type RichTextDocument, type TableCell, type TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import type { TableCellSelection } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
@@ -1603,6 +1603,19 @@ function getCompStyle(comp: ReportComponent): React.CSSProperties {
       } : {}),
     };
   }
+  if (comp.type === 'chart') {
+    const pad = comp.padding;
+    return {
+      backgroundColor: comp.backgroundColor || '#ffffff',
+      ...borderToCss((comp as ChartComponent).border),
+      ...(pad ? {
+        paddingTop: `${pad.top * MM_TO_PX}px`,
+        paddingRight: `${pad.right * MM_TO_PX}px`,
+        paddingBottom: `${pad.bottom * MM_TO_PX}px`,
+        paddingLeft: `${pad.left * MM_TO_PX}px`,
+      } : {}),
+    };
+  }
   return {};
 }
 
@@ -1695,6 +1708,8 @@ function getCompContent(
     }
     case 'table':
       return <TablePreview table={comp as TableComponent} bandId={bandId} selectedTableCell={selectedTableCell} />;
+    case 'chart':
+      return <DesignerChartPreview chart={comp as ChartComponent} />;
     case 'richtext':
       return (
         <div
@@ -1803,6 +1818,176 @@ const PanelChildrenPreview: React.FC<{ panel: ReportComponent & { components?: R
     </div>
   );
 };
+
+const DesignerChartPreview: React.FC<{ chart: ChartComponent }> = ({ chart }) => {
+  const palette = chart.appearance?.palette?.length
+    ? chart.appearance.palette
+    : ['#2f6fed', '#16a34a', '#f59e0b', '#ef4444', '#8b5cf6'];
+  const points = chart.data?.length ? chart.data : createFallbackChartPoints(chart);
+  const values = points.map(point => Number(point.value ?? point.y ?? 0)).filter(Number.isFinite);
+  const max = Math.max(1, ...values.map(value => Math.abs(value)));
+  const title = chart.appearance?.title;
+
+  return (
+    <div
+      data-testid="designer-component-chart-content"
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+        overflow: 'hidden',
+        background: chart.backgroundColor || '#fff',
+      }}
+    >
+      {title ? (
+        <div style={{ flex: '0 0 auto', textAlign: 'center', fontSize: 10, color: '#1f2937', lineHeight: '14px', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          {title}
+        </div>
+      ) : null}
+      <div style={{ flex: 1, minHeight: 0 }}>
+        {chart.chartType === 'pie'
+          ? <PieChartPreview points={points} palette={palette} donut={chart.variant === 'donut'} />
+          : <CartesianChartPreview chart={chart} points={points} palette={palette} max={max} />}
+      </div>
+    </div>
+  );
+};
+
+function createFallbackChartPoints(chart: ChartComponent): ChartDataPoint[] {
+  const categories = chart.chartType === 'point' ? ['A', 'B', 'C', 'D'] : ['Q1', 'Q2', 'Q3', 'Q4'];
+  const values = chart.chartType === 'point' ? [22, 46, 33, 62] : [38, 64, 48, 72];
+  return categories.map((category, index) => ({
+    category,
+    value: values[index],
+    x: chart.chartType === 'point' ? index + 1 : null,
+    y: values[index],
+    label: category,
+    raw: {},
+  }));
+}
+
+const PieChartPreview: React.FC<{ points: ChartDataPoint[]; palette: string[]; donut: boolean }> = ({ donut, palette, points }) => {
+  const values = points.map(point => Math.max(0, Number(point.value ?? 0))).filter(Number.isFinite);
+  const total = values.reduce((sum, value) => sum + value, 0) || 1;
+  let angle = 0;
+  const stops = values.map((value, index) => {
+    const start = angle;
+    angle += (value / total) * 360;
+    return `${palette[index % palette.length]} ${start}deg ${angle}deg`;
+  });
+
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
+      <div
+        style={{
+          width: '70%',
+          aspectRatio: '1 / 1',
+          borderRadius: '50%',
+          background: `conic-gradient(${stops.join(', ')})`,
+          position: 'relative',
+          boxShadow: 'inset 0 0 0 1px rgba(15,23,42,0.08)',
+        }}
+      >
+        {donut ? (
+          <div style={{ position: 'absolute', inset: '30%', borderRadius: '50%', background: '#fff' }} />
+        ) : null}
+      </div>
+    </div>
+  );
+};
+
+const CartesianChartPreview: React.FC<{
+  chart: ChartComponent;
+  points: ChartDataPoint[];
+  palette: string[];
+  max: number;
+}> = ({ chart, max, palette, points }) => {
+  const width = 180;
+  const height = 92;
+  const left = 18;
+  const right = 8;
+  const top = 8;
+  const bottom = 18;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const xFor = (index: number) => left + (points.length <= 1 ? plotWidth / 2 : (index / (points.length - 1)) * plotWidth);
+  const yFor = (value: number | null | undefined) => top + plotHeight - ((Number(value ?? 0) / max) * plotHeight);
+  const linePoints = points.map((point, index) => `${xFor(index)},${yFor(point.value)}`).join(' ');
+  const areaPoints = `${left},${top + plotHeight} ${linePoints} ${left + plotWidth},${top + plotHeight}`;
+  const barWidth = Math.max(4, plotWidth / Math.max(1, points.length) * 0.58);
+
+  if (chart.chartType === 'point') {
+    return (
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
+        <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
+        {points.map((point, index) => (
+          <circle key={index} cx={xFor(index)} cy={yFor(point.value)} r={3} fill={palette[index % palette.length]} />
+        ))}
+      </svg>
+    );
+  }
+
+  if (chart.chartType === 'bar') {
+    if (chart.variant === 'horizontal') {
+      const rowHeight = plotHeight / Math.max(1, points.length);
+      return (
+        <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
+          <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
+          {points.map((point, index) => (
+            <rect
+              key={index}
+              x={left}
+              y={top + index * rowHeight + rowHeight * 0.22}
+              width={(Number(point.value ?? 0) / max) * plotWidth}
+              height={Math.max(3, rowHeight * 0.56)}
+              fill={palette[index % palette.length]}
+              rx={1}
+            />
+          ))}
+        </svg>
+      );
+    }
+    return (
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
+        <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
+        {points.map((point, index) => {
+          const barHeight = (Number(point.value ?? 0) / max) * plotHeight;
+          return (
+            <rect
+              key={index}
+              x={xFor(index) - barWidth / 2}
+              y={top + plotHeight - barHeight}
+              width={barWidth}
+              height={barHeight}
+              fill={palette[index % palette.length]}
+              rx={1}
+            />
+          );
+        })}
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
+      <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
+      {chart.chartType === 'area' ? <polygon points={areaPoints} fill={palette[0]} opacity={0.22} /> : null}
+      <polyline points={linePoints} fill="none" stroke={palette[0]} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
+      {points.map((point, index) => <circle key={index} cx={xFor(index)} cy={yFor(point.value)} r={2.2} fill={palette[index % palette.length]} />)}
+    </svg>
+  );
+};
+
+const ChartAxes: React.FC<{ left: number; top: number; plotWidth: number; plotHeight: number; showGrid: boolean }> = ({ left, plotHeight, plotWidth, showGrid, top }) => (
+  <>
+    {showGrid ? [0.25, 0.5, 0.75].map(ratio => (
+      <line key={ratio} x1={left} y1={top + plotHeight * ratio} x2={left + plotWidth} y2={top + plotHeight * ratio} stroke="#dbe3ef" strokeWidth={0.7} />
+    )) : null}
+    <line x1={left} y1={top} x2={left} y2={top + plotHeight} stroke="#94a3b8" strokeWidth={1} />
+    <line x1={left} y1={top + plotHeight} x2={left + plotWidth} y2={top + plotHeight} stroke="#94a3b8" strokeWidth={1} />
+  </>
+);
 
 const PanelChildPreview: React.FC<{ component: ReportComponent }> = ({ component }) => {
   const { t } = useDesignerI18n();

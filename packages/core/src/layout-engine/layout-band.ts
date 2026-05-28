@@ -7,6 +7,7 @@ import type { RenderBandBox, RenderComponentBox, RenderTable } from '../render-d
 import type {
   Band,
   BarcodeComponent,
+  ChartComponent,
   CheckboxComponent,
   DateTimeComponent,
   ImageComponent,
@@ -24,6 +25,8 @@ import type {
   TableCell,
   TableComponent,
   TextComponent,
+  ChartDataPoint,
+  ChartAggregateMode,
 } from '../template-model/types';
 import { formatValue } from '../text-format';
 import { measureTextBox } from './measure';
@@ -229,6 +232,10 @@ function layoutComponent(
       html: resolveRichText(richTextComponent, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
       style: buildBaseRenderStyle(component),
     };
+  }
+
+  if (component.type === 'chart') {
+    return layoutChart(component as ChartComponent, options);
   }
 
   if (component.type === 'barcode') {
@@ -451,6 +458,208 @@ function buildBaseRenderStyle(component: ReportComponent) {
     padding: component.padding,
   };
   return Object.values(style).some(value => value !== undefined) ? style : undefined;
+}
+
+function layoutChart(component: ChartComponent, options: LayoutBandOptions): RenderComponentBox {
+  const chartX = options.x + component.x;
+  const chartY = options.y + component.y;
+  const rows = resolveChartRows(component, options);
+  const sortedRows = applyChartSort(rows, component.binding?.sort ?? [], options.context);
+  const aggregate = component.binding?.aggregate ?? 'none';
+  const data = aggregate === 'none'
+    ? sortedRows.map((row) => buildChartPoint(component, row, options))
+    : aggregateChartPoints(component, sortedRows, aggregate, options);
+
+  return {
+    id: component.id,
+    type: 'chart',
+    x: chartX,
+    y: chartY,
+    width: component.width,
+    height: component.height,
+    chartType: component.chartType,
+    variant: component.variant,
+    data,
+    title: component.appearance?.title,
+    subtitle: component.appearance?.subtitle,
+    showLegend: component.appearance?.showLegend ?? true,
+    legendPosition: component.appearance?.legendPosition ?? 'bottom',
+    showAxes: component.appearance?.showAxes ?? true,
+    showGrid: component.appearance?.showGrid ?? true,
+    showLabels: component.appearance?.showLabels ?? false,
+    palette: component.appearance?.palette?.length ? [...component.appearance.palette] : ['#2f6fed', '#16a34a', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
+    valueFormat: component.appearance?.valueFormat,
+    categoryFormat: component.appearance?.categoryFormat,
+    labelFormat: component.appearance?.labelFormat,
+    axisTitleX: component.appearance?.axisTitleX,
+    axisTitleY: component.appearance?.axisTitleY,
+    aggregate,
+    emptyMessage: component.emptyMessage ?? 'No data',
+    style: buildBaseRenderStyle(component),
+  };
+}
+
+function resolveChartRows(component: ChartComponent, options: LayoutBandOptions): Record<string, unknown>[] {
+  const binding = component.binding;
+  const dataSourceId = binding?.dataSourceId;
+  if (binding?.arrayPath && options.context.row) {
+    const nested = asRecordArray(valueAtPath(options.context.row, binding.arrayPath));
+    if (nested.length > 0) return nested;
+  }
+  if (!dataSourceId) {
+    return options.context.row ? [options.context.row] : [];
+  }
+  if (dataSourceId === options.context.dataSourceId && options.context.row) {
+    return [options.context.row];
+  }
+  return options.context.rowsByBand?.[dataSourceId] ?? options.rowsByBand?.[dataSourceId] ?? [];
+}
+
+function applyChartSort(rows: Record<string, unknown>[], sort: Array<{ field: string; direction: 'asc' | 'desc' }>, context: RenderContext): Record<string, unknown>[] {
+  if (sort.length === 0) return rows;
+  return [...rows].sort((left, right) => {
+    for (const rule of sort) {
+      const leftValue = resolveChartExpressionValue(rule.field, left, context);
+      const rightValue = resolveChartExpressionValue(rule.field, right, context);
+      const order = compareChartValues(leftValue, rightValue);
+      if (order !== 0) {
+        return rule.direction === 'desc' ? -order : order;
+      }
+    }
+    return 0;
+  });
+}
+
+function buildChartPoint(component: ChartComponent, row: Record<string, unknown>, options: LayoutBandOptions): ChartDataPoint {
+  if (component.chartType === 'point') {
+    const x = resolveNumber(resolveChartExpressionValue(component.binding?.xExpression ?? '', row, options.context));
+    const y = resolveNumber(resolveChartExpressionValue(component.binding?.yExpression ?? '', row, options.context));
+    const series = resolveChartExpressionValue(component.binding?.seriesExpression ?? '', row, options.context);
+    const label = resolveChartExpressionValue(component.binding?.labelExpression ?? '', row, options.context);
+    return {
+      category: x == null ? '' : String(x),
+      value: y,
+      series: series == null || series === '' ? undefined : String(series),
+      label: label == null || label === '' ? (x == null ? undefined : String(x)) : String(label),
+      x,
+      y,
+      raw: row,
+    };
+  }
+
+  const category = resolveChartExpressionValue(component.binding?.categoryExpression ?? '', row, options.context);
+  const value = resolveNumber(resolveChartExpressionValue(component.binding?.valueExpression ?? '', row, options.context));
+  const series = resolveChartExpressionValue(component.binding?.seriesExpression ?? '', row, options.context);
+  const label = resolveChartExpressionValue(component.binding?.labelExpression ?? '', row, options.context);
+  return {
+    category: category == null ? '' : String(category),
+    value,
+    series: series == null || series === '' ? undefined : String(series),
+    label: label == null || label === '' ? (category == null ? undefined : String(category)) : String(label),
+    x: null,
+    y: value,
+    raw: row,
+  };
+}
+
+function aggregateChartPoints(component: ChartComponent, rows: Record<string, unknown>[], aggregate: ChartAggregateMode, options: LayoutBandOptions): ChartDataPoint[] {
+  const grouped = new Map<string, { point: ChartDataPoint; values: number[]; count: number }>();
+  for (const row of rows) {
+    const point = buildChartPoint(component, row, options);
+    const key = component.chartType === 'point'
+      ? `${point.x ?? point.category}::${point.series ?? ''}`
+      : `${point.category}::${point.series ?? ''}`;
+    const entry = grouped.get(key);
+    if (!entry) {
+      grouped.set(key, { point, values: point.value == null ? [] : [point.value], count: 1 });
+      continue;
+    }
+    entry.count += 1;
+    if (point.value != null) {
+      entry.values.push(point.value);
+    }
+  }
+
+  return Array.from(grouped.values()).map(({ point, values, count }) => {
+    const value = aggregateValues(values, count, aggregate);
+    return {
+      ...point,
+      value,
+      y: point.x == null ? value : point.y ?? value,
+      x: point.x ?? null,
+    };
+  });
+}
+
+function aggregateValues(values: number[], count: number, aggregate: ChartAggregateMode): number | null {
+  if (aggregate === 'count') return count;
+  if (values.length === 0) return null;
+  if (aggregate === 'min') return Math.min(...values);
+  if (aggregate === 'max') return Math.max(...values);
+  if (aggregate === 'avg') return values.reduce((sum, value) => sum + value, 0) / values.length;
+  return values.reduce((sum, value) => sum + value, 0);
+}
+
+function resolveChartExpressionValue(expression: string, row: Record<string, unknown>, context: RenderContext): unknown {
+  if (!expression) return undefined;
+  try {
+    return evalExpression(
+      expression,
+      (source, field) => resolveFieldForChart(row, context, source, field),
+      context.rowIndex,
+      { row, groupValues: context.groupValues },
+      new AggregateRuntime({ rowsByBand: context.rowsByBand ?? {}, pageRowsByBand: {} }),
+    );
+  } catch {
+    return expression;
+  }
+}
+
+function resolveFieldForChart(row: Record<string, unknown>, context: RenderContext, source: string, field: string): unknown {
+  if (['Parameter', 'Parameters', 'Params'].includes(source)) {
+    return context.parameters?.[field];
+  }
+  if (!source && context.parameters && field in context.parameters) {
+    return context.parameters[field];
+  }
+  const scoped = row[source];
+  if (scoped && typeof scoped === 'object' && !Array.isArray(scoped)) {
+    return (scoped as Record<string, unknown>)[field];
+  }
+  return row[field] ?? row[`${source}.${field}`] ?? context.groupValues[field];
+}
+
+function compareChartValues(left: unknown, right: unknown): number {
+  if (left == null && right == null) return 0;
+  if (left == null) return -1;
+  if (right == null) return 1;
+  const leftNumber = Number(left);
+  const rightNumber = Number(right);
+  if (Number.isFinite(leftNumber) && Number.isFinite(rightNumber)) {
+    return leftNumber - rightNumber;
+  }
+  return String(left).localeCompare(String(right));
+}
+
+function resolveNumber(value: unknown): number | null {
+  if (value == null || value === '') return null;
+  const numberValue = typeof value === 'number' ? value : Number(value);
+  return Number.isFinite(numberValue) ? numberValue : null;
+}
+
+function valueAtPath(row: Record<string, unknown> | undefined, path: string): unknown {
+  return path.split('.').filter(Boolean).reduce<unknown>((value, segment) => {
+    if (value && typeof value === 'object' && !Array.isArray(value)) {
+      return (value as Record<string, unknown>)[segment];
+    }
+    return undefined;
+  }, row);
+}
+
+function asRecordArray(value: unknown): Record<string, unknown>[] {
+  return Array.isArray(value)
+    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
+    : [];
 }
 
 function createSubreportPlaceholder(component: SubreportComponent, x: number, y: number): RenderComponentBox {
@@ -743,21 +952,6 @@ function tableDetailAlias(component: TableComponent): string | undefined {
     return arrayPath.split('.').filter(Boolean).at(-1);
   }
   return component.binding?.dataSourceId || component.dataSource || undefined;
-}
-
-function valueAtPath(row: Record<string, unknown> | undefined, path: string): unknown {
-  return path.split('.').filter(Boolean).reduce<unknown>((value, segment) => {
-    if (value && typeof value === 'object' && !Array.isArray(value)) {
-      return (value as Record<string, unknown>)[segment];
-    }
-    return undefined;
-  }, row);
-}
-
-function asRecordArray(value: unknown): Record<string, unknown>[] {
-  return Array.isArray(value)
-    ? value.filter((item): item is Record<string, unknown> => Boolean(item) && typeof item === 'object' && !Array.isArray(item))
-    : [];
 }
 
 function tableRowsHeight(rows: Array<Array<{ height?: number }>>, fallbackHeight: number): number {

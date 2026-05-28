@@ -57,6 +57,7 @@ const COMPONENT_TYPES = [
   { type: 'richtext', labelKey: 'leftPanel.componentRichText' },
   { type: 'image', labelKey: 'leftPanel.componentImage' },
   { type: 'table', labelKey: 'leftPanel.componentTable' },
+  { type: 'chart', labelKey: 'leftPanel.componentChart' },
   { type: 'barcode', labelKey: 'leftPanel.componentBarcode' },
   { type: 'checkbox', labelKey: 'leftPanel.componentCheckbox' },
   { type: 'pagenumber', labelKey: 'leftPanel.componentPageNumber' },
@@ -68,7 +69,7 @@ const COMPONENT_TYPES = [
 ];
 
 const COMPONENT_GROUPS = [
-  { key: 'common', labelKey: 'leftPanel.groupCommon', types: ['text', 'richtext', 'image', 'table'] },
+  { key: 'common', labelKey: 'leftPanel.groupCommon', types: ['text', 'richtext', 'image', 'table', 'chart'] },
   { key: 'data', labelKey: 'leftPanel.groupData', types: ['barcode', 'checkbox', 'pagenumber', 'datetime'] },
   { key: 'graphics', labelKey: 'leftPanel.groupGraphics', types: ['line', 'shape', 'panel'] },
   { key: 'advanced', labelKey: 'leftPanel.groupAdvanced', types: ['subreport'] },
@@ -383,6 +384,8 @@ function renderComponentTreeIcon(type: ReportComponent['type']) {
     case 'text':
       return <span {...props} />;
     case 'image':
+      return <span {...props} />;
+    case 'chart':
       return <span {...props} />;
     case 'barcode':
       return <span {...props} />;

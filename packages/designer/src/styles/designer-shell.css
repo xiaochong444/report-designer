@@ -886,6 +886,33 @@
     repeating-linear-gradient(to bottom, transparent 0 2px, #8fa2bb 2px 3px);
 }
 
+.rd-report-tree-glyph-chart {
+  border: 1px solid #7f8ea3;
+  border-radius: 1px;
+  background: linear-gradient(180deg, #ffffff 0%, #f7f9fc 100%);
+}
+
+.rd-report-tree-glyph-chart::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  bottom: 2px;
+  width: 2px;
+  height: 4px;
+  background: #2f6fed;
+  box-shadow: 3px -2px 0 #16a34a, 6px -5px 0 #f59e0b;
+}
+
+.rd-report-tree-glyph-chart::after {
+  content: "";
+  position: absolute;
+  left: 1px;
+  right: 1px;
+  bottom: 1px;
+  height: 1px;
+  background: #8fa2bb;
+}
+
 .rd-report-tree-glyph-checkbox {
   border: 1px solid #7f8ea3;
   border-radius: 1px;

@@ -114,6 +114,45 @@ export interface TextFormatConfig {
   falseValues?: string[];
 }
 
+export type ChartType = 'point' | 'line' | 'bar' | 'area' | 'pie';
+export type ChartVariant = 'default' | 'smooth' | 'step' | 'grouped' | 'stacked' | 'horizontal' | 'donut' | 'scatter';
+export type ChartAggregateMode = 'none' | 'sum' | 'avg' | 'count' | 'min' | 'max';
+export type ChartLegendPosition = 'top' | 'right' | 'bottom' | 'left';
+export type ChartSortDirection = 'asc' | 'desc';
+
+export interface ChartBinding {
+  dataSourceId?: string;
+  arrayPath?: Expression;
+  categoryExpression?: Expression;
+  valueExpression?: Expression;
+  xExpression?: Expression;
+  yExpression?: Expression;
+  seriesExpression?: Expression;
+  labelExpression?: Expression;
+  sort?: Array<{ field: Expression; direction: ChartSortDirection }>;
+  aggregate?: ChartAggregateMode;
+}
+
+export interface ChartAppearance {
+  title?: string;
+  subtitle?: string;
+  showLegend?: boolean;
+  legendPosition?: ChartLegendPosition;
+  showAxes?: boolean;
+  showGrid?: boolean;
+  showLabels?: boolean;
+  palette?: string[];
+  valueFormat?: TextFormatConfig;
+  categoryFormat?: TextFormatConfig;
+  labelFormat?: TextFormatConfig;
+  axisTitleX?: string;
+  axisTitleY?: string;
+  backgroundColor?: string;
+  padding?: Partial<Padding>;
+  innerRadius?: number;
+  outerRadius?: number;
+}
+
 export type TextAlign = 'left' | 'center' | 'right';
 export type VerticalAlign = 'top' | 'middle' | 'bottom';
 
@@ -188,6 +227,7 @@ export interface DataSource {
 export type ComponentType =
   | 'text'
   | 'image'
+  | 'chart'
   | 'table'
   | 'barcode'
   | 'checkbox'
@@ -238,6 +278,26 @@ export interface ImageComponent extends ReportComponent {
   type: 'image';
   src: Expression;
   fitMode: 'fill' | 'contain' | 'cover' | 'stretch';
+}
+
+export interface ChartDataPoint {
+  category: string;
+  value: number | null;
+  series?: string;
+  label?: string;
+  x?: number | null;
+  y?: number | null;
+  raw: Record<string, unknown>;
+}
+
+export interface ChartComponent extends ReportComponent {
+  type: 'chart';
+  chartType: ChartType;
+  variant: ChartVariant;
+  binding: ChartBinding;
+  appearance: ChartAppearance;
+  data?: ChartDataPoint[];
+  emptyMessage?: string;
 }
 
 export interface TableColumn {
@@ -362,6 +422,7 @@ export interface DateTimeComponent extends ReportComponent {
 export type ReportComponentUnion =
   | TextComponent
   | ImageComponent
+  | ChartComponent
   | TableComponent
   | BarcodeComponent
   | CheckboxComponent

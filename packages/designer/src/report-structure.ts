@@ -3,6 +3,7 @@ import type { Band, BandType, ReportComponent, ReportTemplate } from '@report-de
 const COMPONENT_NAME_PREFIX: Record<ReportComponent['type'], string> = {
   text: 'Text',
   image: 'Image',
+  chart: 'Chart',
   barcode: 'BarCode',
   table: 'Table',
   checkbox: 'CheckBox',
