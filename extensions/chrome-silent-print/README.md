@@ -84,3 +84,38 @@ or
 
 - Desktop Chrome cannot silently print by extension alone. A native host is required.
 - ChromeOS can use `chrome.printing` when printer policy and permissions are available.
+
+## Windows native host
+
+The Windows host lives in `native-hosts/windows-print-host`. It is a .NET `WinExe` Native Messaging host, so Chrome can launch it with redirected stdin/stdout without showing a console window.
+
+Build and publish:
+
+```powershell
+dotnet publish native-hosts\windows-print-host\WindowsPrintHost.csproj -c Release -r win-x64 --self-contained false -o "C:\Program Files\ReportDesignerPrintHost"
+```
+
+Create `%LOCALAPPDATA%\ReportDesignerPrintHost\config.json`:
+
+```json
+{
+  "rootDir": "C:\\Users\\you\\AppData\\Local\\ReportDesignerPrintHost",
+  "printCommand": "SumatraPDF.exe",
+  "printArgs": [
+    "-print-to",
+    "{printerId}",
+    "-print-settings",
+    "{copies}x",
+    "-silent",
+    "{file}"
+  ]
+}
+```
+
+Register the native host manifest under:
+
+```text
+HKCU\Software\Google\Chrome\NativeMessagingHosts\com.report_designer.print_host
+```
+
+The registry value should point to `extensions\chrome-silent-print\native-host\com.report_designer.print_host.windows.example.json` after replacing the extension id and executable path for the installed machine.
