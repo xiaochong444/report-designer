@@ -48,6 +48,7 @@ export function createEventRuntimeState(options: { maxEventCount?: number } = {}
 
 export function validateEventScript(script: string): EventScriptValidationResult {
   const errors: string[] = [];
+  const scanned = maskNonCodeSegments(script);
 
   if (new TextEncoder().encode(script).length > maxScriptLength) {
     errors.push(`Script length exceeds ${maxScriptLength} bytes.`);
@@ -55,7 +56,7 @@ export function validateEventScript(script: string): EventScriptValidationResult
 
   for (const token of blockedTokens) {
     const tokenPattern = new RegExp(`\\b${escapeRegExp(token)}\\b`);
-    if (tokenPattern.test(script)) {
+    if (tokenPattern.test(scanned.code) || scanned.bracketPropertyTokens.has(token)) {
       errors.push(`Script contains blocked token: ${token}.`);
     }
   }
@@ -174,4 +175,131 @@ function extractScriptErrorLocation(error: unknown): Partial<Pick<EventLogEntry,
 
 function escapeRegExp(value: string): string {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function maskNonCodeSegments(script: string): { code: string; bracketPropertyTokens: Set<string> } {
+  const chars = script.split('');
+  const bracketPropertyTokens = new Set<string>();
+
+  const maskRange = (start: number, end: number) => {
+    for (let index = start; index < end; index += 1) {
+      if (chars[index] !== '\n' && chars[index] !== '\r') {
+        chars[index] = ' ';
+      }
+    }
+  };
+
+  const previousCodeChar = (index: number): string | undefined => {
+    for (let cursor = index; cursor >= 0; cursor -= 1) {
+      const char = chars[cursor];
+      if (char && !/\s/.test(char)) return char;
+    }
+    return undefined;
+  };
+
+  const nextSourceChar = (index: number): string | undefined => {
+    for (let cursor = index; cursor < script.length; cursor += 1) {
+      const char = script[cursor];
+      if (char && !/\s/.test(char)) return char;
+    }
+    return undefined;
+  };
+
+  const readQuotedLiteral = (start: number, quote: string): number => {
+    let cursor = start + 1;
+    let raw = '';
+    while (cursor < script.length) {
+      const char = script[cursor];
+      if (char === '\\') {
+        raw += script[cursor + 1] ?? '';
+        cursor += 2;
+        continue;
+      }
+      if (char === quote) {
+        const previous = previousCodeChar(start - 1);
+        const next = nextSourceChar(cursor + 1);
+        if (previous === '[' && next === ']' && blockedTokens.includes(raw as (typeof blockedTokens)[number])) {
+          bracketPropertyTokens.add(raw);
+        }
+        maskRange(start, cursor + 1);
+        return cursor + 1;
+      }
+      raw += char;
+      cursor += 1;
+    }
+    maskRange(start, cursor);
+    return cursor;
+  };
+
+  const readTemplate = (start: number): number => {
+    maskRange(start, start + 1);
+    let cursor = start + 1;
+    while (cursor < script.length) {
+      const char = script[cursor];
+      const next = script[cursor + 1];
+      if (char === '\\') {
+        maskRange(cursor, Math.min(cursor + 2, script.length));
+        cursor += 2;
+        continue;
+      }
+      if (char === '`') {
+        maskRange(cursor, cursor + 1);
+        return cursor + 1;
+      }
+      if (char === '$' && next === '{') {
+        maskRange(cursor, cursor + 2);
+        cursor = scanCode(cursor + 2, 1);
+        continue;
+      }
+      maskRange(cursor, cursor + 1);
+      cursor += 1;
+    }
+    return cursor;
+  };
+
+  const scanCode = (start: number, braceDepth = 0): number => {
+    let cursor = start;
+    let depth = braceDepth;
+    while (cursor < script.length) {
+      const char = script[cursor];
+      const next = script[cursor + 1];
+      if (char === '/' && next === '/') {
+        const end = script.indexOf('\n', cursor + 2);
+        const commentEnd = end === -1 ? script.length : end;
+        maskRange(cursor, commentEnd);
+        cursor = commentEnd;
+        continue;
+      }
+      if (char === '/' && next === '*') {
+        const end = script.indexOf('*/', cursor + 2);
+        const commentEnd = end === -1 ? script.length : end + 2;
+        maskRange(cursor, commentEnd);
+        cursor = commentEnd;
+        continue;
+      }
+      if (char === '"' || char === "'") {
+        cursor = readQuotedLiteral(cursor, char);
+        continue;
+      }
+      if (char === '`') {
+        cursor = readTemplate(cursor);
+        continue;
+      }
+      if (depth > 0 && char === '{') {
+        depth += 1;
+      } else if (depth > 0 && char === '}') {
+        depth -= 1;
+        if (depth === 0) {
+          maskRange(cursor, cursor + 1);
+          return cursor + 1;
+        }
+      }
+      cursor += 1;
+    }
+    return cursor;
+  };
+
+  scanCode(0);
+
+  return { code: chars.join(''), bracketPropertyTokens };
 }

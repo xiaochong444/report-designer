@@ -38,6 +38,8 @@ export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open
         name: source.name,
         type: 'json',
         path: source.path,
+        parentSourceId: source.parentSourceId,
+        parentPath: source.parentPath,
         fields: fields.map<DataField>(field => ({
           name: field.name,
           type: field.type === 'null' ? 'string' : field.type,

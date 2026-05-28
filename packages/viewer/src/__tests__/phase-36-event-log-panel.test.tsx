@@ -108,6 +108,18 @@ describe('phase 36 event log panel', () => {
     expect(onEventLogsClear).toHaveBeenCalledTimes(1);
   });
 
+  it('keeps print-only event errors visible in the event log panel', () => {
+    render(<Viewer template={printOnlyEventLogTemplate()} data={{}} />);
+
+    expect(screen.queryByRole('button', { name: 'Event Logs' })).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Print' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Event Logs' }));
+
+    expect(screen.getByText('print-only boom')).toBeInTheDocument();
+    expect(screen.getAllByText(/beforePrint/).length).toBeGreaterThan(0);
+  });
+
   it('localizes viewer toolbar and event log operations to Chinese', () => {
     render(<Viewer template={eventLogTemplate()} data={{}} locale="zh-CN" onEventLogSelect={vi.fn()} />);
 
@@ -178,6 +190,38 @@ function eventLogTemplate(): ReportTemplate {
             height: 20,
             events: { beforePrint: { enabled: true, script: 'ctx.log.info("start");\nthrow new Error("line boom");' } },
             components: [title],
+          },
+        ],
+      },
+    ],
+    dataSources: [],
+    styles: [],
+    conditionalFormats: [],
+    parameters: [],
+  };
+}
+
+function printOnlyEventLogTemplate(): ReportTemplate {
+  return {
+    id: 'report-1',
+    name: 'Print Only Event Logs',
+    version: '2.0',
+    events: {
+      beforePrint: { enabled: true, script: 'throw new Error("print-only boom");' },
+    },
+    pages: [
+      {
+        id: 'page-1',
+        width: 210,
+        height: 297,
+        margins: { top: 10, right: 10, bottom: 10, left: 10 },
+        orientation: 'portrait',
+        bands: [
+          {
+            id: 'title-band',
+            type: 'reportTitle',
+            height: 20,
+            components: [],
           },
         ],
       },

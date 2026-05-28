@@ -5,6 +5,8 @@ import type {
   EventMap,
   EventScript,
   PageEventName,
+  PanelComponent,
+  ReportComponent,
   ReportEventName,
   ReportTemplate,
 } from '@report-designer/core';
@@ -71,7 +73,7 @@ export function buildEventEditorDataContext(
   if (scope.targetType === 'component') {
     const band = template.pages
       .flatMap(page => page.bands)
-      .find(item => item.components.some(component => component.id === scope.componentId));
+      .find(item => containsComponent(item.components, scope.componentId));
     activeDataSourceId = band?.dataBand?.dataSourceId ?? band?.dataSource;
   }
 
@@ -80,6 +82,22 @@ export function buildEventEditorDataContext(
     parameters: template.parameters ?? [],
     activeDataSourceId,
   };
+}
+
+function containsComponent(components: ReportComponent[], componentId?: string): boolean {
+  if (!componentId) return false;
+  for (const component of components) {
+    if (component.id === componentId) {
+      return true;
+    }
+    if (component.type === 'panel') {
+      const panel = component as PanelComponent;
+      if (containsComponent(panel.components, componentId)) {
+        return true;
+      }
+    }
+  }
+  return false;
 }
 
 export function buildEventExampleItems(

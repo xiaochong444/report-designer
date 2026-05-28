@@ -291,6 +291,55 @@ describe('phase 35 band contracts', () => {
     expect(document.pages.at(-1)?.items.map(item => item.bandId)).toContain('last-page-footer');
   });
 
+  it('honors first odd even and last page rules for non-footer bands', () => {
+    const template = makeTemplate([
+      band('first-page-header', 'header', {
+        height: 6,
+        behavior: { enabled: true, printOn: 'firstPage', printIfEmpty: true, printOnAllPages: false, keepTogether: false, canBreak: false, printAtBottom: false },
+        components: [{ id: 'first', type: 'text', x: 0, y: 0, width: 30, height: 6, text: 'First', ...textBase }],
+      }),
+      band('odd-page-header', 'header', {
+        height: 6,
+        behavior: { enabled: true, printOn: 'oddPages', printIfEmpty: true, printOnAllPages: true, keepTogether: false, canBreak: false, printAtBottom: false },
+        components: [{ id: 'odd', type: 'text', x: 0, y: 0, width: 30, height: 6, text: 'Odd', ...textBase }],
+      }),
+      band('even-page-header', 'header', {
+        height: 6,
+        behavior: { enabled: true, printOn: 'evenPages', printIfEmpty: true, printOnAllPages: true, keepTogether: false, canBreak: false, printAtBottom: false },
+        components: [{ id: 'even', type: 'text', x: 0, y: 0, width: 30, height: 6, text: 'Even', ...textBase }],
+      }),
+      band('last-page-header', 'header', {
+        height: 6,
+        behavior: { enabled: true, printOn: 'lastPage', printIfEmpty: true, printOnAllPages: true, keepTogether: false, canBreak: false, printAtBottom: false },
+        components: [{ id: 'last', type: 'text', x: 0, y: 0, width: 30, height: 6, text: 'Last', ...textBase }],
+      }),
+      band('data', 'data', {
+        height: 18,
+        dataBand: { dataSourceId: 'employees' },
+        components: [{ id: 'detail', type: 'text', x: 0, y: 0, width: 30, height: 6, text: '{employees.Name}', ...textBase }],
+      }),
+    ]);
+    template.pages[0].height = 60;
+    template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
+
+    const document = renderReport(template, {
+      employees: [
+        { Name: 'A' },
+        { Name: 'B' },
+        { Name: 'C' },
+        { Name: 'D' },
+        { Name: 'E' },
+      ],
+    });
+
+    expect(document.pages.length).toBeGreaterThan(1);
+    expect(document.pages[0].items.map(item => item.bandId)).toContain('first-page-header');
+    expect(document.pages[0].items.map(item => item.bandId)).toContain('odd-page-header');
+    expect(document.pages[0].items.map(item => item.bandId)).not.toContain('even-page-header');
+    expect(document.pages.at(1)?.items.map(item => item.bandId)).toContain('even-page-header');
+    expect(document.pages.at(-1)?.items.map(item => item.bandId)).toContain('last-page-header');
+  });
+
   it('skips bands with no rendered components when printIfEmpty is false', () => {
     const template = makeTemplate([
       band('empty-header', 'header', {

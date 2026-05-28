@@ -32,6 +32,28 @@ describe('Phase 5 JSON data source dialog', () => {
     expect((template.dataSources[0].schema ?? []).map((field) => field.name)).toEqual(['name', 'department', 'salary']);
   });
 
+  it('preserves nested array parent metadata for table detail binding', () => {
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <JsonDataSourceDialog open onClose={() => {}} />
+      </DesignerI18nProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText('JSON'), {
+      target: { value: '{ "orders": [{ "orderNo": "A001", "items": [{ "name": "Pen", "qty": 2 }] }] }' },
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: 'Add data sources' }));
+
+    const template = useDesignerStore.getState().template;
+    expect(template.dataSources.find(source => source.id === 'orders.items')).toMatchObject({
+      id: 'orders.items',
+      parentSourceId: 'orders',
+      parentPath: 'orders.items',
+      path: 'orders.items',
+    });
+  });
+
   it('localizes visible JSON data source dialog copy to Chinese', () => {
     render(
       <DesignerI18nProvider locale="zh-CN">

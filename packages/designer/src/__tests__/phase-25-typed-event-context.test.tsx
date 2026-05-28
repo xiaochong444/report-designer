@@ -126,6 +126,31 @@ describe('phase 25 typed event context scope', () => {
     });
   });
 
+  it('builds a component scoped data context for components nested inside a panel', () => {
+    const nestedTemplate = JSON.parse(JSON.stringify(template)) as ReportTemplate;
+    nestedTemplate.pages[0].bands[1].components = [{
+      id: 'panel-1',
+      type: 'panel',
+      x: 0,
+      y: 0,
+      width: 60,
+      height: 20,
+      components: [{
+        id: 'nested-text',
+        type: 'text',
+        x: 0,
+        y: 0,
+        width: 20,
+        height: 6,
+      }],
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+    } as unknown as ReportTemplate['pages'][number]['bands'][number]['components'][number]];
+
+    expect(buildEventEditorDataContext(nestedTemplate, { targetType: 'component', componentId: 'nested-text' })).toMatchObject({
+      activeDataSourceId: 'departments',
+    });
+  });
+
   it('builds a report scoped data context without an active data source', () => {
     expect(buildEventEditorDataContext(template, { targetType: 'report' })).toEqual({
       dataSources: template.dataSources,

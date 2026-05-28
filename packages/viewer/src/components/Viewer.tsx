@@ -34,6 +34,7 @@ export const Viewer: React.FC<ViewerProps> = ({
   const [zoom, setZoom] = useState(100);
   const [eventLogOpen, setEventLogOpen] = useState(false);
   const [eventLogsCleared, setEventLogsCleared] = useState(false);
+  const [outputEventLogs, setOutputEventLogs] = useState<EventLogEntry[]>([]);
   const previewScrollRef = React.useRef<HTMLElement | null>(null);
   const messages = getViewerMessages(locale);
 
@@ -42,20 +43,25 @@ export const Viewer: React.FC<ViewerProps> = ({
     [template, data, subreports],
   );
   const totalPages = document.pages.length;
-  const eventLogs = eventLogsCleared ? [] : (document.eventLogs ?? []);
+  const eventLogs = eventLogsCleared ? [] : [...(document.eventLogs ?? []), ...outputEventLogs];
 
   React.useEffect(() => {
     setEventLogsCleared(false);
+    setOutputEventLogs([]);
   }, [document]);
 
   const handleExportPDF = async () => {
     const pdfDocument = renderReport(template, data, { subreports, mode: 'pdf' });
+    setEventLogsCleared(false);
+    setOutputEventLogs(pdfDocument.eventLogs ?? []);
     const pdfBytes = await exportToPDF(pdfDocument);
     await downloadPDF(pdfBytes, 'report.pdf');
   };
 
   const handlePrint = () => {
     const printDocument = renderReport(template, data, { subreports, mode: 'print' });
+    setEventLogsCleared(false);
+    setOutputEventLogs(printDocument.eventLogs ?? []);
     void printReport(printDocument);
   };
 

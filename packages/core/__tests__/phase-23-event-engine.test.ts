@@ -149,6 +149,17 @@ describe('phase 23 event engine', () => {
     expect(result.errors.join(' ')).toContain('fetch');
   });
 
+  it('does not reject blocked token text inside strings or comments', () => {
+    const result = validateEventScript([
+      'ctx.log.info("window fetch localStorage");',
+      '// document constructor prototype should be plain documentation text',
+      'ctx.state.message = "safe";',
+    ].join('\n'));
+
+    expect(result.valid).toBe(true);
+    expect(result.errors).toEqual([]);
+  });
+
   it('rejects constructor access during validation', () => {
     const result = validateEventScript('ctx.log.info.constructor.constructor("return 1")()');
 

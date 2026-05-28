@@ -1,4 +1,4 @@
-import type { Band, Page, ReportComponent, ReportTemplate, ValidationResult } from './types';
+import type { Band, DataSource, Page, PanelComponent, ReportComponent, ReportTemplate, TableComponent, ValidationResult } from './types';
 import { normalizeTemplate } from './normalize-template';
 
 export interface TemplateValidationError {
@@ -16,7 +16,7 @@ export function validateTemplate(
 ): ValidationResult<TemplateValidationError> {
   const normalizedTemplate = normalizeTemplate(template);
   const errors: TemplateValidationError[] = [];
-  const dataSourceIds = new Set(normalizedTemplate.dataSources.map(source => source.id));
+  const dataSources = new Map(normalizedTemplate.dataSources.map(source => [source.id, source]));
 
   if (normalizedTemplate.pages.length === 0) {
     errors.push({ path: 'pages', message: 'Template must contain at least one page' });
@@ -25,7 +25,7 @@ export function validateTemplate(
 
   collectUniqueIds(normalizedTemplate, errors);
   normalizedTemplate.pages.forEach((page, pageIndex) => {
-    validatePage(page, pageIndex, dataSourceIds, normalizedTemplate.dataSources.length > 0, options, errors);
+    validatePage(page, pageIndex, dataSources, normalizedTemplate.dataSources.length > 0, options, errors);
   });
 
   return { valid: errors.length === 0, errors };
@@ -34,7 +34,7 @@ export function validateTemplate(
 function validatePage(
   page: Page,
   pageIndex: number,
-  dataSourceIds: Set<string>,
+  dataSources: Map<string, DataSource>,
   hasAnyDataSources: boolean,
   options: TemplateValidationOptions,
   errors: TemplateValidationError[],
@@ -57,7 +57,7 @@ function validatePage(
       errors.push({ path: `${path}.height`, message: `Band height must be non-negative, got ${band.height}` });
     }
 
-    if (band.dataBand?.dataSourceId && !dataSourceIds.has(band.dataBand.dataSourceId)) {
+    if (band.dataBand?.dataSourceId && !dataSources.has(band.dataBand.dataSourceId)) {
       errors.push({ path: `${path}.dataBand.dataSourceId`, message: `Data band references missing data source "${band.dataBand.dataSourceId}"` });
     }
 
@@ -85,30 +85,108 @@ function validatePage(
     }
 
     if (options.strictPrintableArea) {
-      band.components.forEach((component, componentIndex) => {
-        if (component.width < 0 || component.height < 0) {
-          errors.push({
-            path: `${path}.components[${componentIndex}]`,
-            message: `Component "${component.id}" dimensions must be non-negative`,
-          });
-        }
-        validatePrintableArea(component, page, band, `${path}.components[${componentIndex}]`, errors);
-      });
+      band.components.forEach((component, componentIndex) => validateComponent(
+        component,
+        page,
+        band,
+        `${path}.components[${componentIndex}]`,
+        dataSources,
+        options,
+        errors,
+        true,
+      ));
     } else {
-      band.components.forEach((component, componentIndex) => {
-        if (component.width < 0 || component.height < 0) {
-          errors.push({
-            path: `${path}.components[${componentIndex}]`,
-            message: `Component "${component.id}" dimensions must be non-negative`,
-          });
-        }
-      });
+      band.components.forEach((component, componentIndex) => validateComponent(
+        component,
+        page,
+        band,
+        `${path}.components[${componentIndex}]`,
+        dataSources,
+        options,
+        errors,
+        true,
+      ));
     }
   });
 
   pendingSectionBands.forEach(({ band, path }) => {
     errors.push({ path, message: `${getBandDisplayName(band)} requires a following data band` });
   });
+}
+
+function validateComponent(
+  component: ReportComponent,
+  page: Page,
+  band: Band,
+  path: string,
+  dataSources: Map<string, DataSource>,
+  options: TemplateValidationOptions,
+  errors: TemplateValidationError[],
+  checkPrintableArea: boolean,
+) {
+  if (component.width < 0 || component.height < 0) {
+    errors.push({
+      path,
+      message: `Component "${component.id}" dimensions must be non-negative`,
+    });
+  }
+
+  if (options.strictPrintableArea && checkPrintableArea) {
+    validatePrintableArea(component, page, band, path, errors);
+  }
+
+  if (component.type === 'table') {
+    validateTableBinding(component as TableComponent, path, dataSources, errors);
+  }
+
+  if (component.type === 'panel') {
+    (component as PanelComponent).components.forEach((child, childIndex) => validateComponent(
+      child,
+      page,
+      band,
+      `${path}.components[${childIndex}]`,
+      dataSources,
+      options,
+      errors,
+      false,
+    ));
+  }
+}
+
+function validateTableBinding(
+  table: TableComponent,
+  path: string,
+  dataSources: Map<string, DataSource>,
+  errors: TemplateValidationError[],
+) {
+  const binding = table.binding;
+  if (!binding || binding.mode !== 'detail') {
+    return;
+  }
+
+  if (!binding.dataSourceId && !binding.arrayPath) {
+    errors.push({
+      path: `${path}.binding`,
+      message: 'Detail table binding requires a dataSourceId or arrayPath',
+    });
+    return;
+  }
+
+  const source = binding.dataSourceId ? dataSources.get(binding.dataSourceId) : undefined;
+  if (binding.dataSourceId && !source) {
+    errors.push({
+      path: `${path}.binding.dataSourceId`,
+      message: `Table detail binding references missing data source "${binding.dataSourceId}"`,
+    });
+    return;
+  }
+
+  if (source?.parentSourceId && !binding.arrayPath) {
+    errors.push({
+      path: `${path}.binding.arrayPath`,
+      message: `Detail table binding for child data source "${source.id}" requires arrayPath`,
+    });
+  }
 }
 
 function getBandDisplayName(band: Band): string {

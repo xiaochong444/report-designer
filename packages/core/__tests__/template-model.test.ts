@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { createDefaultTemplate, validateTemplate } from '../src/template-model';
-import type { TextComponent, Band } from '../src/template-model';
+import type { TextComponent, Band, TableComponent } from '../src/template-model';
 
 describe('template-model', () => {
   describe('createDefaultTemplate', () => {
@@ -97,6 +97,71 @@ describe('template-model', () => {
       template.pages[0].bands.push(band);
       const result = validateTemplate(template);
       expect(result.valid).toBe(false);
+    });
+
+    it('should fail for table detail binding that references a missing data source', () => {
+      const template = createDefaultTemplate();
+      template.dataSources = [{ id: 'orders', name: 'Orders', type: 'json', fields: [] }];
+      const table: TableComponent = {
+        id: 'table-1',
+        type: 'table',
+        x: 0,
+        y: 0,
+        width: 80,
+        height: 30,
+        dataSource: '',
+        binding: { mode: 'detail', dataSourceId: 'orders.items', arrayPath: 'items' },
+        columns: [{ id: 'c1', header: 'Name', field: 'name', width: 80, cellType: 'text' }],
+        rowCount: 2,
+        columnCount: 1,
+        headerRowsCount: 1,
+        footerRowsCount: 0,
+        headerHeight: 8,
+        rowHeight: 8,
+        showBorder: true,
+      };
+      template.pages[0].bands[2].components.push(table);
+
+      const result = validateTemplate(template);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(expect.objectContaining({
+        path: 'pages[0].bands[2].components[0].binding.dataSourceId',
+      }));
+    });
+
+    it('should fail for child table detail binding without the relative array path', () => {
+      const template = createDefaultTemplate();
+      template.dataSources = [
+        { id: 'orders', name: 'Orders', type: 'json', path: 'orders', fields: [] },
+        { id: 'orders.items', name: 'Items', type: 'json', path: 'orders.items', parentSourceId: 'orders', parentPath: 'orders.items', fields: [] },
+      ];
+      const table: TableComponent = {
+        id: 'table-1',
+        type: 'table',
+        x: 0,
+        y: 0,
+        width: 80,
+        height: 30,
+        dataSource: '',
+        binding: { mode: 'detail', dataSourceId: 'orders.items' },
+        columns: [{ id: 'c1', header: 'Name', field: 'name', width: 80, cellType: 'text' }],
+        rowCount: 2,
+        columnCount: 1,
+        headerRowsCount: 1,
+        footerRowsCount: 0,
+        headerHeight: 8,
+        rowHeight: 8,
+        showBorder: true,
+      };
+      template.pages[0].bands[2].components.push(table);
+
+      const result = validateTemplate(template);
+
+      expect(result.valid).toBe(false);
+      expect(result.errors).toContainEqual(expect.objectContaining({
+        path: 'pages[0].bands[2].components[0].binding.arrayPath',
+      }));
     });
   });
 });
