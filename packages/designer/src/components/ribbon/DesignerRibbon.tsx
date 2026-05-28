@@ -43,6 +43,7 @@ import { JsonDataSourceDialog } from '../dialogs/JsonDataSourceDialog';
 import { PageSetupDialog } from '../dialogs/PageSetupDialog';
 import { useDesignerI18n } from '../../i18n';
 import type { DesignerMessageKey } from '../../i18n';
+import { hasTextStyleBinding } from '../../text-style-bindings';
 
 const TAB_KEYS = ['home', 'insert', 'pageLayout', 'layout', 'preview'] as const;
 type RibbonTab = typeof TAB_KEYS[number];
@@ -107,6 +108,7 @@ export const DesignerRibbon: React.FC = () => {
   } = useDesignerStore();
 
   const selectedCount = useDesignerStore(s => s.selectedComponentIds.length);
+  const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
   const template = useDesignerStore(s => s.template);
   const mode = useDesignerStore(s => s.mode);
   const fontInfo = getSelectedFont();
@@ -115,6 +117,19 @@ export const DesignerRibbon: React.FC = () => {
   const hasMultiSelection = selectedCount >= 2;
   const hasDistributableSelection = selectedCount >= 3;
   const hasClipboard = getClipboard().length > 0;
+  const selectedTextComponents = selectedCount > 0
+    ? template.pages
+      .flatMap(page => page.bands)
+      .flatMap(band => band.components)
+      .filter((component): component is TextComponent => (
+        selectedComponentIds.includes(component.id) && component.type === 'text'
+      ))
+    : [];
+  const isTextStyleLocked = (pathOrPrefix: string) => selectedTextComponents.some(component => hasTextStyleBinding(component, pathOrPrefix));
+  const fontSizeDisabled = !fontInfo || isTextStyleLocked('font.size');
+  const fontBoldDisabled = !fontInfo || isTextStyleLocked('font.bold');
+  const textAlignDisabled = textAlign === null || isTextStyleLocked('textAlign');
+  const borderDisabled = selectedCount === 0 || isTextStyleLocked('border');
 
   useEffect(() => {
     if (mode === 'preview') {
@@ -296,7 +311,7 @@ export const DesignerRibbon: React.FC = () => {
 
       <RibbonGroup title={t('ribbon.borders')}>
         <Tooltip title={t('ribbon.allBorders')}>
-          <Button aria-label={t('ribbon.allBorders')} size="small" icon={<BorderOuterOutlined aria-hidden />} disabled={selectedCount === 0} onClick={() => setBorderAll(true)} />
+          <Button aria-label={t('ribbon.allBorders')} size="small" icon={<BorderOuterOutlined aria-hidden />} disabled={borderDisabled} onClick={() => setBorderAll(true)} />
         </Tooltip>
       </RibbonGroup>
     </>
@@ -418,22 +433,23 @@ export const DesignerRibbon: React.FC = () => {
         <RibbonGroup title={t('ribbon.font')}>
           <Select
             size="small"
+            aria-label={t('ribbon.fontSizeControl')}
             value={fontInfo?.size || 12}
             style={{ width: 64 }}
             suffixIcon={<FontSizeOutlined />}
-            disabled={!fontInfo}
+            disabled={fontSizeDisabled}
             onChange={setFontSize}
             options={[8, 9, 10, 11, 12, 14, 16, 18, 20, 24].map(size => ({ value: size, label: String(size) }))}
           />
-          <Button size="small" disabled={!fontInfo} type={fontInfo?.bold ? 'primary' : 'default'} onClick={() => setFontBold(!fontInfo?.bold)}>
+          <Button aria-label={t('ribbon.boldControl')} size="small" disabled={fontBoldDisabled} type={fontInfo?.bold ? 'primary' : 'default'} onClick={() => setFontBold(!fontInfo?.bold)}>
             B
           </Button>
         </RibbonGroup>
 
         <RibbonGroup title={t('ribbon.align')}>
-          <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.left')}`} size="small" icon={<AlignLeftOutlined aria-hidden />} disabled={textAlign === null} type={textAlign === 'left' ? 'primary' : 'default'} onClick={() => setTextAlign('left')} />
-          <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.center')}`} size="small" icon={<AlignCenterOutlined aria-hidden />} disabled={textAlign === null} type={textAlign === 'center' ? 'primary' : 'default'} onClick={() => setTextAlign('center')} />
-          <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.right')}`} size="small" icon={<AlignRightOutlined aria-hidden />} disabled={textAlign === null} type={textAlign === 'right' ? 'primary' : 'default'} onClick={() => setTextAlign('right')} />
+          <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.left')}`} size="small" icon={<AlignLeftOutlined aria-hidden />} disabled={textAlignDisabled} type={textAlign === 'left' ? 'primary' : 'default'} onClick={() => setTextAlign('left')} />
+          <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.center')}`} size="small" icon={<AlignCenterOutlined aria-hidden />} disabled={textAlignDisabled} type={textAlign === 'center' ? 'primary' : 'default'} onClick={() => setTextAlign('center')} />
+          <Button aria-label={`${t('ribbon.text')} ${t('styleLibrary.right')}`} size="small" icon={<AlignRightOutlined aria-hidden />} disabled={textAlignDisabled} type={textAlign === 'right' ? 'primary' : 'default'} onClick={() => setTextAlign('right')} />
         </RibbonGroup>
 
         <RibbonGroup title={t('ribbon.styles')}>

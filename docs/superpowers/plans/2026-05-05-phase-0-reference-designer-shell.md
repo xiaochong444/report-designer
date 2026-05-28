@@ -86,7 +86,7 @@ Replace the current Ant Design layout with `DesignerShell`, passing the current 
 
 - [ ] **Step 2: Compose existing components without deleting them**
 
-Do not delete `RibbonToolbar.tsx`, `LeftPanel.tsx`, `PropertyEditor.tsx`, or `Canvas.tsx` in this phase. The new shell composes them through wrapper components, and Phase 5 replaces the wrappers with workflow-specific panels.
+Keep `LeftPanel.tsx`, `PropertyEditor.tsx`, and `Canvas.tsx` available through wrapper components in this phase. Later phases replace the wrappers with workflow-specific panels.
 
 ### Task 4: Add Visual Styling
 

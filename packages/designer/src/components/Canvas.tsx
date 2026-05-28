@@ -159,6 +159,7 @@ interface ContextMenuPos {
 // ---- Canvas ----
 
 export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
+  const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
@@ -828,7 +829,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   if (!currentPage) {
     return (
       <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999' }}>
-        没有页面选中
+        {t('canvas.noPageSelected')}
       </div>
     );
   }
@@ -1119,27 +1120,31 @@ const ZoomBar: React.FC<{
   onZoomOut: () => void;
   onReset: () => void;
   onSetZoom: (z: number) => void;
-}> = ({ zoom, onZoomIn, onZoomOut, onReset, onSetZoom }) => (
-  <div data-testid="designer-zoom-bar" style={{
-    position: 'absolute', left: 32, bottom: 16,
-    backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 4,
-    boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 10000,
-    display: 'flex', alignItems: 'center', padding: '2px 4px', gap: 2,
-  }}>
-    <button onClick={onZoomOut} title="缩小"
-      style={zoomBtnStyle}>{'−'}</button>
-    <span onClick={onReset} title="重置为 100%"
-      style={{ fontSize: 11, color: '#555', cursor: 'pointer', padding: '0 6px', minWidth: 40, textAlign: 'center' }}>
-      {Math.round(zoom * 100)}%
-    </span>
-    <button onClick={onZoomIn} title="放大"
-      style={zoomBtnStyle}>{'+'}</button>
-    <div style={{ width: 1, height: 18, backgroundColor: '#d9d9d9', margin: '0 2px' }} />
-    <button onClick={() => onSetZoom(0.5)} title="50%" style={{ ...zoomBtnStyle, width: 28, fontSize: 10 }}>50%</button>
-    <button onClick={() => onSetZoom(1)} title="100%" style={{ ...zoomBtnStyle, width: 34, fontSize: 10 }}>100%</button>
-    <button onClick={() => onSetZoom(2)} title="200%" style={{ ...zoomBtnStyle, width: 34, fontSize: 10 }}>200%</button>
-  </div>
-);
+}> = ({ zoom, onZoomIn, onZoomOut, onReset, onSetZoom }) => {
+  const { t } = useDesignerI18n();
+
+  return (
+    <div data-testid="designer-zoom-bar" style={{
+      position: 'absolute', left: 32, bottom: 16,
+      backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 4,
+      boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 10000,
+      display: 'flex', alignItems: 'center', padding: '2px 4px', gap: 2,
+    }}>
+      <button onClick={onZoomOut} title={t('canvas.zoomOut')}
+        style={zoomBtnStyle}>{'−'}</button>
+      <span onClick={onReset} title={t('canvas.zoomReset')}
+        style={{ fontSize: 11, color: '#555', cursor: 'pointer', padding: '0 6px', minWidth: 40, textAlign: 'center' }}>
+        {Math.round(zoom * 100)}%
+      </span>
+      <button onClick={onZoomIn} title={t('canvas.zoomIn')}
+        style={zoomBtnStyle}>{'+'}</button>
+      <div style={{ width: 1, height: 18, backgroundColor: '#d9d9d9', margin: '0 2px' }} />
+      <button onClick={() => onSetZoom(0.5)} title="50%" style={{ ...zoomBtnStyle, width: 28, fontSize: 10 }}>50%</button>
+      <button onClick={() => onSetZoom(1)} title="100%" style={{ ...zoomBtnStyle, width: 34, fontSize: 10 }}>100%</button>
+      <button onClick={() => onSetZoom(2)} title="200%" style={{ ...zoomBtnStyle, width: 34, fontSize: 10 }}>200%</button>
+    </div>
+  );
+};
 
 const zoomBtnStyle: React.CSSProperties = {
   width: 24, height: 24, border: '1px solid #d9d9d9', borderRadius: 3,
@@ -1473,6 +1478,7 @@ const ComponentView: React.FC<{
   onCancelEdit,
   onEditTextChange,
 }) => {
+  const { t } = useDesignerI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   React.useEffect(() => { if (editing && editingKind === 'text') setTimeout(() => inputRef.current?.focus(), 0); }, [editing, editingKind]);
 
@@ -1516,7 +1522,7 @@ const ComponentView: React.FC<{
             onSave={onFinishRichText}
             onCancel={onCancelEdit}
           />
-        ) : getCompContent(component, bandId, selectedTableCell)}
+        ) : getCompContent(component, bandId, selectedTableCell, { imagePlaceholder: t('canvas.imagePlaceholder') })}
       </div>
 
       {selected && !editing && RESIZE_HANDLES.map(handle => (
@@ -1607,7 +1613,12 @@ function getFontStyle(font: any): React.CSSProperties {
   };
 }
 
-function getCompContent(comp: ReportComponent, bandId: string, selectedTableCell: TableCellSelection | null): React.ReactNode {
+function getCompContent(
+  comp: ReportComponent,
+  bandId: string,
+  selectedTableCell: TableCellSelection | null,
+  labels: { imagePlaceholder: string },
+): React.ReactNode {
   switch (comp.type) {
     case 'text':
       return <div style={{ width: '100%', height: '100%', overflow: 'hidden', lineHeight: 1.2 }}>{(comp as any).text || ''}</div>;
@@ -1618,7 +1629,7 @@ function getCompContent(comp: ReportComponent, bandId: string, selectedTableCell
         : (comp as any).fitMode || 'contain';
       return src
         ? <img src={src} alt="" style={{ width: '100%', height: '100%', objectFit: fitMode }} draggable={false} />
-        : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ccc', fontSize: 10, border: '1px dashed #ddd' }}>图片</div>;
+        : <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#ccc', fontSize: 10, border: '1px dashed #ddd' }}>{labels.imagePlaceholder}</div>;
     }
     case 'barcode': {
       const t = comp as any;
@@ -1776,23 +1787,27 @@ const PanelChildrenPreview: React.FC<{ panel: ReportComponent & { components?: R
   );
 };
 
-const PanelChildPreview: React.FC<{ component: ReportComponent }> = ({ component }) => (
-  <div
-    style={{
-      position: 'absolute',
-      left: safeCssNumber(mmToPx(component.x)),
-      top: safeCssNumber(mmToPx(component.y)),
-      width: safeCssNumber(mmToPx(component.width)),
-      height: safeCssNumber(mmToPx(component.height)),
-      boxSizing: 'border-box',
-      overflow: 'hidden',
-      padding: 2,
-      ...getCompStyle(component),
-    }}
-  >
-    {getCompContent(component, '', null)}
-  </div>
-);
+const PanelChildPreview: React.FC<{ component: ReportComponent }> = ({ component }) => {
+  const { t } = useDesignerI18n();
+
+  return (
+    <div
+      style={{
+        position: 'absolute',
+        left: safeCssNumber(mmToPx(component.x)),
+        top: safeCssNumber(mmToPx(component.y)),
+        width: safeCssNumber(mmToPx(component.width)),
+        height: safeCssNumber(mmToPx(component.height)),
+        boxSizing: 'border-box',
+        overflow: 'hidden',
+        padding: 2,
+        ...getCompStyle(component),
+      }}
+    >
+      {getCompContent(component, '', null, { imagePlaceholder: t('canvas.imagePlaceholder') })}
+    </div>
+  );
+};
 
 function readDesignBoolean(value: unknown): boolean {
   if (typeof value === 'boolean') return value;

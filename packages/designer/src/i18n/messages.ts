@@ -4,12 +4,37 @@ export type DesignerMessageKey =
   | 'common.cancel'
   | 'common.delete'
   | 'common.done'
+  | 'common.ok'
   | 'common.duplicate'
   | 'common.new'
   | 'common.apply'
   | 'common.save'
   | 'common.search'
   | 'common.default'
+  | 'canvas.noPageSelected'
+  | 'canvas.zoomOut'
+  | 'canvas.zoomReset'
+  | 'canvas.zoomIn'
+  | 'canvas.imagePlaceholder'
+  | 'expressionEditor.title'
+  | 'expressionEditor.category.expression'
+  | 'expressionEditor.category.expressionSubtitle'
+  | 'expressionEditor.category.data'
+  | 'expressionEditor.category.dataSubtitle'
+  | 'expressionEditor.category.system'
+  | 'expressionEditor.category.systemSubtitle'
+  | 'expressionEditor.category.aggregates'
+  | 'expressionEditor.category.aggregatesSubtitle'
+  | 'expressionEditor.category.html'
+  | 'expressionEditor.category.htmlSubtitle'
+  | 'expressionEditor.example'
+  | 'expressionEditor.validate'
+  | 'expressionEditor.validation.braces'
+  | 'expressionEditor.validation.parens'
+  | 'expressionEditor.validation.passed'
+  | 'expressionEditor.tree.aggregateFunctions'
+  | 'expressionEditor.tree.pageReportTotals'
+  | 'expressionEditor.tree.logicFunctions'
   | 'shell.new'
   | 'shell.open'
   | 'shell.save'
@@ -26,6 +51,8 @@ export type DesignerMessageKey =
   | 'ribbon.history'
   | 'ribbon.clipboard'
   | 'ribbon.font'
+  | 'ribbon.fontSizeControl'
+  | 'ribbon.boldControl'
   | 'ribbon.align'
   | 'ribbon.borders'
   | 'ribbon.styles'
@@ -466,12 +493,37 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'common.cancel': '取消',
     'common.delete': '删除',
     'common.done': '完成',
+    'common.ok': '确定',
     'common.duplicate': '复制',
     'common.new': '新建',
     'common.apply': '应用',
     'common.save': '保存',
     'common.search': '搜索',
     'common.default': '默认',
+    'canvas.noPageSelected': '未选择页面',
+    'canvas.zoomOut': '缩小',
+    'canvas.zoomReset': '重置为 100%',
+    'canvas.zoomIn': '放大',
+    'canvas.imagePlaceholder': '图片',
+    'expressionEditor.title': '文本',
+    'expressionEditor.category.expression': '表达式',
+    'expressionEditor.category.expressionSubtitle': 'Expression',
+    'expressionEditor.category.data': '数据列',
+    'expressionEditor.category.dataSubtitle': 'Data Column',
+    'expressionEditor.category.system': '系统变量',
+    'expressionEditor.category.systemSubtitle': 'System',
+    'expressionEditor.category.aggregates': '聚合',
+    'expressionEditor.category.aggregatesSubtitle': 'Aggregate',
+    'expressionEditor.category.html': 'HTML',
+    'expressionEditor.category.htmlSubtitle': 'Html',
+    'expressionEditor.example': '示例: Text: {Expression}, {DataSource.Field}',
+    'expressionEditor.validate': '校验',
+    'expressionEditor.validation.braces': '大括号数量不匹配',
+    'expressionEditor.validation.parens': '括号数量不匹配',
+    'expressionEditor.validation.passed': '表达式校验通过',
+    'expressionEditor.tree.aggregateFunctions': '聚合函数',
+    'expressionEditor.tree.pageReportTotals': '页/报表合计',
+    'expressionEditor.tree.logicFunctions': '条件函数',
     'shell.new': '新建',
     'shell.open': '打开',
     'shell.save': '保存',
@@ -488,6 +540,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.history': '历史',
     'ribbon.clipboard': '剪贴板',
     'ribbon.font': '字体',
+    'ribbon.fontSizeControl': '工具栏字号',
+    'ribbon.boldControl': '工具栏加粗',
     'ribbon.align': '对齐',
     'ribbon.borders': '边框',
     'ribbon.styles': '样式',
@@ -925,12 +979,37 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'common.cancel': 'Cancel',
     'common.delete': 'Delete',
     'common.done': 'Done',
+    'common.ok': 'OK',
     'common.duplicate': 'Duplicate',
     'common.new': 'New',
     'common.apply': 'Apply',
     'common.save': 'Save',
     'common.search': 'Search',
     'common.default': 'Default',
+    'canvas.noPageSelected': 'No page selected',
+    'canvas.zoomOut': 'Zoom out',
+    'canvas.zoomReset': 'Reset to 100%',
+    'canvas.zoomIn': 'Zoom in',
+    'canvas.imagePlaceholder': 'Image',
+    'expressionEditor.title': 'Text',
+    'expressionEditor.category.expression': 'Expression',
+    'expressionEditor.category.expressionSubtitle': 'Build content',
+    'expressionEditor.category.data': 'Data Column',
+    'expressionEditor.category.dataSubtitle': 'JSON fields',
+    'expressionEditor.category.system': 'System',
+    'expressionEditor.category.systemSubtitle': 'Variables',
+    'expressionEditor.category.aggregates': 'Aggregate',
+    'expressionEditor.category.aggregatesSubtitle': 'Totals',
+    'expressionEditor.category.html': 'HTML',
+    'expressionEditor.category.htmlSubtitle': 'Tags',
+    'expressionEditor.example': 'Example: Text: {Expression}, {DataSource.Field}',
+    'expressionEditor.validate': 'Validate',
+    'expressionEditor.validation.braces': 'Brace count does not match',
+    'expressionEditor.validation.parens': 'Parenthesis count does not match',
+    'expressionEditor.validation.passed': 'Expression validation passed',
+    'expressionEditor.tree.aggregateFunctions': 'Aggregate functions',
+    'expressionEditor.tree.pageReportTotals': 'Page/report totals',
+    'expressionEditor.tree.logicFunctions': 'Logic functions',
     'shell.new': 'New',
     'shell.open': 'Open',
     'shell.save': 'Save',
@@ -947,6 +1026,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.history': 'History',
     'ribbon.clipboard': 'Clipboard',
     'ribbon.font': 'Font',
+    'ribbon.fontSizeControl': 'Ribbon font size',
+    'ribbon.boldControl': 'Ribbon bold',
     'ribbon.align': 'Align',
     'ribbon.borders': 'Borders',
     'ribbon.styles': 'Styles',

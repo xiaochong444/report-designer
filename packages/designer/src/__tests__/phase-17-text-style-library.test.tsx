@@ -7,7 +7,7 @@ import type { ReportStyle, TextComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { Designer } from '../components/Designer';
 import { PropertyEditor } from '../components/PropertyEditor';
-import { RibbonToolbar } from '../components/RibbonToolbar';
+import { DesignerRibbon } from '../components/ribbon/DesignerRibbon';
 import { DesignerI18nProvider } from '../i18n';
 import type { DesignerLocale } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
@@ -809,7 +809,7 @@ describe('Phase 17 text style library store behavior', () => {
     expectAntdControlDisabled(screen.getByLabelText('格式类型'));
   });
 
-  it('disables toolbar entries for style-managed text properties', () => {
+  it('disables ribbon entries for style-managed text properties', () => {
     const style: ReportStyle = {
       id: 'style-a',
       name: 'Style A',
@@ -822,16 +822,20 @@ describe('Phase 17 text style library store behavior', () => {
     useDesignerStore.getState().selectComponents(['text-1']);
     useDesignerStore.getState().applySelectedStyle('style-a');
 
-    render(<RibbonToolbar />);
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <DesignerRibbon />
+      </DesignerI18nProvider>,
+    );
 
-    expectAntdControlDisabled(screen.getByLabelText('工具栏字号'));
-    expect(screen.getByRole('button', { name: '工具栏加粗' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '工具栏斜体' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '工具栏下划线' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '工具栏左对齐' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '工具栏水平居中' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '工具栏右对齐' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: '工具栏边框' })).toBeDisabled();
+    expectAntdControlDisabled(screen.getByLabelText('Ribbon font size'));
+    expect(screen.getByRole('button', { name: 'Ribbon bold' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Text Left' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Text Center' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Text Right' })).toBeDisabled();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Layout' }));
+    expect(screen.getByRole('button', { name: 'All borders' })).toBeDisabled();
   });
 
   it('updates referenced text components when a style is edited in the dialog', async () => {

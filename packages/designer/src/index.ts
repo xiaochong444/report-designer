@@ -12,7 +12,6 @@ export { PageSetupDialog } from './components/dialogs/PageSetupDialog';
 export { InlineExpressionEditor } from './components/expression/InlineExpressionEditor';
 export { BandPropertyGrid } from './components/properties/BandPropertyGrid';
 export { ReportTree } from './components/tree/ReportTree';
-export { RibbonToolbar } from './components/RibbonToolbar';
 export { Canvas } from './components/Canvas';
 export { LeftPanel } from './components/LeftPanel';
 export { PropertyEditor } from './components/PropertyEditor';

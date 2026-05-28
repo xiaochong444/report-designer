@@ -6,6 +6,7 @@ import '@testing-library/jest-dom/vitest';
 import { createDefaultTemplate, type ReportTemplate } from '@report-designer/core';
 import { Designer } from '../components/Designer';
 import { ExpressionEditor } from '../components/ExpressionEditor';
+import { DesignerI18nProvider } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 
 Object.defineProperty(window, 'matchMedia', {
@@ -116,5 +117,29 @@ describe('Phase 16 dictionary tree and expression shell', () => {
       expect(nextValue).toContain('{Products.UnitPrice}');
       expect(nextValue).toContain('SUM');
     });
+  });
+
+  it('uses the selected designer locale in the expression shell', async () => {
+    useDesignerStore.getState().loadTemplate(makeDictionaryTemplate());
+
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <ExpressionEditor
+          open
+          value=""
+          onChange={() => {}}
+          onClose={() => {}}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    expect(screen.getByText('Text')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Expression/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Data Column/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /System/i })).toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
+    expect(screen.getByText('Data sources')).toBeInTheDocument();
+    expect(screen.getByText('Format')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Validate' })).toBeInTheDocument();
   });
 });

@@ -1,30 +1,31 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Button, Input, Modal, Tree } from 'antd';
 import type { DataNode } from 'antd/es/tree';
+import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 
 const BUILT_IN_FUNCTIONS = [
-  { name: 'SUM', desc: '求和', insert: 'SUM()' },
-  { name: 'AVG', desc: '平均值', insert: 'AVG()' },
-  { name: 'COUNT', desc: '计数', insert: 'COUNT()' },
-  { name: 'MAX', desc: '最大值', insert: 'MAX()' },
-  { name: 'MIN', desc: '最小值', insert: 'MIN()' },
-  { name: 'PAGESUM', desc: '按页求和', insert: 'PAGESUM("", "")' },
-  { name: 'PAGECOUNT', desc: '按页计数', insert: 'PAGECOUNT("")' },
-  { name: 'REPORTSUM', desc: '按报表求和', insert: 'REPORTSUM("", "")' },
-  { name: 'REPORTCOUNT', desc: '按报表计数', insert: 'REPORTCOUNT("")' },
-  { name: 'TOTALS.PAGESUM', desc: '按页求和别名', insert: 'TOTALS.PAGESUM("", "")' },
-  { name: 'TOTALS.PAGECOUNT', desc: '按页计数别名', insert: 'TOTALS.PAGECOUNT("")' },
-  { name: 'TOTALS.REPORTSUM', desc: '按报表求和别名', insert: 'TOTALS.REPORTSUM("", "")' },
-  { name: 'IF', desc: '条件判断', insert: 'IF(, , )' },
-  { name: 'IIF', desc: '条件判断', insert: 'IIF(, , )' },
-  { name: 'ISNULL', desc: '是否为空', insert: 'ISNULL()' },
-  { name: 'FORMAT', desc: '格式化', insert: 'FORMAT()' },
-  { name: 'ROUND', desc: '四舍五入', insert: 'ROUND()' },
-  { name: 'NOW', desc: '当前日期时间', insert: 'NOW()' },
-  { name: 'TODAY', desc: '当前日期', insert: 'TODAY()' },
-  { name: 'PAGE', desc: '当前页码', insert: 'PAGE()' },
-  { name: 'TOTALPAGES', desc: '总页数', insert: 'TOTALPAGES()' },
+  { name: 'SUM', desc: { 'zh-CN': '求和', 'en-US': 'Sum' }, insert: 'SUM()' },
+  { name: 'AVG', desc: { 'zh-CN': '平均值', 'en-US': 'Average' }, insert: 'AVG()' },
+  { name: 'COUNT', desc: { 'zh-CN': '计数', 'en-US': 'Count' }, insert: 'COUNT()' },
+  { name: 'MAX', desc: { 'zh-CN': '最大值', 'en-US': 'Maximum' }, insert: 'MAX()' },
+  { name: 'MIN', desc: { 'zh-CN': '最小值', 'en-US': 'Minimum' }, insert: 'MIN()' },
+  { name: 'PAGESUM', desc: { 'zh-CN': '按页求和', 'en-US': 'Page sum' }, insert: 'PAGESUM("", "")' },
+  { name: 'PAGECOUNT', desc: { 'zh-CN': '按页计数', 'en-US': 'Page count' }, insert: 'PAGECOUNT("")' },
+  { name: 'REPORTSUM', desc: { 'zh-CN': '按报表求和', 'en-US': 'Report sum' }, insert: 'REPORTSUM("", "")' },
+  { name: 'REPORTCOUNT', desc: { 'zh-CN': '按报表计数', 'en-US': 'Report count' }, insert: 'REPORTCOUNT("")' },
+  { name: 'TOTALS.PAGESUM', desc: { 'zh-CN': '按页求和别名', 'en-US': 'Page sum alias' }, insert: 'TOTALS.PAGESUM("", "")' },
+  { name: 'TOTALS.PAGECOUNT', desc: { 'zh-CN': '按页计数别名', 'en-US': 'Page count alias' }, insert: 'TOTALS.PAGECOUNT("")' },
+  { name: 'TOTALS.REPORTSUM', desc: { 'zh-CN': '按报表求和别名', 'en-US': 'Report sum alias' }, insert: 'TOTALS.REPORTSUM("", "")' },
+  { name: 'IF', desc: { 'zh-CN': '条件判断', 'en-US': 'Conditional' }, insert: 'IF(, , )' },
+  { name: 'IIF', desc: { 'zh-CN': '条件判断', 'en-US': 'Conditional' }, insert: 'IIF(, , )' },
+  { name: 'ISNULL', desc: { 'zh-CN': '是否为空', 'en-US': 'Is null' }, insert: 'ISNULL()' },
+  { name: 'FORMAT', desc: { 'zh-CN': '格式化', 'en-US': 'Format' }, insert: 'FORMAT()' },
+  { name: 'ROUND', desc: { 'zh-CN': '四舍五入', 'en-US': 'Round' }, insert: 'ROUND()' },
+  { name: 'NOW', desc: { 'zh-CN': '当前日期时间', 'en-US': 'Current date/time' }, insert: 'NOW()' },
+  { name: 'TODAY', desc: { 'zh-CN': '当前日期', 'en-US': 'Current date' }, insert: 'TODAY()' },
+  { name: 'PAGE', desc: { 'zh-CN': '当前页码', 'en-US': 'Current page' }, insert: 'PAGE()' },
+  { name: 'TOTALPAGES', desc: { 'zh-CN': '总页数', 'en-US': 'Total pages' }, insert: 'TOTALPAGES()' },
 ];
 
 const SYSTEM_VARIABLES = [
@@ -56,12 +57,12 @@ type TreeNodeMeta = DataNode & {
   children?: TreeNodeMeta[];
 };
 
-const CATEGORY_ITEMS: Array<{ key: ExpressionCategory; label: string; subtitle: string }> = [
-  { key: 'expression', label: '表达式', subtitle: 'Expression' },
-  { key: 'data', label: '数据列', subtitle: 'Data Column' },
-  { key: 'system', label: '系统变量', subtitle: 'System' },
-  { key: 'aggregates', label: '聚合', subtitle: 'Aggregate' },
-  { key: 'html', label: 'HTML', subtitle: 'Html' },
+const CATEGORY_ITEMS: Array<{ key: ExpressionCategory; labelKey: DesignerMessageKey; subtitleKey: DesignerMessageKey }> = [
+  { key: 'expression', labelKey: 'expressionEditor.category.expression', subtitleKey: 'expressionEditor.category.expressionSubtitle' },
+  { key: 'data', labelKey: 'expressionEditor.category.data', subtitleKey: 'expressionEditor.category.dataSubtitle' },
+  { key: 'system', labelKey: 'expressionEditor.category.system', subtitleKey: 'expressionEditor.category.systemSubtitle' },
+  { key: 'aggregates', labelKey: 'expressionEditor.category.aggregates', subtitleKey: 'expressionEditor.category.aggregatesSubtitle' },
+  { key: 'html', labelKey: 'expressionEditor.category.html', subtitleKey: 'expressionEditor.category.htmlSubtitle' },
 ];
 
 function makeTreeNode(
@@ -107,19 +108,19 @@ function filterTreeNodes(nodes: TreeNodeMeta[], query: string): TreeNodeMeta[] {
     .filter(Boolean) as TreeNodeMeta[];
 }
 
-function validateExpression(expression: string) {
+function validateExpression(expression: string, t: (key: DesignerMessageKey) => string) {
   const openBraces = (expression.match(/{/g) ?? []).length;
   const closeBraces = (expression.match(/}/g) ?? []).length;
   const openParens = (expression.match(/\(/g) ?? []).length;
   const closeParens = (expression.match(/\)/g) ?? []).length;
 
   if (openBraces !== closeBraces) {
-    return '大括号数量不匹配';
+    return t('expressionEditor.validation.braces');
   }
   if (openParens !== closeParens) {
-    return '括号数量不匹配';
+    return t('expressionEditor.validation.parens');
   }
-  return '表达式校验通过';
+  return t('expressionEditor.validation.passed');
 }
 
 export const ExpressionEditor: React.FC<{
@@ -128,20 +129,21 @@ export const ExpressionEditor: React.FC<{
   onChange: (value: string) => void;
   onClose: () => void;
 }> = ({ open, value, onChange, onClose }) => {
+  const { locale, t } = useDesignerI18n();
   const template = useDesignerStore((state) => state.template);
   const [expression, setExpression] = useState(value);
   const [activeCategory, setActiveCategory] = useState<ExpressionCategory>('expression');
   const [searchTerm, setSearchTerm] = useState('');
-  const [validationMessage, setValidationMessage] = useState('示例: Text: {Expression}, {DataSource.Field}');
+  const [validationMessage, setValidationMessage] = useState(() => t('expressionEditor.example'));
   const inputRef = useRef<any>(null);
 
   useEffect(() => {
     if (open) {
       setExpression(value);
       setSearchTerm('');
-      setValidationMessage('示例: Text: {Expression}, {DataSource.Field}');
+      setValidationMessage(t('expressionEditor.example'));
     }
-  }, [open, value]);
+  }, [locale, open, value]);
 
   const insertAtCursor = (text: string) => {
     const input = inputRef.current?.resizableTextArea?.textArea || inputRef.current;
@@ -186,34 +188,34 @@ export const ExpressionEditor: React.FC<{
 
   const functionNodes = useMemo<TreeNodeMeta[]>(
     () => [
-      makeTreeNode('fn.aggregate', '聚合函数', 'folder', {
+      makeTreeNode('fn.aggregate', t('expressionEditor.tree.aggregateFunctions'), 'folder', {
         children: BUILT_IN_FUNCTIONS.filter((item) => ['SUM', 'AVG', 'COUNT', 'MAX', 'MIN'].includes(item.name)).map((item) =>
           makeTreeNode(`fn.${item.name}`, item.name, 'function', {
             insertValue: item.insert,
-            searchText: `${item.name} ${item.desc}`.toLowerCase(),
+            searchText: `${item.name} ${item.desc[locale]}`.toLowerCase(),
           }),
         ),
       }),
-      makeTreeNode('fn.total', '页/报表合计', 'folder', {
+      makeTreeNode('fn.total', t('expressionEditor.tree.pageReportTotals'), 'folder', {
         children: BUILT_IN_FUNCTIONS.filter((item) =>
           ['PAGESUM', 'PAGECOUNT', 'REPORTSUM', 'REPORTCOUNT', 'TOTALS.PAGESUM', 'TOTALS.PAGECOUNT', 'TOTALS.REPORTSUM'].includes(item.name),
         ).map((item) =>
           makeTreeNode(`fn.${item.name}`, item.name, 'function', {
             insertValue: item.insert,
-            searchText: `${item.name} ${item.desc}`.toLowerCase(),
+            searchText: `${item.name} ${item.desc[locale]}`.toLowerCase(),
           }),
         ),
       }),
-      makeTreeNode('fn.logic', '条件函数', 'folder', {
+      makeTreeNode('fn.logic', t('expressionEditor.tree.logicFunctions'), 'folder', {
         children: BUILT_IN_FUNCTIONS.filter((item) => ['IF', 'IIF', 'ISNULL'].includes(item.name)).map((item) =>
           makeTreeNode(`fn.${item.name}`, item.name, 'function', {
             insertValue: item.insert,
-            searchText: `${item.name} ${item.desc}`.toLowerCase(),
+            searchText: `${item.name} ${item.desc[locale]}`.toLowerCase(),
           }),
         ),
       }),
     ],
-    [],
+    [locale, t],
   );
 
   const systemNodes = useMemo<TreeNodeMeta[]>(
@@ -252,29 +254,29 @@ export const ExpressionEditor: React.FC<{
   const treeData = useMemo<TreeNodeMeta[]>(() => {
     switch (activeCategory) {
       case 'data':
-        return [makeTreeNode('tree.data', '数据源', 'folder', { children: dataSourceNodes })];
+        return [makeTreeNode('tree.data', t('leftPanel.dataSources'), 'folder', { children: dataSourceNodes })];
       case 'system':
-        return [makeTreeNode('tree.system', '系统变量', 'folder', { children: systemNodes })];
+        return [makeTreeNode('tree.system', t('leftPanel.systemVariables'), 'folder', { children: systemNodes })];
       case 'aggregates':
-        return [makeTreeNode('tree.function', '函数', 'folder', { children: functionNodes })];
+        return [makeTreeNode('tree.function', t('leftPanel.functions'), 'folder', { children: functionNodes })];
       case 'html':
         return [makeTreeNode('tree.html', 'Html Tag', 'folder', { children: htmlNodes })];
       case 'expression':
       default:
         return [
-          makeTreeNode('tree.data', '数据源', 'folder', { children: dataSourceNodes }),
-          makeTreeNode('tree.variables', '变量', 'folder', {
-            children: [makeTreeNode('tree.variables.empty', '暂无变量', 'resource')],
+          makeTreeNode('tree.data', t('leftPanel.dataSources'), 'folder', { children: dataSourceNodes }),
+          makeTreeNode('tree.variables', t('leftPanel.variables'), 'folder', {
+            children: [makeTreeNode('tree.variables.empty', t('leftPanel.noVariables'), 'resource')],
           }),
-          makeTreeNode('tree.system', '系统变量', 'folder', { children: systemNodes }),
-          makeTreeNode('tree.function', '函数', 'folder', { children: functionNodes }),
-          makeTreeNode('tree.format', '格式', 'folder', { children: formatNodes }),
-          makeTreeNode('tree.resources', '资源', 'folder', {
-            children: [makeTreeNode('tree.resources.empty', '暂无资源', 'resource')],
+          makeTreeNode('tree.system', t('leftPanel.systemVariables'), 'folder', { children: systemNodes }),
+          makeTreeNode('tree.function', t('leftPanel.functions'), 'folder', { children: functionNodes }),
+          makeTreeNode('tree.format', t('styleLibrary.format'), 'folder', { children: formatNodes }),
+          makeTreeNode('tree.resources', t('leftPanel.resources'), 'folder', {
+            children: [makeTreeNode('tree.resources.empty', t('leftPanel.noResources'), 'resource')],
           }),
         ];
     }
-  }, [activeCategory, dataSourceNodes, formatNodes, functionNodes, htmlNodes, systemNodes]);
+  }, [activeCategory, dataSourceNodes, formatNodes, functionNodes, htmlNodes, systemNodes, t]);
 
   const filteredTree = useMemo(
     () => filterTreeNodes(treeData, searchTerm.trim().toLowerCase()),
@@ -299,13 +301,13 @@ export const ExpressionEditor: React.FC<{
 
   return (
     <Modal
-      title="文本"
+      title={t('expressionEditor.title')}
       open={open}
       onOk={handleOk}
       onCancel={handleCancel}
       width={960}
-      okText="确定"
-      cancelText="取消"
+      okText={t('common.ok')}
+      cancelText={t('common.cancel')}
       destroyOnHidden
     >
       <div className="rd-expression-editor">
@@ -322,8 +324,8 @@ export const ExpressionEditor: React.FC<{
             >
               <span className={`rd-expression-tree-glyph rd-expression-tree-glyph-${item.key}`} aria-hidden />
               <span className="rd-expression-rail-copy">
-                <span>{item.label}</span>
-                <span>{item.subtitle}</span>
+                <span>{t(item.labelKey)}</span>
+                <span>{t(item.subtitleKey)}</span>
               </span>
             </button>
           ))}
@@ -343,9 +345,9 @@ export const ExpressionEditor: React.FC<{
             <Button
               type="link"
               size="small"
-              onClick={() => setValidationMessage(validateExpression(expression))}
+              onClick={() => setValidationMessage(validateExpression(expression, t))}
             >
-              校验
+              {t('expressionEditor.validate')}
             </Button>
           </div>
         </section>
@@ -354,7 +356,7 @@ export const ExpressionEditor: React.FC<{
           <Input
             allowClear
             size="small"
-            placeholder="搜索"
+            placeholder={t('common.search')}
             value={searchTerm}
             onChange={(event) => setSearchTerm(event.target.value)}
           />

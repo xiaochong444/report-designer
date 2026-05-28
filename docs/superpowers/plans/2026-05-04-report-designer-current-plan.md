@@ -232,7 +232,7 @@
 - `packages/designer/src/store/designer-store.ts` — 添加 alignComponents, sizeComponents, bringToFront, sendToBack
 - `packages/core/src/command-engine/index.ts` — 注册新命令
 - `packages/designer/src/components/Canvas.tsx` — 键盘快捷键
-- `packages/designer/src/components/RibbonToolbar.tsx` — 工具栏按钮
+- `packages/designer/src/components/ribbon/DesignerRibbon.tsx` — 工具栏按钮
 
 **对齐操作：**
 - 左对齐：所有选中组件的 x = min(x)
@@ -300,7 +300,7 @@
 **目标：** 让工具栏所有按钮都有实际功能
 
 **文件：**
-- `packages/designer/src/components/RibbonToolbar.tsx` — 重写
+- `packages/designer/src/components/ribbon/DesignerRibbon.tsx` — 重写
 - `packages/designer/src/components/PageSetupDialog.tsx` — 新建
 - `packages/designer/src/store/designer-store.ts` — 添加状态
 
