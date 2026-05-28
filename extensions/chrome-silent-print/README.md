@@ -89,7 +89,15 @@ or
 
 The Windows host lives in `native-hosts/windows-print-host`. It is a .NET `WinExe` Native Messaging host, so Chrome can launch it with redirected stdin/stdout without showing a console window.
 
-Build and publish:
+For local integration, load this extension in `chrome://extensions`, copy the extension id, then run from the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\native-hosts\windows-print-host\scripts\install-chrome-native-host.ps1 -ExtensionId "your_chrome_extension_id"
+```
+
+The script publishes the host, creates the config, creates the native host manifest, and registers the Chrome Native Messaging registry key under `HKCU`.
+
+Manual build and publish:
 
 ```powershell
 dotnet publish native-hosts\windows-print-host\WindowsPrintHost.csproj -c Release -r win-x64 --self-contained false -o "C:\Program Files\ReportDesignerPrintHost"

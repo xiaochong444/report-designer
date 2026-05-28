@@ -20,6 +20,12 @@ This project is the native Windows host for silent PDF printing.
 dotnet publish .\WindowsPrintHost.csproj -c Release -r win-x64 --self-contained false -o "C:\Program Files\ReportDesignerPrintHost"
 ```
 
+For local integration, use the one-command installer from the repository root:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\native-hosts\windows-print-host\scripts\install-chrome-native-host.ps1 -ExtensionId "your_chrome_extension_id"
+```
+
 ## Configuration
 
 Create `%LOCALAPPDATA%\\ReportDesignerPrintHost\\config.json`:
