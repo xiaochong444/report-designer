@@ -81,7 +81,7 @@ describe('Phase 15 report tree naming and icons', () => {
     expect(screen.queryByText('Report Explorer')).not.toBeInTheDocument();
     expect(screen.queryByRole('tab', { name: /Components/ })).not.toBeInTheDocument();
     expect(await screen.findByTestId('report-tree-root')).toHaveTextContent('Tree Demo');
-    expect(await screen.findByText('Page1')).toBeInTheDocument();
+    expect(await screen.findByText('页面1')).toBeInTheDocument();
     expect(within(await screen.findByTestId('report-tree-component-text-alpha')).getByText('Text1')).toBeInTheDocument();
     expect(within(await screen.findByTestId('report-tree-component-image-alpha')).getByText('Image1')).toBeInTheDocument();
     expect(screen.queryByText(/text - text-alpha/i)).not.toBeInTheDocument();
@@ -135,7 +135,7 @@ describe('Phase 15 report tree naming and icons', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('report-tree-component-text-alpha')).not.toBeInTheDocument();
     });
-    expect(within(reportTree).getByText('DataBand1')).toBeInTheDocument();
+    expect(within(reportTree).getByText('数据带1')).toBeInTheDocument();
   });
 
   it('selects a band from the report tree and clears component selection', async () => {

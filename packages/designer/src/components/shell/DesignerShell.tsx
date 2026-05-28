@@ -19,9 +19,10 @@ import '../../styles/designer-shell.css';
 
 interface DesignerShellProps {
   className?: string;
+  subreports?: Record<string, ReportTemplate>;
 }
 
-export const DesignerShell: React.FC<DesignerShellProps> = ({ className }) => {
+export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subreports }) => {
   const template = useDesignerStore(s => s.template);
   const undo = useDesignerStore(s => s.undo);
   const redo = useDesignerStore(s => s.redo);
@@ -38,7 +39,7 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className }) => {
       <DesignerRibbon />
       <div className="rd-designer-body">
         <DesignerLeftPanel />
-        <DesignerCanvasFrame />
+        <DesignerCanvasFrame subreports={subreports} />
         <DesignerPropertyPanel />
       </div>
       <DesignerStatusBar />

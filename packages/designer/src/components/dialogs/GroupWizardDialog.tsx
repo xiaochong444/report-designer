@@ -34,7 +34,7 @@ export const GroupWizardDialog: React.FC<GroupWizardDialogProps> = ({ open, onCl
           type: 'groupHeader',
           height: 14,
           group: { name: field.fieldName, conditionExpression: `{${field.dataSourceId}.${field.fieldName}}` },
-          components: [createTextComponent(`{${field.dataSourceId}.${field.fieldName}}`, 10, 3, 80, 8, 'Group Header')],
+          components: [createTextComponent(`{${field.dataSourceId}.${field.fieldName}}`, 10, 3, 80, 8, t('groupWizard.generatedHeaderName'))],
         };
         const sumField = (field.source.schema ?? field.source.fields ?? []).find(item => item.type === 'number')?.name;
         const groupFooter: Band = {
@@ -43,8 +43,8 @@ export const GroupWizardDialog: React.FC<GroupWizardDialogProps> = ({ open, onCl
           height: 14,
           group: { name: field.fieldName, conditionExpression: `{${field.dataSourceId}.${field.fieldName}}` },
           components: [
-            createTextComponent(`COUNT("${field.dataSourceId}")`, 10, 3, 42, 8, 'Group Count'),
-            createTextComponent(sumField ? `SUM("${field.dataSourceId}", "{${field.dataSourceId}.${sumField}}")` : `SUM("${field.dataSourceId}")`, 58, 3, 70, 8, 'Group Sum'),
+            createTextComponent(`COUNT("${field.dataSourceId}")`, 10, 3, 42, 8, t('groupWizard.generatedCountName')),
+            createTextComponent(sumField ? `SUM("${field.dataSourceId}", "{${field.dataSourceId}.${sumField}}")` : `SUM("${field.dataSourceId}")`, 58, 3, 70, 8, t('groupWizard.generatedSumName')),
           ],
         };
         const bands = [...page.bands];

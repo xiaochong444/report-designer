@@ -41,8 +41,10 @@ export type DesignerMessageKey =
   | 'expressionEditor.html.bold'
   | 'expressionEditor.html.italic'
   | 'expressionEditor.html.lineBreak'
-  | 'shell.new'
-  | 'shell.open'
+  | 'expressionEditor.inline.expression'
+  | 'expressionEditor.inline.valid'
+  | 'expressionEditor.inline.invalid'
+  | 'expressionEditor.inline.syntax'
   | 'shell.save'
   | 'shell.undo'
   | 'shell.redo'
@@ -68,8 +70,6 @@ export type DesignerMessageKey =
   | 'ribbon.pageSetup'
   | 'ribbon.size'
   | 'ribbon.margins'
-  | 'ribbon.newReport'
-  | 'ribbon.openTemplate'
   | 'ribbon.saveTemplate'
   | 'ribbon.copy'
   | 'ribbon.cut'
@@ -99,6 +99,7 @@ export type DesignerMessageKey =
   | 'ribbon.bandWizard'
   | 'ribbon.groupWizard'
   | 'ribbon.text'
+  | 'ribbon.defaultField'
   | 'ribbon.table'
   | 'ribbon.image'
   | 'ribbon.checkbox'
@@ -114,11 +115,16 @@ export type DesignerMessageKey =
   | 'ribbon.printPreview'
   | 'bandWizard.title'
   | 'bandWizard.createBands'
+  | 'bandWizard.generatedHeaderName'
+  | 'bandWizard.generatedCountName'
   | 'bandWizard.dataSource'
   | 'bandWizard.preset.headerDataFooter'
   | 'bandWizard.preset.dataOnly'
   | 'groupWizard.title'
   | 'groupWizard.createGroup'
+  | 'groupWizard.generatedHeaderName'
+  | 'groupWizard.generatedCountName'
+  | 'groupWizard.generatedSumName'
   | 'jsonDataSource.title'
   | 'jsonDataSource.addDataSources'
   | 'jsonDataSource.invalidJson'
@@ -231,6 +237,9 @@ export type DesignerMessageKey =
   | 'styleLibrary.formatCustom'
   | 'formatEditor.type'
   | 'formatEditor.preview'
+  | 'formatEditor.previewText'
+  | 'formatEditor.booleanTrueDefault'
+  | 'formatEditor.booleanFalseDefault'
   | 'formatEditor.settings'
   | 'formatEditor.none'
   | 'formatEditor.text'
@@ -291,6 +300,7 @@ export type DesignerMessageKey =
   | 'leftPanel.components'
   | 'leftPanel.dictionary'
   | 'leftPanel.report'
+  | 'leftPanel.page'
   | 'leftPanel.componentsHint'
   | 'leftPanel.componentText'
   | 'leftPanel.componentImage'
@@ -422,6 +432,7 @@ export type DesignerMessageKey =
   | 'pageSettings.fonts'
   | 'pageSettings.addFont'
   | 'pageSettings.removeFont'
+  | 'pageSettings.customFontName'
   | 'pageSettings.fontName'
   | 'pageSettings.fontFamily'
   | 'pageSettings.fontFallback'
@@ -432,6 +443,7 @@ export type DesignerMessageKey =
   | 'pageSettings.watermarkText'
   | 'pageSettings.watermarkColor'
   | 'pageSettings.watermarkFontSize'
+  | 'pageSettings.watermarkFontFamily'
   | 'pageSettings.watermarkOpacity'
   | 'pageSettings.watermarkAngle'
   | 'pageSettings.watermarkHorizontalAlign'
@@ -491,6 +503,7 @@ export type DesignerMessageKey =
   | 'events.examples'
   | 'events.scriptTemplates'
   | 'events.typeWarnings'
+  | 'events.diagnosticLine'
   | 'events.fields'
   | 'events.components'
   | 'events.validationPassed'
@@ -643,8 +656,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.html.bold': '加粗',
     'expressionEditor.html.italic': '斜体',
     'expressionEditor.html.lineBreak': '换行',
-    'shell.new': '新建',
-    'shell.open': '打开',
+    'expressionEditor.inline.expression': '表达式',
+    'expressionEditor.inline.valid': '表达式有效',
+    'expressionEditor.inline.invalid': '表达式无效',
+    'expressionEditor.inline.syntax': '报表表达式语法',
     'shell.save': '保存',
     'shell.undo': '撤销',
     'shell.redo': '重做',
@@ -670,8 +685,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.pageSetup': '页面设置',
     'ribbon.size': '纸张',
     'ribbon.margins': '页边距',
-    'ribbon.newReport': '新建报表',
-    'ribbon.openTemplate': '打开 JSON 模板',
     'ribbon.saveTemplate': '保存 JSON 模板',
     'ribbon.copy': '复制',
     'ribbon.cut': '剪切',
@@ -701,6 +714,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.bandWizard': '带区向导',
     'ribbon.groupWizard': '分组向导',
     'ribbon.text': '文本',
+    'ribbon.defaultField': '字段 {index}',
     'ribbon.table': '表格',
     'ribbon.image': '图片',
     'ribbon.checkbox': '复选框',
@@ -716,11 +730,16 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.printPreview': '打印预览',
     'bandWizard.title': '带区向导',
     'bandWizard.createBands': '创建带区',
+    'bandWizard.generatedHeaderName': '{field} 表头',
+    'bandWizard.generatedCountName': '计数',
     'bandWizard.dataSource': '数据源',
     'bandWizard.preset.headerDataFooter': '表头 + 数据带 + 表尾',
     'bandWizard.preset.dataOnly': '仅数据带',
     'groupWizard.title': '分组向导',
     'groupWizard.createGroup': '创建分组',
+    'groupWizard.generatedHeaderName': '分组头',
+    'groupWizard.generatedCountName': '分组计数',
+    'groupWizard.generatedSumName': '分组合计',
     'jsonDataSource.title': 'JSON 数据源',
     'jsonDataSource.addDataSources': '添加数据源',
     'jsonDataSource.invalidJson': 'JSON 格式不正确',
@@ -833,6 +852,9 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.formatCustom': '自定义',
     'formatEditor.type': '格式类型',
     'formatEditor.preview': '预览',
+    'formatEditor.previewText': ' 示例文本 ',
+    'formatEditor.booleanTrueDefault': '是',
+    'formatEditor.booleanFalseDefault': '否',
     'formatEditor.settings': '设置',
     'formatEditor.none': '无格式',
     'formatEditor.text': '文本',
@@ -893,6 +915,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.components': '组件',
     'leftPanel.dictionary': '字典',
     'leftPanel.report': '报表',
+    'leftPanel.page': '页面',
     'leftPanel.componentsHint': '将常用报表组件拖入选中的带区。',
     'leftPanel.componentText': '文本',
     'leftPanel.componentImage': '图片',
@@ -1024,6 +1047,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.fonts': '字体',
     'pageSettings.addFont': '添加字体',
     'pageSettings.removeFont': '删除字体',
+    'pageSettings.customFontName': '自定义字体 {index}',
     'pageSettings.fontName': '字体名称',
     'pageSettings.fontFamily': 'CSS 字体族',
     'pageSettings.fontFallback': '备用字体',
@@ -1034,6 +1058,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.watermarkText': '水印文本',
     'pageSettings.watermarkColor': '水印颜色',
     'pageSettings.watermarkFontSize': '水印字号',
+    'pageSettings.watermarkFontFamily': '水印字体',
     'pageSettings.watermarkOpacity': '水印透明度',
     'pageSettings.watermarkAngle': '水印角度',
     'pageSettings.watermarkHorizontalAlign': '水印水平对齐',
@@ -1093,6 +1118,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.examples': '示例',
     'events.scriptTemplates': '脚本模板',
     'events.typeWarnings': '类型警告',
+    'events.diagnosticLine': '第 {line} 行',
     'events.fields': '字段',
     'events.components': '组件',
     'events.validationPassed': '校验通过',
@@ -1242,8 +1268,10 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.html.bold': 'Bold',
     'expressionEditor.html.italic': 'Italic',
     'expressionEditor.html.lineBreak': 'Line break',
-    'shell.new': 'New',
-    'shell.open': 'Open',
+    'expressionEditor.inline.expression': 'Expression',
+    'expressionEditor.inline.valid': 'Valid expression',
+    'expressionEditor.inline.invalid': 'Invalid expression',
+    'expressionEditor.inline.syntax': 'Report expression syntax',
     'shell.save': 'Save',
     'shell.undo': 'Undo',
     'shell.redo': 'Redo',
@@ -1269,8 +1297,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.pageSetup': 'Page Setup',
     'ribbon.size': 'Size',
     'ribbon.margins': 'Margins',
-    'ribbon.newReport': 'New report',
-    'ribbon.openTemplate': 'Open JSON template',
     'ribbon.saveTemplate': 'Save JSON template',
     'ribbon.copy': 'Copy',
     'ribbon.cut': 'Cut',
@@ -1300,6 +1326,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.bandWizard': 'Band wizard',
     'ribbon.groupWizard': 'Group wizard',
     'ribbon.text': 'Text',
+    'ribbon.defaultField': 'Field {index}',
     'ribbon.table': 'Table',
     'ribbon.image': 'Image',
     'ribbon.checkbox': 'Check',
@@ -1315,11 +1342,16 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.printPreview': 'Print Preview',
     'bandWizard.title': 'Band Wizard',
     'bandWizard.createBands': 'Create bands',
+    'bandWizard.generatedHeaderName': '{field} Header',
+    'bandWizard.generatedCountName': 'Count',
     'bandWizard.dataSource': 'Data source',
     'bandWizard.preset.headerDataFooter': 'HeaderBand + DataBand + FooterBand',
     'bandWizard.preset.dataOnly': 'DataBand only',
     'groupWizard.title': 'Group Wizard',
     'groupWizard.createGroup': 'Create group',
+    'groupWizard.generatedHeaderName': 'Group Header',
+    'groupWizard.generatedCountName': 'Group Count',
+    'groupWizard.generatedSumName': 'Group Sum',
     'jsonDataSource.title': 'JSON Data Source',
     'jsonDataSource.addDataSources': 'Add data sources',
     'jsonDataSource.invalidJson': 'Invalid JSON',
@@ -1432,6 +1464,9 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.formatCustom': 'Custom',
     'formatEditor.type': 'Format Type',
     'formatEditor.preview': 'Preview',
+    'formatEditor.previewText': ' sample text ',
+    'formatEditor.booleanTrueDefault': 'True',
+    'formatEditor.booleanFalseDefault': 'False',
     'formatEditor.settings': 'Settings',
     'formatEditor.none': 'None',
     'formatEditor.text': 'Text',
@@ -1492,6 +1527,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.components': 'Components',
     'leftPanel.dictionary': 'Dictionary',
     'leftPanel.report': 'Report',
+    'leftPanel.page': 'Page',
     'leftPanel.componentsHint': 'Drag common report controls into the selected band.',
     'leftPanel.componentText': 'Text',
     'leftPanel.componentImage': 'Image',
@@ -1623,6 +1659,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.fonts': 'Fonts',
     'pageSettings.addFont': 'Add font',
     'pageSettings.removeFont': 'Remove font',
+    'pageSettings.customFontName': 'Custom Font {index}',
     'pageSettings.fontName': 'Font name',
     'pageSettings.fontFamily': 'CSS font family',
     'pageSettings.fontFallback': 'Fallback font',
@@ -1633,6 +1670,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.watermarkText': 'Watermark text',
     'pageSettings.watermarkColor': 'Watermark color',
     'pageSettings.watermarkFontSize': 'Watermark font size',
+    'pageSettings.watermarkFontFamily': 'Watermark font',
     'pageSettings.watermarkOpacity': 'Watermark opacity',
     'pageSettings.watermarkAngle': 'Watermark angle',
     'pageSettings.watermarkHorizontalAlign': 'Watermark horizontal align',
@@ -1692,6 +1730,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.examples': 'Examples',
     'events.scriptTemplates': 'Script templates',
     'events.typeWarnings': 'Type warnings',
+    'events.diagnosticLine': 'Line {line}',
     'events.fields': 'Fields',
     'events.components': 'Components',
     'events.validationPassed': 'Validation passed',

@@ -29,6 +29,7 @@ export interface EventScriptEditorProps {
   exampleItems?: EventCompletionTextItem[];
   initialCursor?: { line?: number; column?: number };
   loadingText?: string;
+  diagnosticLineLabel?: string;
   onChange: (value: string) => void;
   onDiagnostics?: (diagnostics: EventScriptEditorDiagnostics) => void;
 }
@@ -76,6 +77,7 @@ export function EventScriptEditor({
   exampleItems,
   initialCursor,
   loadingText,
+  diagnosticLineLabel,
   onChange,
   onDiagnostics,
 }: EventScriptEditorProps) {
@@ -200,9 +202,9 @@ export function EventScriptEditor({
 
   const onValidate = useCallback(
     (markers: MonacoDiagnostic[]) => {
-      onDiagnostics?.(splitDiagnostics(markers));
+      onDiagnostics?.(splitDiagnostics(markers, diagnosticLineLabel));
     },
-    [onDiagnostics],
+    [diagnosticLineLabel, onDiagnostics],
   );
 
   return (

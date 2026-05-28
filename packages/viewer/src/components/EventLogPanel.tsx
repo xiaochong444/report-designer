@@ -20,6 +20,12 @@ const tagColor: Record<EventLogEntry['level'], string> = {
   error: 'red',
 };
 
+function levelLabel(level: EventLogEntry['level'], messages: ViewerMessages) {
+  if (level === 'warning') return messages.eventLogsWarning;
+  if (level === 'error') return messages.eventLogsError;
+  return messages.eventLogsInfo;
+}
+
 export const EventLogPanel: React.FC<EventLogPanelProps> = ({
   logs,
   onClear,
@@ -99,7 +105,7 @@ export const EventLogPanel: React.FC<EventLogPanelProps> = ({
                 <Flex vertical gap={4} style={{ width: '100%' }}>
                   <Flex wrap gap={6} align="center" justify="space-between">
                     <Flex wrap gap={6} align="center">
-                      <Tag color={tagColor[entry.level]}>{entry.level.toUpperCase()}</Tag>
+                      <Tag color={tagColor[entry.level]}>{levelLabel(entry.level, messages)}</Tag>
                       <Typography.Text type="secondary">
                         {ownerLabel[entry.ownerType]} {entry.ownerId}
                       </Typography.Text>

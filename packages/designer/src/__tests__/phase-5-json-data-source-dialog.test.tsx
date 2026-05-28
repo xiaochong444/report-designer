@@ -49,4 +49,19 @@ describe('Phase 5 JSON data source dialog', () => {
     expect(screen.getByText('根数组')).toBeInTheDocument();
     expect(screen.queryByText('JSON Data Source')).not.toBeInTheDocument();
   });
+
+  it('uses localized copy for invalid JSON parse errors', () => {
+    render(
+      <DesignerI18nProvider locale="zh-CN">
+        <JsonDataSourceDialog open onClose={() => {}} />
+      </DesignerI18nProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText('JSON'), {
+      target: { value: '{ broken json' },
+    });
+
+    expect(screen.getByText('JSON 格式不正确')).toBeInTheDocument();
+    expect(screen.queryByText(/Unexpected/)).not.toBeInTheDocument();
+  });
 });

@@ -5,6 +5,8 @@ import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReportTemplate, TextComponent } from '@report-designer/core';
 import { Viewer } from '../components/Viewer';
+import { EventLogPanel } from '../components/EventLogPanel';
+import { viewerMessages } from '../i18n';
 
 vi.mock('../export', () => ({
   downloadPDF: vi.fn().mockResolvedValue(undefined),
@@ -119,7 +121,24 @@ describe('phase 36 event log panel', () => {
     expect(screen.getByText('事件日志')).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: '全部' })).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: '错误' })).toBeInTheDocument();
+    expect(screen.getAllByText('信息').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('错误').length).toBeGreaterThan(0);
+    expect(screen.queryByText('INFO')).not.toBeInTheDocument();
+    expect(screen.queryByText('ERROR')).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: '打开事件' }).length).toBeGreaterThan(0);
+  });
+
+  it('shows the localized empty event log state', () => {
+    render(
+      <EventLogPanel
+        open
+        logs={[]}
+        onClose={() => {}}
+        messages={viewerMessages['zh-CN']}
+      />,
+    );
+
+    expect(screen.getByText('暂无事件日志')).toBeInTheDocument();
   });
 });
 

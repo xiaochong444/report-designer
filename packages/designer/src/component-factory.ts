@@ -96,3 +96,9 @@ export function createFieldExpressionComponent(
   }
   return component;
 }
+
+export function createTextExpressionComponent(expression: string, xMm: number, yMm: number): ReportComponent {
+  const component = createDefaultComponent('text', xMm, yMm) as any;
+  component.text = expression;
+  return component;
+}

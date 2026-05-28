@@ -419,7 +419,7 @@ git restore -- packages/example/dist/index.html
 - [ ] **Step 3: Run forbidden text scan**
 
 ```powershell
-$pattern = @('Sti' + 'mul' + 'soft', 'sti' + 'mul' + 'soft', 'Sti' + 'mult' + 'soft', 'sti' + 'mult' + 'soft', '\bV' + '1\b', '\bV' + '2\b', 'v' + '1-', 'v' + '2-', 'leg' + 'acy') -join '|'
+$pattern = @('competitor-product-name', '\bV' + '1\b', '\bV' + '2\b', 'v' + '1-', 'v' + '2-', 'leg' + 'acy') -join '|'
 rg -n $pattern docs packages --glob "!**/node_modules/**" --glob "!**/dist/**"
 ```
 

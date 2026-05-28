@@ -152,8 +152,8 @@ export const PropertyEditor: React.FC = () => {
 
   const isTextComponent = component.type === 'text';
   const supportsFontProperties = ['text', 'barcode', 'checkbox', 'pagenumber', 'datetime'].includes(component.type);
-  const supportsBorderProperties = ['text', 'image', 'barcode', 'checkbox', 'panel'].includes(component.type);
-  const supportsAppearanceProperties = ['text', 'image', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport'].includes(component.type);
+  const supportsBorderProperties = ['text', 'image', 'barcode', 'checkbox', 'panel', 'pagenumber', 'datetime'].includes(component.type);
+  const supportsAppearanceProperties = ['text', 'image', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport', 'pagenumber', 'datetime'].includes(component.type);
   const supportsForegroundColor = component.type === 'barcode' || component.type === 'checkbox';
   const isTextStyleLocked = (pathOrPrefix: string) => (
     isTextComponent ? hasTextStyleBinding(component as { styleBindings?: string[] }, pathOrPrefix) : false
@@ -828,9 +828,9 @@ export const PropertyEditor: React.FC = () => {
                     style={{ width: '100%' }}
                     options={[
                       { value: '1', label: '1, 2, 3...' },
-                      { value: '1/N', label: '1/N, 2/N...' },
-                      { value: 'Page 1 of N', label: 'Page 1 of N' },
-                      { value: 'Page 1', label: 'Page 1' },
+                      { value: '1/N', label: t('pageNumberFormatFraction') },
+                      { value: 'Page 1 of N', label: t('pageNumberFormatPageOf') },
+                      { value: 'Page 1', label: t('pageNumberFormatPageOnly') },
                     ]}
                   />
                 </Form.Item>
@@ -1361,7 +1361,6 @@ const propertyEditorMessages = {
     footerRowsCount: '表尾行数',
     headerHeight: '表头高度',
     rowHeight: '明细行高',
-    alternateRowStyle: '交替行样式',
     tableColumns: '列定义',
     tableColumn: '第 {index} 列',
     tableColumnHeader: '标题',
@@ -1373,9 +1372,6 @@ const propertyEditorMessages = {
     tableColumnWidthAria: '第 {index} 列宽度',
     tableColumnTypeAria: '第 {index} 列类型',
     tableCellTypeText: '文本',
-    tableCellTypeImage: '图片',
-    tableCellTypeBarcode: '条码',
-    tableCellTypeCheckbox: '复选框',
     canBreak: '允许跨页',
     showBorder: '显示边框',
     color: '颜色',
@@ -1396,6 +1392,9 @@ const propertyEditorMessages = {
     shapeBorderWidth: '边框宽',
     shapeBorderStyle: '边框样式',
     format: '格式',
+    pageNumberFormatFraction: '第 1 / N 页',
+    pageNumberFormatPageOf: '第 1 页，共 N 页',
+    pageNumberFormatPageOnly: '第 1 页',
     dateTimeFormatPlaceholder: 'yyyy-MM-dd HH:mm:ss',
     alignLeft: '左对齐',
     alignCenter: '水平居中',
@@ -1510,7 +1509,6 @@ const propertyEditorMessages = {
     footerRowsCount: 'Footer rows',
     headerHeight: 'Header height',
     rowHeight: 'Detail row height',
-    alternateRowStyle: 'Alternate row style',
     tableColumns: 'Columns',
     tableColumn: 'Column {index}',
     tableColumnHeader: 'Header',
@@ -1522,9 +1520,6 @@ const propertyEditorMessages = {
     tableColumnWidthAria: 'Column {index} width',
     tableColumnTypeAria: 'Column {index} type',
     tableCellTypeText: 'Text',
-    tableCellTypeImage: 'Image',
-    tableCellTypeBarcode: 'Barcode',
-    tableCellTypeCheckbox: 'Checkbox',
     canBreak: 'Can break',
     showBorder: 'Show border',
     color: 'Color',
@@ -1545,6 +1540,9 @@ const propertyEditorMessages = {
     shapeBorderWidth: 'Border width',
     shapeBorderStyle: 'Border style',
     format: 'Format',
+    pageNumberFormatFraction: '1 / N',
+    pageNumberFormatPageOf: 'Page 1 of N',
+    pageNumberFormatPageOnly: 'Page 1',
     dateTimeFormatPlaceholder: 'yyyy-MM-dd HH:mm:ss',
     alignLeft: 'Align left',
     alignCenter: 'Center horizontally',
@@ -1668,7 +1666,6 @@ const TablePropertyPanel: React.FC<{
     footerRowsCount?: number;
     headerHeight?: number;
     rowHeight?: number;
-    alternateRowStyle?: string;
     canBreak?: boolean;
     showBorder?: boolean;
     dataSource?: string;

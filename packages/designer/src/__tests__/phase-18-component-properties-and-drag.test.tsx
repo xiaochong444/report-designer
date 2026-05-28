@@ -174,6 +174,26 @@ describe('Phase 18 component properties and canvas drag drop', () => {
     expect(inserted.format).toMatchObject({ type: 'number' });
   });
 
+  it('drops dictionary system variables and functions as text expressions', async () => {
+    const template = createDefaultTemplate('Phase 18 Expression Drop');
+    render(<Designer template={template} locale="zh-CN" />);
+
+    await waitFor(() => expect(screen.getByTestId('designer-page-sheet')).toBeInTheDocument());
+    mockCanvasRects();
+
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('designer-page-sheet'), {
+        clientX: 40,
+        clientY: 135,
+        dataTransfer: dataTransfer({ expressionBinding: '{PageNumber}' }),
+      });
+    });
+
+    const inserted = components().find(component => component.type === 'text');
+    expect(inserted.text).toBe('{PageNumber}');
+    expect(inserted.dataSource).toBeUndefined();
+  });
+
   it('shows text content as the only binding entry for text components', () => {
     loadSingleComponent(textComponent());
     render(<PropertyEditor />);

@@ -219,8 +219,8 @@ describe('phase 33 component property matrix', () => {
     } as ReportComponent);
     render(<PropertyEditor />);
 
-    expectVisible('字体', '页码属性');
-    expectHidden('边框', '外观', '表格', '线条属性', '形状属性');
+    expectVisible('字体', '边框', '外观', '页码属性');
+    expectHidden('表格', '线条属性', '形状属性');
 
     cleanup();
     loadSelectedComponent({
@@ -238,7 +238,7 @@ describe('phase 33 component property matrix', () => {
     } as ReportComponent);
     render(<PropertyEditor />);
 
-    expectVisible('字体', '日期时间属性');
-    expectHidden('边框', '外观', '表格', '线条属性', '形状属性');
+    expectVisible('字体', '边框', '外观', '日期时间属性');
+    expectHidden('表格', '线条属性', '形状属性');
   });
 });

@@ -112,7 +112,7 @@ describe('Phase 22 left panel search consistency', () => {
     const search = await screen.findByPlaceholderText('Search data sources and fields');
     fireEvent.change(search, { target: { value: 'Staff Records' } });
 
-    expect(screen.getByText('Staff Records [Staff Records]')).toBeInTheDocument();
+    expect(screen.getByText('Staff Records [employees]')).toBeInTheDocument();
     expect(screen.getByText('Annual Pay')).toBeInTheDocument();
 
     fireEvent.change(search, { target: { value: 'Annual Pay' } });

@@ -3,7 +3,7 @@ import { sanitizeRichHtml, type ReportComponent, type Band, type BorderConfig, t
 import { useDesignerStore } from '../store/designer-store';
 import type { TableCellSelection } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
-import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
+import { createDefaultComponent, createFieldExpressionComponent, createTextExpressionComponent } from '../component-factory';
 import { RichTextInlineEditor } from './richtext/RichTextInlineEditor';
 import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
 
@@ -139,12 +139,12 @@ function findPanelDropTarget(band: Band, xMm: number, yMm: number): { panelId: s
   return null;
 }
 
-function hasDragPayload(event: React.DragEvent, type: 'componentType' | 'fieldBinding'): boolean {
+function hasDragPayload(event: React.DragEvent, type: 'componentType' | 'fieldBinding' | 'expressionBinding'): boolean {
   const expected = type.toLowerCase();
   return Array.from(event.dataTransfer.types ?? []).some(item => item.toLowerCase() === expected);
 }
 
-function getDragData(event: React.DragEvent, type: 'componentType' | 'fieldBinding'): string {
+function getDragData(event: React.DragEvent, type: 'componentType' | 'fieldBinding' | 'expressionBinding'): string {
   return event.dataTransfer.getData(type) || event.dataTransfer.getData(type.toLowerCase());
 }
 
@@ -789,7 +789,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   }, [bands, currentPage?.bands, zoom]);
 
   const handleCanvasDragOver = useCallback((event: React.DragEvent) => {
-    const hasSupportedPayload = hasDragPayload(event, 'componentType') || hasDragPayload(event, 'fieldBinding');
+    const hasSupportedPayload = hasDragPayload(event, 'componentType') || hasDragPayload(event, 'fieldBinding') || hasDragPayload(event, 'expressionBinding');
     if (!hasSupportedPayload) return;
     event.preventDefault();
     event.dataTransfer.dropEffect = 'copy';
@@ -800,8 +800,9 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     if (!position || !currentPageId) return;
 
     const fieldBinding = getDragData(event, 'fieldBinding');
+    const expressionBinding = getDragData(event, 'expressionBinding');
     const componentType = getDragData(event, 'componentType');
-    if (!fieldBinding && !componentType) return;
+    if (!fieldBinding && !expressionBinding && !componentType) return;
 
     event.preventDefault();
     if (fieldBinding) {
@@ -817,6 +818,16 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       } catch {
         return;
       }
+    }
+
+    if (expressionBinding) {
+      const component = createTextExpressionComponent(expressionBinding, position.xMm, position.yMm);
+      if ('targetPanelId' in position && position.targetPanelId) {
+        addComponentToPanel(currentPageId, position.targetBandId, position.targetPanelId, component);
+      } else {
+        addComponent(currentPageId, position.targetBandId, component);
+      }
+      return;
     }
 
     const component = createDefaultComponent(componentType, position.xMm, position.yMm);

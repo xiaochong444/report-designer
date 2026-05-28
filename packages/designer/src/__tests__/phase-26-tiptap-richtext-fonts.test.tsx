@@ -172,7 +172,7 @@ describe('phase 26 report font registry and rich text editor shell', () => {
     await waitFor(() => {
       expect(useDesignerStore.getState().template.fonts?.some(font => !font.builtin)).toBe(true);
     });
-    expect(screen.getByDisplayValue('Custom Font')).toBeInTheDocument();
+    expect(screen.getByDisplayValue('自定义字体 1')).toBeInTheDocument();
   });
 
   it('opens a rich text inline editor with report fonts and saves html plus document', async () => {

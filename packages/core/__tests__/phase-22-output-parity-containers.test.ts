@@ -147,9 +147,11 @@ describe('Phase 22 container RenderDocument contract', () => {
       y: 7,
       width: 90,
       height: 24,
+      backgroundColor: '#fff7e6',
+      border: { style: 'solid', width: 0.4, color: '#445566', sides: { top: true, right: true, bottom: true, left: true } },
       templateUrl: 'missing-report',
       parameters: {},
-    }));
+    } as any));
 
     const subreport = document.pages[0].items[0].components[0];
 
@@ -162,6 +164,10 @@ describe('Phase 22 container RenderDocument contract', () => {
       height: 24,
       templateUrl: 'missing-report',
       missing: true,
+      style: {
+        backgroundColor: '#fff7e6',
+        border: { style: 'solid', width: 0.4, color: '#445566', sides: { top: true, right: true, bottom: true, left: true } },
+      },
     });
     expect(subreport.children).toHaveLength(1);
     expect(subreport.children[0]).toMatchObject({

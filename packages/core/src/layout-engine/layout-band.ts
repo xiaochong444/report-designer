@@ -397,6 +397,7 @@ function layoutComponent(
       missing: rendered.missing,
       children: rendered.children,
       overflow: hasContainerOverflow(rendered.children, subreportX, subreportY, component.width, height),
+      style: buildBaseRenderStyle(component),
     };
   }
 

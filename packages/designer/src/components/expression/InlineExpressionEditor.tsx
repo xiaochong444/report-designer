@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Button, Input, Space, Tag, Typography } from 'antd';
 import type { DataSource } from '@report-designer/core';
+import { useDesignerI18n } from '../../i18n';
 
 interface InlineExpressionEditorProps {
   value: string;
@@ -9,6 +10,7 @@ interface InlineExpressionEditorProps {
 }
 
 export const InlineExpressionEditor: React.FC<InlineExpressionEditorProps> = ({ value, dataSources, onChange }) => {
+  const { t } = useDesignerI18n();
   const numericField = useMemo(() => {
     for (const source of dataSources) {
       const sourceFields = source.schema ?? source.fields ?? [];
@@ -22,7 +24,7 @@ export const InlineExpressionEditor: React.FC<InlineExpressionEditorProps> = ({ 
 
   return (
     <Space orientation="vertical" size={10} style={{ width: '100%' }}>
-      <Input.TextArea aria-label="Expression" value={value} rows={4} onChange={event => onChange(event.target.value)} />
+      <Input.TextArea aria-label={t('expressionEditor.inline.expression')} value={value} rows={4} onChange={event => onChange(event.target.value)} />
       <Space wrap>
         {dataSources.flatMap(source => (source.schema ?? source.fields ?? []).map(field => (
           <Button key={`${source.id}.${field.name}`} size="small" onClick={() => append(`{${source.id}.${field.name}}`)}>
@@ -38,9 +40,9 @@ export const InlineExpressionEditor: React.FC<InlineExpressionEditorProps> = ({ 
         <Button size="small" onClick={() => append('{TotalPages}')}>{'{TotalPages}'}</Button>
       </Space>
       <Typography.Text type={isExpressionValid(value) ? 'success' : 'danger'}>
-        {isExpressionValid(value) ? 'Valid expression' : 'Invalid expression'}
+        {isExpressionValid(value) ? t('expressionEditor.inline.valid') : t('expressionEditor.inline.invalid')}
       </Typography.Text>
-      <Tag color="blue">Report expression syntax</Tag>
+      <Tag color="blue">{t('expressionEditor.inline.syntax')}</Tag>
     </Space>
   );
 };

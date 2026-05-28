@@ -6,6 +6,7 @@ import { describe, expect, it } from 'vitest';
 import type { ReportComponent, ReportTemplate } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { PropertyEditor } from '../components/PropertyEditor';
+import { DesignerI18nProvider } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 
 function loadSelectedComponent(component: ReportComponent, prepare?: (template: ReportTemplate) => void) {
@@ -360,5 +361,47 @@ describe('phase 27 component property model', () => {
 
     fireEvent.click(screen.getByRole('button', { name: '顶部对齐' }));
     expect(selectedComponent().verticalAlign).toBe('top');
+  });
+
+  it('localizes page number format choices in the property panel', () => {
+    loadSelectedComponent({
+      id: 'page-1',
+      type: 'pagenumber',
+      name: 'PageNumber1',
+      x: 0,
+      y: 0,
+      width: 30,
+      height: 8,
+      format: '1/N',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'center',
+      verticalAlign: 'middle',
+    } as ReportComponent);
+    render(<PropertyEditor />);
+
+    expect(screen.getByText('第 1 / N 页')).toBeInTheDocument();
+
+    cleanup();
+    loadSelectedComponent({
+      id: 'page-1',
+      type: 'pagenumber',
+      name: 'PageNumber1',
+      x: 0,
+      y: 0,
+      width: 30,
+      height: 8,
+      format: 'Page 1 of N',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'center',
+      verticalAlign: 'middle',
+    } as ReportComponent);
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <PropertyEditor />
+      </DesignerI18nProvider>,
+    );
+
+    expect(screen.getByText('Page 1 of N')).toBeInTheDocument();
+    expect(screen.queryByText('第 1 页，共 N 页')).not.toBeInTheDocument();
   });
 });

@@ -2,7 +2,7 @@ import React from 'react';
 import { Input, InputNumber, Select, Switch } from 'antd';
 import { formatValue } from '@report-designer/core';
 import type { TextFormatConfig, TextFormatType } from '@report-designer/core';
-import { useDesignerI18n } from '../i18n';
+import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
 
 interface TextFormatEditorProps {
   value?: TextFormatConfig;
@@ -26,7 +26,10 @@ const TIME_FORMAT_OPTIONS = [
   'HH:mm:ss',
 ];
 
-function createDefaultFormat(type: TextFormatType = 'none'): TextFormatConfig {
+function createDefaultFormat(
+  type: TextFormatType = 'none',
+  t?: (key: DesignerMessageKey) => string,
+): TextFormatConfig {
   switch (type) {
     case 'text':
       return { type, textTransform: 'none', trimText: false };
@@ -79,7 +82,13 @@ function createDefaultFormat(type: TextFormatType = 'none'): TextFormatConfig {
     case 'dateTime':
       return { type, dateFormat: 'yyyy-MM-dd', timeFormat: 'HH:mm:ss' };
     case 'boolean':
-      return { type, trueText: 'True', falseText: 'False', trueValues: ['true', '1'], falseValues: ['false', '0'] };
+      return {
+        type,
+        trueText: t?.('formatEditor.booleanTrueDefault') ?? 'True',
+        falseText: t?.('formatEditor.booleanFalseDefault') ?? 'False',
+        trueValues: ['true', '1'],
+        falseValues: ['false', '0'],
+      };
     case 'custom':
       return { type, pattern: '' };
     case 'none':
@@ -88,9 +97,9 @@ function createDefaultFormat(type: TextFormatType = 'none'): TextFormatConfig {
   }
 }
 
-function normalizeFormat(format?: TextFormatConfig): TextFormatConfig {
+function normalizeFormat(format?: TextFormatConfig, t?: (key: DesignerMessageKey) => string): TextFormatConfig {
   return {
-    ...createDefaultFormat(format?.type ?? 'none'),
+    ...createDefaultFormat(format?.type ?? 'none', t),
     ...format,
   };
 }
@@ -104,8 +113,8 @@ export const TextFormatEditor: React.FC<TextFormatEditorProps> = ({
   value,
 }) => {
   const { t } = useDesignerI18n();
-  const format = normalizeFormat(value);
-  const previewText = formatValue(getPreviewValue(format.type), format);
+  const format = normalizeFormat(value, t);
+  const previewText = formatValue(getPreviewValue(format.type, t('formatEditor.previewText')), format);
   const fieldDisabled = (path: string) => disabled || (isFieldDisabled?.(path) ?? false);
 
   const updateFormat = (updates: Partial<TextFormatConfig>) => {
@@ -113,7 +122,7 @@ export const TextFormatEditor: React.FC<TextFormatEditorProps> = ({
   };
 
   const changeType = (type: TextFormatType) => {
-    const defaults = createDefaultFormat(type);
+    const defaults = createDefaultFormat(type, t);
     onChange({
       ...defaults,
       nullValue: format.nullValue ?? defaults.nullValue,
@@ -500,10 +509,10 @@ function isNumericFormat(type: TextFormatType): boolean {
   return type === 'number' || type === 'currency' || type === 'percent';
 }
 
-function getPreviewValue(type: TextFormatType): unknown {
+function getPreviewValue(type: TextFormatType, textPreview: string): unknown {
   switch (type) {
     case 'text':
-      return ' sample text ';
+      return textPreview;
     case 'date':
       return '2026-05-07T09:08:07Z';
     case 'time':

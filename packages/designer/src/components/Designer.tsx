@@ -9,6 +9,8 @@ interface DesignerProps {
   template?: ReportTemplate;
   /** Optional data to bind to the template */
   data?: Record<string, any[]>;
+  /** Optional local subreport templates keyed by subreport template key/name */
+  subreports?: Record<string, ReportTemplate>;
   /** Emits the current in-designer template so hosts can preview or persist draft edits. */
   onTemplateChange?: (template: ReportTemplate) => void;
   locale?: DesignerLocale;
@@ -16,7 +18,7 @@ interface DesignerProps {
   className?: string;
 }
 
-export const Designer: React.FC<DesignerProps> = ({ template, data, onTemplateChange, locale = 'zh-CN', eventNavigationTarget, className }) => {
+export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, onTemplateChange, locale = 'zh-CN', eventNavigationTarget, className }) => {
   const loadTemplate = useDesignerStore(s => s.loadTemplate);
   const setDataSources = useDesignerStore(s => s.setDataSources);
   const currentTemplate = useDesignerStore(s => s.template);
@@ -72,7 +74,7 @@ export const Designer: React.FC<DesignerProps> = ({ template, data, onTemplateCh
 
   return (
     <DesignerI18nProvider locale={locale}>
-      <DesignerShell className={className} />
+      <DesignerShell className={className} subreports={subreports} />
     </DesignerI18nProvider>
   );
 };

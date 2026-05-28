@@ -107,12 +107,13 @@ export function buildEventScriptCompletions(
   ];
 }
 
-export function splitDiagnostics(markers: MonacoDiagnostic[]): { blocking: string[]; warnings: string[] } {
+export function splitDiagnostics(markers: MonacoDiagnostic[], lineTemplate = 'Line {line}'): { blocking: string[]; warnings: string[] } {
   const blocking: string[] = [];
   const warnings: string[] = [];
 
   for (const marker of markers) {
-    const message = `Line ${marker.startLineNumber}: ${marker.message}`;
+    const lineLabel = lineTemplate.replace('{line}', String(marker.startLineNumber));
+    const message = `${lineLabel}: ${marker.message}`;
     if (marker.severity >= 8) {
       blocking.push(message);
     } else {

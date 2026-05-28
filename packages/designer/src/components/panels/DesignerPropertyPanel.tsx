@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Checkbox, Collapse, ColorPicker, Form, Input, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
 import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, BoldOutlined, DeleteOutlined, ItalicOutlined, PlusOutlined, StrikethroughOutlined, UnderlineOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { createDefaultPageBorder, createDefaultPageWatermark, getReportFontOptions, normalizeReportFonts } from '@report-designer/core';
-import type { BorderConfig, EventMap, Margins, Padding, Page, PageBorder, PageEventName, PageWatermark, ReportFont, TableCell, TableComponent, TextFormatConfig } from '@report-designer/core';
+import type { BorderConfig, EventMap, Margins, Padding, Page, PageBorder, PageEventName, PageWatermark, ReportFont, ReportFontOption, TableCell, TableComponent, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import {
   detectPaperType,
@@ -356,6 +356,7 @@ const PageProperties: React.FC = () => {
   const sizeMin = formatUnitValue(20, reportUnit);
   const sizeMax = formatUnitValue(1000, reportUnit);
   const marginMax = formatUnitValue(100, reportUnit);
+  const reportFontOptions = getReportFontOptions(template.fonts);
   const updatePage = (settings: Partial<Page>) => setPageSettings(page.id, settings);
   const watermark = page.watermark ?? createDefaultPageWatermark();
   const pageBorder = page.pageBorder ?? createDefaultPageBorder();
@@ -405,7 +406,7 @@ const PageProperties: React.FC = () => {
       ...reportFonts,
       {
         id: `custom-font-${customCount}`,
-        name: 'Custom Font',
+        name: t('pageSettings.customFontName', { index: customCount }),
         family: `CustomFont${customCount}`,
         fallback: 'sans-serif',
       },
@@ -525,6 +526,7 @@ const PageProperties: React.FC = () => {
             children: (
               <PageAppearanceControls
                 pageBorder={pageBorder}
+                reportFontOptions={reportFontOptions}
                 reportUnit={reportUnit}
                 unitStep={unitStep}
                 watermark={watermark}
@@ -675,11 +677,12 @@ const PageProperties: React.FC = () => {
 const PageAppearanceControls: React.FC<{
   watermark: PageWatermark;
   pageBorder: PageBorder;
+  reportFontOptions: ReportFontOption[];
   reportUnit: 'mm' | 'cm';
   unitStep: number;
   onWatermarkChange: (updates: Partial<PageWatermark>) => void;
   onPageBorderChange: (updates: Partial<PageBorder>) => void;
-}> = ({ watermark, pageBorder, reportUnit, unitStep, onWatermarkChange, onPageBorderChange }) => {
+}> = ({ watermark, pageBorder, reportFontOptions, reportUnit, unitStep, onWatermarkChange, onPageBorderChange }) => {
   const { t } = useDesignerI18n();
   const borderWidthMax = formatUnitValue(10, reportUnit);
   const borderOffsetMax = formatUnitValue(50, reportUnit);
@@ -719,6 +722,21 @@ const PageAppearanceControls: React.FC<{
           step={1}
           style={{ width: '100%' }}
           onChange={value => onWatermarkChange({ fontSize: Number(value ?? watermark.fontSize) })}
+        />
+      </Form.Item>
+      <Form.Item label={t('pageSettings.watermarkFontFamily')}>
+        <Select
+          aria-label={t('pageSettings.watermarkFontFamily')}
+          value={watermark.fontFamily ?? undefined}
+          allowClear
+          showSearch
+          virtual={false}
+          style={{ width: '100%' }}
+          options={reportFontOptions.map(font => ({
+            value: font.value,
+            label: <span style={{ fontFamily: font.fontFamily }}>{font.label}</span>,
+          }))}
+          onChange={fontFamily => onWatermarkChange({ fontFamily })}
         />
       </Form.Item>
       <Form.Item label={t('pageSettings.watermarkOpacity')}>

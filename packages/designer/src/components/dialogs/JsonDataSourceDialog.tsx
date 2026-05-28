@@ -20,8 +20,8 @@ export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open
     if (!json.trim()) return { value: null, error: null };
     try {
       return { value: JSON.parse(json) as Record<string, unknown>, error: null };
-    } catch (err) {
-      return { value: null, error: err instanceof Error ? err.message : t('jsonDataSource.invalidJson') };
+    } catch {
+      return { value: null, error: t('jsonDataSource.invalidJson') };
     }
   }, [json, t]);
   const parsed = parsedResult.value;
@@ -82,7 +82,7 @@ export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open
           onChange={event => setJson(event.target.value)}
           placeholder='{ "employees": [{ "name": "Alice", "salary": 100 }] }'
         />
-        {error ? <Alert type="error" showIcon message={error} /> : null}
+        {error ? <Alert type="error" showIcon title={error} /> : null}
         <Table
           size="small"
           rowKey="id"

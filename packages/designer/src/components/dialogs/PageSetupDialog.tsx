@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { Button, Checkbox, ColorPicker, Input, InputNumber, Modal, Radio, Segmented, Select, Space, Switch, Typography } from 'antd';
 import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
-import { createDefaultPageBorder, createDefaultPageWatermark } from '@report-designer/core';
-import type { Margins, PageBorder, PageOrientation, PageWatermark } from '@report-designer/core';
+import { createDefaultPageBorder, createDefaultPageWatermark, getReportFontOptions } from '@report-designer/core';
+import type { Margins, PageBorder, PageOrientation, PageWatermark, ReportFontOption } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { useDesignerI18n } from '../../i18n';
 import {
@@ -22,6 +22,7 @@ interface PageSetupDialogProps {
 
 export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose }) => {
   const { t } = useDesignerI18n();
+  const template = useDesignerStore(s => s.template);
   const page = useDesignerStore(s => s.template.pages.find(item => item.id === s.currentPageId) ?? s.template.pages[0]);
   const setPageSettings = useDesignerStore(s => s.setPageSettings);
   const reportUnit = useDesignerStore(s => s.reportUnit);
@@ -97,6 +98,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
   const sizeMin = formatUnitValue(20, reportUnit);
   const sizeMax = formatUnitValue(1000, reportUnit);
   const marginMax = formatUnitValue(100, reportUnit);
+  const reportFontOptions = getReportFontOptions(template.fonts);
 
   return (
     <Modal
@@ -159,6 +161,7 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
         <DialogNumberField label={t('pageSettings.left')} value={formatUnitValue(margins.left, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('left', value)} />
         <PageAppearanceDialogFields
           pageBorder={pageBorder}
+          reportFontOptions={reportFontOptions}
           reportUnit={reportUnit}
           unitStep={unitStep}
           watermark={watermark}
@@ -174,11 +177,12 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
 const PageAppearanceDialogFields: React.FC<{
   watermark: PageWatermark;
   pageBorder: PageBorder;
+  reportFontOptions: ReportFontOption[];
   reportUnit: 'mm' | 'cm';
   unitStep: number;
   onWatermarkChange: (updates: Partial<PageWatermark>) => void;
   onPageBorderChange: (updates: Partial<PageBorder>) => void;
-}> = ({ watermark, pageBorder, reportUnit, unitStep, onWatermarkChange, onPageBorderChange }) => {
+}> = ({ watermark, pageBorder, reportFontOptions, reportUnit, unitStep, onWatermarkChange, onPageBorderChange }) => {
   const { t } = useDesignerI18n();
   const borderWidthMax = formatUnitValue(10, reportUnit);
   const borderOffsetMax = formatUnitValue(50, reportUnit);
@@ -193,6 +197,16 @@ const PageAppearanceDialogFields: React.FC<{
         <DialogTextField label={t('pageSettings.watermarkText')} ariaLabel={t('pageSettings.watermarkText')} value={watermark.text} onChange={text => onWatermarkChange({ text })} />
         <DialogColorField label={t('pageSettings.watermarkColor')} ariaLabel={t('pageSettings.watermarkColor')} value={watermark.color} onChange={color => onWatermarkChange({ color })} />
         <DialogNumberField label={t('pageSettings.watermarkFontSize')} value={watermark.fontSize} min={8} max={240} step={1} onChange={value => onWatermarkChange({ fontSize: Number(value ?? watermark.fontSize) })} ariaLabel={t('pageSettings.watermarkFontSize')} />
+        <DialogSelectField
+          label={t('pageSettings.watermarkFontFamily')}
+          ariaLabel={t('pageSettings.watermarkFontFamily')}
+          value={watermark.fontFamily ?? ''}
+          options={[
+            { value: '', label: t('common.default') },
+            ...reportFontOptions.map(font => ({ value: font.value, label: font.label })),
+          ]}
+          onChange={fontFamily => onWatermarkChange({ fontFamily: fontFamily || undefined })}
+        />
         <DialogNumberField label={t('pageSettings.watermarkOpacity')} value={watermark.opacity} min={0} max={1} step={0.05} onChange={value => onWatermarkChange({ opacity: Number(value ?? watermark.opacity) })} ariaLabel={t('pageSettings.watermarkOpacity')} />
         <DialogNumberField label={t('pageSettings.watermarkAngle')} value={watermark.angle} min={-180} max={180} step={1} onChange={value => onWatermarkChange({ angle: Number(value ?? watermark.angle) })} ariaLabel={t('pageSettings.watermarkAngle')} />
         <DialogSegmentedField

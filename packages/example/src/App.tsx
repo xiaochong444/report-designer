@@ -120,6 +120,7 @@ function App() {
             key={selected.key}
             template={designerTemplate}
             data={selected.data}
+            subreports={'subreports' in selected ? selected.subreports : undefined}
             locale={locale}
             eventNavigationTarget={eventNavigationTarget}
             onTemplateChange={handleDesignerTemplateChange}

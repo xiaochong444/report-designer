@@ -174,12 +174,12 @@ export const DesignerRibbon: React.FC = () => {
   const createTextComponent = (overrides: Partial<TextComponent> = {}): TextComponent => ({
     id: createId('text'),
     type: 'text',
-    name: 'Text',
+    name: t('leftPanel.componentText'),
     x: 10,
     y: 8,
     width: 45,
     height: 10,
-    text: 'Text',
+    text: t('leftPanel.componentText'),
     font: DEFAULT_FONT,
     textAlign: 'left',
     verticalAlign: 'top',
@@ -194,7 +194,7 @@ export const DesignerRibbon: React.FC = () => {
   const addImage = () => addComponentToCurrentBand({
     id: createId('image'),
     type: 'image',
-    name: 'Image',
+    name: t('leftPanel.componentImage'),
     x: 10,
     y: 8,
     width: 35,
@@ -206,19 +206,19 @@ export const DesignerRibbon: React.FC = () => {
   const addCheckbox = () => addComponentToCurrentBand({
     id: createId('checkbox'),
     type: 'checkbox',
-    name: 'CheckBox',
+    name: t('leftPanel.componentCheckbox'),
     x: 10,
     y: 8,
     width: 25,
     height: 8,
     checked: 'false',
-    label: 'Check',
+    label: t('leftPanel.componentCheckbox'),
   } as ReportComponent);
 
   const addLine = () => addComponentToCurrentBand({
     id: createId('line'),
     type: 'line',
-    name: 'Line',
+    name: t('leftPanel.componentLine'),
     x: 10,
     y: 8,
     width: 50,
@@ -237,12 +237,12 @@ export const DesignerRibbon: React.FC = () => {
     const dataSource = state.template.dataSources[0];
     const sourceFields = dataSource?.schema ?? dataSource?.fields ?? [];
     const columns = (sourceFields.length ? sourceFields.slice(0, 3) : [
-      { name: 'field1', type: 'string' as const, label: 'Field 1' },
-      { name: 'field2', type: 'string' as const, label: 'Field 2' },
-      { name: 'field3', type: 'string' as const, label: 'Field 3' },
+      { name: 'field1', type: 'string' as const, label: t('ribbon.defaultField', { index: 1 }) },
+      { name: 'field2', type: 'string' as const, label: t('ribbon.defaultField', { index: 2 }) },
+      { name: 'field3', type: 'string' as const, label: t('ribbon.defaultField', { index: 3 }) },
     ]).map((field, index) => ({
       id: createId(`col_${index + 1}`),
-      header: field.label || field.name,
+      header: field.label || field.name || t('ribbon.defaultField', { index: index + 1 }),
       field: field.name,
       width: 30,
       cellType: 'text' as const,
@@ -251,7 +251,7 @@ export const DesignerRibbon: React.FC = () => {
     addComponentToCurrentBand({
       id: createId('table'),
       type: 'table',
-      name: 'Table',
+      name: t('leftPanel.componentTable'),
       x: 10,
       y: 8,
       width: Math.max(60, columns.length * 30),

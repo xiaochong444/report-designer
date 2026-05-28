@@ -206,6 +206,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
             exampleItems={exampleItems}
             initialCursor={initialCursor}
             loadingText={t('events.editorLoading')}
+            diagnosticLineLabel={t('events.diagnosticLine')}
             onChange={updateScript}
             onDiagnostics={setEditorDiagnostics}
           />

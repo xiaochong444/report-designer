@@ -8,10 +8,10 @@ import {
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
 import type { ReportComponent, BandType } from '@report-designer/core';
-import { getBandDisplayName, getComponentNamePrefix } from '../report-structure';
+import { getComponentNamePrefix } from '../report-structure';
 import { useEffect, useMemo, useState } from 'react';
 import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
-import { createDefaultComponent, createFieldExpressionComponent } from '../component-factory';
+import { createDefaultComponent, createFieldExpressionComponent, createTextExpressionComponent } from '../component-factory';
 import { PanelSearchBox } from './panels/PanelSearchBox';
 
 export const LeftPanel: React.FC = () => {
@@ -136,6 +136,16 @@ const ComponentPalette: React.FC = () => {
         );
         return;
       } catch { /* fall through to component type handling */ }
+    }
+
+    const expressionBinding = e.dataTransfer.getData('expressionBinding');
+    if (expressionBinding) {
+      addComponent(
+        currentPageId,
+        pos.targetBandId,
+        createTextExpressionComponent(expressionBinding, pos.xMm, pos.yMm),
+      );
+      return;
     }
 
     // Component type drop
@@ -269,6 +279,10 @@ const DataDictionary: React.FC = () => {
     e.dataTransfer.setData('fieldBinding', JSON.stringify({ dataSourceId: dsId, fieldName, fieldType }));
     e.dataTransfer.effectAllowed = 'copy';
   };
+  const handleExpressionDragStart = (e: React.DragEvent, expression: string) => {
+    e.dataTransfer.setData('expressionBinding', expression);
+    e.dataTransfer.effectAllowed = 'copy';
+  };
 
   const baseTreeData: SearchableDataNode[] = [
     {
@@ -286,7 +300,7 @@ const DataDictionary: React.FC = () => {
         title: (
           <div className="rd-dictionary-node">
             {renderDictionaryGlyph('datasource')}
-            <span>{`${ds.name} [${ds.name}]`}</span>
+            <span>{`${ds.name || ds.id} [${ds.id}]`}</span>
           </div>
         ),
         children: (ds.schema ?? ds.fields ?? []).map((field) => ({
@@ -315,9 +329,9 @@ const DataDictionary: React.FC = () => {
         </div>
       ),
       children: [
-        { key: 'sys.Today', searchText: 'Today', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{Today}'}</span></div> },
-        { key: 'sys.PageNumber', searchText: 'PageNumber', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{PageNumber}'}</span></div> },
-        { key: 'sys.TotalPages', searchText: 'TotalPages', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('system')}<span>{'{TotalPages}'}</span></div> },
+        { key: 'sys.Today', searchText: 'Today', title: <div className="rd-dictionary-node" draggable onDragStart={(event) => handleExpressionDragStart(event, '{Today}')}>{renderDictionaryGlyph('system')}<span>{'{Today}'}</span></div> },
+        { key: 'sys.PageNumber', searchText: 'PageNumber', title: <div className="rd-dictionary-node" draggable onDragStart={(event) => handleExpressionDragStart(event, '{PageNumber}')}>{renderDictionaryGlyph('system')}<span>{'{PageNumber}'}</span></div> },
+        { key: 'sys.TotalPages', searchText: 'TotalPages', title: <div className="rd-dictionary-node" draggable onDragStart={(event) => handleExpressionDragStart(event, '{TotalPages}')}>{renderDictionaryGlyph('system')}<span>{'{TotalPages}'}</span></div> },
       ],
     },
     {
@@ -330,8 +344,8 @@ const DataDictionary: React.FC = () => {
         </div>
       ),
       children: [
-        { key: 'function.Sum', searchText: 'SUM', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('function')}<span>SUM</span></div> },
-        { key: 'function.Count', searchText: 'COUNT', title: <div className="rd-dictionary-node">{renderDictionaryGlyph('function')}<span>COUNT</span></div> },
+        { key: 'function.Sum', searchText: 'SUM', title: <div className="rd-dictionary-node" draggable onDragStart={(event) => handleExpressionDragStart(event, '{SUM()}')}>{renderDictionaryGlyph('function')}<span>SUM</span></div> },
+        { key: 'function.Count', searchText: 'COUNT', title: <div className="rd-dictionary-node" draggable onDragStart={(event) => handleExpressionDragStart(event, '{COUNT()}')}>{renderDictionaryGlyph('function')}<span>COUNT</span></div> },
       ],
     },
   ];
@@ -462,7 +476,7 @@ const PageTree: React.FC = () => {
       ),
       children: template.pages.map((page, pageIndex) => {
         const bandTypeCounters: Partial<Record<BandType, number>> = {};
-        const pageName = page.name || `Page${pageIndex + 1}`;
+        const pageName = page.name || `${t('leftPanel.page')}${pageIndex + 1}`;
         const pageMatches = matchesSearch([pageName, page.id], normalizedSearchTerm);
         return {
           key: page.id,
@@ -477,7 +491,7 @@ const PageTree: React.FC = () => {
           children: page.bands.map((band) => {
             bandTypeCounters[band.type] = (bandTypeCounters[band.type] ?? 0) + 1;
             const bandIndex = bandTypeCounters[band.type] ?? 1;
-            const bandName = getBandDisplayName(band, bandIndex);
+            const bandName = `${t(`band.type.${band.type}` as DesignerMessageKey)}${bandIndex}`;
             const bandMatches = pageMatches || matchesSearch([bandName, band.name, band.id, band.type], normalizedSearchTerm);
             const visibleComponents = band.components.filter((comp) => {
               if (!normalizedSearchTerm || bandMatches) {

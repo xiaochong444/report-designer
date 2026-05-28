@@ -38,7 +38,6 @@ export interface TableStructureUpdate {
   footerRowsCount?: number;
   headerHeight?: number;
   rowHeight?: number;
-  alternateRowStyle?: string;
   canBreak?: boolean;
   showBorder?: boolean;
   dataSource?: string;
@@ -199,7 +198,6 @@ export function setTableStructure(table: TableComponent, structure: TableStructu
     ...('binding' in structure ? { binding: structure.binding } : {}),
     ...('headerHeight' in structure ? { headerHeight: normalizePositiveMm(structure.headerHeight, normalized.headerHeight) } : {}),
     ...('rowHeight' in structure ? { rowHeight: normalizePositiveMm(structure.rowHeight, normalized.rowHeight) } : {}),
-    ...('alternateRowStyle' in structure ? { alternateRowStyle: structure.alternateRowStyle } : {}),
     columns: resizeColumns(baseColumns, columnCount, normalized.width),
     columnCount,
     rowCount,

@@ -282,7 +282,6 @@ export interface TableComponent extends ReportComponent {
   cells?: TableCell[];
   headerHeight: number;
   rowHeight: number;
-  alternateRowStyle?: string;
   showBorder: boolean;
 }
 

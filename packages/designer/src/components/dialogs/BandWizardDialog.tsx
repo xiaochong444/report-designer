@@ -39,9 +39,9 @@ export const BandWizardDialog: React.FC<BandWizardDialogProps> = ({ open, onClos
         const nextBands: Band[] = preset === 'data-only'
           ? [{ id: uid('band_data'), type: 'data', height: 14, dataBand: { dataSourceId: source.id }, components: fieldComponents }]
           : [
-              { id: uid('band_header'), type: 'header', height: 12, components: sourceFields.slice(0, 5).map((field, fieldIndex) => createTextComponent(field.label || field.name, 10 + fieldIndex * 36, 2, 34, 8, `${field.name} Header`)) },
+              { id: uid('band_header'), type: 'header', height: 12, components: sourceFields.slice(0, 5).map((field, fieldIndex) => createTextComponent(field.label || field.name, 10 + fieldIndex * 36, 2, 34, 8, t('bandWizard.generatedHeaderName', { field: field.name }))) },
               { id: uid('band_data'), type: 'data', height: 14, dataBand: { dataSourceId: source.id }, components: fieldComponents },
-              { id: uid('band_footer'), type: 'footer', height: 12, components: [createTextComponent(`COUNT("${source.id}")`, 10, 2, 50, 8, 'Count')] },
+              { id: uid('band_footer'), type: 'footer', height: 12, components: [createTextComponent(`COUNT("${source.id}")`, 10, 2, 50, 8, t('bandWizard.generatedCountName'))] },
             ];
 
         return {
