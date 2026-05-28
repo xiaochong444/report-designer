@@ -13,10 +13,17 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\windows\install.
 The installer:
 
 - publishes the .NET print host
+- finds `SumatraPDF.exe`, or downloads the official portable build when it is missing
 - registers Chrome Native Messaging for the fixed extension id
 - copies the extension to a stable local folder
 - creates a desktop shortcut that launches Chrome with the extension loaded
 - writes the Host default printer from the Windows default printer when available
+
+You can still pass a custom print command when a managed environment already deploys one:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\windows\install.ps1 -PrintCommand "C:\Tools\SumatraPDF.exe"
+```
 
 ## Why a launcher is used
 

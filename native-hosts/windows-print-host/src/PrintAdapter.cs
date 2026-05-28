@@ -25,7 +25,10 @@ public sealed class CommandPrintAdapter : IPrintAdapter
             throw new InvalidOperationException("No print command configured");
         }
 
-        string[] expandedArgs = _args.Select(arg => ExpandToken(arg, job)).ToArray();
+        string[] expandedArgs = _args
+            .Where(arg => job.Silent || !string.Equals(arg, "-silent", StringComparison.OrdinalIgnoreCase))
+            .Select(arg => ExpandToken(arg, job))
+            .ToArray();
         CommandExecutionResult result = await _execute(_command, expandedArgs, cancellationToken);
         if (result.ExitCode != 0)
         {

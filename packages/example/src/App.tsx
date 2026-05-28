@@ -15,6 +15,9 @@ const exampleMessages: Record<DesignerLocale, {
   silentPrint: string;
   silentPrintSent: string;
   silentPrintFailed: string;
+  pdfPrintValidation: string;
+  pdfPrintValidationSent: string;
+  pdfPrintValidationFailed: string;
 }> = {
   'zh-CN': {
     reportSamples: '报表示例',
@@ -23,6 +26,9 @@ const exampleMessages: Record<DesignerLocale, {
     silentPrint: '静默打印测试',
     silentPrintSent: '已发送给本机打印 Host',
     silentPrintFailed: '静默打印失败',
+    pdfPrintValidation: 'PDF 打印验证',
+    pdfPrintValidationSent: '已打开 PDF 保存窗口',
+    pdfPrintValidationFailed: 'PDF 打印验证失败',
   },
   'en-US': {
     reportSamples: 'Report Samples',
@@ -31,6 +37,9 @@ const exampleMessages: Record<DesignerLocale, {
     silentPrint: 'Silent Print Test',
     silentPrintSent: 'Sent to local print host',
     silentPrintFailed: 'Silent print failed',
+    pdfPrintValidation: 'PDF Print Validation',
+    pdfPrintValidationSent: 'PDF save window opened',
+    pdfPrintValidationFailed: 'PDF print validation failed',
   },
 };
 
@@ -43,6 +52,8 @@ function App() {
   const [previewDrafts, setPreviewDrafts] = useState<Record<string, ReportTemplate>>({});
   const [silentPrintStatus, setSilentPrintStatus] = useState('');
   const [silentPrintLoading, setSilentPrintLoading] = useState(false);
+  const [pdfPrintStatus, setPdfPrintStatus] = useState('');
+  const [pdfPrintLoading, setPdfPrintLoading] = useState(false);
   const labels = exampleMessages[locale];
   const selected = useMemo(
     () => sampleReports.find(report => report.key === sampleKey) ?? sampleReports[0],
@@ -94,6 +105,31 @@ function App() {
       setSilentPrintLoading(false);
     }
   }, [labels.silentPrintFailed, labels.silentPrintSent, previewTemplate, selected]);
+  const handlePdfPrintValidation = useCallback(async () => {
+    setPdfPrintLoading(true);
+    setPdfPrintStatus('');
+    try {
+      const printDocument = renderReport(previewTemplate, selected.data, {
+        subreports: 'subreports' in selected ? selected.subreports : undefined,
+        mode: 'print',
+      });
+      await printReport(printDocument, {
+        adapter: 'chrome-extension',
+        chromeExtension: {
+          backend: 'nativeMessaging',
+          jobName: previewTemplate.name,
+          printerId: 'Microsoft Print to PDF',
+          silent: false,
+        },
+      });
+      setPdfPrintStatus(labels.pdfPrintValidationSent);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      setPdfPrintStatus(`${labels.pdfPrintValidationFailed}: ${message}`);
+    } finally {
+      setPdfPrintLoading(false);
+    }
+  }, [labels.pdfPrintValidationFailed, labels.pdfPrintValidationSent, previewTemplate, selected]);
 
   return (
     <Layout style={{ height: '100vh', minWidth: 900, background: '#eef1f5' }}>
@@ -123,10 +159,19 @@ function App() {
               {silentPrintStatus ? (
                 <Typography.Text
                   type={silentPrintStatus.startsWith(labels.silentPrintFailed) ? 'danger' : 'success'}
-                  style={{ fontSize: 12, maxWidth: 260 }}
+                  style={{ fontSize: 12, maxWidth: 220 }}
                   ellipsis
                 >
                   {silentPrintStatus}
+                </Typography.Text>
+              ) : null}
+              {pdfPrintStatus ? (
+                <Typography.Text
+                  type={pdfPrintStatus.startsWith(labels.pdfPrintValidationFailed) ? 'danger' : 'success'}
+                  style={{ fontSize: 12, maxWidth: 220 }}
+                  ellipsis
+                >
+                  {pdfPrintStatus}
                 </Typography.Text>
               ) : null}
               <Button
@@ -136,6 +181,14 @@ function App() {
                 onClick={() => void handleSilentPrint()}
               >
                 {labels.silentPrint}
+              </Button>
+              <Button
+                data-testid="pdf-print-validation-button"
+                size="small"
+                loading={pdfPrintLoading}
+                onClick={() => void handlePdfPrintValidation()}
+              >
+                {labels.pdfPrintValidation}
               </Button>
             </>
           ) : null}

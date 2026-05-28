@@ -49,4 +49,6 @@ Create `%LOCALAPPDATA%\\ReportDesignerPrintHost\\config.json`:
 
 - The host communicates with Chrome through the standard Native Messaging length-prefixed JSON protocol.
 - `OutputType=WinExe` keeps the host hidden while still allowing redirected stdin/stdout.
-- If `printCommand` is empty, the host uses Windows shell `printto` as a fallback. For production silent printing, prefer a known command-line PDF printer such as SumatraPDF.
+- The one-click installer will look for `SumatraPDF.exe` and download the official portable build if it is missing.
+- Silent jobs use the configured default printer when one exists. Interactive jobs with `silent: false` may pass a printer id, which is useful for validating the pipeline with `Microsoft Print to PDF`.
+- The Windows `printto` fallback is still available for manual setups, but production silent printing should use a known command-line PDF printer such as SumatraPDF.

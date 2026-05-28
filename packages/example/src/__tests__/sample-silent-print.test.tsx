@@ -72,4 +72,33 @@ describe('example silent print smoke entry', () => {
       },
     });
   });
+
+  it('exposes a PDF print validation entry that targets Microsoft Print to PDF interactively', async () => {
+    const container = document.createElement('div');
+    document.body.appendChild(container);
+    const root = createRoot(container);
+
+    await act(async () => {
+      root.render(<App />);
+    });
+
+    const pdfPrint = Array.from(container.querySelectorAll('button'))
+      .find(button => button.textContent?.includes('PDF 打印验证') || button.textContent?.includes('PDF Print Validation'));
+    expect(pdfPrint).toBeTruthy();
+
+    await act(async () => {
+      pdfPrint!.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+    });
+
+    expect(printReportMock).toHaveBeenCalledTimes(1);
+    expect(printReportMock.mock.calls[0][1]).toEqual({
+      adapter: 'chrome-extension',
+      chromeExtension: {
+        backend: 'nativeMessaging',
+        jobName: 'Grouped Employees',
+        printerId: 'Microsoft Print to PDF',
+        silent: false,
+      },
+    });
+  });
 });

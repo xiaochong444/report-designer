@@ -136,6 +136,39 @@ public class PrintHostTests
         Assert.Equal("Office Printer", record.PrinterId);
     }
 
+    [Fact]
+    public async Task HandleMessage_UsesPayloadPrinterForInteractiveJobs()
+    {
+        string rootDir = Path.Combine(Path.GetTempPath(), "print-host-" + Guid.NewGuid().ToString("N"));
+        string? resolvedPrinterId = null;
+        PrintHost host = new(
+            new PrintQueue(rootDir, () => new DateTime(2026, 05, 28, 10, 0, 0, DateTimeKind.Utc)),
+            new StubAdapter(job =>
+            {
+                resolvedPrinterId = job.PrinterId;
+                return Task.FromResult(new PrintAdapterResult("adapter-1", string.Empty));
+            }),
+            defaultPrinterId: "Office Printer");
+
+        PrintHostResponse response = await host.HandleMessageAsync(new NativeMessage(
+            "printPdf",
+            JsonDocument.Parse("""
+            {
+              "requestId": "req-1",
+              "printerId": "Microsoft Print to PDF",
+              "silent": false,
+              "pdfBase64": "JVBERi0xLjc="
+            }
+            """).RootElement.Clone()));
+
+        Assert.True(response.Ok);
+        Assert.Equal("Microsoft Print to PDF", resolvedPrinterId);
+        string recordPath = Directory.GetFiles(rootDir, "*.json", SearchOption.AllDirectories).Single();
+        PrintJobRecord record = JsonSerializer.Deserialize<PrintJobRecord>(await File.ReadAllTextAsync(recordPath), NativeMessaging.JsonOptions)!;
+        Assert.Equal("Microsoft Print to PDF", record.PrinterId);
+        Assert.False(record.Silent);
+    }
+
     private sealed class StubAdapter : IPrintAdapter
     {
         private readonly Func<PrintAdapterJob, Task<PrintAdapterResult>> _handler;

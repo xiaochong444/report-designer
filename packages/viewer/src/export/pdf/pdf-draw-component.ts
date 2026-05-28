@@ -32,7 +32,7 @@ export async function drawRenderComponent(
   const backgroundColor = component.style?.backgroundColor;
   const border = component.style?.border;
 
-  if (backgroundColor) {
+  if (backgroundColor && backgroundColor.toLowerCase() !== 'transparent') {
     page.drawRectangle({ x, y, width, height, color: parsePdfColor(backgroundColor) });
   }
 

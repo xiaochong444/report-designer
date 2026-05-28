@@ -21,6 +21,7 @@ installer\windows\install.cmd
 脚本会自动完成：
 
 - 发布 `.NET` Host
+- 查找本机 `SumatraPDF.exe`，找不到时自动下载官方 portable 版到安装目录
 - 生成 `%LOCALAPPDATA%\ReportDesignerPrintHost\config.json`
 - 生成 Native Messaging manifest
 - 写入 `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.report_designer.print_host`
@@ -33,13 +34,13 @@ installer\windows\install.cmd
 ehppgngdhfmokcmjihddljjfjmcponik
 ```
 
-如果没有安装 SumatraPDF，执行：
+如果要使用自己已部署的 PDF 打印程序，可以显式传入：
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\windows\install.ps1 -PrintCommand "C:\Tools\SumatraPDF.exe"
 ```
 
-如果不指定 `PrintCommand`，Host 会使用 Windows `printto` 方式调用系统默认 PDF 应用进行打印。正式部署更建议配置 SumatraPDF 或其它明确支持静默命令行打印的 PDF 程序。
+正式部署不再依赖 Windows `printto` 关联；它在很多机器上会因为没有 PDF 打印动作关联而失败。
 
 ## Viewer 打印配置
 
@@ -68,6 +69,17 @@ await printReport(renderDocument, {
 成功时 job 记录里的 `status` 是 `completed`。
 
 失败时 job 记录里的 `status` 是 `failed`，`error` 会记录失败原因。
+
+没有物理打印机时，可以点击顶部的 `PDF 打印验证`。这个按钮会传入：
+
+```ts
+{
+  printerId: 'Microsoft Print to PDF',
+  silent: false
+}
+```
+
+Host 会在交互式任务中尊重这个打印机，并去掉 SumatraPDF 的 `-silent` 参数，让 Windows 弹出 PDF 保存窗口。看到保存窗口就说明 Viewer、扩展、Native Host 和系统打印调用链路已经打通。
 
 ## 打印机归属
 

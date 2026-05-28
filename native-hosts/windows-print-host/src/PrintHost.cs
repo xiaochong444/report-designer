@@ -26,7 +26,7 @@ public sealed class PrintHost
         try
         {
             PrintPdfPayload payload = ValidatePayload(message.Payload);
-            string resolvedPrinterId = ResolvePrinterId(payload.PrinterId);
+            string resolvedPrinterId = ResolvePrinterId(payload.PrinterId, payload.Silent);
             PrintPdfPayload normalizedPayload = payload with { PrinterId = resolvedPrinterId };
             PrintJobRecord queued = await _queue.EnqueuePdfAsync(normalizedPayload, cancellationToken);
             jobId = queued.JobId;
@@ -56,8 +56,13 @@ public sealed class PrintHost
         }
     }
 
-    private string ResolvePrinterId(string? payloadPrinterId)
+    private string ResolvePrinterId(string? payloadPrinterId, bool silent)
     {
+        if (!silent && !string.IsNullOrWhiteSpace(payloadPrinterId))
+        {
+            return payloadPrinterId;
+        }
+
         if (!string.IsNullOrWhiteSpace(_defaultPrinterId))
         {
             return _defaultPrinterId;

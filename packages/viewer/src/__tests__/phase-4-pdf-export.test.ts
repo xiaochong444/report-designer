@@ -28,6 +28,24 @@ describe('Phase 4 PDF export', () => {
     drawRectangle.mockRestore();
   });
 
+  it('does not draw a black fill for transparent component backgrounds when exporting PDF', async () => {
+    const document = makeRenderDocument();
+    const text = document.pages[0].items[0].components[0];
+    text.style = {
+      font: { family: 'Arial', size: 11, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      backgroundColor: 'transparent',
+      textAlign: 'left',
+    };
+    const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+
+    await exportRenderDocumentToPDF(document);
+
+    expect(drawRectangle).not.toHaveBeenCalled();
+
+    drawRectangle.mockRestore();
+  });
+
   it('falls back from invalid page appearance PDF colors without NaN channels', async () => {
     const document = makeRenderDocument();
     document.pages[0].backgroundColor = '#zzzzzz';

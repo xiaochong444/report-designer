@@ -104,12 +104,20 @@ async function submitNativeHostPrintJob(payload, nativeHostName) {
           resolve(makeErrorResponse(payload.requestId, lastError.message));
           return;
         }
+        if (!result) {
+          resolve(makeErrorResponse(payload.requestId, 'Native host returned an empty response.'));
+          return;
+        }
+        if (result.ok === false) {
+          resolve(makeErrorResponse(payload.requestId, result.error || 'Native host print failed.'));
+          return;
+        }
         resolve({
           channel: CHANNEL,
           direction: 'extension-to-page',
           requestId: payload.requestId,
           ok: true,
-          result: { backend: 'nativeMessaging', result },
+          result: { backend: 'nativeMessaging', ...result },
         });
       },
     );

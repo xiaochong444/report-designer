@@ -32,9 +32,41 @@ function Resolve-FixedExtensionId {
   return [string]$config.extensionId
 }
 
+function Install-SumatraPdf {
+  param([string]$InstallDir)
+
+  $sumatraVersion = "3.6.1"
+  $downloadUrl = "https://www.sumatrapdfreader.org/dl/rel/$sumatraVersion/SumatraPDF-$sumatraVersion-64.zip"
+  $toolDir = Join-Path $InstallDir "tools\SumatraPDF"
+  $zipPath = Join-Path $env:TEMP "SumatraPDF-$sumatraVersion-64.zip"
+  $extractDir = Join-Path $env:TEMP "SumatraPDF-$sumatraVersion-64"
+
+  Remove-Item -LiteralPath $extractDir -Recurse -Force -ErrorAction SilentlyContinue
+  Remove-Item -LiteralPath $zipPath -Force -ErrorAction SilentlyContinue
+
+  Invoke-WebRequest -Uri $downloadUrl -OutFile $zipPath -Headers @{ "User-Agent" = "Mozilla/5.0" }
+  Expand-Archive -LiteralPath $zipPath -DestinationPath $extractDir -Force
+
+  $exe = Get-ChildItem -LiteralPath $extractDir -Filter "SumatraPDF-*-64.exe" -Recurse | Select-Object -First 1
+  if (-not $exe) {
+    throw "SumatraPDF package did not contain a 64-bit executable."
+  }
+
+  New-Item -ItemType Directory -Force -Path $toolDir | Out-Null
+  $targetExe = Join-Path $toolDir "SumatraPDF.exe"
+  Copy-Item -LiteralPath $exe.FullName -Destination $targetExe -Force
+  return (Resolve-Path -LiteralPath $targetExe).Path
+}
+
 function Resolve-SumatraPdf {
+  param([string]$InstallDir)
+
+  if (-not [string]::IsNullOrWhiteSpace($PrintCommand)) {
+    return $PrintCommand
+  }
+
   $candidates = @(
-    $PrintCommand,
+    (Join-Path $InstallDir "tools\SumatraPDF\SumatraPDF.exe"),
     "$env:LOCALAPPDATA\SumatraPDF\SumatraPDF.exe",
     "$env:ProgramFiles\SumatraPDF\SumatraPDF.exe",
     "${env:ProgramFiles(x86)}\SumatraPDF\SumatraPDF.exe"
@@ -51,7 +83,7 @@ function Resolve-SumatraPdf {
     return $fromPath.Source
   }
 
-  return $PrintCommand
+  return Install-SumatraPdf -InstallDir $InstallDir
 }
 
 function Write-Utf8Json {
@@ -71,7 +103,7 @@ $manifestPath = Join-Path $manifestDir "com.report_designer.print_host.json"
 $configPath = Join-Path $DataDir "config.json"
 $nativeHostName = "com.report_designer.print_host"
 $registryPath = "HKCU:\Software\Google\Chrome\NativeMessagingHosts\$nativeHostName"
-$resolvedPrintCommand = Resolve-SumatraPdf
+$resolvedPrintCommand = Resolve-SumatraPdf -InstallDir $InstallDir
 if (-not $DefaultPrinter) {
   try {
     $defaultPrinterInstance = Get-CimInstance Win32_Printer -ErrorAction Stop | Where-Object { $_.Default -eq $true } | Select-Object -First 1
