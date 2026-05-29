@@ -142,6 +142,37 @@
   min-width: 132px;
 }
 
+.rd-band-menu-description {
+  width: 260px;
+  min-height: 86px;
+  padding: 12px 12px 10px;
+  border-top: 3px solid;
+  box-sizing: border-box;
+  background: #fff;
+  color: var(--rd-text);
+  white-space: normal;
+}
+
+.rd-band-help-popover .ant-popover-inner {
+  padding: 0;
+  border: 1px solid #bfc7d2;
+  border-radius: 0;
+  box-shadow: 0 4px 12px rgba(15,23,42,0.16);
+}
+
+.rd-band-menu-description-title {
+  margin-bottom: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.rd-band-menu-description-text {
+  font-size: 12px;
+  line-height: 1.35;
+  color: #374151;
+}
+
 .rd-band-glyph {
   width: 16px;
   height: 13px;

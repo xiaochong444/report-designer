@@ -157,6 +157,21 @@ export type DesignerMessageKey =
   | 'band.type.child'
   | 'band.type.emptyData'
   | 'band.type.overlay'
+  | 'band.description.reportTitle'
+  | 'band.description.reportSummary'
+  | 'band.description.pageHeader'
+  | 'band.description.pageFooter'
+  | 'band.description.header'
+  | 'band.description.footer'
+  | 'band.description.columnHeader'
+  | 'band.description.columnFooter'
+  | 'band.description.groupHeader'
+  | 'band.description.groupFooter'
+  | 'band.description.data'
+  | 'band.description.hierarchicalData'
+  | 'band.description.child'
+  | 'band.description.emptyData'
+  | 'band.description.overlay'
   | 'styleLibrary.title'
   | 'styleLibrary.searchPlaceholder'
   | 'styleLibrary.preview'
@@ -773,6 +788,21 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'band.type.child': '子带',
     'band.type.emptyData': '空数据带',
     'band.type.overlay': '覆盖带',
+    'band.description.reportTitle': '该带区用于输出报表标题、封面信息及只在报表开头出现的内容。它在报表第一页顶部输出。',
+    'band.description.reportSummary': '该带区用于输出报表汇总、总计及结束说明。它在报表所有数据输出完成后输出。',
+    'band.description.pageHeader': '该带区用于输出页眉，如页码、日期及其他附加信息。它在每页的顶部输出。',
+    'band.description.pageFooter': '该带区用于输出页脚，如页码、打印时间及签名区域。它在每页的底部输出。',
+    'band.description.header': '该带区用于输出数据明细的表头或列标题。通常放在数据带之前，并可随数据重复输出。',
+    'band.description.footer': '该带区用于输出数据明细后的页内小计或说明。通常放在数据带之后输出。',
+    'band.description.columnHeader': '该带区用于多列报表的列头内容，在每个分栏顶部输出。',
+    'band.description.columnFooter': '该带区用于多列报表的列尾内容，在每个分栏底部输出。',
+    'band.description.groupHeader': '该带区用于输出分组标题。分组条件变化时，它会在对应数据前输出。',
+    'band.description.groupFooter': '该带区用于输出分组合计和分组结束信息。它会在对应分组数据之后输出。',
+    'band.description.data': '该带区用于绑定数据表并逐行输出明细记录。分页、排序和过滤都围绕该带区展开。',
+    'band.description.hierarchicalData': '该带区用于输出具有父子层级的数据。渲染时会按层级关系展开明细。',
+    'band.description.child': '该带区用于输出当前数据行的子内容。通常紧跟在主数据带之后。',
+    'band.description.emptyData': '该带区用于在数据为空时输出提示或占位内容。只有目标数据没有记录时输出。',
+    'band.description.overlay': '该带区用于输出覆盖层内容，如背景标记、套打参考或页面浮层元素。',
     'styleLibrary.title': '文本样式库',
     'styleLibrary.searchPlaceholder': '搜索样式',
     'styleLibrary.preview': '预览',
@@ -1386,6 +1416,21 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'band.type.child': 'ChildBand',
     'band.type.emptyData': 'EmptyDataBand',
     'band.type.overlay': 'OverlayBand',
+    'band.description.reportTitle': 'Outputs the report title, cover information, and content that appears once at the beginning of the report.',
+    'band.description.reportSummary': 'Outputs report summaries, grand totals, and closing notes after all report data has been rendered.',
+    'band.description.pageHeader': 'Outputs page header content, such as page number, date, and other supplemental information, at the top of every page.',
+    'band.description.pageFooter': 'Outputs page footer content, such as page number, print time, and signature areas, at the bottom of every page.',
+    'band.description.header': 'Outputs table headers or column captions for detail data. It is usually placed before a DataBand and may repeat with data.',
+    'band.description.footer': 'Outputs subtotal or note content after detail data. It is usually placed after a DataBand.',
+    'band.description.columnHeader': 'Outputs header content for multi-column reports at the top of each column.',
+    'band.description.columnFooter': 'Outputs footer content for multi-column reports at the bottom of each column.',
+    'band.description.groupHeader': 'Outputs group header content before grouped records when the group condition changes.',
+    'band.description.groupFooter': 'Outputs group totals and closing information after the records in a group.',
+    'band.description.data': 'Binds to a data table and outputs detail records row by row. Pagination, sorting, and filtering are centered on this band.',
+    'band.description.hierarchicalData': 'Outputs parent-child data in a hierarchy and expands detail records according to their relationships.',
+    'band.description.child': 'Outputs child content for the current data row. It is usually placed immediately after the parent DataBand.',
+    'band.description.emptyData': 'Outputs placeholder or message content when the target data has no records.',
+    'band.description.overlay': 'Outputs overlay content such as background marks, preprinted-form references, or floating page elements.',
     'styleLibrary.title': 'Text Style Library',
     'styleLibrary.searchPlaceholder': 'Search styles',
     'styleLibrary.preview': 'Preview',

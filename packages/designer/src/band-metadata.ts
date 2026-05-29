@@ -37,6 +37,24 @@ export const BAND_LABEL_KEYS: Record<BandType, DesignerMessageKey> = {
   overlay: 'band.type.overlay',
 };
 
+export const BAND_DESCRIPTION_KEYS: Record<BandType, DesignerMessageKey> = {
+  reportTitle: 'band.description.reportTitle',
+  reportSummary: 'band.description.reportSummary',
+  pageHeader: 'band.description.pageHeader',
+  pageFooter: 'band.description.pageFooter',
+  header: 'band.description.header',
+  footer: 'band.description.footer',
+  columnHeader: 'band.description.columnHeader',
+  columnFooter: 'band.description.columnFooter',
+  groupHeader: 'band.description.groupHeader',
+  groupFooter: 'band.description.groupFooter',
+  data: 'band.description.data',
+  hierarchicalData: 'band.description.hierarchicalData',
+  child: 'band.description.child',
+  emptyData: 'band.description.emptyData',
+  overlay: 'band.description.overlay',
+};
+
 export const BAND_COLORS: Record<BandType, string> = {
   reportTitle: '#8b4513',
   reportSummary: '#6b4423',

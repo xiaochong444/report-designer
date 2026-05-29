@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Button, Dropdown, Select, Tooltip } from 'antd';
+import { Button, Dropdown, Popover, Select, Tooltip } from 'antd';
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
@@ -43,7 +43,7 @@ import { PageSetupDialog } from '../dialogs/PageSetupDialog';
 import { useDesignerI18n } from '../../i18n';
 import type { DesignerMessageKey } from '../../i18n';
 import { hasTextStyleBinding } from '../../text-style-bindings';
-import { BAND_COLORS, BAND_GLYPH_KEYS, BAND_LABEL_KEYS, SUPPORTED_INSERT_BAND_TYPES } from '../../band-metadata';
+import { BAND_COLORS, BAND_DESCRIPTION_KEYS, BAND_GLYPH_KEYS, BAND_LABEL_KEYS, SUPPORTED_INSERT_BAND_TYPES } from '../../band-metadata';
 
 const TAB_KEYS = ['home', 'insert', 'pageLayout', 'layout', 'preview'] as const;
 type RibbonTab = typeof TAB_KEYS[number];
@@ -322,10 +322,19 @@ export const DesignerRibbon: React.FC = () => {
     const bandMenuItems = SUPPORTED_INSERT_BAND_TYPES.map(type => ({
       key: type,
       label: (
-        <span className="rd-band-menu-item">
-          <BandGlyph type={type} />
-          <span>{t(BAND_LABEL_KEYS[type])}</span>
-        </span>
+        <Popover
+          placement="right"
+          trigger="hover"
+          mouseEnterDelay={0}
+          mouseLeaveDelay={0}
+          classNames={{ root: 'rd-band-help-popover' }}
+          content={<BandDescriptionPanel type={type} />}
+        >
+          <span className="rd-band-menu-item" data-band-type={type} data-testid={`band-menu-item-${type}`}>
+            <BandGlyph type={type} />
+            <span>{t(BAND_LABEL_KEYS[type])}</span>
+          </span>
+        </Popover>
       ),
     }));
 
@@ -554,5 +563,21 @@ const BandGlyph: React.FC<{ type: BandType }> = ({ type }) => {
     >
       <span className={`rd-band-glyph-mark rd-band-glyph-${glyph}`} />
     </span>
+  );
+};
+
+const BandDescriptionPanel: React.FC<{ type: BandType }> = ({ type }) => {
+  const { t } = useDesignerI18n();
+  const color = BAND_COLORS[type];
+
+  return (
+    <aside
+      className="rd-band-menu-description"
+      data-testid="band-menu-description"
+      style={{ borderTopColor: color }}
+    >
+      <div className="rd-band-menu-description-title">{t(BAND_LABEL_KEYS[type])}</div>
+      <div className="rd-band-menu-description-text">{t(BAND_DESCRIPTION_KEYS[type])}</div>
+    </aside>
   );
 };

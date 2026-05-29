@@ -74,4 +74,42 @@ describe('Phase 43 band insert menu metadata', () => {
 
     expect(glyphIds.size).toBe(SUPPORTED_INSERT_BANDS.length);
   });
+
+  it('shows a localized band description beside the menu item being hovered', async () => {
+    render(<Designer template={createDefaultTemplate('Band menu help')} locale="en-US" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Insert' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: 'Insert band' }));
+    });
+
+    expect(screen.queryByTestId('band-menu-description')).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.mouseEnter(screen.getByTestId('band-menu-item-pageHeader'));
+    });
+
+    const description = await screen.findByTestId('band-menu-description');
+    expect(description).toHaveTextContent('PageHeaderBand');
+    expect(description).toHaveTextContent('Outputs page header content, such as page number, date, and other supplemental information, at the top of every page.');
+  });
+
+  it('shows Chinese band descriptions in the default locale', async () => {
+    render(<Designer template={createDefaultTemplate('区带说明')} />);
+
+    fireEvent.click(screen.getByRole('button', { name: '插入' }));
+    await act(async () => {
+      fireEvent.click(screen.getByRole('button', { name: '插入带区' }));
+    });
+
+    expect(screen.queryByTestId('band-menu-description')).not.toBeInTheDocument();
+
+    await act(async () => {
+      fireEvent.mouseEnter(screen.getByTestId('band-menu-item-pageHeader'));
+    });
+
+    const description = await screen.findByTestId('band-menu-description');
+    expect(description).toHaveTextContent('页眉带');
+    expect(description).toHaveTextContent('该带区用于输出页眉，如页码、日期及其他附加信息。它在每页的顶部输出。');
+  });
 });
