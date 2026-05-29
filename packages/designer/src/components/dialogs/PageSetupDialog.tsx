@@ -159,14 +159,16 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
         <DialogNumberField label={t('pageSettings.right')} value={formatUnitValue(margins.right, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('right', value)} />
         <DialogNumberField label={t('pageSettings.bottom')} value={formatUnitValue(margins.bottom, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('bottom', value)} />
         <DialogNumberField label={t('pageSettings.left')} value={formatUnitValue(margins.left, reportUnit)} min={0} max={marginMax} step={unitStep} onChange={value => handleMarginChange('left', value)} />
+        <PageWatermarkDialogFields
+          reportFontOptions={reportFontOptions}
+          watermark={watermark}
+          onWatermarkChange={(updates) => setWatermark(current => ({ ...current, ...updates }))}
+        />
         <PageAppearanceDialogFields
           pageBorder={pageBorder}
-          reportFontOptions={reportFontOptions}
           reportUnit={reportUnit}
           unitStep={unitStep}
-          watermark={watermark}
           onPageBorderChange={(updates) => setPageBorder(current => ({ ...current, ...updates, sides: updates.sides ? { ...current.sides, ...updates.sides } : current.sides }))}
-          onWatermarkChange={(updates) => setWatermark(current => ({ ...current, ...updates }))}
         />
       </Space>
       </div>
@@ -174,26 +176,20 @@ export const PageSetupDialog: React.FC<PageSetupDialogProps> = ({ open, onClose 
   );
 };
 
-const PageAppearanceDialogFields: React.FC<{
+const PageWatermarkDialogFields: React.FC<{
   watermark: PageWatermark;
-  pageBorder: PageBorder;
   reportFontOptions: ReportFontOption[];
-  reportUnit: 'mm' | 'cm';
-  unitStep: number;
   onWatermarkChange: (updates: Partial<PageWatermark>) => void;
-  onPageBorderChange: (updates: Partial<PageBorder>) => void;
-}> = ({ watermark, pageBorder, reportFontOptions, reportUnit, unitStep, onWatermarkChange, onPageBorderChange }) => {
+}> = ({ watermark, reportFontOptions, onWatermarkChange }) => {
   const { t } = useDesignerI18n();
-  const borderWidthMax = formatUnitValue(10, reportUnit);
-  const borderOffsetMax = formatUnitValue(50, reportUnit);
 
   return (
     <section style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
       <Typography.Text strong style={{ display: 'block', marginBottom: 10 }}>
-        {t('pageSettings.appearance')}
+        {t('pageSettings.watermark')}
       </Typography.Text>
       <Space orientation="vertical" size={10} style={{ width: '100%' }}>
-        <DialogSwitchField label={t('pageSettings.watermark')} ariaLabel={t('pageSettings.watermarkEnabled')} checked={watermark.enabled} onChange={enabled => onWatermarkChange({ enabled })} />
+        <DialogSwitchField label={t('pageSettings.watermarkEnabled')} ariaLabel={t('pageSettings.watermarkEnabled')} checked={watermark.enabled} onChange={enabled => onWatermarkChange({ enabled })} />
         <DialogTextField label={t('pageSettings.watermarkText')} ariaLabel={t('pageSettings.watermarkText')} value={watermark.text} onChange={text => onWatermarkChange({ text })} />
         <DialogColorField label={t('pageSettings.watermarkColor')} ariaLabel={t('pageSettings.watermarkColor')} value={watermark.color} onChange={color => onWatermarkChange({ color })} />
         <DialogNumberField label={t('pageSettings.watermarkFontSize')} value={watermark.fontSize} min={8} max={240} step={1} onChange={value => onWatermarkChange({ fontSize: Number(value ?? watermark.fontSize) })} ariaLabel={t('pageSettings.watermarkFontSize')} />
@@ -232,6 +228,27 @@ const PageAppearanceDialogFields: React.FC<{
           onChange={value => onWatermarkChange({ verticalAlign: value as PageWatermark['verticalAlign'] })}
         />
         <DialogSwitchField label={t('pageSettings.watermarkShowBehind')} ariaLabel={t('pageSettings.watermarkShowBehind')} checked={watermark.showBehind} onChange={showBehind => onWatermarkChange({ showBehind })} />
+      </Space>
+    </section>
+  );
+};
+
+const PageAppearanceDialogFields: React.FC<{
+  pageBorder: PageBorder;
+  reportUnit: 'mm' | 'cm';
+  unitStep: number;
+  onPageBorderChange: (updates: Partial<PageBorder>) => void;
+}> = ({ pageBorder, reportUnit, unitStep, onPageBorderChange }) => {
+  const { t } = useDesignerI18n();
+  const borderWidthMax = formatUnitValue(10, reportUnit);
+  const borderOffsetMax = formatUnitValue(50, reportUnit);
+
+  return (
+    <section style={{ borderTop: '1px solid #f0f0f0', paddingTop: 12 }}>
+      <Typography.Text strong style={{ display: 'block', marginBottom: 10 }}>
+        {t('pageSettings.appearance')}
+      </Typography.Text>
+      <Space orientation="vertical" size={10} style={{ width: '100%' }}>
         <DialogSwitchField label={t('pageSettings.pageBorder')} ariaLabel={t('pageSettings.pageBorderEnabled')} checked={pageBorder.enabled} onChange={enabled => onPageBorderChange({ enabled })} />
         <DialogSegmentedField
           label={t('pageSettings.borderStyle')}

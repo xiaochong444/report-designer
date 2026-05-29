@@ -41,7 +41,8 @@ describe('Phase 32 designer page appearance', () => {
 
     const pageProperties = screen.getByTestId('designer-page-properties');
     expect(within(pageProperties).getByText('页面外观')).toBeInTheDocument();
-    expect(within(pageProperties).getByLabelText('启用水印')).toBeInTheDocument();
+    expect(within(pageProperties).getByText('水印')).toBeInTheDocument();
+    expect(within(pageProperties).getByLabelText('启用')).toBeInTheDocument();
     expect(within(pageProperties).getByLabelText('启用页面边框')).toBeInTheDocument();
   });
 
@@ -49,10 +50,10 @@ describe('Phase 32 designer page appearance', () => {
     render(<Designer template={makeTemplate('水印编辑')} />);
 
     const pageProperties = screen.getByTestId('designer-page-properties');
-    fireEvent.click(within(pageProperties).getByLabelText('启用水印'));
-    fireEvent.change(within(pageProperties).getByLabelText('水印文本'), { target: { value: '内部资料' } });
-    fireEvent.change(within(pageProperties).getByLabelText('水印角度'), { target: { value: '-25' } });
-    fireEvent.change(within(pageProperties).getByLabelText('水印透明度'), { target: { value: '0.35' } });
+    fireEvent.click(within(pageProperties).getByLabelText('启用'));
+    fireEvent.change(within(pageProperties).getByLabelText('文本'), { target: { value: '内部资料' } });
+    fireEvent.change(within(pageProperties).getByLabelText('角度'), { target: { value: '-25' } });
+    fireEvent.change(within(pageProperties).getByLabelText('透明度'), { target: { value: '0.35' } });
 
     const watermark = screen.getByTestId('designer-page-watermark');
     expect(watermark).toHaveTextContent('内部资料');
@@ -64,9 +65,9 @@ describe('Phase 32 designer page appearance', () => {
     render(<Designer template={makeTemplate('前景水印')} />);
 
     const pageProperties = screen.getByTestId('designer-page-properties');
-    fireEvent.click(within(pageProperties).getByLabelText('启用水印'));
-    fireEvent.change(within(pageProperties).getByLabelText('水印文本'), { target: { value: '前景' } });
-    fireEvent.click(within(pageProperties).getByLabelText('水印置于内容后'));
+    fireEvent.click(within(pageProperties).getByLabelText('启用'));
+    fireEvent.change(within(pageProperties).getByLabelText('文本'), { target: { value: '前景' } });
+    fireEvent.click(within(pageProperties).getByLabelText('置于内容后'));
 
     expect(screen.getByTestId('designer-page-watermark')).toHaveStyle({ zIndex: '20' });
     expect(screen.getByTestId('designer-band-title-reportTitle')).toHaveStyle({ zIndex: '30' });
@@ -76,9 +77,9 @@ describe('Phase 32 designer page appearance', () => {
     render(<Designer template={makeTemplate('边框层级')} />);
 
     const pageProperties = screen.getByTestId('designer-page-properties');
-    fireEvent.click(within(pageProperties).getByLabelText('启用水印'));
-    fireEvent.change(within(pageProperties).getByLabelText('水印文本'), { target: { value: '前景' } });
-    fireEvent.click(within(pageProperties).getByLabelText('水印置于内容后'));
+    fireEvent.click(within(pageProperties).getByLabelText('启用'));
+    fireEvent.change(within(pageProperties).getByLabelText('文本'), { target: { value: '前景' } });
+    fireEvent.click(within(pageProperties).getByLabelText('置于内容后'));
     fireEvent.click(within(pageProperties).getByLabelText('启用页面边框'));
 
     expect(screen.getByTestId('designer-page-watermark')).toHaveStyle({ zIndex: '20' });
@@ -113,8 +114,8 @@ describe('Phase 32 designer page appearance', () => {
     fireEvent.click(screen.getByRole('button', { name: /页面设置/ }));
 
     const dialog = await screen.findByRole('dialog');
-    fireEvent.click(within(dialog).getByLabelText('启用水印'));
-    fireEvent.change(within(dialog).getByLabelText('水印文本'), { target: { value: '草稿' } });
+    fireEvent.click(within(dialog).getByLabelText('启用'));
+    fireEvent.change(within(dialog).getByLabelText('文本'), { target: { value: '草稿' } });
     fireEvent.click(within(dialog).getByLabelText('启用页面边框'));
     fireEvent.change(within(dialog).getByLabelText('边框颜色'), { target: { value: '#ff4d4f' } });
     fireEvent.click(within(dialog).getByRole('button', { name: /应\s*用/ }));
@@ -134,8 +135,9 @@ describe('Phase 32 designer page appearance', () => {
 
     const pageProperties = screen.getByTestId('designer-page-properties');
     expect(within(pageProperties).getByText('Page appearance')).toBeInTheDocument();
-    expect(within(pageProperties).getByLabelText('Enable watermark')).toBeInTheDocument();
-    expect(within(pageProperties).getByLabelText('Watermark text')).toBeInTheDocument();
+    expect(within(pageProperties).getByLabelText('Enable')).toBeInTheDocument();
+    expect(within(pageProperties).getByText('Watermark')).toBeInTheDocument();
+    expect(within(pageProperties).getByLabelText('Text')).toBeInTheDocument();
     expect(within(pageProperties).getByLabelText('Enable page border')).toBeInTheDocument();
     expect(within(pageProperties).queryByText('页面外观')).not.toBeInTheDocument();
   });

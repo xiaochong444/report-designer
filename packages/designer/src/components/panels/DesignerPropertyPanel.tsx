@@ -408,7 +408,7 @@ const PageProperties: React.FC = () => {
     <div className="rd-property-grid-band" data-testid="designer-page-properties">
       <Collapse
         size="small"
-        defaultActiveKey={['page', 'appearance', 'margins', 'events', 'fonts']}
+        defaultActiveKey={['page', 'watermark', 'appearance', 'margins', 'events', 'fonts']}
         items={[
           {
             key: 'page',
@@ -499,17 +499,25 @@ const PageProperties: React.FC = () => {
             ),
           },
           {
+            key: 'watermark',
+            label: t('pageSettings.watermark'),
+            children: (
+              <PageWatermarkControls
+                reportFontOptions={reportFontOptions}
+                watermark={watermark}
+                onWatermarkChange={updateWatermark}
+              />
+            ),
+          },
+          {
             key: 'appearance',
             label: t('pageSettings.appearance'),
             children: (
               <PageAppearanceControls
                 pageBorder={pageBorder}
-                reportFontOptions={reportFontOptions}
                 reportUnit={reportUnit}
                 unitStep={unitStep}
-                watermark={watermark}
                 onPageBorderChange={updatePageBorder}
-                onWatermarkChange={updateWatermark}
               />
             ),
           },
@@ -616,22 +624,16 @@ const PageProperties: React.FC = () => {
   );
 };
 
-const PageAppearanceControls: React.FC<{
+const PageWatermarkControls: React.FC<{
   watermark: PageWatermark;
-  pageBorder: PageBorder;
   reportFontOptions: ReportFontOption[];
-  reportUnit: 'mm' | 'cm';
-  unitStep: number;
   onWatermarkChange: (updates: Partial<PageWatermark>) => void;
-  onPageBorderChange: (updates: Partial<PageBorder>) => void;
-}> = ({ watermark, pageBorder, reportFontOptions, reportUnit, unitStep, onWatermarkChange, onPageBorderChange }) => {
+}> = ({ watermark, reportFontOptions, onWatermarkChange }) => {
   const { t } = useDesignerI18n();
-  const borderWidthMax = formatUnitValue(10, reportUnit);
-  const borderOffsetMax = formatUnitValue(50, reportUnit);
 
   return (
     <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-      <Form.Item label={t('pageSettings.watermark')}>
+      <Form.Item label={t('pageSettings.watermarkEnabled')}>
         <Switch
           aria-label={t('pageSettings.watermarkEnabled')}
           checked={watermark.enabled}
@@ -736,6 +738,22 @@ const PageAppearanceControls: React.FC<{
           onChange={showBehind => onWatermarkChange({ showBehind })}
         />
       </Form.Item>
+    </Form>
+  );
+};
+
+const PageAppearanceControls: React.FC<{
+  pageBorder: PageBorder;
+  reportUnit: 'mm' | 'cm';
+  unitStep: number;
+  onPageBorderChange: (updates: Partial<PageBorder>) => void;
+}> = ({ pageBorder, reportUnit, unitStep, onPageBorderChange }) => {
+  const { t } = useDesignerI18n();
+  const borderWidthMax = formatUnitValue(10, reportUnit);
+  const borderOffsetMax = formatUnitValue(50, reportUnit);
+
+  return (
+    <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
       <Form.Item label={t('pageSettings.pageBorder')}>
         <Switch
           aria-label={t('pageSettings.pageBorderEnabled')}
