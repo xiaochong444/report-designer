@@ -8,18 +8,27 @@ import {
   DownOutlined,
   ArrowUpOutlined,
   AppstoreOutlined,
+  BarcodeOutlined,
+  BarChartOutlined,
+  BlockOutlined,
   PartitionOutlined,
   BorderOuterOutlined,
+  BorderOutlined,
+  CalendarOutlined,
   CheckSquareOutlined,
   ColumnHeightOutlined,
   ColumnWidthOutlined,
   CopyOutlined,
   CompressOutlined,
   DeleteOutlined,
+  FieldNumberOutlined,
+  FileTextOutlined,
   FontSizeOutlined,
   LineOutlined,
+  LayoutOutlined,
   PictureOutlined,
   PrinterOutlined,
+  ProfileOutlined,
   SaveOutlined,
   SettingOutlined,
   TableOutlined,
@@ -31,13 +40,15 @@ import {
   VerticalAlignMiddleOutlined,
   VerticalAlignTopOutlined,
 } from '@ant-design/icons';
-import { type BandType, type BorderConfig, type FontConfig, type Margins, type Page, type ReportComponent, type TextComponent } from '@report-designer/core';
+import { type BandType, type ComponentType, type Margins, type Page, type ReportComponent, type TextComponent } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { PageSetupDialog } from '../dialogs/PageSetupDialog';
 import { useDesignerI18n } from '../../i18n';
 import type { DesignerMessageKey } from '../../i18n';
 import { hasTextStyleBinding } from '../../text-style-bindings';
 import { BAND_COLORS, BAND_DESCRIPTION_KEYS, BAND_GLYPH_KEYS, BAND_LABEL_KEYS, SUPPORTED_INSERT_BAND_TYPES } from '../../band-metadata';
+import { createDefaultComponent } from '../../component-factory';
+import { COMPONENT_TYPES } from '../../component-palette-model';
 
 const TAB_KEYS = ['home', 'insert', 'pageLayout', 'layout', 'preview'] as const;
 type RibbonTab = typeof TAB_KEYS[number];
@@ -48,23 +59,6 @@ const TAB_LABEL_KEYS: Record<RibbonTab, DesignerMessageKey> = {
   pageLayout: 'ribbon.pageLayout',
   layout: 'ribbon.layout',
   preview: 'ribbon.preview',
-};
-
-const DEFAULT_FONT: FontConfig = {
-  family: 'Arial',
-  size: 10,
-  bold: false,
-  italic: false,
-  underline: false,
-  strikethrough: false,
-  color: '#000000',
-};
-
-const DEFAULT_BORDER: BorderConfig = {
-  style: 'none',
-  width: 0.2,
-  color: '#000000',
-  sides: { top: false, right: false, bottom: false, left: false },
 };
 
 export const DesignerRibbon: React.FC = () => {
@@ -164,68 +158,7 @@ export const DesignerRibbon: React.FC = () => {
 
   const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-  const createTextComponent = (overrides: Partial<TextComponent> = {}): TextComponent => ({
-    id: createId('text'),
-    type: 'text',
-    name: t('leftPanel.componentText'),
-    x: 10,
-    y: 8,
-    width: 45,
-    height: 10,
-    text: t('leftPanel.componentText'),
-    font: DEFAULT_FONT,
-    textAlign: 'left',
-    verticalAlign: 'top',
-    border: DEFAULT_BORDER,
-    canGrow: false,
-    canShrink: false,
-    ...overrides,
-  });
-
-  const addText = () => addComponentToCurrentBand(createTextComponent());
-
-  const addImage = () => addComponentToCurrentBand({
-    id: createId('image'),
-    type: 'image',
-    name: t('leftPanel.componentImage'),
-    x: 10,
-    y: 8,
-    width: 35,
-    height: 25,
-    src: '',
-    fitMode: 'contain',
-  } as ReportComponent);
-
-  const addCheckbox = () => addComponentToCurrentBand({
-    id: createId('checkbox'),
-    type: 'checkbox',
-    name: t('leftPanel.componentCheckbox'),
-    x: 10,
-    y: 8,
-    width: 25,
-    height: 8,
-    checked: 'false',
-    label: t('leftPanel.componentCheckbox'),
-  } as ReportComponent);
-
-  const addLine = () => addComponentToCurrentBand({
-    id: createId('line'),
-    type: 'line',
-    name: t('leftPanel.componentLine'),
-    x: 10,
-    y: 8,
-    width: 50,
-    height: 1,
-    startX: 0,
-    startY: 0,
-    endX: 50,
-    endY: 0,
-    lineColor: '#000000',
-    lineWidth: 0.2,
-    lineStyle: 'solid',
-  } as ReportComponent);
-
-  const addTable = () => {
+  const createTableComponent = (): ReportComponent => {
     const state = useDesignerStore.getState();
     const dataSource = state.template.dataSources[0];
     const sourceFields = dataSource?.schema ?? dataSource?.fields ?? [];
@@ -241,12 +174,8 @@ export const DesignerRibbon: React.FC = () => {
       cellType: 'text' as const,
     }));
 
-    addComponentToCurrentBand({
-      id: createId('table'),
-      type: 'table',
-      name: t('leftPanel.componentTable'),
-      x: 10,
-      y: 8,
+    return {
+      ...createDefaultComponent('table', 10, 8),
       width: Math.max(60, columns.length * 30),
       height: 36,
       dataSource: dataSource?.id || '',
@@ -258,8 +187,14 @@ export const DesignerRibbon: React.FC = () => {
       headerHeight: 8,
       rowHeight: 8,
       showBorder: true,
-    } as ReportComponent);
+    } as ReportComponent;
   };
+
+  const createRibbonComponent = (type: ComponentType): ReportComponent => (
+    type === 'table' ? createTableComponent() : createDefaultComponent(type, 10, 8)
+  );
+
+  const addComponentType = (type: ComponentType) => addComponentToCurrentBand(createRibbonComponent(type));
 
   const updateCurrentPage = (settings: Partial<Page>) => {
     const state = useDesignerStore.getState();
@@ -340,19 +275,24 @@ export const DesignerRibbon: React.FC = () => {
               }}
             >
               <Button
+                data-testid="ribbon-insert-band-button"
                 aria-label={t('ribbon.insertBand')}
                 size="small"
+                style={{ minWidth: 52 }}
                 icon={<RibbonComboIcon main={<ApartmentOutlined aria-hidden />} suffix={<DownOutlined aria-hidden />} />}
               />
             </Dropdown>
           </RibbonGroup>
 
           <RibbonGroup title={t('ribbon.components')}>
-            <RibbonButton label={t('ribbon.text')} icon={<FontSizeOutlined aria-hidden />} onClick={addText} />
-            <RibbonButton label={t('ribbon.table')} icon={<TableOutlined aria-hidden />} onClick={addTable} />
-            <RibbonButton label={t('ribbon.image')} icon={<PictureOutlined aria-hidden />} onClick={addImage} />
-            <RibbonButton label={t('ribbon.checkbox')} icon={<CheckSquareOutlined aria-hidden />} onClick={addCheckbox} />
-            <RibbonButton label={t('ribbon.line')} icon={<LineOutlined aria-hidden />} onClick={addLine} />
+            {COMPONENT_TYPES.map(item => (
+              <RibbonButton
+                key={item.type}
+                label={t(item.labelKey)}
+                icon={renderComponentIcon(item.type)}
+                onClick={() => addComponentType(item.type)}
+              />
+            ))}
           </RibbonGroup>
         </>
       );
@@ -517,6 +457,39 @@ const RibbonComboIcon: React.FC<{ main: React.ReactNode; suffix: React.ReactNode
     <span style={{ fontSize: 10 }}>{suffix}</span>
   </span>
 );
+
+function renderComponentIcon(type: ComponentType) {
+  switch (type) {
+    case 'text':
+      return <FontSizeOutlined aria-hidden />;
+    case 'richtext':
+      return <FileTextOutlined aria-hidden />;
+    case 'image':
+      return <PictureOutlined aria-hidden />;
+    case 'table':
+      return <TableOutlined aria-hidden />;
+    case 'chart':
+      return <BarChartOutlined aria-hidden />;
+    case 'barcode':
+      return <BarcodeOutlined aria-hidden />;
+    case 'checkbox':
+      return <CheckSquareOutlined aria-hidden />;
+    case 'pagenumber':
+      return <FieldNumberOutlined aria-hidden />;
+    case 'datetime':
+      return <CalendarOutlined aria-hidden />;
+    case 'line':
+      return <LineOutlined aria-hidden />;
+    case 'shape':
+      return <BorderOutlined aria-hidden />;
+    case 'panel':
+      return <LayoutOutlined aria-hidden />;
+    case 'subreport':
+      return <ProfileOutlined aria-hidden />;
+    default:
+      return <BlockOutlined aria-hidden />;
+  }
+}
 
 const BandGlyph: React.FC<{ type: BandType }> = ({ type }) => {
   const color = BAND_COLORS[type];

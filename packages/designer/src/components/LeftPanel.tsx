@@ -13,6 +13,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
 import { createDefaultComponent, createFieldExpressionComponent, createTextExpressionComponent } from '../component-factory';
 import { PanelSearchBox } from './panels/PanelSearchBox';
+import { COMPONENT_GROUPS, COMPONENT_TYPES } from '../component-palette-model';
 
 export const LeftPanel: React.FC = () => {
   const { t } = useDesignerI18n();
@@ -51,29 +52,6 @@ export const LeftPanel: React.FC = () => {
 };
 
 // ---- Component Palette ----
-
-const COMPONENT_TYPES = [
-  { type: 'text', labelKey: 'leftPanel.componentText' },
-  { type: 'richtext', labelKey: 'leftPanel.componentRichText' },
-  { type: 'image', labelKey: 'leftPanel.componentImage' },
-  { type: 'table', labelKey: 'leftPanel.componentTable' },
-  { type: 'chart', labelKey: 'leftPanel.componentChart' },
-  { type: 'barcode', labelKey: 'leftPanel.componentBarcode' },
-  { type: 'checkbox', labelKey: 'leftPanel.componentCheckbox' },
-  { type: 'pagenumber', labelKey: 'leftPanel.componentPageNumber' },
-  { type: 'datetime', labelKey: 'leftPanel.componentDateTime' },
-  { type: 'line', labelKey: 'leftPanel.componentLine' },
-  { type: 'shape', labelKey: 'leftPanel.componentShape' },
-  { type: 'panel', labelKey: 'leftPanel.componentPanel' },
-  { type: 'subreport', labelKey: 'leftPanel.componentSubreport' },
-];
-
-const COMPONENT_GROUPS = [
-  { key: 'common', labelKey: 'leftPanel.groupCommon', types: ['text', 'richtext', 'image', 'table', 'chart'] },
-  { key: 'data', labelKey: 'leftPanel.groupData', types: ['barcode', 'checkbox', 'pagenumber', 'datetime'] },
-  { key: 'graphics', labelKey: 'leftPanel.groupGraphics', types: ['line', 'shape', 'panel'] },
-  { key: 'advanced', labelKey: 'leftPanel.groupAdvanced', types: ['subreport'] },
-];
 
 const ComponentPalette: React.FC = () => {
   const { t } = useDesignerI18n();

@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { createDefaultTemplate } from '@report-designer/core';
 import { Designer } from '../components/Designer';
+import { useDesignerStore } from '../store/designer-store';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -50,7 +51,7 @@ describe('Phase 10 ribbon tabs', () => {
     expect(ribbonContent).not.toHaveTextContent('JSON');
     expect(ribbonContent).not.toHaveTextContent('Band wizard');
     expect(ribbonContent).not.toHaveTextContent('Group wizard');
-    for (const name of ['Insert band', 'Text', 'Table', 'Image', 'Check', 'Line']) {
+    for (const name of ['Insert band', 'Text', 'Rich Text', 'Image', 'Table', 'Chart', 'Barcode', 'Checkbox', 'Page #', 'Date/Time', 'Line', 'Shape', 'Panel', 'Subreport']) {
       expect(screen.getByRole('button', { name })).toHaveTextContent('');
     }
 
@@ -73,5 +74,50 @@ describe('Phase 10 ribbon tabs', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
     expect(screen.getByRole('button', { name: 'Preview' })).toHaveClass('rd-ribbon-tab-active');
     expect(ribbonContent).toHaveTextContent('Print Preview');
+  }, 20000);
+
+  it('exposes every toolbox component from Insert and inserts them from icon buttons', () => {
+    render(<Designer template={createDefaultTemplate('Ribbon Insert Components')} locale="en-US" />);
+
+    fireEvent.click(screen.getByRole('button', { name: 'Insert' }));
+    const ribbonContent = screen.getByTestId('designer-ribbon-content');
+
+    const componentButtons = [
+      { label: 'Text', type: 'text' },
+      { label: 'Rich Text', type: 'richtext' },
+      { label: 'Image', type: 'image' },
+      { label: 'Table', type: 'table' },
+      { label: 'Chart', type: 'chart' },
+      { label: 'Barcode', type: 'barcode' },
+      { label: 'Checkbox', type: 'checkbox' },
+      { label: 'Page #', type: 'pagenumber' },
+      { label: 'Date/Time', type: 'datetime' },
+      { label: 'Line', type: 'line' },
+      { label: 'Shape', type: 'shape' },
+      { label: 'Panel', type: 'panel' },
+      { label: 'Subreport', type: 'subreport' },
+    ];
+
+    expect(screen.getByTestId('ribbon-insert-band-button')).toHaveStyle({ minWidth: '52px' });
+
+    const findRibbonButton = (label: string) => Array.from(ribbonContent.querySelectorAll<HTMLButtonElement>('button'))
+      .find(button => button.getAttribute('aria-label') === label) as HTMLButtonElement | undefined;
+
+    for (const { label } of componentButtons) {
+      expect(findRibbonButton(label)).toHaveTextContent('');
+    }
+
+    for (const { label } of componentButtons) {
+      const button = findRibbonButton(label);
+      expect(button).toBeDefined();
+      fireEvent.click(button!);
+    }
+
+    const insertedTypes = useDesignerStore.getState().template.pages
+      .flatMap(page => page.bands)
+      .flatMap(band => band.components)
+      .map(component => component.type);
+
+    expect(insertedTypes).toEqual(expect.arrayContaining(componentButtons.map(item => item.type)));
   }, 20000);
 });
