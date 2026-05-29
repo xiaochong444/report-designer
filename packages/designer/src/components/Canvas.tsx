@@ -1557,7 +1557,7 @@ const BandView: React.FC<{
   const insertBandAfter = useDesignerStore((state) => state.insertBandAfter);
   const baseColor = BAND_COLORS[band.type] || '#757575';
   const baseLabel = BAND_LABEL_KEYS[band.type] ? t(BAND_LABEL_KEYS[band.type]) : band.type;
-  const bandLabel = `${baseLabel}${labelIndex}`;
+  const bandLabel = formatBandTitle(baseLabel, labelIndex, band);
   const headerHeight = mmToPx(BAND_HEADER_MM);
   const bodyHeight = mmToPx(band.height);
 
@@ -1659,7 +1659,7 @@ const BandDragPreview: React.FC<{ band: Band; labelIndex: number; top: number }>
   const { t } = useDesignerI18n();
   const baseColor = BAND_COLORS[band.type] || '#757575';
   const baseLabel = BAND_LABEL_KEYS[band.type] ? t(BAND_LABEL_KEYS[band.type]) : band.type;
-  const bandLabel = `${baseLabel}${labelIndex}`;
+  const bandLabel = formatBandTitle(baseLabel, labelIndex, band);
   const headerHeight = mmToPx(BAND_HEADER_MM);
   const bodyHeight = mmToPx(band.height);
 
@@ -1700,6 +1700,16 @@ const BandDragPreview: React.FC<{ band: Band; labelIndex: number; top: number }>
     </div>
   );
 };
+
+function formatBandTitle(baseLabel: string, labelIndex: number, band: Band): string {
+  const bandLabel = `${baseLabel}${labelIndex}`;
+  if (band.type !== 'data' && band.type !== 'hierarchicalData') {
+    return bandLabel;
+  }
+
+  const dataSourceId = band.dataBand?.dataSourceId ?? band.dataSource;
+  return dataSourceId ? `${bandLabel}; 数据源: ${dataSourceId}` : bandLabel;
+}
 
 const PageWatermarkOverlay: React.FC<{ watermark?: PageWatermark; zIndex: number }> = ({ watermark, zIndex }) => {
   if (!watermark?.enabled || !watermark.text) return null;

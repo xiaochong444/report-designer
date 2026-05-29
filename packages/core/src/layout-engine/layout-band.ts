@@ -99,9 +99,19 @@ export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBo
     y: options.y,
     width: options.width,
     height: finalHeight,
+    backgroundColor: resolveDataBandRowBackground(band, options.context.rowIndex, Boolean(options.context.row)),
     components,
     overflow: components.some((component) => component.overflow) || (behavior.autoGrow === false && contentHeight > fixedHeight),
   };
+}
+
+function resolveDataBandRowBackground(band: Band, rowIndex: number, hasRow: boolean): string | undefined {
+  if (!hasRow || (band.type !== 'data' && band.type !== 'hierarchicalData' && band.type !== 'child')) {
+    return undefined;
+  }
+  return rowIndex % 2 === 0
+    ? band.dataBand?.oddRowBackgroundColor
+    : band.dataBand?.evenRowBackgroundColor;
 }
 
 function layoutComponentWithEvents(component: ReportComponent, band: Band, options: LayoutBandOptions): RenderComponentBox | undefined {

@@ -27,6 +27,7 @@ export interface RenderBandBox {
   y: number;
   width: number;
   height: number;
+  backgroundColor?: string;
   components: RenderComponentBox[];
   overflow?: boolean;
 }

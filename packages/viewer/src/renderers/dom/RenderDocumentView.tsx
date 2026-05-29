@@ -73,6 +73,7 @@ const RenderPageView = React.forwardRef<HTMLDivElement, { page: RenderPage; zoom
       {page.items.map((band) => (
         <div
           key={band.id}
+          data-testid="render-document-band"
           data-band-type={band.bandType}
           style={{
             position: 'absolute',
@@ -80,6 +81,7 @@ const RenderPageView = React.forwardRef<HTMLDivElement, { page: RenderPage; zoom
             top: band.y * MM_TO_PX * scale,
             width: band.width * MM_TO_PX * scale,
             height: band.height * MM_TO_PX * scale,
+            backgroundColor: band.backgroundColor,
             zIndex: 2,
             overflow: band.overflow ? 'hidden' : 'visible',
           }}

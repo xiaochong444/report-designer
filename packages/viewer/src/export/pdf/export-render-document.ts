@@ -46,6 +46,15 @@ export async function exportRenderDocumentToPDF(
       drawPageWatermark(page, renderPage.width, renderPage.height, renderPage.watermark, fonts.regular);
     }
     for (const band of renderPage.items) {
+      if (band.backgroundColor) {
+        page.drawRectangle({
+          x: band.x * MM_TO_PT,
+          y: (renderPage.height - band.y - band.height) * MM_TO_PT,
+          width: band.width * MM_TO_PT,
+          height: band.height * MM_TO_PT,
+          color: parsePdfColor(band.backgroundColor),
+        });
+      }
       for (const component of band.components) {
         await drawRenderComponent(pdfDoc, page, component, renderPage.height, fonts);
       }

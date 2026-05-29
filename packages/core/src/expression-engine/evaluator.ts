@@ -220,6 +220,18 @@ reg('LOWER', (args, ctx) => {
   return toString(args[0]).toLowerCase();
 });
 
+reg('CONTAINS', (args, ctx) => {
+  return toString(args[0]).includes(toString(args[1]));
+});
+
+reg('STARTSWITH', (args, ctx) => {
+  return toString(args[0]).startsWith(toString(args[1]));
+});
+
+reg('ENDSWITH', (args, ctx) => {
+  return toString(args[0]).endsWith(toString(args[1]));
+});
+
 reg('TRIM', (args, ctx) => {
   return toString(args[0]).trim();
 });

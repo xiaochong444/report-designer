@@ -53,6 +53,29 @@ describe('Phase 22 DataBand sorting', () => {
       { Name: 'Third' },
     ], [{ field: 'ROWINDEX()', direction: 'desc' }])).toEqual(['Third', 'Second', 'First']);
   });
+
+  it('applies odd and even row backgrounds to rendered data band rows', () => {
+    const template = makeTemplate([
+      band('data', 'data', {
+        dataBand: {
+          dataSourceId: 'employees',
+          oddRowBackgroundColor: '#fff7e6',
+          evenRowBackgroundColor: '#e6f4ff',
+        },
+      }),
+    ]);
+
+    const document = renderReport(template, {
+      employees: [
+        { Name: 'Ada' },
+        { Name: 'Grace' },
+        { Name: 'Linus' },
+      ],
+    });
+
+    const rows = document.pages.flatMap(page => page.items.filter(item => item.bandId === 'data'));
+    expect(rows.map(row => row.backgroundColor)).toEqual(['#fff7e6', '#e6f4ff', '#fff7e6']);
+  });
 });
 
 const border: BorderConfig = {

@@ -33,6 +33,17 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('class="rd-print-page" style="width:210mm;height:297mm;background-color:#fff7e6;"');
   });
 
+  it('prints band background color with exact color adjustment', () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].backgroundColor = '#e6f4ff';
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('class="rd-print-band" style="left:20mm;top:20mm;width:170mm;height:20mm;background-color:#e6f4ff;overflow:visible;"');
+    expect(html).toContain('print-color-adjust: exact');
+    expect(html).toContain('-webkit-print-color-adjust: exact');
+  });
+
   it('prints page watermark and border from the render document', () => {
     const document = makeRenderDocument();
     document.pages[0].watermark = {

@@ -36,7 +36,15 @@ Object.defineProperty(window, 'ResizeObserver', {
 
 describe('Phase 10 canvas layout', () => {
   it('shows screenshot-like ruler labels and horizontal band title strips', () => {
-    render(<Designer template={createDefaultTemplate('Canvas Layout')} locale="en-US" />);
+    const template = createDefaultTemplate('Canvas Layout');
+    template.dataSources = [{ id: 'Customers', name: 'Customers', type: 'json', schema: [] }];
+    template.pages[0].bands.find(band => band.type === 'data')!.dataBand = {
+      dataSourceId: 'Customers',
+      oddRowBackgroundColor: '#fff7e6',
+      evenRowBackgroundColor: '#e6f4ff',
+    };
+
+    render(<Designer template={template} locale="en-US" />);
 
     expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('0');
     expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('10');
@@ -44,7 +52,9 @@ describe('Phase 10 canvas layout', () => {
     expect(screen.getByTestId('designer-ruler-horizontal')).toHaveTextContent('100');
     expect(screen.getByTestId('designer-ruler-horizontal')).not.toHaveTextContent('200');
     expect(within(screen.getByTestId('designer-band-frame-pageHeader')).getByText('PageHeaderBand1')).toBeInTheDocument();
-    expect(within(screen.getByTestId('designer-band-frame-data')).getByText('DataBand1')).toBeInTheDocument();
+    expect(within(screen.getByTestId('designer-band-frame-data')).getByText('DataBand1; 数据源: Customers')).toBeInTheDocument();
+    expect(screen.getByTestId('designer-band-body-data')).not.toHaveStyle({ backgroundColor: '#fff7e6' });
+    expect(screen.getByTestId('designer-band-body-data').style.backgroundImage).toBe('');
   });
 
   it('localizes canvas empty state and zoom controls', () => {

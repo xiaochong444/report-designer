@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { createDefaultTemplate } from '@report-designer/core';
@@ -10,8 +10,18 @@ import { useDesignerStore } from '../store/designer-store';
 
 function loadSelectedDataBand() {
   const template = createDefaultTemplate('Band Properties');
+  template.dataSources = [{
+    id: 'orders',
+    name: 'Orders',
+    type: 'json',
+    schema: [
+      { name: 'amount', type: 'number', label: 'Amount' },
+      { name: 'customerName', type: 'string', label: 'Customer Name' },
+    ],
+  }];
   const dataBand = template.pages[0].bands.find(band => band.type === 'data');
   if (!dataBand) throw new Error('Missing data band');
+  dataBand.dataBand = { dataSourceId: 'orders' };
   useDesignerStore.getState().loadTemplate(template);
   useDesignerStore.getState().selectBand(dataBand.id);
   return dataBand.id;
@@ -22,8 +32,15 @@ function selectedBand() {
   return state.template.pages[0].bands.find(band => band.id === state.selectedBandId);
 }
 
+async function chooseCombobox(name: string, option: string) {
+  const input = screen.getByRole('combobox', { name });
+  fireEvent.mouseDown(input);
+  const matches = await screen.findAllByText(option);
+  fireEvent.click(matches[matches.length - 1]);
+}
+
 describe('phase 35 band properties', () => {
-  it('edits common data band identity, conditions, and print rules from grouped sections', () => {
+  it('edits common data band identity, conditions, and print rules from grouped sections', async () => {
     loadSelectedDataBand();
     render(
       <DesignerI18nProvider locale="zh-CN">
@@ -37,14 +54,22 @@ describe('phase 35 band properties', () => {
 
     fireEvent.change(screen.getByLabelText('名称'), { target: { value: '订单明细' } });
     fireEvent.change(screen.getByLabelText('可见表达式'), { target: { value: '{Parameters.ShowDetails}' } });
-    fireEvent.change(screen.getByLabelText('过滤表达式'), { target: { value: '{Orders.Amount} > 0' } });
+    fireEvent.change(screen.getByLabelText('奇数行背景'), { target: { value: '#fff7e6' } });
+    fireEvent.change(screen.getByLabelText('偶数行背景'), { target: { value: '#e6f4ff' } });
+    fireEvent.click(screen.getByRole('button', { name: '编辑过滤' }));
+    fireEvent.click(screen.getByRole('button', { name: '添加过滤条件' }));
+    await chooseCombobox('过滤比较方式 1', '等于');
+    fireEvent.change(screen.getByLabelText('过滤值 1'), { target: { value: '100' } });
+    fireEvent.click(screen.getByRole('button', { name: /确\s*定/ }));
     fireEvent.mouseDown(screen.getByLabelText('打印页面'));
     fireEvent.click(screen.getByText('除第一页外'));
 
     expect(selectedBand()).toMatchObject({
       name: '订单明细',
       dataBand: expect.objectContaining({
-        filterExpression: '{Orders.Amount} > 0',
+        filterExpression: '{orders.amount} = 100',
+        oddRowBackgroundColor: '#fff7e6',
+        evenRowBackgroundColor: '#e6f4ff',
       }),
       behavior: expect.objectContaining({
         visibleExpression: '{Parameters.ShowDetails}',
@@ -64,6 +89,7 @@ describe('phase 35 band properties', () => {
     expect(screen.getByTestId('band-properties-basic-form')).toHaveClass('ant-form-horizontal');
     expect(screen.getByTestId('band-properties-data-form')).toHaveClass('ant-form-horizontal');
     expect(screen.getByTestId('band-properties-behavior-form')).toHaveClass('ant-form-horizontal');
+    expect(within(screen.getByTestId('band-properties-data-form')).getByLabelText('排序')).toBeInTheDocument();
   });
 
   it('opens the shared expression editor from band expression fields and applies the edited value', async () => {
@@ -81,14 +107,6 @@ describe('phase 35 band properties', () => {
     fireEvent.click(await screen.findByRole('button', { name: /确\s*定/ }));
 
     expect(selectedBand()?.behavior?.visibleExpression).toBe('{Parameters.VisibleBand}');
-
-    fireEvent.click(screen.getByRole('button', { name: '打开表达式编辑器：过滤表达式' }));
-    fireEvent.change(screen.getByPlaceholderText('{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}'), {
-      target: { value: '{Orders.Amount} > 100' },
-    });
-    fireEvent.click(await screen.findByRole('button', { name: /确\s*定/ }));
-
-    expect(selectedBand()?.dataBand?.filterExpression).toBe('{Orders.Amount} > 100');
   });
 
   it('shows group properties only for group header bands', async () => {

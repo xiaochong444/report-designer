@@ -42,6 +42,7 @@ export interface RenderedBand {
   id: string;
   type: string;
   height: number;
+  backgroundColor?: string;
   components: RenderedComponent[];
   /** Band type metadata */
   isDataBand?: boolean;
@@ -191,11 +192,21 @@ function renderBand(
     id: band.id,
     type: band.type,
     height: band.height,
+    backgroundColor: resolveRenderedBandBackground(band, ctx.rowIndex ?? 0, Boolean(ctx.variables?.row)),
     components,
     isDataBand: band.type === 'data',
     isGroupHeader: band.type === 'groupHeader',
     isGroupFooter: band.type === 'groupFooter',
   };
+}
+
+function resolveRenderedBandBackground(band: Band, rowIndex: number, hasRow: boolean): string | undefined {
+  if (!hasRow || band.type !== 'data') {
+    return undefined;
+  }
+  return rowIndex % 2 === 0
+    ? band.dataBand?.oddRowBackgroundColor
+    : band.dataBand?.evenRowBackgroundColor;
 }
 
 /** Main renderer: produces a RenderTree from template + data */

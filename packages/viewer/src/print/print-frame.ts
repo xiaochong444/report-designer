@@ -13,7 +13,7 @@ export function buildPrintHtml(document: RenderDocument): string {
     <div class="rd-print-page" style="width:${page.width}mm;height:${page.height}mm;background-color:${safeCssColor(page.backgroundColor, '#fff')};">
       ${page.watermark?.showBehind === false ? '' : renderPageWatermarkHtml(page.watermark)}
       ${page.items.map((band) => `
-        <div class="rd-print-band" style="left:${band.x}mm;top:${band.y}mm;width:${band.width}mm;height:${band.height}mm;overflow:${band.overflow ? 'hidden' : 'visible'};">
+        <div class="rd-print-band" style="left:${band.x}mm;top:${band.y}mm;width:${band.width}mm;height:${band.height}mm;${band.backgroundColor ? `background-color:${safeCssColor(band.backgroundColor, 'transparent')};` : ''}overflow:${band.overflow ? 'hidden' : 'visible'};">
           ${band.components.map(component => renderComponentHtml(component, band.x, band.y)).join('')}
         </div>
       `).join('')}
@@ -30,6 +30,7 @@ export function buildPrintHtml(document: RenderDocument): string {
     @page { size: ${pageCss}; margin: 0; }
     ${fontCss}
     html, body { margin: 0; padding: 0; }
+    * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     .rd-print-page { position: relative; page-break-after: always; overflow: hidden; background: #fff; }
     .rd-print-band, .rd-print-component { position: absolute; box-sizing: border-box; }
     .rd-print-band { z-index: 2; }

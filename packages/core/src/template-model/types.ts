@@ -474,6 +474,8 @@ export interface DataBandOptions {
   dataSourceId?: string;
   filterExpression?: string;
   sort?: Array<{ field: string; direction: 'asc' | 'desc' }>;
+  oddRowBackgroundColor?: string;
+  evenRowBackgroundColor?: string;
   columns?: { count: number; gap: number; direction: 'downThenAcross' | 'acrossThenDown' };
 }
 

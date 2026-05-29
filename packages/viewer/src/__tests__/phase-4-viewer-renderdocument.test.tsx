@@ -94,6 +94,15 @@ describe('Phase 4 RenderDocument viewer', () => {
     expect(screen.getByTestId('render-document-page')).toHaveStyle({ background: '#fff7e6' });
   });
 
+  it('renders band background color from the render document', () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].backgroundColor = '#e6f4ff';
+
+    render(<RenderDocumentView document={document} zoom={100} />);
+
+    expect(screen.getByTestId('render-document-band')).toHaveStyle({ backgroundColor: '#e6f4ff' });
+  });
+
   it('renders rich text html and image sources in the DOM renderer', () => {
     const document = makeRenderDocument();
     document.pages[0].items[0].components.push(

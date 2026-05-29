@@ -397,7 +397,7 @@ export type DesignerMessageKey =
   | 'bandProperties.printOn.lastPage'
   | 'bandProperties.printOn.oddPages'
   | 'bandProperties.printOn.evenPages'
-  | 'bandProperties.filterExpression'
+  | 'bandProperties.filter'
   | 'bandProperties.groupExpression'
   | 'bandProperties.groupSort'
   | 'bandProperties.groupSort.none'
@@ -498,14 +498,39 @@ export type DesignerMessageKey =
   | 'richText.editor'
   | 'dataBand.dataSource'
   | 'dataBand.sort.title'
+  | 'dataBand.sort.dialogTitle'
+  | 'dataBand.sort.edit'
+  | 'dataBand.sort.noSorting'
   | 'dataBand.sort.addRule'
   | 'dataBand.sort.fieldAria'
+  | 'dataBand.sort.directionAria'
   | 'dataBand.sort.ascending'
   | 'dataBand.sort.descending'
   | 'dataBand.sort.moveUp'
   | 'dataBand.sort.moveDown'
   | 'dataBand.sort.deleteRule'
   | 'dataBand.sort.noFields'
+  | 'dataBand.oddRowBackgroundColor'
+  | 'dataBand.evenRowBackgroundColor'
+  | 'dataBand.filter.filtered'
+  | 'dataBand.filter.notFiltered'
+  | 'dataBand.filter.edit'
+  | 'dataBand.filter.dialogTitle'
+  | 'dataBand.filter.addCondition'
+  | 'dataBand.filter.fieldAria'
+  | 'dataBand.filter.operatorAria'
+  | 'dataBand.filter.valueAria'
+  | 'dataBand.filter.openValueExpression'
+  | 'dataBand.filter.deleteCondition'
+  | 'dataBand.filter.operator.equal'
+  | 'dataBand.filter.operator.notEqual'
+  | 'dataBand.filter.operator.contains'
+  | 'dataBand.filter.operator.startsWith'
+  | 'dataBand.filter.operator.endsWith'
+  | 'dataBand.filter.operator.greaterThan'
+  | 'dataBand.filter.operator.lessThan'
+  | 'dataBand.filter.operator.greaterThanOrEqual'
+  | 'dataBand.filter.operator.lessThanOrEqual'
   | 'events.title'
   | 'events.reportTitle'
   | 'events.pageTitle'
@@ -1032,7 +1057,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'bandProperties.printOn.lastPage': '最后一页',
     'bandProperties.printOn.oddPages': '奇数页',
     'bandProperties.printOn.evenPages': '偶数页',
-    'bandProperties.filterExpression': '过滤表达式',
+    'bandProperties.filter': '过滤',
     'bandProperties.groupExpression': '分组表达式',
     'bandProperties.groupSort': '分组排序',
     'bandProperties.groupSort.none': '不排序',
@@ -1133,14 +1158,39 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'richText.editor': '富文本编辑器',
     'dataBand.dataSource': '数据源',
     'dataBand.sort.title': '排序',
+    'dataBand.sort.dialogTitle': '排序',
+    'dataBand.sort.edit': '编辑排序',
+    'dataBand.sort.noSorting': '没有排序',
     'dataBand.sort.addRule': '添加排序规则',
     'dataBand.sort.fieldAria': '排序字段 {index}',
+    'dataBand.sort.directionAria': '排序方式 {index}',
     'dataBand.sort.ascending': '升序',
     'dataBand.sort.descending': '降序',
     'dataBand.sort.moveUp': '上移排序规则 {index}',
     'dataBand.sort.moveDown': '下移排序规则 {index}',
     'dataBand.sort.deleteRule': '删除排序规则 {index}',
     'dataBand.sort.noFields': '当前数据源没有可排序字段',
+    'dataBand.oddRowBackgroundColor': '奇数行背景',
+    'dataBand.evenRowBackgroundColor': '偶数行背景',
+    'dataBand.filter.filtered': '已过滤',
+    'dataBand.filter.notFiltered': '未过滤',
+    'dataBand.filter.edit': '编辑过滤',
+    'dataBand.filter.dialogTitle': '过滤',
+    'dataBand.filter.addCondition': '添加过滤条件',
+    'dataBand.filter.fieldAria': '过滤字段 {index}',
+    'dataBand.filter.operatorAria': '过滤比较方式 {index}',
+    'dataBand.filter.valueAria': '过滤值 {index}',
+    'dataBand.filter.openValueExpression': '打开表达式编辑器：过滤值 {index}',
+    'dataBand.filter.deleteCondition': '删除过滤条件 {index}',
+    'dataBand.filter.operator.equal': '等于',
+    'dataBand.filter.operator.notEqual': '不等于',
+    'dataBand.filter.operator.contains': '包含',
+    'dataBand.filter.operator.startsWith': '开头是',
+    'dataBand.filter.operator.endsWith': '结尾是',
+    'dataBand.filter.operator.greaterThan': '大于',
+    'dataBand.filter.operator.lessThan': '小于',
+    'dataBand.filter.operator.greaterThanOrEqual': '大于等于',
+    'dataBand.filter.operator.lessThanOrEqual': '小于等于',
     'events.title': '事件',
     'events.reportTitle': '报表事件',
     'events.pageTitle': '页面事件',
@@ -1664,7 +1714,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'bandProperties.printOn.lastPage': 'Last Page',
     'bandProperties.printOn.oddPages': 'Odd Pages',
     'bandProperties.printOn.evenPages': 'Even Pages',
-    'bandProperties.filterExpression': 'Filter Expression',
+    'bandProperties.filter': 'Filter',
     'bandProperties.groupExpression': 'Group Expression',
     'bandProperties.groupSort': 'Group Sort',
     'bandProperties.groupSort.none': 'None',
@@ -1765,14 +1815,39 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'richText.editor': 'Rich text editor',
     'dataBand.dataSource': 'Data source',
     'dataBand.sort.title': 'Sorting',
+    'dataBand.sort.dialogTitle': 'Sorting',
+    'dataBand.sort.edit': 'Edit sorting',
+    'dataBand.sort.noSorting': 'No sorting',
     'dataBand.sort.addRule': 'Add sort rule',
     'dataBand.sort.fieldAria': 'Sort field {index}',
+    'dataBand.sort.directionAria': 'Sort direction {index}',
     'dataBand.sort.ascending': 'Ascending',
     'dataBand.sort.descending': 'Descending',
     'dataBand.sort.moveUp': 'Move sort rule {index} up',
     'dataBand.sort.moveDown': 'Move sort rule {index} down',
     'dataBand.sort.deleteRule': 'Delete sort rule {index}',
     'dataBand.sort.noFields': 'The current data source has no sortable fields',
+    'dataBand.oddRowBackgroundColor': 'Odd row background',
+    'dataBand.evenRowBackgroundColor': 'Even row background',
+    'dataBand.filter.filtered': 'Filtered',
+    'dataBand.filter.notFiltered': 'Not filtered',
+    'dataBand.filter.edit': 'Edit filter',
+    'dataBand.filter.dialogTitle': 'Filter',
+    'dataBand.filter.addCondition': 'Add filter condition',
+    'dataBand.filter.fieldAria': 'Filter field {index}',
+    'dataBand.filter.operatorAria': 'Filter comparison {index}',
+    'dataBand.filter.valueAria': 'Filter value {index}',
+    'dataBand.filter.openValueExpression': 'Open expression editor: Filter value {index}',
+    'dataBand.filter.deleteCondition': 'Delete filter condition {index}',
+    'dataBand.filter.operator.equal': 'Equal',
+    'dataBand.filter.operator.notEqual': 'Not equal',
+    'dataBand.filter.operator.contains': 'Contains',
+    'dataBand.filter.operator.startsWith': 'Starts with',
+    'dataBand.filter.operator.endsWith': 'Ends with',
+    'dataBand.filter.operator.greaterThan': 'Greater than',
+    'dataBand.filter.operator.lessThan': 'Less than',
+    'dataBand.filter.operator.greaterThanOrEqual': 'Greater than or equal',
+    'dataBand.filter.operator.lessThanOrEqual': 'Less than or equal',
     'events.title': 'Events',
     'events.reportTitle': 'Report Events',
     'events.pageTitle': 'Page Events',
