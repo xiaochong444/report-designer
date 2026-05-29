@@ -134,19 +134,25 @@ describe('example sample paper defaults', () => {
 
     expect(sample?.label).toBe('Custom Chinese Font');
     expect(sample?.template.fonts).toEqual(expect.arrayContaining([
-      expect.objectContaining({
-        id: 'example-custom-chinese',
-        name: '示例自定义中文字体',
-        family: 'Microsoft YaHei UI',
-      }),
+      expect.objectContaining({ name: '微软雅黑', family: 'Microsoft YaHei' }),
+      expect.objectContaining({ name: '宋体', family: 'SimSun' }),
+      expect.objectContaining({ name: '黑体', family: 'SimHei' }),
+      expect.objectContaining({ name: '楷体', family: 'KaiTi' }),
+      expect.objectContaining({ name: '仿宋', family: 'FangSong' }),
     ]));
     expect(textComponents.length).toBeGreaterThan(0);
-    expect(textComponents.every(component => component.font.family === 'Microsoft YaHei UI')).toBe(true);
+    expect(textComponents.map(component => component.font.family)).toEqual(expect.arrayContaining([
+      'Microsoft YaHei',
+      'SimSun',
+      'SimHei',
+      'KaiTi',
+      'FangSong',
+    ]));
 
     const document = renderReport(sample!.template, sample!.data);
-    expect(document.fonts?.map(font => font.name)).toEqual(expect.arrayContaining(['示例自定义中文字体']));
+    expect(document.fonts?.map(font => font.name)).toEqual(expect.arrayContaining(['微软雅黑', '宋体', '黑体', '楷体', '仿宋']));
     expect(document.pages.flatMap(page => page.items).flatMap(item => item.components).map((component: any) => component.content)).toEqual(
-      expect.arrayContaining(['自定义中文字体示例']),
+      expect.arrayContaining(['常见中文字体代码注册示例']),
     );
   });
 });
