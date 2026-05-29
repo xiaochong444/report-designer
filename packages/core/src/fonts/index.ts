@@ -7,7 +7,7 @@ export interface ReportFontOption {
   builtin: boolean;
 }
 
-export const DEFAULT_REPORT_FONTS: ReportFont[] = [
+export const REGISTERED_REPORT_FONTS: ReportFont[] = [
   { id: 'microsoft-yahei', name: 'Microsoft YaHei', family: 'Microsoft YaHei', fallback: 'sans-serif', builtin: true },
   { id: 'simsun', name: 'SimSun', family: 'SimSun', fallback: 'serif', builtin: true },
   { id: 'simhei', name: 'SimHei', family: 'SimHei', fallback: 'sans-serif', builtin: true },
@@ -20,10 +20,12 @@ export const DEFAULT_REPORT_FONTS: ReportFont[] = [
   { id: 'courier-new', name: 'Courier New', family: 'Courier New', fallback: 'monospace', builtin: true },
 ];
 
+export const DEFAULT_REPORT_FONTS = REGISTERED_REPORT_FONTS;
+
 export function normalizeReportFonts(fonts?: ReportFont[]): ReportFont[] {
   const byId = new Map<string, ReportFont>();
 
-  for (const font of [...DEFAULT_REPORT_FONTS, ...(fonts ?? [])]) {
+  for (const font of [...REGISTERED_REPORT_FONTS, ...(fonts ?? [])]) {
     const id = normalizeFontId(font.id || font.family || font.name);
     const family = (font.family || font.name || id).trim();
     const name = (font.name || family).trim();
@@ -34,7 +36,7 @@ export function normalizeReportFonts(fonts?: ReportFont[]): ReportFont[] {
       id,
       name,
       family,
-      builtin: font.builtin ?? DEFAULT_REPORT_FONTS.some(item => item.id === id),
+      builtin: font.builtin ?? REGISTERED_REPORT_FONTS.some(item => item.id === id),
     });
   }
 

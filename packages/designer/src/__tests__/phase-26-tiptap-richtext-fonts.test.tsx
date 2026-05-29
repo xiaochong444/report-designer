@@ -154,7 +154,7 @@ describe('phase 26 report font registry and rich text editor shell', () => {
     expect(await screen.findByText('SimSun')).toBeInTheDocument();
   });
 
-  it('shows a report font registry group on the page property panel and adds custom fonts', async () => {
+  it('shows a readonly code-registered report font list on the page property panel', async () => {
     const template = createDefaultTemplate('Phase 26 Page Fonts');
     act(() => {
       useDesignerStore.getState().loadTemplate(template);
@@ -166,13 +166,9 @@ describe('phase 26 report font registry and rich text editor shell', () => {
 
     expect(screen.getByTestId('report-font-registry')).toBeInTheDocument();
     expect(screen.getByText('Microsoft YaHei')).toBeInTheDocument();
-
-    fireEvent.click(screen.getByRole('button', { name: '添加字体' }));
-
-    await waitFor(() => {
-      expect(useDesignerStore.getState().template.fonts?.some(font => !font.builtin)).toBe(true);
-    });
-    expect(screen.getByDisplayValue('自定义字体 1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '添加字体' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('删除字体')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('字体名称')).not.toBeInTheDocument();
   });
 
   it('opens a rich text inline editor with report fonts and saves html plus document', async () => {

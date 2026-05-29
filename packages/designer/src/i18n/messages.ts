@@ -437,13 +437,6 @@ export type DesignerMessageKey =
   | 'pageSettings.bottom'
   | 'pageSettings.left'
   | 'pageSettings.fonts'
-  | 'pageSettings.addFont'
-  | 'pageSettings.removeFont'
-  | 'pageSettings.customFontName'
-  | 'pageSettings.fontName'
-  | 'pageSettings.fontFamily'
-  | 'pageSettings.fontFallback'
-  | 'pageSettings.fontUrl'
   | 'pageSettings.appearance'
   | 'pageSettings.watermark'
   | 'pageSettings.watermarkEnabled'
@@ -1059,13 +1052,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.bottom': '下',
     'pageSettings.left': '左',
     'pageSettings.fonts': '字体',
-    'pageSettings.addFont': '添加字体',
-    'pageSettings.removeFont': '删除字体',
-    'pageSettings.customFontName': '自定义字体 {index}',
-    'pageSettings.fontName': '字体名称',
-    'pageSettings.fontFamily': 'CSS 字体族',
-    'pageSettings.fontFallback': '备用字体',
-    'pageSettings.fontUrl': '字体地址',
     'pageSettings.appearance': '页面外观',
     'pageSettings.watermark': '水印',
     'pageSettings.watermarkEnabled': '启用水印',
@@ -1678,13 +1664,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'pageSettings.bottom': 'Bottom',
     'pageSettings.left': 'Left',
     'pageSettings.fonts': 'Fonts',
-    'pageSettings.addFont': 'Add font',
-    'pageSettings.removeFont': 'Remove font',
-    'pageSettings.customFontName': 'Custom Font {index}',
-    'pageSettings.fontName': 'Font name',
-    'pageSettings.fontFamily': 'CSS font family',
-    'pageSettings.fontFallback': 'Fallback font',
-    'pageSettings.fontUrl': 'Font URL',
     'pageSettings.appearance': 'Page appearance',
     'pageSettings.watermark': 'Watermark',
     'pageSettings.watermarkEnabled': 'Enable watermark',

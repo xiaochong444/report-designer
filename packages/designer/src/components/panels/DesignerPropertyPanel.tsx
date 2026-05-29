@@ -1,8 +1,8 @@
 import React from 'react';
 import { Button, Checkbox, Collapse, ColorPicker, Form, Input, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
-import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, BoldOutlined, DeleteOutlined, ItalicOutlined, PlusOutlined, StrikethroughOutlined, UnderlineOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
+import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, BoldOutlined, ItalicOutlined, StrikethroughOutlined, UnderlineOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { createDefaultPageBorder, createDefaultPageWatermark, getReportFontOptions, normalizeReportFonts } from '@report-designer/core';
-import type { BorderConfig, EventMap, Margins, Padding, Page, PageBorder, PageEventName, PageWatermark, ReportFont, ReportFontOption, TableCell, TableComponent, TextFormatConfig } from '@report-designer/core';
+import type { BorderConfig, EventMap, Margins, Padding, Page, PageBorder, PageEventName, PageWatermark, ReportFontOption, TableCell, TableComponent, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import {
   detectPaperType,
@@ -330,7 +330,6 @@ const PageProperties: React.FC = () => {
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const setPageSettings = useDesignerStore(s => s.setPageSettings);
-  const updateTemplate = useDesignerStore(s => s.updateTemplate);
   const reportUnit = useDesignerStore(s => s.reportUnit);
   const setReportUnit = useDesignerStore(s => s.setReportUnit);
   const replaceReportEvents = useDesignerStore(s => s.replaceReportEvents);
@@ -393,27 +392,6 @@ const PageProperties: React.FC = () => {
     updatePage({
       ...getPaperPresetSize(value, page.orientation, page.width, page.height),
     });
-  };
-  const updateFonts = (fonts: ReportFont[]) => {
-    updateTemplate(current => ({ ...current, fonts: normalizeReportFonts(fonts) }));
-  };
-  const updateFont = (fontId: string, updates: Partial<ReportFont>) => {
-    updateFonts(reportFonts.map(font => font.id === fontId ? { ...font, ...updates } : font));
-  };
-  const addFont = () => {
-    const customCount = reportFonts.filter(font => !font.builtin).length + 1;
-    updateFonts([
-      ...reportFonts,
-      {
-        id: `custom-font-${customCount}`,
-        name: t('pageSettings.customFontName', { index: customCount }),
-        family: `CustomFont${customCount}`,
-        fallback: 'sans-serif',
-      },
-    ]);
-  };
-  const removeFont = (fontId: string) => {
-    updateFonts(reportFonts.filter(font => font.id !== fontId || font.builtin));
   };
   const pendingTarget = (pendingEventEditorTarget?.ownerType === 'report' || pendingEventEditorTarget?.ownerType === 'page')
     ? pendingEventEditorTarget
@@ -614,55 +592,19 @@ const PageProperties: React.FC = () => {
             label: t('pageSettings.fonts'),
             children: (
               <Space data-testid="report-font-registry" orientation="vertical" size={8} style={{ width: '100%' }}>
-                <Button aria-label={t('pageSettings.addFont')} size="small" icon={<PlusOutlined />} onClick={addFont}>
-                  {t('pageSettings.addFont')}
-                </Button>
                 {reportFonts.map(font => (
                   <div key={font.id} style={{ border: '1px solid #f0f0f0', borderRadius: 4, padding: 8 }}>
-                    <Space orientation="vertical" size={6} style={{ width: '100%' }}>
-                      <Space style={{ width: '100%', justifyContent: 'space-between' }}>
-                        <Typography.Text strong style={{ fontFamily: `${font.family}, ${font.fallback ?? 'sans-serif'}` }}>
-                          {font.name}
-                        </Typography.Text>
-                        <Button
-                          aria-label={t('pageSettings.removeFont')}
-                          icon={<DeleteOutlined />}
-                          size="small"
-                          disabled={font.builtin}
-                          onClick={() => removeFont(font.id)}
-                        />
-                      </Space>
-                      <Input
-                        aria-label={t('pageSettings.fontName')}
-                        value={font.name}
-                        disabled={font.builtin}
-                        onChange={event => updateFont(font.id, { name: event.target.value })}
-                        size="small"
-                      />
-                      <Input
-                        aria-label={t('pageSettings.fontFamily')}
-                        value={font.family}
-                        disabled={font.builtin}
-                        onChange={event => updateFont(font.id, { family: event.target.value })}
-                        size="small"
-                      />
-                      <Input
-                        aria-label={t('pageSettings.fontFallback')}
-                        value={font.fallback}
-                        disabled={font.builtin}
-                        onChange={event => updateFont(font.id, { fallback: event.target.value })}
-                        size="small"
-                      />
-                      <Input
-                        aria-label={t('pageSettings.fontUrl')}
-                        value={font.source?.url ?? ''}
-                        disabled={font.builtin}
-                        onChange={event => updateFont(font.id, {
-                          source: event.target.value ? { ...(font.source ?? {}), url: event.target.value } : undefined,
-                        })}
-                        size="small"
-                      />
-                    </Space>
+                    <Typography.Text strong style={{ display: 'block', fontFamily: `${font.family}, ${font.fallback ?? 'sans-serif'}` }}>
+                      {font.name}
+                    </Typography.Text>
+                    <Typography.Text type="secondary" style={{ display: 'block', fontSize: 12 }}>
+                      {font.family}{font.fallback ? `, ${font.fallback}` : ''}
+                    </Typography.Text>
+                    {font.source?.url || font.source?.dataUrl ? (
+                      <Typography.Text type="secondary" ellipsis style={{ display: 'block', fontSize: 12 }}>
+                        {font.source.dataUrl ? 'data:' : font.source.url}
+                      </Typography.Text>
+                    ) : null}
                   </div>
                 ))}
               </Space>
