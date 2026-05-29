@@ -135,6 +135,50 @@
   line-height: 16px;
 }
 
+.rd-band-menu-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 132px;
+}
+
+.rd-band-glyph {
+  width: 14px;
+  height: 12px;
+  border: 1px solid;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  background: #fff;
+}
+
+.rd-band-glyph-grid {
+  width: 10px;
+  height: 8px;
+  display: block;
+  background:
+    linear-gradient(currentColor 1px, transparent 1px),
+    linear-gradient(90deg, currentColor 1px, transparent 1px);
+  background-size: 5px 4px;
+  opacity: 0.85;
+}
+
+.rd-band-glyph-lines {
+  width: 10px;
+  height: 2px;
+  display: block;
+  box-shadow: 0 4px 0 currentColor;
+}
+
+.rd-band-glyph-wave {
+  width: 10px;
+  height: 5px;
+  display: block;
+  border-top: 2px solid;
+  border-bottom: 2px solid;
+}
+
 .rd-ribbon-divider {
   position: absolute;
   top: 2px;

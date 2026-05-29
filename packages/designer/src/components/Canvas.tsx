@@ -1,5 +1,5 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { sanitizeRichHtml, type ReportComponent, type Band, type BorderConfig, type ChartComponent, type ChartDataPoint, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type RichTextDocument, type TableCell, type TableComponent } from '@report-designer/core';
+import { sanitizeRichHtml, type ReportComponent, type Band, type BandType, type BorderConfig, type ChartComponent, type ChartDataPoint, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type RichTextDocument, type TableCell, type TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import type { TableCellSelection } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
@@ -165,6 +165,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
   const selectedBandId = useDesignerStore(s => s.selectedBandId);
+  const pendingBandInsertType = useDesignerStore(s => s.pendingBandInsertType);
   const selectedTableCell = useDesignerStore(s => s.selectedTableCell);
   const storeClipboard = useDesignerStore(s => s.clipboard);
   const selectComponents = useDesignerStore(s => s.selectComponents);
@@ -193,6 +194,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const setZoom = useDesignerStore(s => s.setZoom);
   const undo = useDesignerStore(s => s.undo);
   const redo = useDesignerStore(s => s.redo);
+  const cancelBandInsert = useDesignerStore(s => s.cancelBandInsert);
 
   const pageRef = useRef<HTMLDivElement>(null);
   const modeRef = useRef<Mode>({ type: 'idle' });
@@ -200,6 +202,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const [selBox, setSelBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [guides, setGuides] = useState<GuideLine[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuPos | null>(null);
+  const [bandInsertPointer, setBandInsertPointer] = useState<{ x: number; y: number } | null>(null);
 
   const currentPage = useMemo(() => template.pages.find(p => p.id === currentPageId), [template, currentPageId]);
 
@@ -641,6 +644,12 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         redo();
         return;
       }
+
+      if (e.key === 'Escape' && useDesignerStore.getState().pendingBandInsertType) {
+        e.preventDefault();
+        cancelBandInsert();
+        return;
+      }
       if (isCtrl && e.shiftKey && e.key === 'Z') {
         e.preventDefault();
         redo();
@@ -716,7 +725,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [selectedComponentIds, selectedTableCell, flat, undo, redo, selectComponents, copySelected, cutSelected, duplicateSelected, pasteClipboard, deleteSelected, clearSelectedTableCell, moveSelectedBy, resizeSelectedBy, toggleSelectedFontStyle, setTextAlign, setDesignerMode]);
+  }, [selectedComponentIds, selectedTableCell, flat, undo, redo, selectComponents, copySelected, cutSelected, duplicateSelected, pasteClipboard, deleteSelected, clearSelectedTableCell, moveSelectedBy, resizeSelectedBy, toggleSelectedFontStyle, setTextAlign, setDesignerMode, cancelBandInsert]);
 
   // ---- Zoom wheel handler ----
 
@@ -838,6 +847,15 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     }
   }, [addComponent, addComponentToPanel, currentPageId, getDropPosition]);
 
+  const handlePageMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
+    if (!pendingBandInsertType || !pageRef.current) return;
+    const rect = pageRef.current.getBoundingClientRect();
+    setBandInsertPointer({
+      x: (event.clientX - rect.left) / zoom,
+      y: (event.clientY - rect.top) / zoom,
+    });
+  }, [pendingBandInsertType, zoom]);
+
   if (!currentPage) {
     return (
       <div className={className} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#999' }}>
@@ -891,6 +909,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
 
         <div ref={pageRef} data-page data-testid="designer-page-sheet"
           onMouseDown={handlePageMouseDown}
+          onMouseMove={handlePageMouseMove}
           onDrop={handleCanvasDrop}
           onDragOver={handleCanvasDragOver}
           onContextMenu={(e) => e.preventDefault()}
@@ -900,6 +919,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             position: 'relative', marginLeft: RULER_SIZE, marginTop: RULER_SIZE, overflow: 'hidden',
             transform: `scale(${zoom})`,
             transformOrigin: 'top left',
+            cursor: pendingBandInsertType ? 'copy' : undefined,
           }}>
           <PageWatermarkOverlay watermark={currentPage.watermark} zIndex={currentPage.watermark?.showBehind === false ? 20 : 0} />
           <div
@@ -935,12 +955,20 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
               <BandView key={band.id} band={band} visualY={visualY}
                 labelIndex={bandLabelIndexes[band.id] ?? 1}
                 isSelected={band.id === selectedBandId}
+                pendingBandInsertType={pendingBandInsertType}
                 selectedIds={selectedComponentIds}
                 selectedTableCell={selectedTableCell}
                 fonts={template.fonts}
                 onUpdateComponent={updateComponent} currentPageId={currentPageId} />
             ))}
           </div>
+          {pendingBandInsertType ? (
+            <BandInsertCursor
+              type={pendingBandInsertType}
+              label={t(BAND_LABEL_KEYS[pendingBandInsertType])}
+              pointer={bandInsertPointer}
+            />
+          ) : null}
           <PageBorderOverlay pageBorder={currentPage.pageBorder} />
 
         {/* Selection box */}
@@ -1045,6 +1073,55 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
 
       {/* 缩放控制条 */}
       <ZoomBar zoom={zoom} onZoomIn={() => setZoom(Math.min(4, Math.round((zoom + 0.1) * 100) / 100))} onZoomOut={() => setZoom(Math.max(0.25, Math.round((zoom - 0.1) * 100) / 100))} onReset={() => setZoom(1)} onSetZoom={(z) => setZoom(z)} />
+    </div>
+  );
+};
+
+const BandInsertCursor: React.FC<{
+  type: BandType;
+  label: string;
+  pointer: { x: number; y: number } | null;
+}> = ({ label, pointer, type }) => {
+  const color = BAND_COLORS[type] || '#2563eb';
+  const x = safeCssNumber((pointer?.x ?? 16) + 12);
+  const y = safeCssNumber((pointer?.y ?? 16) + 12);
+
+  return (
+    <div
+      data-testid="designer-band-insert-cursor"
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        zIndex: 10001,
+        pointerEvents: 'none',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 6,
+        padding: '3px 8px',
+        border: `1px solid ${color}`,
+        backgroundColor: '#ffffff',
+        color: '#111827',
+        borderRadius: 3,
+        boxShadow: '0 2px 8px rgba(15,23,42,0.16)',
+        fontSize: 12,
+        lineHeight: 1.2,
+        whiteSpace: 'nowrap',
+      }}
+    >
+      <span
+        aria-hidden
+        style={{
+          width: 14,
+          height: 10,
+          border: `1px solid ${color}`,
+          borderTopWidth: 3,
+          display: 'inline-block',
+          boxSizing: 'border-box',
+          background: `${color}14`,
+        }}
+      />
+      <span>{label}</span>
     </div>
   );
 };
@@ -1320,17 +1397,19 @@ function stopEvent(event: React.SyntheticEvent) {
 
 const BandView: React.FC<{
   band: Band; visualY: number; labelIndex: number; isSelected: boolean; selectedIds: string[];
+  pendingBandInsertType: BandType | null;
   selectedTableCell: TableCellSelection | null;
   fonts?: ReportFont[];
   onUpdateComponent: (pageId: string, bandId: string, compId: string, updates: Record<string, any>, prev?: Record<string, any>) => void;
   currentPageId: string;
-}> = ({ band, visualY, labelIndex, isSelected, selectedIds, selectedTableCell, fonts, onUpdateComponent, currentPageId }) => {
+}> = ({ band, visualY, labelIndex, isSelected, pendingBandInsertType, selectedIds, selectedTableCell, fonts, onUpdateComponent, currentPageId }) => {
   const { t } = useDesignerI18n();
   const [editId, setEditId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<'text' | 'richtext' | null>(null);
   const [editText, setEditText] = useState('');
   const selectBand = useDesignerStore((state) => state.selectBand);
   const selectComponents = useDesignerStore((state) => state.selectComponents);
+  const insertBandAfter = useDesignerStore((state) => state.insertBandAfter);
   const baseColor = BAND_COLORS[band.type] || '#757575';
   const baseLabel = BAND_LABEL_KEYS[band.type] ? t(BAND_LABEL_KEYS[band.type]) : band.type;
   const bandLabel = `${baseLabel}${labelIndex}`;
@@ -1347,6 +1426,10 @@ const BandView: React.FC<{
       return;
     }
     event.stopPropagation();
+    if (pendingBandInsertType) {
+      insertBandAfter(currentPageId, band.id, pendingBandInsertType);
+      return;
+    }
     selectComponents([]);
     selectBand(band.id);
   };
@@ -1357,6 +1440,7 @@ const BandView: React.FC<{
       border: isSelected ? '1px solid #4d90fe' : '1px solid rgba(0,0,0,0.12)',
       boxSizing: 'border-box',
       backgroundColor: `${baseColor}10`,
+      cursor: pendingBandInsertType ? 'copy' : 'default',
     }}>
       <div style={{
         position: 'absolute', left: 0, right: 0, top: 0, height: safeCssNumber(headerHeight),
@@ -1365,7 +1449,7 @@ const BandView: React.FC<{
         display: 'flex', alignItems: 'center',
         padding: '0 3px',
         fontSize: 12, lineHeight: `${headerHeight}px`, color: '#111',
-        cursor: 'default', zIndex: 30, pointerEvents: 'none',
+        cursor: pendingBandInsertType ? 'copy' : 'default', zIndex: 30, pointerEvents: 'none',
         boxSizing: 'border-box',
       }}
       data-testid={`designer-band-title-${band.type}`}>

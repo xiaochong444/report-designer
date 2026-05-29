@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type {
   Band,
+  BandType,
   BandEventName,
   ComponentEventName,
   ConditionalFormat,
@@ -19,7 +20,7 @@ import type {
 import { createDefaultTemplate, getDefaultTextStyle, normalizeTemplate } from '@report-designer/core';
 import { CommandDispatcher, registerCommand } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
-import { ensureTemplateComponentNames, prepareComponentForInsert } from '../report-structure';
+import { ensureTemplateComponentNames, getBandBaseName, prepareComponentForInsert } from '../report-structure';
 import {
   applyDefaultTextStyle,
   applyManualTextComponentUpdates,
@@ -77,6 +78,7 @@ export interface DesignerState {
   conditionalFormatLibraryOpen: boolean;
   selectedComponentIds: string[];
   selectedBandId: string | null;
+  pendingBandInsertType: BandType | null;
   selectedTableCell: TableCellSelection | null;
   tableCellStyleClipboard: TableCellStyleClipboard | null;
   pendingEventEditorTarget: PendingEventEditorTarget | null;
@@ -105,6 +107,9 @@ export interface DesignerState {
   closeConditionalFormatLibrary: () => void;
   selectComponents: (componentIds: string[]) => void;
   selectBand: (bandId: string | null) => void;
+  beginBandInsert: (bandType: BandType) => void;
+  cancelBandInsert: () => void;
+  insertBandAfter: (pageId: string, afterBandId: string, bandType?: BandType) => void;
   selectTableCell: (selection: TableCellSelection | null) => void;
   openEventEditorTarget: (target: DesignerEventNavigationTarget) => void;
   consumeEventEditorTarget: (requestId: number) => void;
@@ -197,12 +202,44 @@ const DEFAULT_PAGE_WIDTH = 210; // A4
 const DEFAULT_PAGE_HEIGHT = 297;
 
 const UPDATE_COMPONENTS_COMMAND = 'update-components';
+const INSERT_BAND_COMMAND = 'insert-band';
+
+const DEFAULT_BAND_HEIGHTS: Record<BandType, number> = {
+  reportTitle: 40,
+  reportSummary: 30,
+  pageHeader: 20,
+  pageFooter: 20,
+  header: 20,
+  footer: 20,
+  columnHeader: 18,
+  columnFooter: 18,
+  groupHeader: 25,
+  groupFooter: 25,
+  data: 20,
+  hierarchicalData: 20,
+  child: 15,
+  emptyData: 20,
+  overlay: 20,
+};
 
 if (!CommandDispatcher.isAllowed(UPDATE_COMPONENTS_COMMAND)) {
   registerCommand(
     UPDATE_COMPONENTS_COMMAND,
     (state, payload) => applyComponentUpdates(state, payload.updates ?? []),
     (state, payload) => applyComponentUpdates(state, payload.previous ?? []),
+  );
+}
+
+if (!CommandDispatcher.isAllowed(INSERT_BAND_COMMAND)) {
+  registerCommand(
+    INSERT_BAND_COMMAND,
+    (state, payload) => insertBandInTemplate(state, payload.pageId, payload.afterBandId, payload.band),
+    (state, payload) => ({
+      ...state,
+      pages: state.pages.map(page => page.id === payload.pageId
+        ? { ...page, bands: page.bands.filter(band => band.id !== payload.band.id) }
+        : page),
+    }),
   );
 }
 
@@ -290,6 +327,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     conditionalFormatLibraryOpen: false,
     selectedComponentIds: [],
     selectedBandId: null,
+    pendingBandInsertType: null,
     selectedTableCell: null,
     tableCellStyleClipboard: null,
     pendingEventEditorTarget: null,
@@ -309,6 +347,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       conditionalFormatLibraryOpen: false,
       selectedComponentIds: [],
       selectedBandId: null,
+      pendingBandInsertType: null,
       selectedTableCell: null,
       tableCellStyleClipboard: null,
       pendingEventEditorTarget: null,
@@ -402,6 +441,37 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   selectComponents: (componentIds) => set({ selectedComponentIds: componentIds, selectedTableCell: null }),
 
   selectBand: (bandId) => set({ selectedBandId: bandId, selectedTableCell: null }),
+
+  beginBandInsert: (bandType) => set({
+    pendingBandInsertType: bandType,
+    selectedComponentIds: [],
+    selectedBandId: null,
+    selectedTableCell: null,
+  }),
+
+  cancelBandInsert: () => set({ pendingBandInsertType: null }),
+
+  insertBandAfter: (pageId, afterBandId, bandType) => {
+    const { template, dispatcher, pendingBandInsertType } = get();
+    const page = template.pages.find(item => item.id === pageId);
+    const type = bandType ?? pendingBandInsertType;
+    if (!page || !type) return;
+
+    const band = createBandForInsert(page.bands, type);
+    const newTemplate = dispatcher.execute(template, {
+      type: INSERT_BAND_COMMAND,
+      payload: { pageId, afterBandId, band },
+      execute: () => template,
+      undo: () => template,
+    });
+    set({
+      template: newTemplate,
+      selectedComponentIds: [],
+      selectedBandId: band.id,
+      selectedTableCell: null,
+      pendingBandInsertType: null,
+    });
+  },
 
   selectTableCell: (selection) => set({
     selectedTableCell: selection ? normalizeTableCellSelection(selection) : null,
@@ -1222,7 +1292,11 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
 
   addBand: (pageId, band) => {
     const { template, dispatcher } = get();
-    const newBand: Band = { ...band, id: `band_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`, components: [] };
+    const newBand: Band = {
+      ...band,
+      id: `band_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      components: [],
+    };
     const newTemplate = {
       ...template,
       pages: template.pages.map(p => {
@@ -1384,6 +1458,61 @@ function findBand(template: ReportTemplate, pageId: string, bandId: string): Ban
   const page = template.pages.find(p => p.id === pageId);
   if (!page) return undefined;
   return page.bands.find(b => b.id === bandId);
+}
+
+function insertBandInTemplate(template: ReportTemplate, pageId: string, afterBandId: string, band: Band): ReportTemplate {
+  return {
+    ...template,
+    pages: template.pages.map(page => {
+      if (page.id !== pageId) return page;
+      const targetIndex = page.bands.findIndex(item => item.id === afterBandId);
+      if (targetIndex < 0) return { ...page, bands: [...page.bands, band] };
+      return {
+        ...page,
+        bands: [
+          ...page.bands.slice(0, targetIndex + 1),
+          band,
+          ...page.bands.slice(targetIndex + 1),
+        ],
+      };
+    }),
+  };
+}
+
+function createBandForInsert(existingBands: Band[], type: BandType): Band {
+  const baseName = getBandBaseName(type);
+  const count = existingBands.filter(band => band.type === type).length + 1;
+  const band: Band = {
+    id: `band_${type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    type,
+    name: `${baseName}${count}`,
+    height: DEFAULT_BAND_HEIGHTS[type] ?? 20,
+    components: [],
+    behavior: createBandBehavior(type),
+  };
+
+  if (type === 'data' || type === 'hierarchicalData') {
+    band.dataBand = {};
+  }
+
+  if (type === 'groupHeader' || type === 'groupFooter') {
+    band.group = {};
+  }
+
+  return band;
+}
+
+function createBandBehavior(type: BandType): NonNullable<Band['behavior']> {
+  return {
+    enabled: true,
+    printOn: 'allPages',
+    printIfEmpty: true,
+    printOnAllPages: type === 'pageHeader' || type === 'pageFooter' || type === 'groupHeader',
+    keepTogether: false,
+    canBreak: type === 'data' || type === 'hierarchicalData' || type === 'child',
+    breakIfLessThan: undefined,
+    printAtBottom: type === 'pageFooter',
+  };
 }
 
 interface ComponentUpdatePayload {

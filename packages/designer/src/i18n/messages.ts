@@ -97,6 +97,7 @@ export type DesignerMessageKey =
   | 'ribbon.styleDesigner'
   | 'ribbon.conditionalFormats'
   | 'ribbon.jsonDataSource'
+  | 'ribbon.insertBand'
   | 'ribbon.bandWizard'
   | 'ribbon.groupWizard'
   | 'ribbon.text'
@@ -712,6 +713,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.styleDesigner': '样式设计器',
     'ribbon.conditionalFormats': '条件格式',
     'ribbon.jsonDataSource': 'JSON 数据源',
+    'ribbon.insertBand': '插入带区',
     'ribbon.bandWizard': '带区向导',
     'ribbon.groupWizard': '分组向导',
     'ribbon.text': '文本',
@@ -1324,6 +1326,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.styleDesigner': 'Style Designer',
     'ribbon.conditionalFormats': 'Conditional Formats',
     'ribbon.jsonDataSource': 'JSON data source',
+    'ribbon.insertBand': 'Insert band',
     'ribbon.bandWizard': 'Band wizard',
     'ribbon.groupWizard': 'Group wizard',
     'ribbon.text': 'Text',
