@@ -18,7 +18,6 @@ import {
   DeleteOutlined,
   FontSizeOutlined,
   LineOutlined,
-  PlusOutlined,
   PictureOutlined,
   PrinterOutlined,
   SaveOutlined,
@@ -27,18 +26,13 @@ import {
   ScissorOutlined,
   UndoOutlined,
   RedoOutlined,
-  DatabaseOutlined,
   ApartmentOutlined,
-  GroupOutlined,
   VerticalAlignBottomOutlined,
   VerticalAlignMiddleOutlined,
   VerticalAlignTopOutlined,
 } from '@ant-design/icons';
 import { type BandType, type BorderConfig, type FontConfig, type Margins, type Page, type ReportComponent, type TextComponent } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
-import { BandWizardDialog } from '../dialogs/BandWizardDialog';
-import { GroupWizardDialog } from '../dialogs/GroupWizardDialog';
-import { JsonDataSourceDialog } from '../dialogs/JsonDataSourceDialog';
 import { PageSetupDialog } from '../dialogs/PageSetupDialog';
 import { useDesignerI18n } from '../../i18n';
 import type { DesignerMessageKey } from '../../i18n';
@@ -76,9 +70,6 @@ const DEFAULT_BORDER: BorderConfig = {
 export const DesignerRibbon: React.FC = () => {
   const { t } = useDesignerI18n();
   const [activeTab, setActiveTab] = useState<RibbonTab>('home');
-  const [dataDialogOpen, setDataDialogOpen] = useState(false);
-  const [bandDialogOpen, setBandDialogOpen] = useState(false);
-  const [groupDialogOpen, setGroupDialogOpen] = useState(false);
   const [pageDialogOpen, setPageDialogOpen] = useState(false);
   const {
     undo,
@@ -99,7 +90,6 @@ export const DesignerRibbon: React.FC = () => {
     sizeComponents,
     bringToFront,
     sendToBack,
-    addPage,
     getSelectedFont,
     getSelectedTextAlign,
     openTextStyleLibrary,
@@ -341,14 +331,6 @@ export const DesignerRibbon: React.FC = () => {
     if (activeTab === 'insert') {
       return (
         <>
-          <RibbonGroup title={t('ribbon.data')}>
-            <Tooltip title={t('ribbon.jsonDataSource')}>
-              <Button size="small" icon={<DatabaseOutlined />} onClick={() => setDataDialogOpen(true)}>
-                JSON
-              </Button>
-            </Tooltip>
-          </RibbonGroup>
-
           <RibbonGroup title={t('ribbon.bands')}>
             <Dropdown
               trigger={['click']}
@@ -357,29 +339,20 @@ export const DesignerRibbon: React.FC = () => {
                 onClick: ({ key }) => beginBandInsert(key as BandType),
               }}
             >
-              <Button aria-label={t('ribbon.insertBand')} size="small" icon={<ApartmentOutlined />}>
-                {t('ribbon.bands')}
-                <DownOutlined aria-hidden style={{ fontSize: 10 }} />
-              </Button>
+              <Button
+                aria-label={t('ribbon.insertBand')}
+                size="small"
+                icon={<RibbonComboIcon main={<ApartmentOutlined aria-hidden />} suffix={<DownOutlined aria-hidden />} />}
+              />
             </Dropdown>
-            <Tooltip title={t('ribbon.bandWizard')}>
-              <Button size="small" icon={<ApartmentOutlined />} onClick={() => setBandDialogOpen(true)}>
-                {t('ribbon.bandWizard')}
-              </Button>
-            </Tooltip>
-            <Tooltip title={t('ribbon.groupWizard')}>
-              <Button size="small" icon={<GroupOutlined />} onClick={() => setGroupDialogOpen(true)}>
-                {t('ribbon.groupWizard')}
-              </Button>
-            </Tooltip>
           </RibbonGroup>
 
           <RibbonGroup title={t('ribbon.components')}>
-            <Button size="small" icon={<FontSizeOutlined />} onClick={addText}>{t('ribbon.text')}</Button>
-            <Button size="small" icon={<TableOutlined />} onClick={addTable}>{t('ribbon.table')}</Button>
-            <Button size="small" icon={<PictureOutlined />} onClick={addImage}>{t('ribbon.image')}</Button>
-            <Button size="small" icon={<CheckSquareOutlined />} onClick={addCheckbox}>{t('ribbon.checkbox')}</Button>
-            <Button size="small" icon={<LineOutlined />} onClick={addLine}>{t('ribbon.line')}</Button>
+            <RibbonButton label={t('ribbon.text')} icon={<FontSizeOutlined aria-hidden />} onClick={addText} />
+            <RibbonButton label={t('ribbon.table')} icon={<TableOutlined aria-hidden />} onClick={addTable} />
+            <RibbonButton label={t('ribbon.image')} icon={<PictureOutlined aria-hidden />} onClick={addImage} />
+            <RibbonButton label={t('ribbon.checkbox')} icon={<CheckSquareOutlined aria-hidden />} onClick={addCheckbox} />
+            <RibbonButton label={t('ribbon.line')} icon={<LineOutlined aria-hidden />} onClick={addLine} />
           </RibbonGroup>
         </>
       );
@@ -389,25 +362,18 @@ export const DesignerRibbon: React.FC = () => {
       return (
         <>
           <RibbonGroup title={t('ribbon.pageSetup')}>
-            <Tooltip title={t('ribbon.addPage')}>
-              <Button size="small" icon={<PlusOutlined />} onClick={addPage} />
-            </Tooltip>
-            <Tooltip title={t('ribbon.pageSettings')}>
-              <Button size="small" icon={<SettingOutlined />} onClick={() => setPageDialogOpen(true)}>
-                {t('ribbon.pageSettings')}
-              </Button>
-            </Tooltip>
+            <RibbonButton label={t('ribbon.pageSettings')} icon={<SettingOutlined aria-hidden />} onClick={() => setPageDialogOpen(true)} />
           </RibbonGroup>
 
           <RibbonGroup title={t('ribbon.size')}>
-            <Button size="small" onClick={() => setPagePreset(210, 297, 'portrait')}>{t('ribbon.a4Portrait')}</Button>
-            <Button size="small" onClick={() => setPagePreset(297, 210, 'landscape')}>{t('ribbon.a4Landscape')}</Button>
+            <RibbonButton label={t('ribbon.a4Portrait')} icon={<ColumnHeightOutlined aria-hidden />} onClick={() => setPagePreset(210, 297, 'portrait')} />
+            <RibbonButton label={t('ribbon.a4Landscape')} icon={<ColumnWidthOutlined aria-hidden />} onClick={() => setPagePreset(297, 210, 'landscape')} />
           </RibbonGroup>
 
           <RibbonGroup title={t('ribbon.margins')}>
-            <Button size="small" onClick={() => setMargins({ top: 10, right: 10, bottom: 10, left: 10 })}>{t('ribbon.normalMargins')}</Button>
-            <Button size="small" onClick={() => setMargins({ top: 5, right: 5, bottom: 5, left: 5 })}>{t('ribbon.narrowMargins')}</Button>
-            <Button size="small" onClick={() => setMargins({ top: 20, right: 20, bottom: 20, left: 20 })}>{t('ribbon.wideMargins')}</Button>
+            <RibbonButton label={t('ribbon.normalMargins')} icon={<BorderOuterOutlined aria-hidden />} onClick={() => setMargins({ top: 10, right: 10, bottom: 10, left: 10 })} />
+            <RibbonButton label={t('ribbon.narrowMargins')} icon={<CompressOutlined aria-hidden />} onClick={() => setMargins({ top: 5, right: 5, bottom: 5, left: 5 })} />
+            <RibbonButton label={t('ribbon.wideMargins')} icon={<AppstoreOutlined aria-hidden />} onClick={() => setMargins({ top: 20, right: 20, bottom: 20, left: 20 })} />
           </RibbonGroup>
         </>
       );
@@ -513,9 +479,6 @@ export const DesignerRibbon: React.FC = () => {
       <div className="rd-ribbon-content" data-testid="designer-ribbon-content">
         {renderRibbonGroups()}
       </div>
-      <JsonDataSourceDialog open={dataDialogOpen} onClose={() => setDataDialogOpen(false)} />
-      <BandWizardDialog open={bandDialogOpen} onClose={() => setBandDialogOpen(false)} />
-      <GroupWizardDialog open={groupDialogOpen} onClose={() => setGroupDialogOpen(false)} />
       <PageSetupDialog open={pageDialogOpen} onClose={() => setPageDialogOpen(false)} />
     </div>
   );
@@ -546,6 +509,13 @@ const RibbonButton: React.FC<{
       onClick={onClick}
     />
   </Tooltip>
+);
+
+const RibbonComboIcon: React.FC<{ main: React.ReactNode; suffix: React.ReactNode }> = ({ main, suffix }) => (
+  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
+    {main}
+    <span style={{ fontSize: 10 }}>{suffix}</span>
+  </span>
 );
 
 const BandGlyph: React.FC<{ type: BandType }> = ({ type }) => {

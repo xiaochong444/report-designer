@@ -47,11 +47,21 @@ describe('Phase 10 ribbon tabs', () => {
     expect(screen.getByRole('button', { name: 'Insert' })).toHaveClass('rd-ribbon-tab-active');
     expect(ribbonContent).toHaveTextContent('Components');
     expect(ribbonContent).toHaveTextContent('Bands');
+    expect(ribbonContent).not.toHaveTextContent('JSON');
+    expect(ribbonContent).not.toHaveTextContent('Band wizard');
+    expect(ribbonContent).not.toHaveTextContent('Group wizard');
+    for (const name of ['Insert band', 'Text', 'Table', 'Image', 'Check', 'Line']) {
+      expect(screen.getByRole('button', { name })).toHaveTextContent('');
+    }
 
     fireEvent.click(screen.getByRole('button', { name: 'Page Layout' }));
     expect(screen.getByRole('button', { name: 'Page Layout' })).toHaveClass('rd-ribbon-tab-active');
     expect(ribbonContent).toHaveTextContent('Page Setup');
     expect(ribbonContent).toHaveTextContent('Margins');
+    expect(screen.queryByRole('button', { name: 'Add page' })).not.toBeInTheDocument();
+    for (const name of ['Page settings', 'A4 Portrait', 'A4 Landscape', 'Normal', 'Narrow', 'Wide']) {
+      expect(screen.getByRole('button', { name })).toHaveTextContent('');
+    }
 
     fireEvent.click(screen.getByRole('button', { name: 'Layout' }));
     expect(screen.getByRole('button', { name: 'Layout' })).toHaveClass('rd-ribbon-tab-active');
