@@ -59,7 +59,8 @@ function executeGroupedRows(
   items: LogicalBandItem[],
   repeatOnPageBreakBefore: Band[],
 ): void {
-  executeGroupDepth(section, rows.map((row, rowIndex) => ({ row, rowIndex })), dataSourceId, items, 0, {}, repeatOnPageBreakBefore);
+  const groupedRows = sortRowsForGroups(section, rows, dataSourceId);
+  executeGroupDepth(section, groupedRows, dataSourceId, items, 0, {}, repeatOnPageBreakBefore);
 }
 
 function executeGroupDepth(
@@ -88,9 +89,7 @@ function executeGroupDepth(
       return;
     }
 
-    const groupValues = pair.header.group?.name
-      ? { ...parentGroupValues, [pair.header.group.name]: currentKey }
-      : parentGroupValues;
+    const groupValues = { ...parentGroupValues, [groupValueKey(pair.header)]: currentKey };
     const rowsByBand = dataSourceId ? { [dataSourceId]: currentGroupRows.map(item => item.row) } : undefined;
     items.push(createBandItem(pair.header, { row: currentGroupRows[0].row, rowIndex: currentGroupRows[0].rowIndex, dataSourceId, groupValues, rowsByBand }));
     executeGroupDepth(section, currentGroupRows, dataSourceId, items, depth + 1, groupValues, repeatOnPageBreakBefore);
@@ -111,6 +110,37 @@ function executeGroupDepth(
   });
 
   flush();
+}
+
+function sortRowsForGroups(
+  section: DataSectionPlan,
+  rows: Record<string, unknown>[],
+  dataSourceId: string | undefined,
+): Array<{ row: Record<string, unknown>; rowIndex: number }> {
+  const indexedRows = rows.map((row, rowIndex) => ({ row, rowIndex }));
+  const sortGroups = section.groupPairs.filter(pair => pair.header.group?.sortDirection && pair.header.group.sortDirection !== 'none');
+  if (sortGroups.length === 0) {
+    return indexedRows;
+  }
+
+  return [...indexedRows].sort((left, right) => {
+    for (const pair of sortGroups) {
+      const direction = pair.header.group?.sortDirection === 'desc' ? -1 : 1;
+      const leftValue = evaluateRowExpression(pair.header.group?.conditionExpression, left.row, dataSourceId, left.rowIndex);
+      const rightValue = evaluateRowExpression(pair.header.group?.conditionExpression, right.row, dataSourceId, right.rowIndex);
+      const compared = compareValues(leftValue, rightValue) * direction;
+      if (compared !== 0) {
+        return compared;
+      }
+    }
+    return left.rowIndex - right.rowIndex;
+  });
+}
+
+function groupValueKey(header: Band): string {
+  const expression = header.group?.conditionExpression?.trim();
+  const match = expression?.match(/^\{\s*(?:(?:[\w-]+)\.)?([\w-]+)\s*\}$/);
+  return match?.[1] ?? header.id;
 }
 
 function repeatableSectionBands(section: DataSectionPlan): Band[] {

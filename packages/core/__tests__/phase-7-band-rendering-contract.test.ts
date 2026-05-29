@@ -17,10 +17,10 @@ describe('Phase 7 band rendering contract', () => {
       band('report-title', 'reportTitle'),
       band('header', 'header'),
       band('column-header', 'columnHeader'),
-      band('group-header', 'groupHeader', { group: { name: 'Department', conditionExpression: '{employees.Department}' } }),
+      band('group-header', 'groupHeader', { group: { conditionExpression: '{employees.Department}' } }),
       band('data', 'data', { dataBand: { dataSourceId: 'employees', sort: [{ field: 'Department', direction: 'asc' }] } }),
       band('child', 'child'),
-      band('group-footer', 'groupFooter', { group: { name: 'Department' } }),
+      band('group-footer', 'groupFooter'),
       band('column-footer', 'columnFooter'),
       band('footer', 'footer'),
       band('report-summary', 'reportSummary'),
@@ -63,11 +63,11 @@ describe('Phase 7 band rendering contract', () => {
 
   it('renders nested groups from outer GroupHeader to inner GroupHeader before data rows', () => {
     const template = makeTemplate([
-      band('department-header', 'groupHeader', { group: { name: 'Department', conditionExpression: '{employees.Department}' } }),
-      band('team-header', 'groupHeader', { group: { name: 'Team', conditionExpression: '{employees.Team}' } }),
+      band('department-header', 'groupHeader', { group: { conditionExpression: '{employees.Department}' } }),
+      band('team-header', 'groupHeader', { group: { conditionExpression: '{employees.Team}', sortDirection: 'asc' } }),
       band('data', 'data', { dataBand: { dataSourceId: 'employees', sort: [{ field: 'Team', direction: 'asc' }] } }),
-      band('team-footer', 'groupFooter', { group: { name: 'Team' } }),
-      band('department-footer', 'groupFooter', { group: { name: 'Department' } }),
+      band('team-footer', 'groupFooter'),
+      band('department-footer', 'groupFooter'),
     ]);
 
     const items = executeBandPlan(buildBandPlan(template), {

@@ -14,7 +14,7 @@ export const groupedEmployeesTemplate = template('grouped-employees', 'Grouped E
   ]),
   band('ge-group-header', 'groupHeader', 10, [
     text('ge-group-name', '{Group.department}', 0, 2, 120, 6, { style: commonTextStyleIds.group }),
-  ], { group: { name: 'department', conditionExpression: '{employees.department}' } }),
+  ], { group: { conditionExpression: '{employees.department}', sortDirection: 'asc' } }),
   band('ge-data', 'data', 8, [
     text('ge-name', '{employees.name}', 0, 1, 70, 5, { style: commonTextStyleIds.data }),
     text('ge-hire', '{employees.hireDate}', 74, 1, 36, 5, { style: commonTextStyleIds.data }),
@@ -23,7 +23,7 @@ export const groupedEmployeesTemplate = template('grouped-employees', 'Grouped E
   band('ge-group-footer', 'groupFooter', 10, [
     text('ge-group-count', 'COUNT("employees")', 0, 2, 50, 5, { style: commonTextStyleIds.footer }),
     text('ge-group-sum', 'SUM("employees", "{employees.salary}")', 90, 2, 80, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
-  ], { group: { name: 'department' } }),
+  ]),
   band('ge-footer', 'footer', 10, [
     text('ge-total-count', 'COUNT("employees")', 0, 2, 70, 5, { style: commonTextStyleIds.footer }),
     text('ge-total-salary', 'SUM("employees", "{employees.salary}")', 90, 2, 80, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),

@@ -28,7 +28,7 @@ export const masterDetailOrdersTemplate = template('master-detail-orders', 'Mast
     text('mdo-order', 'Order {orderLines.orderNo}', 0, 2, 45, 6, { style: commonTextStyleIds.group }),
     text('mdo-customer', '{orderLines.customer}', 48, 2, 75, 6, { style: 'mdo-group-customer' }),
     text('mdo-date', '{orderLines.orderDate}', 128, 2, 40, 6, { style: commonTextStyleIds.data }),
-  ], { group: { name: 'orderNo', conditionExpression: '{orderLines.orderNo}' } }),
+  ], { group: { conditionExpression: '{orderLines.orderNo}', sortDirection: 'asc' } }),
   band('mdo-data', 'data', 8, [
     text('mdo-sku', '{orderLines.sku}', 8, 1, 24, 5, { style: commonTextStyleIds.data }),
     text('mdo-name', '{orderLines.name}', 36, 1, 72, 5, { style: commonTextStyleIds.data }),
@@ -37,7 +37,7 @@ export const masterDetailOrdersTemplate = template('master-detail-orders', 'Mast
   ], { dataBand: { dataSourceId: 'orderLines', sort: [{ field: 'orderNo', direction: 'asc' }] } }),
   band('mdo-group-footer', 'groupFooter', 9, [
     text('mdo-order-total', 'SUM("orderLines", "{orderLines.lineTotal}")', 90, 1, 80, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
-  ], { group: { name: 'orderNo' } }),
+  ]),
   band('mdo-footer', 'footer', 10, [
     text('mdo-report-total', 'SUM("orderLines", "{orderLines.lineTotal}")', 90, 2, 80, 5, { style: 'mdo-total-emphasis', textAlign: 'right' }),
   ]),

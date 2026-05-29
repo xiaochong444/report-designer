@@ -80,7 +80,6 @@ function normalizeBand(band: Band): Band {
   const group = band.group || band.groupField
     ? {
         ...band.group,
-        name: band.group?.name ?? band.groupField,
         conditionExpression: band.group?.conditionExpression ?? (band.type === 'groupHeader' && band.groupField ? band.groupField : undefined),
       }
     : undefined;

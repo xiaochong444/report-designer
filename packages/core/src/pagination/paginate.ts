@@ -314,11 +314,7 @@ export function paginate(
     placeBand(item.band, item.context);
 
     if (item.band.type === 'groupFooter') {
-      const groupHeaderId = item.band.group?.groupHeaderId;
-      const groupName = item.band.group?.name;
-      const index = repeatedGroups.findIndex((band) => (
-        groupHeaderId ? band.id === groupHeaderId : band.group?.name === groupName
-      ));
+      const index = repeatedGroups.length - 1;
       if (index >= 0) {
         repeatedGroups.splice(index, 1);
       }

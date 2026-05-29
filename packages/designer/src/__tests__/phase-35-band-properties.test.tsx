@@ -99,7 +99,7 @@ describe('phase 35 band properties', () => {
       name: 'Department Group',
       type: 'groupHeader' as const,
       height: 10,
-      group: { name: 'Department', conditionExpression: '{Employees.Department}' },
+      group: { conditionExpression: '{Employees.Department}' },
       components: [],
     };
     page.bands = [groupBand, ...page.bands];
@@ -115,8 +115,9 @@ describe('phase 35 band properties', () => {
     expect(screen.getByText('分组')).toBeInTheDocument();
     expect(screen.queryByText('数据')).not.toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('分组名称'), { target: { value: '按部门' } });
     fireEvent.change(screen.getByLabelText('分组表达式'), { target: { value: '{Employees.Team}' } });
+    fireEvent.mouseDown(screen.getByLabelText('分组排序'));
+    fireEvent.click(screen.getByText('降序'));
     fireEvent.click(screen.getByRole('button', { name: '打开表达式编辑器：分组表达式' }));
     fireEvent.change(screen.getByPlaceholderText('{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}'), {
       target: { value: '{Employees.Department}' },
@@ -124,8 +125,8 @@ describe('phase 35 band properties', () => {
     fireEvent.click(await screen.findByRole('button', { name: /确\s*定/ }));
 
     expect(selectedBand()?.group).toMatchObject({
-      name: '按部门',
       conditionExpression: '{Employees.Department}',
+      sortDirection: 'desc',
     });
   });
 

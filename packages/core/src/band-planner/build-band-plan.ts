@@ -93,10 +93,9 @@ function createDataSection(dataBand: Band, pending: PendingBands): DataSectionPl
 }
 
 function attachGroupFooter(section: DataSectionPlan, footer: Band): void {
-  const groupName = footer.group?.name;
   const pair = [...section.groupPairs]
     .reverse()
-    .find((candidate) => !candidate.footer && (!groupName || candidate.header.group?.name === groupName));
+    .find((candidate) => !candidate.footer);
 
   if (pair) {
     pair.footer = footer;

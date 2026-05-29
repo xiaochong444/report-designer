@@ -14,11 +14,11 @@ const textBase = {
 describe('phase 35 band contracts', () => {
   it('keeps nested group ownership and EmptyData branch deterministic', () => {
     const groupedTemplate = makeTemplate([
-      band('department-header', 'groupHeader', { group: { name: 'Department', conditionExpression: '{employees.Department}' } }),
-      band('team-header', 'groupHeader', { group: { name: 'Team', conditionExpression: '{employees.Team}' } }),
+      band('department-header', 'groupHeader', { group: { conditionExpression: '{employees.Department}' } }),
+      band('team-header', 'groupHeader', { group: { conditionExpression: '{employees.Team}' } }),
       band('data', 'data', { dataBand: { dataSourceId: 'employees', sort: [{ field: 'Team', direction: 'asc' }] } }),
-      band('team-footer', 'groupFooter', { group: { name: 'Team' } }),
-      band('department-footer', 'groupFooter', { group: { name: 'Department' } }),
+      band('team-footer', 'groupFooter'),
+      band('department-footer', 'groupFooter'),
     ]);
 
     const sequence = executeBandPlan(buildBandPlan(groupedTemplate), {

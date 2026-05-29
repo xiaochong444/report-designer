@@ -24,7 +24,7 @@ describe('Phase 5 group wizard', () => {
     useDesignerStore.getState().loadTemplate(template);
   });
 
-  it('adds group header/footer totals and sort metadata for a selected field', () => {
+  it('adds group header/footer totals and group sort metadata for a selected field', () => {
     render(
       <DesignerI18nProvider locale="en-US">
         <GroupWizardDialog open onClose={() => {}} />
@@ -35,9 +35,12 @@ describe('Phase 5 group wizard', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Create group' }));
 
     const bands = useDesignerStore.getState().template.pages[0].bands;
-    expect(bands.find((band) => band.type === 'groupHeader')?.group?.name).toBe('department');
+    expect(bands.find((band) => band.type === 'groupHeader')?.group).toMatchObject({
+      conditionExpression: '{employees.department}',
+      sortDirection: 'asc',
+    });
+    expect(bands.find((band) => band.type === 'groupFooter')?.group).toBeUndefined();
     expect(bands.find((band) => band.type === 'groupFooter')?.components.map((component: any) => component.text).join(' ')).toContain('SUM("employees"');
-    expect(bands.find((band) => band.type === 'data')?.dataBand?.sort?.[0]).toMatchObject({ field: 'department', direction: 'asc' });
   });
 
   it('localizes visible group wizard copy to Chinese', () => {

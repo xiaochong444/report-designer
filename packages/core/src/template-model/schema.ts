@@ -80,8 +80,11 @@ function validatePage(
       groupHeaders.push(band);
     }
 
-    if (band.type === 'groupFooter' && !hasMatchingGroupHeader(band, groupHeaders)) {
+    if (band.type === 'groupFooter' && !hasMatchingGroupHeader(groupHeaders)) {
       errors.push({ path: `${path}.group`, message: 'Group footer requires a preceding matching group header' });
+    }
+    if (band.type === 'groupFooter') {
+      groupHeaders.pop();
     }
 
     if (options.strictPrintableArea) {
@@ -196,19 +199,8 @@ function getBandDisplayName(band: Band): string {
   return band.type;
 }
 
-function hasMatchingGroupHeader(footer: Band, headers: Band[]): boolean {
-  const groupName = footer.group?.name;
-  const groupHeaderId = footer.group?.groupHeaderId;
-
-  if (groupHeaderId) {
-    return headers.some(header => header.id === groupHeaderId);
-  }
-
-  if (groupName) {
-    return headers.some(header => header.group?.name === groupName);
-  }
-
-  return false;
+function hasMatchingGroupHeader(headers: Band[]): boolean {
+  return headers.length > 0;
 }
 
 function validatePrintableArea(

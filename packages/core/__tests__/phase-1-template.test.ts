@@ -89,19 +89,18 @@ describe('Phase 1 template model', () => {
   it('validates group headers and matching group footers', () => {
     const template = normalizeTemplate(createDefaultTemplate());
     template.pages[0].bands.splice(2, 0, {
-      id: 'group-header-1',
-      type: 'groupHeader',
-      height: 12,
-      components: [],
-      behavior: defaultTestBehavior(),
-    });
-    template.pages[0].bands.splice(3, 0, {
       id: 'group-footer-1',
       type: 'groupFooter',
       height: 12,
       components: [],
       behavior: defaultTestBehavior(),
-      group: { name: 'Department' },
+    });
+    template.pages[0].bands.splice(3, 0, {
+      id: 'group-header-1',
+      type: 'groupHeader',
+      height: 12,
+      components: [],
+      behavior: defaultTestBehavior(),
     });
 
     const result = validateTemplate(template);

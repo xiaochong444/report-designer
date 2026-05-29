@@ -398,8 +398,11 @@ export type DesignerMessageKey =
   | 'bandProperties.printOn.oddPages'
   | 'bandProperties.printOn.evenPages'
   | 'bandProperties.filterExpression'
-  | 'bandProperties.groupName'
   | 'bandProperties.groupExpression'
+  | 'bandProperties.groupSort'
+  | 'bandProperties.groupSort.none'
+  | 'bandProperties.groupSort.asc'
+  | 'bandProperties.groupSort.desc'
   | 'bandProperties.openExpressionEditorFor'
   | 'bandProperties.printOnAllPages'
   | 'bandProperties.printAtBottom'
@@ -1030,8 +1033,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'bandProperties.printOn.oddPages': '奇数页',
     'bandProperties.printOn.evenPages': '偶数页',
     'bandProperties.filterExpression': '过滤表达式',
-    'bandProperties.groupName': '分组名称',
     'bandProperties.groupExpression': '分组表达式',
+    'bandProperties.groupSort': '分组排序',
+    'bandProperties.groupSort.none': '不排序',
+    'bandProperties.groupSort.asc': '升序',
+    'bandProperties.groupSort.desc': '降序',
     'bandProperties.openExpressionEditorFor': '打开表达式编辑器：{field}',
     'bandProperties.printOnAllPages': '每页重复打印',
     'bandProperties.printAtBottom': '打印在底部',
@@ -1659,8 +1665,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'bandProperties.printOn.oddPages': 'Odd Pages',
     'bandProperties.printOn.evenPages': 'Even Pages',
     'bandProperties.filterExpression': 'Filter Expression',
-    'bandProperties.groupName': 'Group Name',
     'bandProperties.groupExpression': 'Group Expression',
+    'bandProperties.groupSort': 'Group Sort',
+    'bandProperties.groupSort.none': 'None',
+    'bandProperties.groupSort.asc': 'Ascending',
+    'bandProperties.groupSort.desc': 'Descending',
     'bandProperties.openExpressionEditorFor': 'Open expression editor: {field}',
     'bandProperties.printOnAllPages': 'Repeat on Each Page',
     'bandProperties.printAtBottom': 'Print at Bottom',

@@ -39,7 +39,7 @@ export const BandPropertyGrid: React.FC = () => {
   const sortFields = getSortFields(currentDataSource?.schema?.length ? currentDataSource.schema : currentDataSource?.fields);
   const sortRules = band.dataBand?.sort ?? [];
   const isDataBand = band.type === 'data' || band.type === 'hierarchicalData';
-  const isGroupBand = band.type === 'groupHeader' || band.type === 'groupFooter';
+  const isGroupHeader = band.type === 'groupHeader';
   const supportsPrintOnAllPages = band.type === 'header' || band.type === 'columnHeader' || band.type === 'groupHeader';
   const supportsPrintAtBottom = band.type !== 'pageHeader' && band.type !== 'pageFooter' && band.type !== 'overlay';
   const supportsBreakIfLessThan = supportsPrintAtBottom;
@@ -155,7 +155,7 @@ export const BandPropertyGrid: React.FC = () => {
       />
       <Collapse
         size="small"
-        defaultActiveKey={['basic', isDataBand ? 'data' : '', isGroupBand ? 'group' : '', 'behavior', 'events'].filter(Boolean)}
+        defaultActiveKey={['basic', isDataBand ? 'data' : '', isGroupHeader ? 'group' : '', 'behavior', 'events'].filter(Boolean)}
         items={[
           {
             key: 'basic',
@@ -295,18 +295,11 @@ export const BandPropertyGrid: React.FC = () => {
               </Space>
             ),
           }] : []),
-          ...(isGroupBand ? [{
+          ...(isGroupHeader ? [{
             key: 'group',
             label: t('bandProperties.group'),
             children: (
               <Form data-testid="band-properties-group-form" layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-                <Form.Item label={t('bandProperties.groupName')}>
-                  <Input
-                    aria-label={t('bandProperties.groupName')}
-                    value={band.group?.name ?? ''}
-                    onChange={event => updateBandGroup(group => ({ ...group, name: event.target.value }))}
-                  />
-                </Form.Item>
                 <Form.Item label={t('bandProperties.groupExpression')}>
                   <BandExpressionField
                     label={t('bandProperties.groupExpression')}
@@ -315,6 +308,16 @@ export const BandPropertyGrid: React.FC = () => {
                     onChange={value => updateBandGroup(group => ({ ...group, conditionExpression: value }))}
                     onOpen={() => setExpressionTarget({ field: 'groupExpression', label: t('bandProperties.groupExpression') })}
                     t={t}
+                  />
+                </Form.Item>
+                <Form.Item label={t('bandProperties.groupSort')}>
+                  <Select
+                    aria-label={t('bandProperties.groupSort')}
+                    value={band.group?.sortDirection ?? 'none'}
+                    size="small"
+                    style={{ width: '100%' }}
+                    options={groupSortOptions(t)}
+                    onChange={sortDirection => updateBandGroup(group => ({ ...group, sortDirection }))}
                   />
                 </Form.Item>
               </Form>
@@ -407,6 +410,14 @@ function printOnOptions(t: (key: DesignerMessageKey) => string): Array<{ value: 
     { value: 'lastPage', label: t('bandProperties.printOn.lastPage') },
     { value: 'oddPages', label: t('bandProperties.printOn.oddPages') },
     { value: 'evenPages', label: t('bandProperties.printOn.evenPages') },
+  ];
+}
+
+function groupSortOptions(t: (key: DesignerMessageKey) => string): Array<{ value: NonNullable<GroupBandOptions['sortDirection']>; label: string }> {
+  return [
+    { value: 'none', label: t('bandProperties.groupSort.none') },
+    { value: 'asc', label: t('bandProperties.groupSort.asc') },
+    { value: 'desc', label: t('bandProperties.groupSort.desc') },
   ];
 }
 

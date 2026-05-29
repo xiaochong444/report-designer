@@ -478,9 +478,8 @@ export interface DataBandOptions {
 }
 
 export interface GroupBandOptions {
-  name?: string;
   conditionExpression?: string;
-  groupHeaderId?: string;
+  sortDirection?: 'none' | 'asc' | 'desc';
 }
 
 export interface Band {

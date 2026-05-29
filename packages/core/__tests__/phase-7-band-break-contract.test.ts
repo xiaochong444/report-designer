@@ -19,9 +19,9 @@ function behavior(overrides: Partial<Band['behavior']>) {
 describe('Phase 7 band break behavior contract', () => {
   it('moves a keepTogether group footer to the next page when it does not fit', () => {
     const template = makeTemplate([
-      band('group-header', 'groupHeader', { height: 8, group: { name: 'Department', conditionExpression: '{employees.Department}' } }),
+      band('group-header', 'groupHeader', { height: 8, group: { conditionExpression: '{employees.Department}' } }),
       band('data', 'data', { height: 18, dataBand: { dataSourceId: 'employees' } }),
-      band('group-footer', 'groupFooter', { height: 18, behavior: behavior({ keepTogether: true, canBreak: false }), group: { name: 'Department' } }),
+      band('group-footer', 'groupFooter', { height: 18, behavior: behavior({ keepTogether: true, canBreak: false }) }),
     ]);
     template.pages[0].height = 60;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };

@@ -33,7 +33,7 @@ export const GroupWizardDialog: React.FC<GroupWizardDialogProps> = ({ open, onCl
           id: uid('band_group_header'),
           type: 'groupHeader',
           height: 14,
-          group: { name: field.fieldName, conditionExpression: `{${field.dataSourceId}.${field.fieldName}}` },
+          group: { conditionExpression: `{${field.dataSourceId}.${field.fieldName}}`, sortDirection: 'asc' },
           components: [createTextComponent(`{${field.dataSourceId}.${field.fieldName}}`, 10, 3, 80, 8, t('groupWizard.generatedHeaderName'))],
         };
         const sumField = (field.source.schema ?? field.source.fields ?? []).find(item => item.type === 'number')?.name;
@@ -41,7 +41,6 @@ export const GroupWizardDialog: React.FC<GroupWizardDialogProps> = ({ open, onCl
           id: uid('band_group_footer'),
           type: 'groupFooter',
           height: 14,
-          group: { name: field.fieldName, conditionExpression: `{${field.dataSourceId}.${field.fieldName}}` },
           components: [
             createTextComponent(`COUNT("${field.dataSourceId}")`, 10, 3, 42, 8, t('groupWizard.generatedCountName')),
             createTextComponent(sumField ? `SUM("${field.dataSourceId}", "{${field.dataSourceId}.${sumField}}")` : `SUM("${field.dataSourceId}")`, 58, 3, 70, 8, t('groupWizard.generatedSumName')),
@@ -53,7 +52,6 @@ export const GroupWizardDialog: React.FC<GroupWizardDialogProps> = ({ open, onCl
           dataBand: {
             ...dataBand.dataBand,
             dataSourceId: dataBand.dataBand?.dataSourceId ?? dataBand.dataSource ?? field.dataSourceId,
-            sort: [{ field: field.fieldName, direction: 'asc' }],
           },
         };
         bands.splice(dataIndex, 0, groupHeader);

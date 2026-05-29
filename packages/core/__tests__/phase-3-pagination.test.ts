@@ -55,10 +55,10 @@ describe('Phase 3 pagination', () => {
           canBreak: true,
           printAtBottom: false,
         },
-        group: { name: 'Department', conditionExpression: '{employees.Department}' },
+        group: { conditionExpression: '{employees.Department}' },
       }),
       band('data', 'data', { height: 20, dataBand: { dataSourceId: 'employees' } }),
-      band('group-footer', 'groupFooter', { height: 8, group: { name: 'Department' } }),
+      band('group-footer', 'groupFooter', { height: 8 }),
     ]);
     template.pages[0].height = 70;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
