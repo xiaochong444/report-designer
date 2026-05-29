@@ -1,0 +1,74 @@
+import type { BandType } from '@report-designer/core';
+import type { DesignerMessageKey } from './i18n';
+
+export const SUPPORTED_INSERT_BAND_TYPES = [
+  'reportTitle',
+  'pageHeader',
+  'header',
+  'columnHeader',
+  'groupHeader',
+  'data',
+  'hierarchicalData',
+  'child',
+  'emptyData',
+  'groupFooter',
+  'columnFooter',
+  'footer',
+  'pageFooter',
+  'reportSummary',
+  'overlay',
+] as const satisfies readonly BandType[];
+
+export const BAND_LABEL_KEYS: Record<BandType, DesignerMessageKey> = {
+  reportTitle: 'band.type.reportTitle',
+  reportSummary: 'band.type.reportSummary',
+  pageHeader: 'band.type.pageHeader',
+  pageFooter: 'band.type.pageFooter',
+  header: 'band.type.header',
+  footer: 'band.type.footer',
+  columnHeader: 'band.type.columnHeader',
+  columnFooter: 'band.type.columnFooter',
+  groupHeader: 'band.type.groupHeader',
+  groupFooter: 'band.type.groupFooter',
+  data: 'band.type.data',
+  hierarchicalData: 'band.type.hierarchicalData',
+  child: 'band.type.child',
+  emptyData: 'band.type.emptyData',
+  overlay: 'band.type.overlay',
+};
+
+export const BAND_COLORS: Record<BandType, string> = {
+  reportTitle: '#8b4513',
+  reportSummary: '#6b4423',
+  pageHeader: '#2e7d32',
+  pageFooter: '#1565c0',
+  header: '#374151',
+  footer: '#2563eb',
+  columnHeader: '#c2410c',
+  columnFooter: '#b45309',
+  groupHeader: '#00838f',
+  groupFooter: '#4527a0',
+  data: '#6a1b9a',
+  hierarchicalData: '#4f46e5',
+  child: '#ad1457',
+  emptyData: '#558b2f',
+  overlay: '#7e22ce',
+};
+
+export const BAND_GLYPH_KEYS: Record<BandType, string> = {
+  reportTitle: 'report-title',
+  reportSummary: 'report-summary',
+  pageHeader: 'page-header',
+  pageFooter: 'page-footer',
+  header: 'header',
+  footer: 'footer',
+  columnHeader: 'column-header',
+  columnFooter: 'column-footer',
+  groupHeader: 'group-header',
+  groupFooter: 'group-footer',
+  data: 'data',
+  hierarchicalData: 'hierarchical-data',
+  child: 'child',
+  emptyData: 'empty-data',
+  overlay: 'overlay',
+};

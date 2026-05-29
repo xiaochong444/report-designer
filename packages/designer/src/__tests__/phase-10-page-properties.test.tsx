@@ -45,7 +45,8 @@ describe('Phase 10 page properties', () => {
     expect(pageProperties).toHaveTextContent('Height');
     expect(pageProperties).toHaveTextContent('Orientation');
     expect(pageProperties).toHaveTextContent('Page appearance');
-    expect(within(pageProperties).getByLabelText('Watermark font')).toBeInTheDocument();
+    expect(pageProperties).toHaveTextContent('Watermark');
+    expect(within(pageProperties).getByLabelText('Font')).toBeInTheDocument();
     expect(pageProperties).toHaveTextContent('Top');
     expect(pageProperties).toHaveTextContent('Right');
     expect(pageProperties).toHaveTextContent('Bottom');
@@ -70,7 +71,8 @@ describe('Phase 10 page properties', () => {
     expect(pageProperties).toHaveTextContent('方向');
     expect(pageProperties).toHaveTextContent('页边距');
     expect(pageProperties).toHaveTextContent('页面外观');
-    expect(within(pageProperties).getByLabelText('水印字体')).toBeInTheDocument();
+    expect(pageProperties).toHaveTextContent('水印');
+    expect(within(pageProperties).getByLabelText('字体')).toBeInTheDocument();
     expect(pageProperties).toHaveTextContent('毫米');
     expect(pageProperties).not.toHaveTextContent('Paper type');
     expect(pageProperties).not.toHaveTextContent('Millimeter');
@@ -108,8 +110,9 @@ describe('Phase 10 page properties', () => {
     expect(within(dialog).getByLabelText('纸张类型')).toBeInTheDocument();
     expect(within(dialog).getByLabelText('报表单位')).toBeInTheDocument();
     expect(within(dialog).getByText('页面外观')).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('启用水印')).toBeInTheDocument();
-    expect(within(dialog).getByLabelText('水印字体')).toBeInTheDocument();
+    expect(within(dialog).getByText('水印')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('启用')).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('字体')).toBeInTheDocument();
     expect(within(dialog).getByText('纵向')).toBeInTheDocument();
     expect(within(dialog).getByText('横向')).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: /应\s*用/ })).toBeInTheDocument();

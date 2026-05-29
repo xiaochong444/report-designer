@@ -34,7 +34,7 @@ import {
   VerticalAlignMiddleOutlined,
   VerticalAlignTopOutlined,
 } from '@ant-design/icons';
-import { STANDARD_BAND_TYPES, type BandType, type BorderConfig, type FontConfig, type Margins, type Page, type ReportComponent, type TextComponent } from '@report-designer/core';
+import { type BandType, type BorderConfig, type FontConfig, type Margins, type Page, type ReportComponent, type TextComponent } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { BandWizardDialog } from '../dialogs/BandWizardDialog';
 import { GroupWizardDialog } from '../dialogs/GroupWizardDialog';
@@ -43,6 +43,7 @@ import { PageSetupDialog } from '../dialogs/PageSetupDialog';
 import { useDesignerI18n } from '../../i18n';
 import type { DesignerMessageKey } from '../../i18n';
 import { hasTextStyleBinding } from '../../text-style-bindings';
+import { BAND_COLORS, BAND_GLYPH_KEYS, BAND_LABEL_KEYS, SUPPORTED_INSERT_BAND_TYPES } from '../../band-metadata';
 
 const TAB_KEYS = ['home', 'insert', 'pageLayout', 'layout', 'preview'] as const;
 type RibbonTab = typeof TAB_KEYS[number];
@@ -318,7 +319,7 @@ export const DesignerRibbon: React.FC = () => {
   );
 
   const renderRibbonGroups = () => {
-    const bandMenuItems = STANDARD_BAND_TYPES.map(type => ({
+    const bandMenuItems = SUPPORTED_INSERT_BAND_TYPES.map(type => ({
       key: type,
       label: (
         <span className="rd-band-menu-item">
@@ -538,56 +539,20 @@ const RibbonButton: React.FC<{
   </Tooltip>
 );
 
-const BAND_LABEL_KEYS: Record<BandType, DesignerMessageKey> = {
-  reportTitle: 'band.type.reportTitle',
-  reportSummary: 'band.type.reportSummary',
-  pageHeader: 'band.type.pageHeader',
-  pageFooter: 'band.type.pageFooter',
-  header: 'band.type.header',
-  footer: 'band.type.footer',
-  columnHeader: 'band.type.columnHeader',
-  columnFooter: 'band.type.columnFooter',
-  groupHeader: 'band.type.groupHeader',
-  groupFooter: 'band.type.groupFooter',
-  data: 'band.type.data',
-  hierarchicalData: 'band.type.hierarchicalData',
-  child: 'band.type.child',
-  emptyData: 'band.type.emptyData',
-  overlay: 'band.type.overlay',
-};
-
-const BAND_MENU_COLORS: Record<BandType, string> = {
-  reportTitle: '#2f855a',
-  reportSummary: '#2f855a',
-  pageHeader: '#64748b',
-  pageFooter: '#64748b',
-  groupHeader: '#f97316',
-  groupFooter: '#f97316',
-  header: '#111827',
-  footer: '#2563eb',
-  columnHeader: '#ef4444',
-  columnFooter: '#f97316',
-  data: '#2563eb',
-  hierarchicalData: '#16a34a',
-  child: '#0ea5e9',
-  emptyData: '#16a34a',
-  overlay: '#8b5cf6',
-};
-
 const BandGlyph: React.FC<{ type: BandType }> = ({ type }) => {
-  const color = BAND_MENU_COLORS[type];
-  const isData = type === 'data' || type === 'hierarchicalData';
-  const isHeaderFooter = type.includes('Header') || type.includes('Footer') || type === 'header' || type === 'footer';
+  const color = BAND_COLORS[type];
+  const glyph = BAND_GLYPH_KEYS[type];
 
   return (
-    <span className="rd-band-glyph" aria-hidden style={{ borderColor: color }}>
-      {isData ? (
-        <span className="rd-band-glyph-grid" style={{ color }} />
-      ) : isHeaderFooter ? (
-        <span className="rd-band-glyph-lines" style={{ backgroundColor: color, color }} />
-      ) : (
-        <span className="rd-band-glyph-wave" style={{ borderColor: color }} />
-      )}
+    <span
+      className="rd-band-glyph"
+      aria-hidden
+      data-testid={`band-menu-glyph-${type}`}
+      data-band-color={color}
+      data-band-glyph={glyph}
+      style={{ borderColor: color, color }}
+    >
+      <span className={`rd-band-glyph-mark rd-band-glyph-${glyph}`} />
     </span>
   );
 };

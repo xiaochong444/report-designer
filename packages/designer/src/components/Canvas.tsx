@@ -5,7 +5,8 @@ import type { TableCellSelection } from '../store/designer-store';
 import { normalizeTable } from '../table/table-structure';
 import { createDefaultComponent, createFieldExpressionComponent, createTextExpressionComponent } from '../component-factory';
 import { RichTextInlineEditor } from './richtext/RichTextInlineEditor';
-import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
+import { useDesignerI18n } from '../i18n';
+import { BAND_COLORS, BAND_LABEL_KEYS } from '../band-metadata';
 
 const MM_TO_PX = 3.78;
 const SNAP_THRESHOLD = 5;
@@ -91,30 +92,6 @@ function getHandlePos(handle: ResizeHandle, w: number, h: number): React.CSSProp
     case 'se': return { right: -half, bottom: -half };
   }
 }
-
-const BAND_COLORS: Record<string, string> = {
-  reportTitle: '#8b4513', reportSummary: '#6b4423',
-  pageHeader: '#2e7d32', pageFooter: '#1565c0',
-  data: '#6a1b9a', groupHeader: '#00838f', groupFooter: '#4527a0', child: '#ad1457',
-};
-
-const BAND_LABEL_KEYS: Record<string, DesignerMessageKey> = {
-  reportTitle: 'band.type.reportTitle',
-  reportSummary: 'band.type.reportSummary',
-  pageHeader: 'band.type.pageHeader',
-  pageFooter: 'band.type.pageFooter',
-  header: 'band.type.header',
-  footer: 'band.type.footer',
-  columnHeader: 'band.type.columnHeader',
-  columnFooter: 'band.type.columnFooter',
-  groupHeader: 'band.type.groupHeader',
-  groupFooter: 'band.type.groupFooter',
-  data: 'band.type.data',
-  hierarchicalData: 'band.type.hierarchicalData',
-  child: 'band.type.child',
-  emptyData: 'band.type.emptyData',
-  overlay: 'band.type.overlay',
-};
 
 function findPanelDropTarget(band: Band, xMm: number, yMm: number): { panelId: string; xMm: number; yMm: number } | null {
   const panels = band.components
