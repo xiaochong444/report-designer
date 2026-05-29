@@ -32,9 +32,8 @@ describe('Phase 2 aggregates', () => {
     const runtime = new AggregateRuntime({ rowsByBand: { employees: rows }, pageNumber: 2, totalPages: 5 });
 
     expect(evalExpression('SUM(1, 2, 3)', () => null)).toBe(6);
-    expect(evalExpression('SUM("employees", "{employees.Salary}")', () => null, 0, {}, runtime)).toBe(450);
-    expect(evalExpression('COUNTDISTINCT("employees", "{employees.Department}")', () => null, 0, {}, runtime)).toBe(2);
-    expect(evalExpression('TOTALS.SUM("{employees.Salary}")', () => null, 0, {}, runtime)).toBe(450);
+    expect(evalExpression('SUM({employees.Salary})', () => null, 0, {}, runtime)).toBe(450);
+    expect(evalExpression('COUNTDISTINCT({employees.Department})', () => null, 0, {}, runtime)).toBe(2);
     expect(evalExpression('PAGE()', () => null, 0, {}, runtime)).toBe(2);
     expect(evalExpression('TOTALPAGES()', () => null, 0, {}, runtime)).toBe(5);
   });

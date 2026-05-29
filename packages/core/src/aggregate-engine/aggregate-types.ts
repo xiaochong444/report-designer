@@ -9,15 +9,7 @@ export type AggregateFunctionName =
   | 'COUNTDISTINCT'
   | 'SUMIF'
   | 'COUNTIF'
-  | 'RUNNINGSUM'
-  | 'REPORTSUM'
-  | 'REPORTCOUNT'
-  | 'PAGESUM'
-  | 'PAGECOUNT'
-  | 'TOTALS.SUM'
-  | 'TOTALS.REPORTSUM'
-  | 'TOTALS.PAGESUM'
-  | 'TOTALS.PAGECOUNT';
+  | 'RUNNINGSUM';
 
 export interface AggregateRuntimeOptions {
   rowsByBand: Record<string, Array<Record<string, unknown>>>;

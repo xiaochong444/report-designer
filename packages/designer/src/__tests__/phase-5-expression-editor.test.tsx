@@ -23,7 +23,7 @@ describe('Phase 5 inline expression editor', () => {
     expect(value).toBe('{employees.salary}');
 
     fireEvent.click(screen.getByText('SUM'));
-    expect(value).toContain('SUM("employees"');
+    expect(value).toContain('SUM({employees.salary})');
 
     fireEvent.click(screen.getByText('{PageNumber}'));
     expect(value).toContain('{PageNumber}');

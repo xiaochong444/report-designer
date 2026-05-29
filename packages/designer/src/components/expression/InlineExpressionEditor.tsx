@@ -33,7 +33,7 @@ export const InlineExpressionEditor: React.FC<InlineExpressionEditorProps> = ({ 
         )))}
       </Space>
       <Space wrap>
-        <Button size="small" onClick={() => numericField && append(`SUM("${numericField.source.id}", "{${numericField.source.id}.${numericField.field.name}}")`)}>
+        <Button size="small" onClick={() => numericField && append(`SUM({${numericField.source.id}.${numericField.field.name}})`)}>
           SUM
         </Button>
         <Button size="small" onClick={() => append('{PageNumber}')}>{'{PageNumber}'}</Button>

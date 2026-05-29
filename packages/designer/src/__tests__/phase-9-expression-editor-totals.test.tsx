@@ -8,18 +8,20 @@ import { ExpressionEditor } from '../components/ExpressionEditor';
 import { useDesignerStore } from '../store/designer-store';
 
 describe('Phase 9 expression editor total shortcuts', () => {
-  it('lists page and report total functions in the expression browser', async () => {
+  it('does not list page and report total functions in the expression browser', async () => {
     useDesignerStore.getState().loadTemplate(createDefaultTemplate('Expression Totals'));
 
     render(<ExpressionEditor open value="" onChange={() => {}} onClose={() => {}} />);
 
-    expect(await screen.findByText('页/报表合计')).toBeInTheDocument();
+    expect(await screen.findByText('聚合函数')).toBeInTheDocument();
+    expect(screen.queryByText('页/报表合计')).not.toBeInTheDocument();
 
     const functionLabels = screen.getAllByText(/SUM/).map(node => node.textContent ?? '');
-    expect(functionLabels.some(text => text.startsWith('PAGESUM'))).toBe(true);
-    expect(functionLabels.some(text => text.startsWith('REPORTSUM'))).toBe(true);
-    expect(functionLabels.some(text => text.startsWith('TOTALS.PAGESUM'))).toBe(true);
-    expect(functionLabels.some(text => text.startsWith('TOTALS.REPORTSUM'))).toBe(true);
+    expect(functionLabels.some(text => text.startsWith('SUM'))).toBe(true);
+    expect(functionLabels.some(text => text.startsWith('PAGESUM'))).toBe(false);
+    expect(functionLabels.some(text => text.startsWith('REPORTSUM'))).toBe(false);
+    expect(functionLabels.some(text => text.startsWith('TOTALS.PAGESUM'))).toBe(false);
+    expect(functionLabels.some(text => text.startsWith('TOTALS.REPORTSUM'))).toBe(false);
   });
 
   it('lists money uppercase helpers in the expression browser', async () => {

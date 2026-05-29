@@ -29,15 +29,9 @@ export function evaluateReportFunction(
 }
 
 function shouldDelegateToReportRuntime(functionName: string, args: unknown[]): boolean {
-  if (functionName.startsWith('TOTALS.')) {
-    return true;
-  }
-
-  if ((functionName === 'COUNT' || functionName === 'PAGECOUNT' || functionName === 'REPORTCOUNT') && args.length === 1 && typeof args[0] === 'string') {
-    return true;
-  }
-
-  if (functionName === 'PAGESUM' || functionName === 'REPORTSUM') {
+  if (['SUM', 'AVG', 'MIN', 'MAX', 'COUNT', 'COUNTDISTINCT', 'SUMIF', 'COUNTIF', 'RUNNINGSUM'].includes(functionName) && (
+    args.length === 0 || typeof args[0] === 'string'
+  )) {
     return true;
   }
 

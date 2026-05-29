@@ -52,7 +52,7 @@ describe('phase 35 band contracts', () => {
     expect(emptySequence).toEqual(['emptyData']);
   });
 
-  it('repeats section headers on page breaks and computes page/report totals after pagination', () => {
+  it('repeats section headers on page breaks and computes report totals after pagination', () => {
     const template = makeTemplate([
       band('section-header', 'header', {
         height: 8,
@@ -85,21 +85,7 @@ describe('phase 35 band contracts', () => {
           y: 0,
           width: 50,
           height: 8,
-          text: 'REPORTSUM("employees", "{employees.Salary}")',
-          ...textBase,
-        }],
-      }),
-      band('page-footer', 'pageFooter', {
-        height: 8,
-        behavior: { enabled: true, printOn: 'allPages', printIfEmpty: true, printOnAllPages: true, keepTogether: false, canBreak: false, printAtBottom: true },
-        components: [{
-          id: 'page-total',
-          type: 'text',
-          x: 0,
-          y: 0,
-          width: 50,
-          height: 8,
-          text: 'PAGESUM("employees", "{employees.Salary}")',
+          text: 'SUM({employees.Salary})',
           ...textBase,
         }],
       }),
@@ -118,7 +104,6 @@ describe('phase 35 band contracts', () => {
 
     expect(document.pages.length).toBeGreaterThan(1);
     expect(document.pages[1].items.map(item => item.bandId).slice(0, 2)).toEqual(['section-header', 'column-header']);
-    expect(document.pages.map(page => page.items.find(item => item.bandType === 'pageFooter')?.components[0].content)).toEqual(['300', '200']);
     expect(document.pages.flatMap(page => page.items).find(item => item.bandType === 'reportSummary')?.components[0].content).toBe('500');
   });
 

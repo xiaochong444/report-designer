@@ -60,6 +60,8 @@ function evalNumericArg(arg: ASTNode, ctx: EvalContext): number {
   return toNumber(evalArg(arg, ctx));
 }
 
+const RUNTIME_AGGREGATE_FUNCTIONS = new Set(['SUM', 'AVG', 'MIN', 'MAX', 'COUNT', 'COUNTDISTINCT', 'SUMIF', 'COUNTIF', 'RUNNINGSUM']);
+
 // ---- Built-in Functions ----
 
 reg('IF', (args, ctx) => {
@@ -127,38 +129,6 @@ reg('COUNTIF', (args, ctx) => {
 
 reg('RUNNINGSUM', (args, ctx) => {
   return evaluateReportFunction('RUNNINGSUM', args, ctx, () => 0);
-});
-
-reg('REPORTSUM', (args, ctx) => {
-  return evaluateReportFunction('REPORTSUM', args, ctx, () => 0);
-});
-
-reg('REPORTCOUNT', (args, ctx) => {
-  return evaluateReportFunction('REPORTCOUNT', args, ctx, () => 0);
-});
-
-reg('PAGESUM', (args, ctx) => {
-  return evaluateReportFunction('PAGESUM', args, ctx, () => 0);
-});
-
-reg('PAGECOUNT', (args, ctx) => {
-  return evaluateReportFunction('PAGECOUNT', args, ctx, () => 0);
-});
-
-reg('TOTALS.SUM', (args, ctx) => {
-  return evaluateReportFunction('TOTALS.SUM', args, ctx, () => 0);
-});
-
-reg('TOTALS.REPORTSUM', (args, ctx) => {
-  return evaluateReportFunction('TOTALS.REPORTSUM', args, ctx, () => 0);
-});
-
-reg('TOTALS.PAGESUM', (args, ctx) => {
-  return evaluateReportFunction('TOTALS.PAGESUM', args, ctx, () => 0);
-});
-
-reg('TOTALS.PAGECOUNT', (args, ctx) => {
-  return evaluateReportFunction('TOTALS.PAGECOUNT', args, ctx, () => 0);
 });
 
 reg('PAGE', (args, ctx) => {
@@ -359,8 +329,10 @@ export function evaluate(node: ASTNode, ctx: EvalContext): any {
 
     case ASTNodeType.FunctionCall: {
       const fn = node as FunctionCallNode;
-      const args = fn.args.map(a => evalArg(a, ctx));
       const fnName = fn.name.toUpperCase();
+      const args = ctx.reportRuntime && RUNTIME_AGGREGATE_FUNCTIONS.has(fnName)
+        ? fn.args.map(a => aggregateArgValue(a, ctx))
+        : fn.args.map(a => evalArg(a, ctx));
       const fnImpl = builtinFunctions[fnName];
       if (!fnImpl) {
         throw new Error(`Unknown function: ${fn.name}`);
@@ -371,6 +343,14 @@ export function evaluate(node: ASTNode, ctx: EvalContext): any {
     default:
       throw new Error(`Unknown AST node type: ${(node as any).type}`);
   }
+}
+
+function aggregateArgValue(arg: ASTNode, ctx: EvalContext): any {
+  if (arg.type === ASTNodeType.FieldRef) {
+    const fieldRef = arg as FieldRefNode;
+    return fieldRef.source ? `{${fieldRef.source}.${fieldRef.field}}` : `{${fieldRef.field}}`;
+  }
+  return evalArg(arg, ctx);
 }
 
 function evalBinaryOp(op: string, left: any, right: any): any {

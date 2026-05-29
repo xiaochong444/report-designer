@@ -10,13 +10,6 @@ const BUILT_IN_FUNCTIONS = [
   { name: 'COUNT', desc: { 'zh-CN': '计数', 'en-US': 'Count' }, insert: 'COUNT()' },
   { name: 'MAX', desc: { 'zh-CN': '最大值', 'en-US': 'Maximum' }, insert: 'MAX()' },
   { name: 'MIN', desc: { 'zh-CN': '最小值', 'en-US': 'Minimum' }, insert: 'MIN()' },
-  { name: 'PAGESUM', desc: { 'zh-CN': '按页求和', 'en-US': 'Page sum' }, insert: 'PAGESUM("", "")' },
-  { name: 'PAGECOUNT', desc: { 'zh-CN': '按页计数', 'en-US': 'Page count' }, insert: 'PAGECOUNT("")' },
-  { name: 'REPORTSUM', desc: { 'zh-CN': '按报表求和', 'en-US': 'Report sum' }, insert: 'REPORTSUM("", "")' },
-  { name: 'REPORTCOUNT', desc: { 'zh-CN': '按报表计数', 'en-US': 'Report count' }, insert: 'REPORTCOUNT("")' },
-  { name: 'TOTALS.PAGESUM', desc: { 'zh-CN': '按页求和别名', 'en-US': 'Page sum alias' }, insert: 'TOTALS.PAGESUM("", "")' },
-  { name: 'TOTALS.PAGECOUNT', desc: { 'zh-CN': '按页计数别名', 'en-US': 'Page count alias' }, insert: 'TOTALS.PAGECOUNT("")' },
-  { name: 'TOTALS.REPORTSUM', desc: { 'zh-CN': '按报表求和别名', 'en-US': 'Report sum alias' }, insert: 'TOTALS.REPORTSUM("", "")' },
   { name: 'RMBUPPER', desc: { 'zh-CN': '金额大写', 'en-US': 'RMB uppercase' }, insert: 'RMBUPPER()' },
   { name: 'MONEYUPPER', desc: { 'zh-CN': '金额大写别名', 'en-US': 'Money uppercase alias' }, insert: 'MONEYUPPER()' },
   { name: 'CNYUPPER', desc: { 'zh-CN': '人民币大写别名', 'en-US': 'CNY uppercase alias' }, insert: 'CNYUPPER()' },
@@ -46,14 +39,7 @@ const FORMAT_PATTERNS = [
   { name: '0.00%', insert: '0.00%' },
 ];
 
-const HTML_TAGS = [
-  { labelKey: 'expressionEditor.html.tag', insert: '<span></span>' },
-  { labelKey: 'expressionEditor.html.bold', insert: '<b></b>' },
-  { labelKey: 'expressionEditor.html.italic', insert: '<i></i>' },
-  { labelKey: 'expressionEditor.html.lineBreak', insert: '<br />' },
-];
-
-type ExpressionCategory = 'expression' | 'data' | 'system' | 'aggregates' | 'html';
+type ExpressionCategory = 'expression' | 'data' | 'system';
 
 type TreeNodeMeta = DataNode & {
   searchText?: string;
@@ -65,14 +51,12 @@ const CATEGORY_ITEMS: Array<{ key: ExpressionCategory; labelKey: DesignerMessage
   { key: 'expression', labelKey: 'expressionEditor.category.expression', subtitleKey: 'expressionEditor.category.expressionSubtitle' },
   { key: 'data', labelKey: 'expressionEditor.category.data', subtitleKey: 'expressionEditor.category.dataSubtitle' },
   { key: 'system', labelKey: 'expressionEditor.category.system', subtitleKey: 'expressionEditor.category.systemSubtitle' },
-  { key: 'aggregates', labelKey: 'expressionEditor.category.aggregates', subtitleKey: 'expressionEditor.category.aggregatesSubtitle' },
-  { key: 'html', labelKey: 'expressionEditor.category.html', subtitleKey: 'expressionEditor.category.htmlSubtitle' },
 ];
 
 function makeTreeNode(
   key: string,
   label: string,
-  kind: 'folder' | 'field' | 'system' | 'function' | 'format' | 'html' | 'resource',
+  kind: 'folder' | 'field' | 'system' | 'function' | 'format' | 'resource',
   options?: { insertValue?: string; searchText?: string; children?: TreeNodeMeta[] },
 ): TreeNodeMeta {
   return {
@@ -200,16 +184,6 @@ export const ExpressionEditor: React.FC<{
           }),
         ),
       }),
-      makeTreeNode('fn.total', t('expressionEditor.tree.pageReportTotals'), 'folder', {
-        children: BUILT_IN_FUNCTIONS.filter((item) =>
-          ['PAGESUM', 'PAGECOUNT', 'REPORTSUM', 'REPORTCOUNT', 'TOTALS.PAGESUM', 'TOTALS.PAGECOUNT', 'TOTALS.REPORTSUM'].includes(item.name),
-        ).map((item) =>
-          makeTreeNode(`fn.${item.name}`, item.name, 'function', {
-            insertValue: item.insert,
-            searchText: `${item.name} ${item.desc[locale]}`.toLowerCase(),
-          }),
-        ),
-      }),
       makeTreeNode('fn.logic', t('expressionEditor.tree.logicFunctions'), 'folder', {
         children: BUILT_IN_FUNCTIONS.filter((item) => ['IF', 'IIF', 'ISNULL'].includes(item.name)).map((item) =>
           makeTreeNode(`fn.${item.name}`, item.name, 'function', {
@@ -252,27 +226,12 @@ export const ExpressionEditor: React.FC<{
     [],
   );
 
-  const htmlNodes = useMemo<TreeNodeMeta[]>(
-    () =>
-      HTML_TAGS.map((item) =>
-        makeTreeNode(`html.${item.labelKey}`, t(item.labelKey as DesignerMessageKey), 'html', {
-          insertValue: item.insert,
-          searchText: t(item.labelKey as DesignerMessageKey).toLowerCase(),
-        }),
-      ),
-    [t],
-  );
-
   const treeData = useMemo<TreeNodeMeta[]>(() => {
     switch (activeCategory) {
       case 'data':
         return [makeTreeNode('tree.data', t('leftPanel.dataSources'), 'folder', { children: dataSourceNodes })];
       case 'system':
         return [makeTreeNode('tree.system', t('leftPanel.systemVariables'), 'folder', { children: systemNodes })];
-      case 'aggregates':
-        return [makeTreeNode('tree.function', t('leftPanel.functions'), 'folder', { children: functionNodes })];
-      case 'html':
-        return [makeTreeNode('tree.html', t('expressionEditor.html.tag'), 'folder', { children: htmlNodes })];
       case 'expression':
       default:
         return [
@@ -282,7 +241,7 @@ export const ExpressionEditor: React.FC<{
           makeTreeNode('tree.format', t('styleLibrary.format'), 'folder', { children: formatNodes }),
         ];
     }
-  }, [activeCategory, dataSourceNodes, formatNodes, functionNodes, htmlNodes, systemNodes, t]);
+  }, [activeCategory, dataSourceNodes, formatNodes, functionNodes, systemNodes, t]);
 
   const filteredTree = useMemo(
     () => filterTreeNodes(treeData, searchTerm.trim().toLowerCase()),

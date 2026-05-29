@@ -89,8 +89,8 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     expect(screen.getByRole('button', { name: /表达式/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /数据列/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /系统变量/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /聚合/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /html/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /聚合/i })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /html/i })).not.toBeInTheDocument();
 
     const treeSearch = screen.getByPlaceholderText('搜索');
     const editorInput = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement;
@@ -105,7 +105,7 @@ describe('Phase 16 dictionary tree and expression shell', () => {
       expect(editorInput.value).toContain('{Products.UnitPrice}');
     });
 
-    fireEvent.click(screen.getByRole('button', { name: /聚合/i }));
+    fireEvent.change(treeSearch, { target: { value: 'SUM' } });
     const sumItem = await screen.findByRole('treeitem', { name: 'SUM' });
     fireEvent.click(within(sumItem).getByText('SUM'));
     await waitFor(() => {
@@ -143,7 +143,7 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     expect(screen.getByRole('button', { name: 'Validate' })).toBeInTheDocument();
   });
 
-  it('localizes HTML helper tree entries in the expression shell', async () => {
+  it('does not expose HTML helper entries in the expression shell', async () => {
     useDesignerStore.getState().loadTemplate(makeDictionaryTemplate());
 
     render(
@@ -157,12 +157,11 @@ describe('Phase 16 dictionary tree and expression shell', () => {
       </DesignerI18nProvider>,
     );
 
-    fireEvent.click(screen.getByRole('button', { name: /HTML/i }));
-
-    expect((await screen.findAllByText('HTML 标签')).length).toBeGreaterThan(0);
-    expect(screen.getByText('加粗')).toBeInTheDocument();
-    expect(screen.getByText('斜体')).toBeInTheDocument();
-    expect(screen.getByText('换行')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /HTML/i })).not.toBeInTheDocument();
+    expect(screen.queryByText('HTML 标签')).not.toBeInTheDocument();
+    expect(screen.queryByText('加粗')).not.toBeInTheDocument();
+    expect(screen.queryByText('斜体')).not.toBeInTheDocument();
+    expect(screen.queryByText('换行')).not.toBeInTheDocument();
     expect(screen.queryByText('Html Tag')).not.toBeInTheDocument();
   });
 });

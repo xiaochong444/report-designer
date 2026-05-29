@@ -18,21 +18,26 @@ const textBase = {
 };
 
 describe('Phase 9 page and report totals', () => {
-  it('evaluates page and report aggregate aliases through the runtime', () => {
+  it('evaluates standard aggregate functions through the runtime', () => {
     const runtime = new AggregateRuntime({
       rowsByBand: { employees: rows },
       pageRowsByBand: { employees: rows.slice(0, 2) },
     });
 
-    expect(evalExpression('PAGESUM("employees", "{employees.Salary}")', () => null, 0, {}, runtime)).toBe(300);
-    expect(evalExpression('PAGECOUNT("employees")', () => null, 0, {}, runtime)).toBe(2);
-    expect(evalExpression('REPORTSUM("employees", "{employees.Salary}")', () => null, 0, {}, runtime)).toBe(450);
-    expect(evalExpression('TOTALS.PAGESUM("employees", "{employees.Salary}")', () => null, 0, {}, runtime)).toBe(300);
-    expect(evalExpression('TOTALS.REPORTSUM("employees", "{employees.Salary}")', () => null, 0, {}, runtime)).toBe(450);
+    expect(evalExpression('SUM({employees.Salary})', () => null, 0, {}, runtime)).toBe(450);
+    expect(evalExpression('COUNT({employees.Salary})', () => null, 0, {}, runtime)).toBe(3);
+    expect(evalExpression('AVG({employees.Salary})', () => null, 0, {}, runtime)).toBe(150);
+    expect(evalExpression('MIN({employees.Salary})', () => null, 0, {}, runtime)).toBe(100);
+    expect(evalExpression('MAX({employees.Salary})', () => null, 0, {}, runtime)).toBe(200);
   });
 
-  it('renders page totals in PageFooter per physical page and report totals in ReportSummary', () => {
+  it('renders standard aggregate functions according to footer band scope', () => {
     const template = makeTemplate([
+      band('group-header', 'groupHeader', {
+        group: { conditionExpression: '{employees.Team}', sortDirection: 'asc' },
+        height: 8,
+        components: [],
+      }),
       band('data', 'data', {
         height: 15,
         dataBand: { dataSourceId: 'employees' },
@@ -47,6 +52,32 @@ describe('Phase 9 page and report totals', () => {
           ...textBase,
         }],
       }),
+      band('group-footer', 'groupFooter', {
+        height: 8,
+        components: [{
+          id: 'group-total',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 8,
+          text: 'SUM({employees.Salary})',
+          ...textBase,
+        }],
+      }),
+      band('data-footer', 'footer', {
+        height: 8,
+        components: [{
+          id: 'data-total',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 8,
+          text: 'SUM({employees.Salary})',
+          ...textBase,
+        }],
+      }),
       band('report-summary', 'reportSummary', {
         height: 8,
         components: [{
@@ -56,33 +87,29 @@ describe('Phase 9 page and report totals', () => {
           y: 0,
           width: 50,
           height: 8,
-          text: 'REPORTSUM("employees", "{employees.Salary}")',
-          ...textBase,
-        }],
-      }),
-      band('page-footer', 'pageFooter', {
-        height: 8,
-        behavior: { enabled: true, printOn: 'allPages', printIfEmpty: true, printOnAllPages: true, keepTogether: false, canBreak: false, printAtBottom: true },
-        components: [{
-          id: 'page-total',
-          type: 'text',
-          x: 0,
-          y: 0,
-          width: 50,
-          height: 8,
-          text: 'PAGESUM("employees", "{employees.Salary}")',
+          text: 'SUM({employees.Salary})',
           ...textBase,
         }],
       }),
     ]);
-    template.pages[0].height = 55;
+    template.pages[0].height = 120;
     template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
 
-    const document = renderReport(template, { employees: rows });
-    const pageFooterTotals = document.pages.map(page => page.items.find(item => item.bandType === 'pageFooter')!.components[0].content);
+    const document = renderReport(template, {
+      employees: [
+        { Name: 'A', Team: 'Engineering', Salary: 100 },
+        { Name: 'B', Team: 'Engineering', Salary: 200 },
+        { Name: 'C', Team: 'Sales', Salary: 150 },
+      ],
+    });
+    const groupTotals = document.pages.flatMap(page => page.items)
+      .filter(item => item.bandType === 'groupFooter')
+      .map(item => item.components[0].content);
+    const dataFooter = document.pages.flatMap(page => page.items).find(item => item.bandType === 'footer')!.components[0].content;
     const reportSummary = document.pages.flatMap(page => page.items).find(item => item.bandType === 'reportSummary')!.components[0].content;
 
-    expect(pageFooterTotals).toEqual(['300', '150']);
+    expect(groupTotals).toEqual(['300', '150']);
+    expect(dataFooter).toBe('450');
     expect(reportSummary).toBe('450');
   });
 });

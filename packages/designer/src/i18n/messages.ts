@@ -25,23 +25,14 @@ export type DesignerMessageKey =
   | 'expressionEditor.category.dataSubtitle'
   | 'expressionEditor.category.system'
   | 'expressionEditor.category.systemSubtitle'
-  | 'expressionEditor.category.aggregates'
-  | 'expressionEditor.category.aggregatesSubtitle'
-  | 'expressionEditor.category.html'
-  | 'expressionEditor.category.htmlSubtitle'
   | 'expressionEditor.example'
   | 'expressionEditor.validate'
   | 'expressionEditor.validation.braces'
   | 'expressionEditor.validation.parens'
   | 'expressionEditor.validation.passed'
   | 'expressionEditor.tree.aggregateFunctions'
-  | 'expressionEditor.tree.pageReportTotals'
   | 'expressionEditor.tree.logicFunctions'
   | 'expressionEditor.tree.moneyFunctions'
-  | 'expressionEditor.html.tag'
-  | 'expressionEditor.html.bold'
-  | 'expressionEditor.html.italic'
-  | 'expressionEditor.html.lineBreak'
   | 'expressionEditor.inline.expression'
   | 'expressionEditor.inline.valid'
   | 'expressionEditor.inline.invalid'
@@ -98,8 +89,6 @@ export type DesignerMessageKey =
   | 'ribbon.conditionalFormats'
   | 'ribbon.jsonDataSource'
   | 'ribbon.insertBand'
-  | 'ribbon.bandWizard'
-  | 'ribbon.groupWizard'
   | 'ribbon.text'
   | 'ribbon.defaultField'
   | 'ribbon.table'
@@ -115,18 +104,6 @@ export type DesignerMessageKey =
   | 'ribbon.narrowMargins'
   | 'ribbon.wideMargins'
   | 'ribbon.printPreview'
-  | 'bandWizard.title'
-  | 'bandWizard.createBands'
-  | 'bandWizard.generatedHeaderName'
-  | 'bandWizard.generatedCountName'
-  | 'bandWizard.dataSource'
-  | 'bandWizard.preset.headerDataFooter'
-  | 'bandWizard.preset.dataOnly'
-  | 'groupWizard.title'
-  | 'groupWizard.createGroup'
-  | 'groupWizard.generatedHeaderName'
-  | 'groupWizard.generatedCountName'
-  | 'groupWizard.generatedSumName'
   | 'jsonDataSource.title'
   | 'jsonDataSource.addDataSources'
   | 'jsonDataSource.invalidJson'
@@ -685,23 +662,14 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.category.dataSubtitle': 'Data Column',
     'expressionEditor.category.system': '系统变量',
     'expressionEditor.category.systemSubtitle': 'System',
-    'expressionEditor.category.aggregates': '聚合',
-    'expressionEditor.category.aggregatesSubtitle': 'Aggregate',
-    'expressionEditor.category.html': 'HTML',
-    'expressionEditor.category.htmlSubtitle': 'Html',
     'expressionEditor.example': '示例: Text: {Expression}, {DataSource.Field}',
     'expressionEditor.validate': '校验',
     'expressionEditor.validation.braces': '大括号数量不匹配',
     'expressionEditor.validation.parens': '括号数量不匹配',
     'expressionEditor.validation.passed': '表达式校验通过',
     'expressionEditor.tree.aggregateFunctions': '聚合函数',
-    'expressionEditor.tree.pageReportTotals': '页/报表合计',
     'expressionEditor.tree.logicFunctions': '条件函数',
     'expressionEditor.tree.moneyFunctions': '金额大写',
-    'expressionEditor.html.tag': 'HTML 标签',
-    'expressionEditor.html.bold': '加粗',
-    'expressionEditor.html.italic': '斜体',
-    'expressionEditor.html.lineBreak': '换行',
     'expressionEditor.inline.expression': '表达式',
     'expressionEditor.inline.valid': '表达式有效',
     'expressionEditor.inline.invalid': '表达式无效',
@@ -758,8 +726,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.conditionalFormats': '条件格式',
     'ribbon.jsonDataSource': 'JSON 数据源',
     'ribbon.insertBand': '插入带区',
-    'ribbon.bandWizard': '带区向导',
-    'ribbon.groupWizard': '分组向导',
     'ribbon.text': '文本',
     'ribbon.defaultField': '字段 {index}',
     'ribbon.table': '表格',
@@ -775,18 +741,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.narrowMargins': '窄',
     'ribbon.wideMargins': '宽',
     'ribbon.printPreview': '打印预览',
-    'bandWizard.title': '带区向导',
-    'bandWizard.createBands': '创建带区',
-    'bandWizard.generatedHeaderName': '{field} 表头',
-    'bandWizard.generatedCountName': '计数',
-    'bandWizard.dataSource': '数据源',
-    'bandWizard.preset.headerDataFooter': '表头 + 数据带 + 表尾',
-    'bandWizard.preset.dataOnly': '仅数据带',
-    'groupWizard.title': '分组向导',
-    'groupWizard.createGroup': '创建分组',
-    'groupWizard.generatedHeaderName': '分组头',
-    'groupWizard.generatedCountName': '分组计数',
-    'groupWizard.generatedSumName': '分组合计',
     'jsonDataSource.title': 'JSON 数据源',
     'jsonDataSource.addDataSources': '添加数据源',
     'jsonDataSource.invalidJson': 'JSON 格式不正确',
@@ -1342,23 +1296,14 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.category.dataSubtitle': 'JSON fields',
     'expressionEditor.category.system': 'System',
     'expressionEditor.category.systemSubtitle': 'Variables',
-    'expressionEditor.category.aggregates': 'Aggregate',
-    'expressionEditor.category.aggregatesSubtitle': 'Totals',
-    'expressionEditor.category.html': 'HTML',
-    'expressionEditor.category.htmlSubtitle': 'Tags',
     'expressionEditor.example': 'Example: Text: {Expression}, {DataSource.Field}',
     'expressionEditor.validate': 'Validate',
     'expressionEditor.validation.braces': 'Brace count does not match',
     'expressionEditor.validation.parens': 'Parenthesis count does not match',
     'expressionEditor.validation.passed': 'Expression validation passed',
     'expressionEditor.tree.aggregateFunctions': 'Aggregate functions',
-    'expressionEditor.tree.pageReportTotals': 'Page/report totals',
     'expressionEditor.tree.logicFunctions': 'Logic functions',
     'expressionEditor.tree.moneyFunctions': 'Money uppercase',
-    'expressionEditor.html.tag': 'HTML Tag',
-    'expressionEditor.html.bold': 'Bold',
-    'expressionEditor.html.italic': 'Italic',
-    'expressionEditor.html.lineBreak': 'Line break',
     'expressionEditor.inline.expression': 'Expression',
     'expressionEditor.inline.valid': 'Valid expression',
     'expressionEditor.inline.invalid': 'Invalid expression',
@@ -1415,8 +1360,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.conditionalFormats': 'Conditional Formats',
     'ribbon.jsonDataSource': 'JSON data source',
     'ribbon.insertBand': 'Insert band',
-    'ribbon.bandWizard': 'Band wizard',
-    'ribbon.groupWizard': 'Group wizard',
     'ribbon.text': 'Text',
     'ribbon.defaultField': 'Field {index}',
     'ribbon.table': 'Table',
@@ -1432,18 +1375,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'ribbon.narrowMargins': 'Narrow',
     'ribbon.wideMargins': 'Wide',
     'ribbon.printPreview': 'Print Preview',
-    'bandWizard.title': 'Band Wizard',
-    'bandWizard.createBands': 'Create bands',
-    'bandWizard.generatedHeaderName': '{field} Header',
-    'bandWizard.generatedCountName': 'Count',
-    'bandWizard.dataSource': 'Data source',
-    'bandWizard.preset.headerDataFooter': 'HeaderBand + DataBand + FooterBand',
-    'bandWizard.preset.dataOnly': 'DataBand only',
-    'groupWizard.title': 'Group Wizard',
-    'groupWizard.createGroup': 'Create group',
-    'groupWizard.generatedHeaderName': 'Group Header',
-    'groupWizard.generatedCountName': 'Group Count',
-    'groupWizard.generatedSumName': 'Group Sum',
     'jsonDataSource.title': 'JSON Data Source',
     'jsonDataSource.addDataSources': 'Add data sources',
     'jsonDataSource.invalidJson': 'Invalid JSON',

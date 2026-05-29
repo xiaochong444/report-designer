@@ -6,8 +6,6 @@ export { DesignerLeftPanel } from './components/panels/DesignerLeftPanel';
 export { DesignerPropertyPanel } from './components/panels/DesignerPropertyPanel';
 export { DesignerCanvasFrame } from './components/canvas/DesignerCanvasFrame';
 export { JsonDataSourceDialog } from './components/dialogs/JsonDataSourceDialog';
-export { BandWizardDialog } from './components/dialogs/BandWizardDialog';
-export { GroupWizardDialog } from './components/dialogs/GroupWizardDialog';
 export { PageSetupDialog } from './components/dialogs/PageSetupDialog';
 export { InlineExpressionEditor } from './components/expression/InlineExpressionEditor';
 export { BandPropertyGrid } from './components/properties/BandPropertyGrid';
