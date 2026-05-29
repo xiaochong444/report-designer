@@ -715,9 +715,11 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
 
   resizeBand: (pageId, bandId, newHeight, oldHeight) => {
     const { template, dispatcher } = get();
+    const band = findBand(template, pageId, bandId);
+    const normalizedHeight = normalizeBandHeight(newHeight, band);
     const newTemplate = dispatcher.execute(template, {
       type: 'resize-band',
-      payload: { pageId, bandId, newHeight, oldHeight },
+      payload: { pageId, bandId, newHeight: normalizedHeight, oldHeight },
       execute: () => template,
       undo: () => template,
     });
@@ -734,7 +736,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
           ...p,
           bands: p.bands.map(b => {
             if (b.id !== bandId) return b;
-            return { ...b, height: newHeight };
+            return { ...b, height: normalizeBandHeight(newHeight, b) };
           }),
         };
       }),
@@ -1577,6 +1579,17 @@ function findBand(template: ReportTemplate, pageId: string, bandId: string): Ban
   const page = template.pages.find(p => p.id === pageId);
   if (!page) return undefined;
   return page.bands.find(b => b.id === bandId);
+}
+
+function getMinimumBandHeight(band?: Band): number {
+  if (!band || band.components.length === 0) return 5;
+  const componentBottom = Math.max(...band.components.map(component => component.y + component.height));
+  return Math.max(5, Math.round(componentBottom * 10) / 10);
+}
+
+function normalizeBandHeight(height: number, band?: Band): number {
+  const numericHeight = Number.isFinite(height) ? height : 5;
+  return Math.max(getMinimumBandHeight(band), Math.round(numericHeight * 10) / 10);
 }
 
 function insertBandInTemplate(template: ReportTemplate, pageId: string, afterBandId: string, band: Band): ReportTemplate {

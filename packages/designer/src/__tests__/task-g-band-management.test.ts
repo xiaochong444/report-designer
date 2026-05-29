@@ -99,6 +99,36 @@ describe('Task G: Band管理 + 页面设置', () => {
       const dataBand = newPage.bands.find(b => b.id === 'band_data')!;
       expect(dataBand.height).toBe(100);
     });
+
+    it('should keep resized band height large enough to contain its components', () => {
+      resetStore();
+      useDesignerStore.setState(state => ({
+        template: {
+          ...state.template,
+          pages: state.template.pages.map(page => page.id === 'page_test'
+            ? {
+                ...page,
+                bands: page.bands.map(band => band.id === 'band_data'
+                  ? {
+                      ...band,
+                      components: [
+                        { id: 'text_in_data', type: 'text', x: 0, y: 34, width: 40, height: 12, text: 'Bottom text' },
+                      ],
+                    }
+                  : band),
+              }
+            : page),
+        },
+      }));
+
+      useDesignerStore.getState().resizeBandSilent('page_test', 'band_data', 20);
+      let dataBand = useDesignerStore.getState().template.pages[0].bands.find(b => b.id === 'band_data')!;
+      expect(dataBand.height).toBe(46);
+
+      useDesignerStore.getState().resizeBand('page_test', 'band_data', 18, 50);
+      dataBand = useDesignerStore.getState().template.pages[0].bands.find(b => b.id === 'band_data')!;
+      expect(dataBand.height).toBe(46);
+    });
   });
 
   describe('Page settings', () => {
