@@ -48,6 +48,18 @@ function createNameRegistry(template: ReportTemplate) {
   return taken;
 }
 
+function createBandNameRegistry(template: ReportTemplate) {
+  const taken = new Set<string>();
+  for (const page of template.pages) {
+    for (const band of page.bands) {
+      if (band.name?.trim()) {
+        taken.add(band.name.trim());
+      }
+    }
+  }
+  return taken;
+}
+
 export function getComponentNamePrefix(type: ReportComponent['type']) {
   return COMPONENT_NAME_PREFIX[type];
 }
@@ -82,6 +94,63 @@ export function prepareComponentForInsert(template: ReportTemplate, component: R
   };
 }
 
+export function getBandBaseName(type: BandType) {
+  return BAND_BASE_NAME[type] ?? type;
+}
+
+export function isAutoBandNameSeed(band: Band) {
+  const baseName = getBandBaseName(band.type);
+  const currentName = band.name?.trim();
+  return !currentName || currentName === baseName;
+}
+
+export function getNextBandName(type: BandType, takenNames: Set<string>) {
+  const baseName = getBandBaseName(type);
+  let index = 1;
+  let candidate = `${baseName}${index}`;
+  while (takenNames.has(candidate)) {
+    index += 1;
+    candidate = `${baseName}${index}`;
+  }
+  takenNames.add(candidate);
+  return candidate;
+}
+
+export function ensureTemplateBandNames(template: ReportTemplate): ReportTemplate {
+  const takenNames = new Set<string>();
+  let changed = false;
+
+  const pages = template.pages.map((page) => ({
+    ...page,
+    bands: page.bands.map((band) => {
+      if (!isAutoBandNameSeed(band)) {
+        takenNames.add(band.name!.trim());
+        return band;
+      }
+
+      changed = true;
+      return {
+        ...band,
+        name: getNextBandName(band.type, takenNames),
+      };
+    }),
+  }));
+
+  return changed ? { ...template, pages } : template;
+}
+
+export function prepareBandForInsert(template: ReportTemplate, band: Band): Band {
+  if (!isAutoBandNameSeed(band)) {
+    return band;
+  }
+
+  const takenNames = createBandNameRegistry(template);
+  return {
+    ...band,
+    name: getNextBandName(band.type, takenNames),
+  };
+}
+
 export function ensureTemplateComponentNames(template: ReportTemplate): ReportTemplate {
   const takenNames = new Set<string>();
   let changed = false;
@@ -108,10 +177,6 @@ export function ensureTemplateComponentNames(template: ReportTemplate): ReportTe
   return changed ? { ...template, pages } : template;
 }
 
-export function getBandBaseName(type: BandType) {
-  return BAND_BASE_NAME[type] ?? type;
-}
-
 export function getBandDisplayName(band: Band, index: number) {
-  return `${getBandBaseName(band.type)}${index}`;
+  return band.name?.trim() || `${getBandBaseName(band.type)}${index}`;
 }

@@ -20,7 +20,7 @@ import type {
 import { createDefaultTemplate, getDefaultTextStyle, normalizeTemplate } from '@report-designer/core';
 import { CommandDispatcher, registerCommand } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
-import { ensureTemplateComponentNames, getBandBaseName, getNextComponentName, prepareComponentForInsert } from '../report-structure';
+import { ensureTemplateBandNames, ensureTemplateComponentNames, getNextBandName, getNextComponentName, prepareBandForInsert, prepareComponentForInsert } from '../report-structure';
 import {
   applyDefaultTextStyle,
   applyManualTextComponentUpdates,
@@ -359,7 +359,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   };
 
   return {
-    template: createDefaultTemplate(),
+    template: ensureTemplateComponentNames(ensureTemplateBandNames(createDefaultTemplate())),
     currentPageId: '',
     mode: 'design',
     textStyleLibraryOpen: false,
@@ -377,7 +377,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     zoom: 1,
 
   loadTemplate: (template) => {
-    const normalizedTemplate = ensureTemplateComponentNames(normalizeTemplate(template));
+    const normalizedTemplate = ensureTemplateComponentNames(ensureTemplateBandNames(normalizeTemplate(template)));
     set({
       template: normalizedTemplate,
       currentPageId: normalizedTemplate.pages[0]?.id || '',
@@ -1404,12 +1404,12 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   },
 
   addBand: (pageId, band) => {
-    const { template, dispatcher } = get();
-    const newBand: Band = {
+    const { template } = get();
+    const newBand: Band = prepareBandForInsert(template, {
       ...band,
       id: `band_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       components: [],
-    };
+    });
     const newTemplate = {
       ...template,
       pages: template.pages.map(p => {
@@ -1441,18 +1441,18 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   },
 
   addPage: () => {
-    const { template, dispatcher } = get();
+    const { template } = get();
+    const existingBands = template.pages.flatMap(page => page.bands);
+    const pageHeaderBand = { ...createBandForInsert(existingBands, 'pageHeader'), height: 20 };
+    const dataBand = { ...createBandForInsert([...existingBands, pageHeaderBand], 'data'), height: 50 };
+    const pageFooterBand = { ...createBandForInsert([...existingBands, pageHeaderBand, dataBand], 'pageFooter'), height: 20 };
     const newPage: Page = {
       id: `page_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
       width: DEFAULT_PAGE_WIDTH,
       height: DEFAULT_PAGE_HEIGHT,
       margins: { top: 10, right: 10, bottom: 10, left: 10 },
       orientation: 'portrait',
-      bands: [
-        { id: `band_ph_${Date.now()}`, type: 'pageHeader', height: 20, components: [] },
-        { id: `band_data_${Date.now()}`, type: 'data', height: 50, components: [] },
-        { id: `band_pf_${Date.now()}`, type: 'pageFooter', height: 20, components: [] },
-      ],
+      bands: [pageHeaderBand, dataBand, pageFooterBand],
     };
     set({ template: { ...template, pages: [...template.pages, newPage] }, currentPageId: newPage.id, selectedComponentIds: [] });
   },
@@ -1635,12 +1635,11 @@ function moveBandInTemplate(template: ReportTemplate, pageId: string, bandId: st
 }
 
 function createBandForInsert(existingBands: Band[], type: BandType): Band {
-  const baseName = getBandBaseName(type);
-  const count = existingBands.filter(band => band.type === type).length + 1;
+  const takenNames = new Set(existingBands.map(band => band.name?.trim()).filter(Boolean) as string[]);
   const band: Band = {
     id: `band_${type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
     type,
-    name: `${baseName}${count}`,
+    name: getNextBandName(type, takenNames),
     height: DEFAULT_BAND_HEIGHTS[type] ?? 20,
     components: [],
     behavior: createBandBehavior(type),

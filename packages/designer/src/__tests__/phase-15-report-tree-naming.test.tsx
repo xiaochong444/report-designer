@@ -82,6 +82,7 @@ describe('Phase 15 report tree naming and icons', () => {
     expect(screen.queryByRole('tab', { name: /Components/ })).not.toBeInTheDocument();
     expect(await screen.findByTestId('report-tree-root')).toHaveTextContent('Tree Demo');
     expect(await screen.findByText('页面1')).toBeInTheDocument();
+    expect(within(await screen.findByTestId('report-tree-band-' + useDesignerStore.getState().template.pages[0].bands.find((band) => band.type === 'data')!.id)).getByText('DataBand1')).toBeInTheDocument();
     expect(within(await screen.findByTestId('report-tree-component-text-alpha')).getByText('Text1')).toBeInTheDocument();
     expect(within(await screen.findByTestId('report-tree-component-image-alpha')).getByText('Image1')).toBeInTheDocument();
     expect(screen.queryByText(/text - text-alpha/i)).not.toBeInTheDocument();
@@ -135,7 +136,23 @@ describe('Phase 15 report tree naming and icons', () => {
     await waitFor(() => {
       expect(screen.queryByTestId('report-tree-component-text-alpha')).not.toBeInTheDocument();
     });
-    expect(within(reportTree).getByText('数据带1')).toBeInTheDocument();
+    expect(within(reportTree).getByText('DataBand1')).toBeInTheDocument();
+  });
+
+  it('auto-names newly inserted bands and shows the stored band name in the report tree', async () => {
+    render(<Designer template={makeTreeTemplate()} />);
+
+    await screen.findByTestId('report-tree-root');
+    const page = useDesignerStore.getState().template.pages[0];
+    const dataBand = page.bands.find((band) => band.type === 'data')!;
+
+    act(() => {
+      useDesignerStore.getState().insertBandAfter(page.id, dataBand.id, 'data');
+    });
+
+    const insertedBand = useDesignerStore.getState().template.pages[0].bands.find((band) => band.id !== dataBand.id && band.type === 'data');
+    expect(insertedBand?.name).toBe('DataBand2');
+    expect(within(await screen.findByTestId(`report-tree-band-${insertedBand!.id}`)).getByText('DataBand2')).toBeInTheDocument();
   });
 
   it('selects a band from the report tree and clears component selection', async () => {

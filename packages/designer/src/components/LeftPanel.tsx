@@ -8,7 +8,7 @@ import {
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
 import type { ReportComponent, BandType } from '@report-designer/core';
-import { getComponentNamePrefix } from '../report-structure';
+import { getBandDisplayName, getComponentNamePrefix } from '../report-structure';
 import { useEffect, useMemo, useState } from 'react';
 import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
 import { createDefaultComponent, createFieldExpressionComponent, createTextExpressionComponent } from '../component-factory';
@@ -472,7 +472,7 @@ const PageTree: React.FC = () => {
           children: page.bands.map((band) => {
             bandTypeCounters[band.type] = (bandTypeCounters[band.type] ?? 0) + 1;
             const bandIndex = bandTypeCounters[band.type] ?? 1;
-            const bandName = `${t(`band.type.${band.type}` as DesignerMessageKey)}${bandIndex}`;
+            const bandName = getBandDisplayName(band, bandIndex);
             const bandMatches = pageMatches || matchesSearch([bandName, band.name, band.id, band.type], normalizedSearchTerm);
             const visibleComponents = band.components.filter((comp) => {
               if (!normalizedSearchTerm || bandMatches) {
