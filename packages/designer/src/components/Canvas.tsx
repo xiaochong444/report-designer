@@ -157,6 +157,12 @@ interface ContextMenuPos {
   tableCell?: { row: number; column: number };
 }
 
+interface BandContextMenuPos {
+  x: number;
+  y: number;
+  bandId: string;
+}
+
 // ---- Canvas ----
 
 export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
@@ -202,6 +208,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const [selBox, setSelBox] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [guides, setGuides] = useState<GuideLine[]>([]);
   const [contextMenu, setContextMenu] = useState<ContextMenuPos | null>(null);
+  const [bandContextMenu, setBandContextMenu] = useState<BandContextMenuPos | null>(null);
   const [bandInsertPointer, setBandInsertPointer] = useState<{ x: number; y: number } | null>(null);
 
   const currentPage = useMemo(() => template.pages.find(p => p.id === currentPageId), [template, currentPageId]);
@@ -305,6 +312,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
 
   const handlePageMouseDown = useCallback((e: React.MouseEvent) => {
     setContextMenu(null);
+    setBandContextMenu(null);
     if (e.button === 2) {
       // Right click context menu
       const ch = findComponentAtPoint(e.clientX, e.clientY);
@@ -751,11 +759,14 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   // ---- Click outside to close context menu ----
 
   useEffect(() => {
-    if (!contextMenu) return;
-    const close = () => setContextMenu(null);
+    if (!contextMenu && !bandContextMenu) return;
+    const close = () => {
+      setContextMenu(null);
+      setBandContextMenu(null);
+    };
     window.addEventListener('click', close);
     return () => window.removeEventListener('click', close);
-  }, [contextMenu]);
+  }, [bandContextMenu, contextMenu]);
 
   const getDropPosition = useCallback((event: React.DragEvent) => {
     if (!pageRef.current) return null;
@@ -855,6 +866,21 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       y: (event.clientY - rect.top) / zoom,
     });
   }, [pendingBandInsertType, zoom]);
+
+  const handleBandContextMenu = useCallback((bandId: string, event: React.MouseEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!pageRef.current) return;
+    const rect = pageRef.current.getBoundingClientRect();
+    selectComponents([]);
+    selectBand(bandId);
+    setContextMenu(null);
+    setBandContextMenu({
+      bandId,
+      x: (event.clientX - rect.left) / zoom,
+      y: (event.clientY - rect.top) / zoom,
+    });
+  }, [selectBand, selectComponents, zoom]);
 
   if (!currentPage) {
     return (
@@ -959,6 +985,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
                 selectedIds={selectedComponentIds}
                 selectedTableCell={selectedTableCell}
                 fonts={template.fonts}
+                onOpenContextMenu={handleBandContextMenu}
                 onUpdateComponent={updateComponent} currentPageId={currentPageId} />
             ))}
           </div>
@@ -1065,6 +1092,20 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             onDelete={() => {
               deleteSelected();
               setContextMenu(null);
+            }}
+          />
+        )}
+        {bandContextMenu && (
+          <BandContextMenu
+            x={bandContextMenu.x}
+            y={bandContextMenu.y}
+            onCopy={() => {
+              useDesignerStore.getState().duplicateBandAfter(currentPageId, bandContextMenu.bandId);
+              setBandContextMenu(null);
+            }}
+            onDelete={() => {
+              useDesignerStore.getState().deleteBand(currentPageId, bandContextMenu.bandId);
+              setBandContextMenu(null);
             }}
           />
         )}
@@ -1352,6 +1393,42 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   );
 };
 
+const BandContextMenu: React.FC<{
+  x: number;
+  y: number;
+  onCopy: () => void;
+  onDelete: () => void;
+}> = ({ onCopy, onDelete, x, y }) => {
+  const { t } = useDesignerI18n();
+
+  return (
+    <div
+      data-testid="designer-band-context-menu"
+      style={{
+        position: 'absolute',
+        left: x,
+        top: y,
+        backgroundColor: '#fff',
+        border: '1px solid #ddd',
+        borderRadius: 4,
+        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+        zIndex: 10000,
+        minWidth: 160,
+        padding: '4px 0',
+      }}
+      onMouseDown={stopEvent}
+      onContextMenu={stopEvent}
+      onClick={stopEvent}
+    >
+      <ContextMenuSection title={t('selection.band')}>
+        <ContextMenuItem label={t('contextMenu.copy')} shortcut="Ctrl+C" onClick={onCopy} />
+      </ContextMenuSection>
+      <ContextMenuDivider />
+      <ContextMenuItem label={t('contextMenu.delete')} shortcut="Del" onClick={onDelete} danger />
+    </div>
+  );
+};
+
 const ContextMenuItem: React.FC<{
   label: string; shortcut?: string; disabled?: boolean; danger?: boolean;
   onClick: () => void;
@@ -1400,9 +1477,10 @@ const BandView: React.FC<{
   pendingBandInsertType: BandType | null;
   selectedTableCell: TableCellSelection | null;
   fonts?: ReportFont[];
+  onOpenContextMenu: (bandId: string, event: React.MouseEvent<HTMLDivElement>) => void;
   onUpdateComponent: (pageId: string, bandId: string, compId: string, updates: Record<string, any>, prev?: Record<string, any>) => void;
   currentPageId: string;
-}> = ({ band, visualY, labelIndex, isSelected, pendingBandInsertType, selectedIds, selectedTableCell, fonts, onUpdateComponent, currentPageId }) => {
+}> = ({ band, visualY, labelIndex, isSelected, pendingBandInsertType, selectedIds, selectedTableCell, fonts, onOpenContextMenu, onUpdateComponent, currentPageId }) => {
   const { t } = useDesignerI18n();
   const [editId, setEditId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<'text' | 'richtext' | null>(null);
@@ -1435,7 +1513,7 @@ const BandView: React.FC<{
   };
 
   return (
-    <div data-band-id={band.id} data-testid={`designer-band-frame-${band.type}`} onMouseDown={handleBandMouseDown} style={{
+    <div data-band-id={band.id} data-testid={`designer-band-frame-${band.type}`} onContextMenu={(event) => onOpenContextMenu(band.id, event)} onMouseDown={handleBandMouseDown} style={{
       position: 'absolute', left: 0, top: safeCssNumber(mmToPx(visualY)), width: '100%', height: safeCssNumber(headerHeight + bodyHeight),
       border: isSelected ? '1px solid #4d90fe' : '1px solid rgba(0,0,0,0.12)',
       boxSizing: 'border-box',

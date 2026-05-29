@@ -58,4 +58,39 @@ describe('Phase 42 band insertion placement', () => {
     expect(useDesignerStore.getState().selectedBandId).toBe(bands[2].id);
     expect(within(screen.getByTestId('designer-band-frame-reportSummary')).getByText('ReportSummaryBand1')).toBeInTheDocument();
   });
+
+  it('deletes the selected band with Delete', () => {
+    render(<Designer template={createDefaultTemplate('Band Delete')} locale="en-US" />);
+
+    fireEvent.mouseDown(screen.getByTestId('designer-band-frame-pageHeader'));
+    expect(useDesignerStore.getState().selectedBandId).toBeTruthy();
+
+    fireEvent.keyDown(window, { key: 'Delete' });
+
+    const bandTypes = useDesignerStore.getState().template.pages[0].bands.map(band => band.type);
+    expect(bandTypes).toEqual(['reportTitle', 'data', 'pageFooter']);
+    expect(useDesignerStore.getState().selectedBandId).toBeNull();
+    expect(screen.queryByTestId('designer-band-frame-pageHeader')).not.toBeInTheDocument();
+  });
+
+  it('copies and deletes bands from the band context menu', () => {
+    render(<Designer template={createDefaultTemplate('Band Context Menu')} locale="en-US" />);
+
+    fireEvent.contextMenu(screen.getByTestId('designer-band-frame-pageHeader'), { clientX: 120, clientY: 120 });
+    expect(screen.getByTestId('designer-band-context-menu')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Copy'));
+
+    let bands = useDesignerStore.getState().template.pages[0].bands;
+    expect(bands.map(band => band.type)).toEqual(['reportTitle', 'pageHeader', 'pageHeader', 'data', 'pageFooter']);
+    expect(useDesignerStore.getState().selectedBandId).toBe(bands[2].id);
+    expect(within(screen.getAllByTestId('designer-band-frame-pageHeader')[1]).getByText('PageHeaderBand2')).toBeInTheDocument();
+
+    fireEvent.contextMenu(screen.getAllByTestId('designer-band-frame-pageHeader')[1], { clientX: 120, clientY: 150 });
+    fireEvent.click(screen.getByText('Delete'));
+
+    bands = useDesignerStore.getState().template.pages[0].bands;
+    expect(bands.map(band => band.type)).toEqual(['reportTitle', 'pageHeader', 'data', 'pageFooter']);
+    expect(useDesignerStore.getState().selectedBandId).toBeNull();
+  });
 });

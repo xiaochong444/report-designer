@@ -20,7 +20,7 @@ import type {
 import { createDefaultTemplate, getDefaultTextStyle, normalizeTemplate } from '@report-designer/core';
 import { CommandDispatcher, registerCommand } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
-import { ensureTemplateComponentNames, getBandBaseName, prepareComponentForInsert } from '../report-structure';
+import { ensureTemplateComponentNames, getBandBaseName, getNextComponentName, prepareComponentForInsert } from '../report-structure';
 import {
   applyDefaultTextStyle,
   applyManualTextComponentUpdates,
@@ -110,6 +110,7 @@ export interface DesignerState {
   beginBandInsert: (bandType: BandType) => void;
   cancelBandInsert: () => void;
   insertBandAfter: (pageId: string, afterBandId: string, bandType?: BandType) => void;
+  duplicateBandAfter: (pageId: string, bandId: string) => void;
   selectTableCell: (selection: TableCellSelection | null) => void;
   openEventEditorTarget: (target: DesignerEventNavigationTarget) => void;
   consumeEventEditorTarget: (requestId: number) => void;
@@ -203,6 +204,7 @@ const DEFAULT_PAGE_HEIGHT = 297;
 
 const UPDATE_COMPONENTS_COMMAND = 'update-components';
 const INSERT_BAND_COMMAND = 'insert-band';
+const DELETE_BAND_COMMAND = 'delete-band';
 
 const DEFAULT_BAND_HEIGHTS: Record<BandType, number> = {
   reportTitle: 40,
@@ -239,6 +241,33 @@ if (!CommandDispatcher.isAllowed(INSERT_BAND_COMMAND)) {
       pages: state.pages.map(page => page.id === payload.pageId
         ? { ...page, bands: page.bands.filter(band => band.id !== payload.band.id) }
         : page),
+    }),
+  );
+}
+
+if (!CommandDispatcher.isAllowed(DELETE_BAND_COMMAND)) {
+  registerCommand(
+    DELETE_BAND_COMMAND,
+    (state, payload) => ({
+      ...state,
+      pages: state.pages.map(page => page.id === payload.pageId
+        ? { ...page, bands: page.bands.filter(band => band.id !== payload.band.id) }
+        : page),
+    }),
+    (state, payload) => ({
+      ...state,
+      pages: state.pages.map(page => {
+        if (page.id !== payload.pageId) return page;
+        const index = Math.max(0, Math.min(payload.index ?? page.bands.length, page.bands.length));
+        return {
+          ...page,
+          bands: [
+            ...page.bands.slice(0, index),
+            payload.band,
+            ...page.bands.slice(index),
+          ],
+        };
+      }),
     }),
   );
 }
@@ -461,6 +490,28 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     const newTemplate = dispatcher.execute(template, {
       type: INSERT_BAND_COMMAND,
       payload: { pageId, afterBandId, band },
+      execute: () => template,
+      undo: () => template,
+    });
+    set({
+      template: newTemplate,
+      selectedComponentIds: [],
+      selectedBandId: band.id,
+      selectedTableCell: null,
+      pendingBandInsertType: null,
+    });
+  },
+
+  duplicateBandAfter: (pageId, bandId) => {
+    const { template, dispatcher } = get();
+    const page = template.pages.find(item => item.id === pageId);
+    const source = page?.bands.find(band => band.id === bandId);
+    if (!page || !source) return;
+
+    const band = cloneBandForInsert(page.bands, source, template);
+    const newTemplate = dispatcher.execute(template, {
+      type: INSERT_BAND_COMMAND,
+      payload: { pageId, afterBandId: bandId, band },
       execute: () => template,
       undo: () => template,
     });
@@ -928,9 +979,29 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   },
 
   deleteSelected: () => {
-    const { template, currentPageId, selectedComponentIds, dispatcher } = get();
+    const { template, currentPageId, selectedComponentIds, selectedBandId, dispatcher } = get();
     const page = template.pages.find(p => p.id === currentPageId);
     if (!page) return;
+
+    if (selectedBandId && selectedComponentIds.length === 0) {
+      const bandIndex = page.bands.findIndex(band => band.id === selectedBandId);
+      const band = bandIndex >= 0 ? page.bands[bandIndex] : undefined;
+      if (!band) return;
+      const newTemplate = dispatcher.execute(template, {
+        type: DELETE_BAND_COMMAND,
+        payload: { pageId: currentPageId, band, index: bandIndex },
+        execute: () => template,
+        undo: () => template,
+      });
+      set({
+        template: newTemplate,
+        selectedBandId: null,
+        selectedComponentIds: [],
+        selectedTableCell: null,
+      });
+      return;
+    }
+
     let newTemplate = template;
     for (const band of page.bands) {
       const components = band.components.filter(c => selectedComponentIds.includes(c.id));
@@ -1308,15 +1379,23 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   },
 
   deleteBand: (pageId, bandId) => {
-    const { template } = get();
-    const newTemplate = {
-      ...template,
-      pages: template.pages.map(p => {
-        if (p.id !== pageId) return p;
-        return { ...p, bands: p.bands.filter(b => b.id !== bandId) };
-      }),
-    };
-    set({ template: newTemplate });
+    const { template, dispatcher } = get();
+    const page = template.pages.find(item => item.id === pageId);
+    const bandIndex = page?.bands.findIndex(band => band.id === bandId) ?? -1;
+    const band = page && bandIndex >= 0 ? page.bands[bandIndex] : undefined;
+    if (!band) return;
+    const newTemplate = dispatcher.execute(template, {
+      type: DELETE_BAND_COMMAND,
+      payload: { pageId, band, index: bandIndex },
+      execute: () => template,
+      undo: () => template,
+    });
+    set({
+      template: newTemplate,
+      selectedBandId: get().selectedBandId === bandId ? null : get().selectedBandId,
+      selectedComponentIds: [],
+      selectedTableCell: null,
+    });
   },
 
   addPage: () => {
@@ -1500,6 +1579,54 @@ function createBandForInsert(existingBands: Band[], type: BandType): Band {
   }
 
   return band;
+}
+
+function cloneBandForInsert(existingBands: Band[], source: Band, template: ReportTemplate): Band {
+  const nextBand = createBandForInsert(existingBands, source.type);
+  const takenNames = collectComponentNames(template);
+  return {
+    ...source,
+    id: nextBand.id,
+    name: nextBand.name,
+    components: source.components.map(component => cloneComponentForBandCopy(component, takenNames)),
+    behavior: source.behavior ? { ...source.behavior } : nextBand.behavior,
+    dataBand: source.dataBand ? { ...source.dataBand, sort: source.dataBand.sort ? [...source.dataBand.sort] : undefined } : nextBand.dataBand,
+    group: source.group ? { ...source.group } : nextBand.group,
+    events: source.events ? { ...source.events } : undefined,
+  };
+}
+
+function collectComponentNames(template: ReportTemplate): Set<string> {
+  const names = new Set<string>();
+  const visit = (components: ReportComponent[]) => {
+    for (const component of components) {
+      if (component.name?.trim()) {
+        names.add(component.name.trim());
+      }
+      if ('components' in component && Array.isArray((component as ReportComponent & { components?: ReportComponent[] }).components)) {
+        visit((component as ReportComponent & { components?: ReportComponent[] }).components ?? []);
+      }
+    }
+  };
+  for (const page of template.pages) {
+    for (const band of page.bands) {
+      visit(band.components);
+    }
+  }
+  return names;
+}
+
+function cloneComponentForBandCopy(component: ReportComponent, takenNames: Set<string>): ReportComponent {
+  const cloned = JSON.parse(JSON.stringify(component)) as ReportComponent;
+  cloned.id = `component_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  cloned.name = getNextComponentName(cloned.type, takenNames);
+
+  if ('components' in cloned && Array.isArray((cloned as ReportComponent & { components?: ReportComponent[] }).components)) {
+    (cloned as ReportComponent & { components?: ReportComponent[] }).components = (cloned as ReportComponent & { components?: ReportComponent[] }).components
+      ?.map(child => cloneComponentForBandCopy(child, takenNames));
+  }
+
+  return cloned;
 }
 
 function createBandBehavior(type: BandType): NonNullable<Band['behavior']> {
