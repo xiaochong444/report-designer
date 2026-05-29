@@ -126,4 +126,27 @@ describe('example sample paper defaults', () => {
       y: expect.any(Number),
     });
   });
+
+  it('bundles a custom Chinese font sample registered from template code', () => {
+    const sample = sampleReports.find(report => report.key === 'customChineseFont');
+    const components = sample?.template.pages.flatMap(page => page.bands.flatMap(band => band.components)) ?? [];
+    const textComponents = components.filter(component => component.type === 'text') as any[];
+
+    expect(sample?.label).toBe('Custom Chinese Font');
+    expect(sample?.template.fonts).toEqual(expect.arrayContaining([
+      expect.objectContaining({
+        id: 'example-custom-chinese',
+        name: '示例自定义中文字体',
+        family: 'Microsoft YaHei UI',
+      }),
+    ]));
+    expect(textComponents.length).toBeGreaterThan(0);
+    expect(textComponents.every(component => component.font.family === 'Microsoft YaHei UI')).toBe(true);
+
+    const document = renderReport(sample!.template, sample!.data);
+    expect(document.fonts?.map(font => font.name)).toEqual(expect.arrayContaining(['示例自定义中文字体']));
+    expect(document.pages.flatMap(page => page.items).flatMap(item => item.components).map((component: any) => component.content)).toEqual(
+      expect.arrayContaining(['自定义中文字体示例']),
+    );
+  });
 });

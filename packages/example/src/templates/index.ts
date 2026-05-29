@@ -2,6 +2,7 @@ import employees from '../fixtures/json/employees.json';
 import orders from '../fixtures/json/orders.json';
 import { commonComponentsDetailTemplate, commonComponentsTemplate } from './common-components';
 import { chartsTemplate } from './charts';
+import { customChineseFontTemplate } from './custom-chinese-font';
 import { eventLogicTemplate, eventOrdersData } from './event-logic';
 import { groupedEmployeesTemplate } from './grouped-employees';
 import { invoiceTemplate } from './invoice';
@@ -50,6 +51,7 @@ export const sampleReports = [
   { key: 'invoice', label: 'Invoice', template: invoiceTemplate, data: sampleReportData },
   { key: 'tableDetail', label: 'Table Detail', template: tableDetailTemplate, data: sampleReportData },
   { key: 'masterDetailOrders', label: 'Master Detail Orders', template: masterDetailOrdersTemplate, data: sampleReportData },
+  { key: 'customChineseFont', label: 'Custom Chinese Font', template: customChineseFontTemplate, data: sampleReportData },
   { key: 'longTextPagination', label: 'Long Text Pagination', template: longTextPaginationTemplate, data: sampleReportData },
   {
     key: 'commonComponents',
@@ -65,6 +67,7 @@ export {
   commonComponentsDetailTemplate,
   commonComponentsTemplate,
   chartsTemplate,
+  customChineseFontTemplate,
   eventLogicTemplate,
   groupedEmployeesTemplate,
   invoiceTemplate,
