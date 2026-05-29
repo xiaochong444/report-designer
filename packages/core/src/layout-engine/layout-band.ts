@@ -70,10 +70,26 @@ export function createLayoutEventState(): LayoutEventState {
 }
 
 export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBox {
+  const behavior = band.behavior ?? {
+    enabled: true,
+    printOn: 'allPages' as const,
+    printIfEmpty: true,
+    printOnAllPages: band.type === 'pageHeader' || band.type === 'pageFooter' || band.type === 'groupHeader',
+    keepTogether: false,
+    canBreak: band.type === 'data' || band.type === 'child',
+    printAtBottom: band.type === 'pageFooter',
+    autoGrow: true,
+    autoShrink: false,
+  };
   const components = band.components
     .map((component) => layoutComponentWithEvents(component, band, options))
     .filter((component): component is RenderComponentBox => Boolean(component));
-  const contentHeight = components.reduce((height, component) => Math.max(height, component.y - options.y + component.height), band.height);
+  const contentHeight = components.reduce((height, component) => Math.max(height, component.y - options.y + component.height), 0);
+  const fixedHeight = Math.max(0, band.height);
+  const resolvedHeight = behavior.autoGrow === false
+    ? fixedHeight
+    : Math.max(fixedHeight, contentHeight);
+  const finalHeight = behavior.autoShrink && contentHeight < resolvedHeight ? contentHeight : resolvedHeight;
 
   return {
     id: `${band.id}-${options.y}`,
@@ -82,9 +98,9 @@ export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBo
     x: options.x,
     y: options.y,
     width: options.width,
-    height: Math.max(band.height, contentHeight),
+    height: finalHeight,
     components,
-    overflow: components.some((component) => component.overflow),
+    overflow: components.some((component) => component.overflow) || (behavior.autoGrow === false && contentHeight > fixedHeight),
   };
 }
 

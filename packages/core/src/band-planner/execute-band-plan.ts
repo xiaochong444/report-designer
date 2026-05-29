@@ -259,5 +259,7 @@ function getBandBehavior(band: Band): NonNullable<Band['behavior']> {
     keepTogether: false,
     canBreak: band.type === 'data' || band.type === 'child',
     printAtBottom: band.type === 'pageFooter',
+    autoGrow: true,
+    autoShrink: false,
   };
 }

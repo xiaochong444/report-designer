@@ -377,4 +377,54 @@ describe('phase 35 band contracts', () => {
 
     expect(document.pages[0].items.map(item => item.bandId)).toEqual(['data']);
   });
+
+  it('keeps band height fixed and clips overflow when autoGrow is false', () => {
+    const template = makeTemplate([
+      band('fixed-header', 'pageHeader', {
+        height: 10,
+        behavior: { enabled: true, printOn: 'allPages', printIfEmpty: true, printOnAllPages: false, keepTogether: false, canBreak: false, printAtBottom: false, autoGrow: false, autoShrink: false } as any,
+        components: [{
+          id: 'fixed-text',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 24,
+          text: 'Tall content',
+          ...textBase,
+        }],
+      }),
+    ]);
+
+    const document = renderReport(template, {});
+    const bandBox = document.pages[0].items.find(item => item.bandId === 'fixed-header');
+
+    expect(bandBox?.height).toBe(10);
+    expect(bandBox?.overflow).toBe(true);
+  });
+
+  it('shrinks band height to rendered content when autoShrink is true', () => {
+    const template = makeTemplate([
+      band('shrunk-header', 'pageHeader', {
+        height: 24,
+        behavior: { enabled: true, printOn: 'allPages', printIfEmpty: true, printOnAllPages: false, keepTogether: false, canBreak: false, printAtBottom: false, autoGrow: true, autoShrink: true } as any,
+        components: [{
+          id: 'shrunk-text',
+          type: 'text',
+          x: 0,
+          y: 0,
+          width: 50,
+          height: 8,
+          text: 'Short content',
+          ...textBase,
+        }],
+      }),
+    ]);
+
+    const document = renderReport(template, {});
+    const bandBox = document.pages[0].items.find(item => item.bandId === 'shrunk-header');
+
+    expect(bandBox?.height).toBe(8);
+    expect(bandBox?.overflow).toBeFalsy();
+  });
 });

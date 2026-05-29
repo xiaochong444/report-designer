@@ -96,6 +96,8 @@ function normalizeBand(band: Band): Band {
       keepTogether: false,
       canBreak: band.type === 'data' || band.type === 'child',
       printAtBottom: band.type === 'pageFooter',
+      autoGrow: true,
+      autoShrink: false,
     },
     dataBand,
     group,

@@ -36,14 +36,17 @@ export const BandPropertyGrid: React.FC = () => {
   const sortRules = band.dataBand?.sort ?? [];
   const isDataBand = band.type === 'data' || band.type === 'hierarchicalData';
   const isGroupBand = band.type === 'groupHeader' || band.type === 'groupFooter';
+  const supportsPrintOnAllPages = band.type === 'header' || band.type === 'columnHeader' || band.type === 'groupHeader';
+  const supportsPrintAtBottom = band.type !== 'pageHeader' && band.type !== 'pageFooter' && band.type !== 'overlay';
+  const supportsBreakIfLessThan = supportsPrintAtBottom;
   const behavior = {
     enabled: true,
     printOn: 'allPages' as const,
     printIfEmpty: true,
     printOnAllPages: band.type === 'pageHeader' || band.type === 'pageFooter' || band.type === 'groupHeader',
-    keepTogether: false,
-    canBreak: band.type === 'data' || band.type === 'child',
     printAtBottom: band.type === 'pageFooter',
+    autoGrow: true,
+    autoShrink: false,
     ...band.behavior,
   };
   const pendingTarget = pendingEventEditorTarget?.ownerType === 'band' && pendingEventEditorTarget.ownerId === band?.id
@@ -304,31 +307,37 @@ export const BandPropertyGrid: React.FC = () => {
                   onChange={(printOn: BandPrintOn) => updateBehavior({ printOn })}
                 />
               </Form.Item>
-              <Form.Item label={t('bandProperties.printOnAllPages')}>
+              {supportsPrintOnAllPages && (
+                <Form.Item label={t('bandProperties.printOnAllPages')}>
                 <Switch aria-label={t('bandProperties.printOnAllPages')} checked={behavior.printOnAllPages} onChange={printOnAllPages => updateBehavior({ printOnAllPages })} />
-              </Form.Item>
-              <Form.Item label={t('bandProperties.keepTogether')}>
-                <Switch aria-label={t('bandProperties.keepTogether')} checked={behavior.keepTogether} onChange={keepTogether => updateBehavior({ keepTogether })} />
-              </Form.Item>
-              <Form.Item label={t('bandProperties.canBreak')}>
-                <Switch aria-label={t('bandProperties.canBreak')} checked={behavior.canBreak} onChange={canBreak => updateBehavior({ canBreak })} />
-              </Form.Item>
-              <Form.Item label={t('bandProperties.printAtBottom')}>
+                </Form.Item>
+              )}
+              {supportsPrintAtBottom && (
+                <Form.Item label={t('bandProperties.printAtBottom')}>
                 <Switch aria-label={t('bandProperties.printAtBottom')} checked={behavior.printAtBottom} onChange={printAtBottom => updateBehavior({ printAtBottom })} />
-              </Form.Item>
+                </Form.Item>
+              )}
               <Form.Item label={t('bandProperties.printIfEmpty')}>
                 <Switch aria-label={t('bandProperties.printIfEmpty')} checked={behavior.printIfEmpty} onChange={printIfEmpty => updateBehavior({ printIfEmpty })} />
               </Form.Item>
-              <Form.Item label={t('bandProperties.breakIfLessThan')}>
-                <InputNumber
-                  aria-label={t('bandProperties.breakIfLessThan')}
-                  value={formatUnitValue(behavior.breakIfLessThan ?? 0, reportUnit)}
-                  min={0}
-                  step={unitStep}
-                  style={{ width: '100%' }}
-                  onChange={value => updateBehavior({ breakIfLessThan: parseUnitValue(value, reportUnit, behavior.breakIfLessThan ?? 0) })}
-                />
+              <Form.Item label={t('bandProperties.autoGrow')}>
+                <Switch aria-label={t('bandProperties.autoGrow')} checked={behavior.autoGrow !== false} onChange={autoGrow => updateBehavior({ autoGrow })} />
               </Form.Item>
+              <Form.Item label={t('bandProperties.autoShrink')}>
+                <Switch aria-label={t('bandProperties.autoShrink')} checked={behavior.autoShrink ?? false} onChange={autoShrink => updateBehavior({ autoShrink })} />
+              </Form.Item>
+              {supportsBreakIfLessThan && (
+                <Form.Item label={t('bandProperties.breakIfLessThan')}>
+                  <InputNumber
+                    aria-label={t('bandProperties.breakIfLessThan')}
+                    value={formatUnitValue(behavior.breakIfLessThan ?? 0, reportUnit)}
+                    min={0}
+                    step={unitStep}
+                    style={{ width: '100%' }}
+                    onChange={value => updateBehavior({ breakIfLessThan: parseUnitValue(value, reportUnit, behavior.breakIfLessThan ?? 0) })}
+                  />
+                </Form.Item>
+              )}
             </Form>
           ),
         },

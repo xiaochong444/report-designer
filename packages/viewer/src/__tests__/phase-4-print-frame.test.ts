@@ -188,10 +188,19 @@ describe('Phase 4 print frame', () => {
   it('renders component coordinates relative to their containing band', () => {
     const html = buildPrintHtml(makeRenderDocument());
 
-    expect(html).toContain('class="rd-print-band" style="left:20mm;top:20mm;width:170mm;height:20mm;"');
+    expect(html).toContain('class="rd-print-band" style="left:20mm;top:20mm;width:170mm;height:20mm;overflow:visible;"');
     expect(html).toContain('class="rd-print-component');
     expect(html).toContain('left:5mm;top:5mm');
     expect(html).not.toContain('left:25mm;top:25mm');
+  });
+
+  it('clips print band overflow when the render document marks the band as overflowing', () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].overflow = true;
+
+    const html = buildPrintHtml(document);
+
+    expect(html).toContain('height:20mm;overflow:hidden;');
   });
 
   it('prints rich text html and image components from the render document', () => {

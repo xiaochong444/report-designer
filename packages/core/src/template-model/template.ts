@@ -168,6 +168,8 @@ function createBandBehavior(type: Band['type']): Band['behavior'] {
     keepTogether: false,
     canBreak: type === 'data' || type === 'child',
     printAtBottom: type === 'pageFooter',
+    autoGrow: true,
+    autoShrink: false,
   };
 }
 

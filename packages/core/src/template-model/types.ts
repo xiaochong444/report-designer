@@ -462,10 +462,12 @@ export interface BandBehavior {
   printOn: BandPrintOn;
   printIfEmpty: boolean;
   printOnAllPages: boolean;
-  keepTogether: boolean;
-  canBreak: boolean;
+  keepTogether?: boolean;
+  canBreak?: boolean;
   breakIfLessThan?: number;
   printAtBottom: boolean;
+  autoGrow?: boolean;
+  autoShrink?: boolean;
 }
 
 export interface DataBandOptions {

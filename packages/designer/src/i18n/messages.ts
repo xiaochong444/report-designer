@@ -401,11 +401,11 @@ export type DesignerMessageKey =
   | 'bandProperties.groupName'
   | 'bandProperties.groupExpression'
   | 'bandProperties.printOnAllPages'
-  | 'bandProperties.keepTogether'
-  | 'bandProperties.canBreak'
   | 'bandProperties.printAtBottom'
   | 'bandProperties.printIfEmpty'
   | 'bandProperties.breakIfLessThan'
+  | 'bandProperties.autoGrow'
+  | 'bandProperties.autoShrink'
   | 'tableCell.properties'
   | 'tableCell.range'
   | 'tableCell.text'
@@ -1032,11 +1032,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'bandProperties.groupName': '分组名称',
     'bandProperties.groupExpression': '分组表达式',
     'bandProperties.printOnAllPages': '每页重复打印',
-    'bandProperties.keepTogether': '保持整体',
-    'bandProperties.canBreak': '允许跨页',
     'bandProperties.printAtBottom': '打印在底部',
     'bandProperties.printIfEmpty': '空数据时打印',
     'bandProperties.breakIfLessThan': '不足高度换页',
+    'bandProperties.autoGrow': '自动伸展',
+    'bandProperties.autoShrink': '自动收缩',
     'tableCell.properties': '单元格属性',
     'tableCell.range': '范围',
     'tableCell.text': '文本内容',
@@ -1660,11 +1660,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'bandProperties.groupName': 'Group Name',
     'bandProperties.groupExpression': 'Group Expression',
     'bandProperties.printOnAllPages': 'Repeat on Each Page',
-    'bandProperties.keepTogether': 'Keep Together',
-    'bandProperties.canBreak': 'Can Break',
     'bandProperties.printAtBottom': 'Print at Bottom',
     'bandProperties.printIfEmpty': 'Print if Empty',
     'bandProperties.breakIfLessThan': 'Break if Less Than',
+    'bandProperties.autoGrow': 'Auto Grow',
+    'bandProperties.autoShrink': 'Auto Shrink',
     'tableCell.properties': 'Cell Properties',
     'tableCell.range': 'Range',
     'tableCell.text': 'Text Content',

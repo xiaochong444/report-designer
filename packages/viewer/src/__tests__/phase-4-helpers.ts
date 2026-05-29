@@ -92,6 +92,8 @@ function band(
       keepTogether: false,
       canBreak: true,
       printAtBottom: type === 'pageFooter',
+      autoGrow: true,
+      autoShrink: false,
     },
     ...overrides,
   };

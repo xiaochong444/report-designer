@@ -13,7 +13,7 @@ export function buildPrintHtml(document: RenderDocument): string {
     <div class="rd-print-page" style="width:${page.width}mm;height:${page.height}mm;background-color:${safeCssColor(page.backgroundColor, '#fff')};">
       ${page.watermark?.showBehind === false ? '' : renderPageWatermarkHtml(page.watermark)}
       ${page.items.map((band) => `
-        <div class="rd-print-band" style="left:${band.x}mm;top:${band.y}mm;width:${band.width}mm;height:${band.height}mm;">
+        <div class="rd-print-band" style="left:${band.x}mm;top:${band.y}mm;width:${band.width}mm;height:${band.height}mm;overflow:${band.overflow ? 'hidden' : 'visible'};">
           ${band.components.map(component => renderComponentHtml(component, band.x, band.y)).join('')}
         </div>
       `).join('')}

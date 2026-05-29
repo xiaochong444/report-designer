@@ -48,6 +48,8 @@ export function band(
       keepTogether: false,
       canBreak: true,
       printAtBottom: false,
+      autoGrow: true,
+      autoShrink: false,
     },
     ...overrides,
   };

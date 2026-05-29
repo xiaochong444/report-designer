@@ -94,17 +94,32 @@ describe('phase 35 band properties', () => {
       </DesignerI18nProvider>,
     );
 
-    fireEvent.click(screen.getByLabelText('每页重复打印'));
-    fireEvent.click(screen.getByLabelText('保持整体'));
+    fireEvent.click(screen.getByLabelText('自动伸展'));
+    fireEvent.click(screen.getByLabelText('自动收缩'));
     fireEvent.click(screen.getByLabelText('打印在底部'));
     fireEvent.change(screen.getByLabelText('不足高度换页'), { target: { value: '12' } });
 
     expect(selectedBand()?.behavior).toMatchObject({
-      printOnAllPages: true,
-      keepTogether: true,
+      autoGrow: false,
+      autoShrink: true,
       printAtBottom: true,
       breakIfLessThan: 12,
     });
+  });
+
+  it('hides band behavior controls that do not affect the selected band type', () => {
+    loadSelectedDataBand();
+    render(
+      <DesignerI18nProvider locale="zh-CN">
+        <BandPropertyGrid />
+      </DesignerI18nProvider>,
+    );
+
+    expect(screen.getByLabelText('自动伸展')).toBeInTheDocument();
+    expect(screen.getByLabelText('自动收缩')).toBeInTheDocument();
+    expect(screen.queryByLabelText('每页重复打印')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('保持整体')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('允许跨页')).not.toBeInTheDocument();
   });
 
   it('localizes band behavior controls to English', () => {
@@ -116,7 +131,8 @@ describe('phase 35 band properties', () => {
     );
 
     expect(screen.getByText('Pagination / Print Behavior')).toBeInTheDocument();
-    expect(screen.getByLabelText('Can Break')).toBeInTheDocument();
+    expect(screen.getByLabelText('Auto Grow')).toBeInTheDocument();
+    expect(screen.getByLabelText('Auto Shrink')).toBeInTheDocument();
     expect(screen.queryByText('分页/打印行为')).not.toBeInTheDocument();
   });
 });

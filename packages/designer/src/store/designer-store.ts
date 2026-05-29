@@ -1715,6 +1715,8 @@ function createBandBehavior(type: BandType): NonNullable<Band['behavior']> {
     canBreak: type === 'data' || type === 'hierarchicalData' || type === 'child',
     breakIfLessThan: undefined,
     printAtBottom: type === 'pageFooter',
+    autoGrow: true,
+    autoShrink: false,
   };
 }
 

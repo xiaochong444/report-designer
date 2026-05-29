@@ -81,6 +81,7 @@ const RenderPageView = React.forwardRef<HTMLDivElement, { page: RenderPage; zoom
             width: band.width * MM_TO_PX * scale,
             height: band.height * MM_TO_PX * scale,
             zIndex: 2,
+            overflow: band.overflow ? 'hidden' : 'visible',
           }}
         >
           {band.components.map((component) => (
