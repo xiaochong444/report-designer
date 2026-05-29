@@ -1,6 +1,8 @@
 import React from 'react';
 import { Input } from 'antd';
 
+const { Search } = Input;
+
 interface PanelSearchBoxProps {
   placeholder: string;
   value: string;
@@ -8,12 +10,14 @@ interface PanelSearchBoxProps {
 }
 
 export const PanelSearchBox: React.FC<PanelSearchBoxProps> = ({ placeholder, value, onChange }) => (
-  <Input.Search
+  <Search
     allowClear
     size="small"
+    aria-label={placeholder}
     placeholder={placeholder}
     value={value}
     onChange={(event) => onChange(event.target.value)}
     className="rd-panel-search"
+    style={{ width: '100%' }}
   />
 );

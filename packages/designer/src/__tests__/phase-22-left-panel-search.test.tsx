@@ -69,17 +69,24 @@ function makeTemplate(): ReportTemplate {
   return template;
 }
 
+function expectAntdSearch(input: HTMLElement) {
+  const searchRoot = input.closest('.ant-input-search');
+  expect(searchRoot).toBeTruthy();
+  expect(searchRoot).toHaveClass('rd-panel-search');
+  expect(searchRoot?.querySelector('.ant-input-search-btn')).toBeTruthy();
+}
+
 describe('Phase 22 left panel search consistency', () => {
   it('uses the shared search shell for components, dictionary, and report tree', async () => {
     render(<Designer template={makeTemplate()} locale="en-US" />);
 
-    expect((await screen.findByPlaceholderText('Search report tree')).closest('.rd-panel-search')).toBeTruthy();
+    expectAntdSearch(await screen.findByPlaceholderText('Search report tree'));
 
     fireEvent.click(screen.getByRole('tab', { name: /Components/ }));
-    expect((await screen.findByPlaceholderText('Search components')).closest('.rd-panel-search')).toBeTruthy();
+    expectAntdSearch(await screen.findByPlaceholderText('Search components'));
 
     fireEvent.click(screen.getByRole('tab', { name: /Dictionary/ }));
-    expect((await screen.findByPlaceholderText('Search data sources and fields')).closest('.rd-panel-search')).toBeTruthy();
+    expectAntdSearch(await screen.findByPlaceholderText('Search data sources and fields'));
   });
 
   it('filters report tree nodes by band and component names while keeping ancestors visible', async () => {
