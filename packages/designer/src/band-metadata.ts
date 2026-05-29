@@ -16,7 +16,6 @@ export const SUPPORTED_INSERT_BAND_TYPES = [
   'footer',
   'pageFooter',
   'reportSummary',
-  'overlay',
 ] as const satisfies readonly BandType[];
 
 export const BAND_LABEL_KEYS: Record<BandType, DesignerMessageKey> = {

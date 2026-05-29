@@ -46,7 +46,6 @@ const SUPPORTED_INSERT_BANDS: Array<{ type: BandType; label: string; color: stri
   { type: 'footer', label: 'FooterBand', color: '#2563eb', glyph: 'footer' },
   { type: 'pageFooter', label: 'PageFooterBand', color: '#1565c0', glyph: 'page-footer' },
   { type: 'reportSummary', label: 'ReportSummaryBand', color: '#6b4423', glyph: 'report-summary' },
-  { type: 'overlay', label: 'OverlayBand', color: '#7e22ce', glyph: 'overlay' },
 ];
 
 describe('Phase 43 band insert menu metadata', () => {
@@ -61,6 +60,7 @@ describe('Phase 43 band insert menu metadata', () => {
     const menu = screen.getByRole('menu');
     const menuItems = within(menu).getAllByRole('menuitem');
     expect(menuItems.map(item => item.textContent)).toEqual(SUPPORTED_INSERT_BANDS.map(item => item.label));
+    expect(screen.queryByRole('menuitem', { name: 'OverlayBand' })).not.toBeInTheDocument();
 
     const glyphIds = new Set<string>();
     for (const band of SUPPORTED_INSERT_BANDS) {
