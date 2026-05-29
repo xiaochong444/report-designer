@@ -53,7 +53,45 @@ describe('phase 35 band properties', () => {
     });
   });
 
-  it('shows group properties only for group header bands', () => {
+  it('uses component-like horizontal property rows for band sections', () => {
+    loadSelectedDataBand();
+    render(
+      <DesignerI18nProvider locale="zh-CN">
+        <BandPropertyGrid />
+      </DesignerI18nProvider>,
+    );
+
+    expect(screen.getByTestId('band-properties-basic-form')).toHaveClass('ant-form-horizontal');
+    expect(screen.getByTestId('band-properties-data-form')).toHaveClass('ant-form-horizontal');
+    expect(screen.getByTestId('band-properties-behavior-form')).toHaveClass('ant-form-horizontal');
+  });
+
+  it('opens the shared expression editor from band expression fields and applies the edited value', async () => {
+    loadSelectedDataBand();
+    render(
+      <DesignerI18nProvider locale="zh-CN">
+        <BandPropertyGrid />
+      </DesignerI18nProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: '打开表达式编辑器：可见表达式' }));
+    fireEvent.change(screen.getByPlaceholderText('{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}'), {
+      target: { value: '{Parameters.VisibleBand}' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /确\s*定/ }));
+
+    expect(selectedBand()?.behavior?.visibleExpression).toBe('{Parameters.VisibleBand}');
+
+    fireEvent.click(screen.getByRole('button', { name: '打开表达式编辑器：过滤表达式' }));
+    fireEvent.change(screen.getByPlaceholderText('{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}'), {
+      target: { value: '{Orders.Amount} > 100' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /确\s*定/ }));
+
+    expect(selectedBand()?.dataBand?.filterExpression).toBe('{Orders.Amount} > 100');
+  });
+
+  it('shows group properties only for group header bands', async () => {
     const template = createDefaultTemplate('Band Properties');
     const page = template.pages[0];
     const groupBand = {
@@ -79,10 +117,15 @@ describe('phase 35 band properties', () => {
 
     fireEvent.change(screen.getByLabelText('分组名称'), { target: { value: '按部门' } });
     fireEvent.change(screen.getByLabelText('分组表达式'), { target: { value: '{Employees.Team}' } });
+    fireEvent.click(screen.getByRole('button', { name: '打开表达式编辑器：分组表达式' }));
+    fireEvent.change(screen.getByPlaceholderText('{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}'), {
+      target: { value: '{Employees.Department}' },
+    });
+    fireEvent.click(await screen.findByRole('button', { name: /确\s*定/ }));
 
     expect(selectedBand()?.group).toMatchObject({
       name: '按部门',
-      conditionExpression: '{Employees.Team}',
+      conditionExpression: '{Employees.Department}',
     });
   });
 

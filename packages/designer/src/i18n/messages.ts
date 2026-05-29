@@ -400,6 +400,7 @@ export type DesignerMessageKey =
   | 'bandProperties.filterExpression'
   | 'bandProperties.groupName'
   | 'bandProperties.groupExpression'
+  | 'bandProperties.openExpressionEditorFor'
   | 'bandProperties.printOnAllPages'
   | 'bandProperties.printAtBottom'
   | 'bandProperties.printIfEmpty'
@@ -1031,6 +1032,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'bandProperties.filterExpression': '过滤表达式',
     'bandProperties.groupName': '分组名称',
     'bandProperties.groupExpression': '分组表达式',
+    'bandProperties.openExpressionEditorFor': '打开表达式编辑器：{field}',
     'bandProperties.printOnAllPages': '每页重复打印',
     'bandProperties.printAtBottom': '打印在底部',
     'bandProperties.printIfEmpty': '空数据时打印',
@@ -1659,6 +1661,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'bandProperties.filterExpression': 'Filter Expression',
     'bandProperties.groupName': 'Group Name',
     'bandProperties.groupExpression': 'Group Expression',
+    'bandProperties.openExpressionEditorFor': 'Open expression editor: {field}',
     'bandProperties.printOnAllPages': 'Repeat on Each Page',
     'bandProperties.printAtBottom': 'Print at Bottom',
     'bandProperties.printIfEmpty': 'Print if Empty',

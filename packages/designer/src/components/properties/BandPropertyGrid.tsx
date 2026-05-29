@@ -1,12 +1,15 @@
 import React from 'react';
 import { Button, Collapse, Form, Input, InputNumber, Select, Space, Switch, Typography } from 'antd';
-import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined } from '@ant-design/icons';
+import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import type { BandPrintOn, DataBandOptions, DataField, GroupBandOptions } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../../page-settings';
 import { useDesignerI18n, type DesignerMessageKey } from '../../i18n';
 import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDialog';
 import { buildEventEditorDataContext } from '../events/event-editor-utils';
+import { ExpressionEditor } from '../ExpressionEditor';
+
+type BandExpressionTarget = 'visibleExpression' | 'filterExpression' | 'groupExpression';
 
 export const BandPropertyGrid: React.FC = () => {
   const { t } = useDesignerI18n();
@@ -20,6 +23,7 @@ export const BandPropertyGrid: React.FC = () => {
   const consumeEventEditorTarget = useDesignerStore(s => s.consumeEventEditorTarget);
   const [eventEditorOpen, setEventEditorOpen] = React.useState(false);
   const [eventEditorTarget, setEventEditorTarget] = React.useState<typeof pendingEventEditorTarget>(null);
+  const [expressionTarget, setExpressionTarget] = React.useState<{ field: BandExpressionTarget; label: string } | null>(null);
   const page = template.pages.find(item => item.id === currentPageId) ?? template.pages[0];
   const band = page?.bands.find(item => item.id === selectedBandId);
 
@@ -106,9 +110,30 @@ export const BandPropertyGrid: React.FC = () => {
       sort,
     }));
   };
+  const expressionValue = expressionTarget ? getBandExpressionValue(expressionTarget.field, band, behavior) : '';
+  const applyExpressionValue = (value: string) => {
+    if (!expressionTarget) return;
+    switch (expressionTarget.field) {
+      case 'visibleExpression':
+        updateBehavior({ visibleExpression: value });
+        break;
+      case 'filterExpression':
+        updateBandDataBand(dataBand => ({ ...dataBand, filterExpression: value }));
+        break;
+      case 'groupExpression':
+        updateBandGroup(group => ({ ...group, conditionExpression: value }));
+        break;
+    }
+  };
 
   return (
     <Space orientation="vertical" size={10} style={{ width: '100%' }}>
+      <ExpressionEditor
+        open={Boolean(expressionTarget)}
+        value={expressionValue}
+        onChange={applyExpressionValue}
+        onClose={() => setExpressionTarget(null)}
+      />
       <EventEditorDialog
         open={eventEditorOpen}
         targetType="band"
@@ -136,7 +161,7 @@ export const BandPropertyGrid: React.FC = () => {
             key: 'basic',
             label: t('bandProperties.basic'),
             children: (
-              <Form layout="vertical" size="small">
+              <Form data-testid="band-properties-basic-form" layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
                 <Form.Item label={t('bandProperties.id')}>
                   <Input aria-label={t('bandProperties.id')} value={band.id} readOnly />
                 </Form.Item>
@@ -162,24 +187,34 @@ export const BandPropertyGrid: React.FC = () => {
             label: t('bandProperties.data'),
             children: (
               <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-                <Select
-                  aria-label={t('dataBand.dataSource')}
-                  value={dataSourceId}
-                  placeholder={t('dataBand.dataSource')}
-                  allowClear
-                  options={template.dataSources.map(source => ({ value: source.id, label: source.name || source.id }))}
-                  onChange={value => updateBandDataBand(dataBand => ({
-                    ...dataBand,
-                    dataSourceId: value,
-                    sort: [],
-                  }))}
-                />
-                <Input
-                  aria-label={t('bandProperties.filterExpression')}
-                  value={band.dataBand?.filterExpression ?? ''}
-                  placeholder="{Orders.Amount} > 0"
-                  onChange={event => updateBandDataBand(dataBand => ({ ...dataBand, filterExpression: event.target.value }))}
-                />
+                <Form data-testid="band-properties-data-form" layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+                  <Form.Item label={t('dataBand.dataSource')}>
+                    <Select
+                      aria-label={t('dataBand.dataSource')}
+                      value={dataSourceId}
+                      placeholder={t('dataBand.dataSource')}
+                      allowClear
+                      size="small"
+                      style={{ width: '100%' }}
+                      options={template.dataSources.map(source => ({ value: source.id, label: source.name || source.id }))}
+                      onChange={value => updateBandDataBand(dataBand => ({
+                        ...dataBand,
+                        dataSourceId: value,
+                        sort: [],
+                      }))}
+                    />
+                  </Form.Item>
+                  <Form.Item label={t('bandProperties.filterExpression')}>
+                    <BandExpressionField
+                      label={t('bandProperties.filterExpression')}
+                      value={band.dataBand?.filterExpression ?? ''}
+                      placeholder="{Orders.Amount} > 0"
+                      onChange={value => updateBandDataBand(dataBand => ({ ...dataBand, filterExpression: value }))}
+                      onOpen={() => setExpressionTarget({ field: 'filterExpression', label: t('bandProperties.filterExpression') })}
+                      t={t}
+                    />
+                  </Form.Item>
+                </Form>
                 <Space data-testid="databand-sort-rules" orientation="vertical" size={8} style={{ width: '100%' }}>
                   <Space style={{ width: '100%', justifyContent: 'space-between' }}>
                     <Typography.Text type="secondary">{t('dataBand.sort.title')}</Typography.Text>
@@ -264,7 +299,7 @@ export const BandPropertyGrid: React.FC = () => {
             key: 'group',
             label: t('bandProperties.group'),
             children: (
-              <Form layout="vertical" size="small">
+              <Form data-testid="band-properties-group-form" layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
                 <Form.Item label={t('bandProperties.groupName')}>
                   <Input
                     aria-label={t('bandProperties.groupName')}
@@ -273,11 +308,13 @@ export const BandPropertyGrid: React.FC = () => {
                   />
                 </Form.Item>
                 <Form.Item label={t('bandProperties.groupExpression')}>
-                  <Input
-                    aria-label={t('bandProperties.groupExpression')}
+                  <BandExpressionField
+                    label={t('bandProperties.groupExpression')}
                     value={band.group?.conditionExpression ?? ''}
                     placeholder="{Orders.CustomerId}"
-                    onChange={event => updateBandGroup(group => ({ ...group, conditionExpression: event.target.value }))}
+                    onChange={value => updateBandGroup(group => ({ ...group, conditionExpression: value }))}
+                    onOpen={() => setExpressionTarget({ field: 'groupExpression', label: t('bandProperties.groupExpression') })}
+                    t={t}
                   />
                 </Form.Item>
               </Form>
@@ -287,22 +324,26 @@ export const BandPropertyGrid: React.FC = () => {
           key: 'behavior',
           label: t('bandProperties.behavior'),
           children: (
-            <Form layout="horizontal" size="small" labelCol={{ span: 12 }} wrapperCol={{ span: 12 }}>
+            <Form data-testid="band-properties-behavior-form" layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
               <Form.Item label={t('bandProperties.enabled')}>
                 <Switch aria-label={t('bandProperties.enabled')} checked={behavior.enabled} onChange={enabled => updateBehavior({ enabled })} />
               </Form.Item>
-              <Form.Item label={t('bandProperties.visibleExpression')} labelCol={{ span: 24 }} wrapperCol={{ span: 24 }}>
-                <Input
-                  aria-label={t('bandProperties.visibleExpression')}
+              <Form.Item label={t('bandProperties.visibleExpression')}>
+                <BandExpressionField
+                  label={t('bandProperties.visibleExpression')}
                   value={behavior.visibleExpression ?? ''}
                   placeholder="{Orders.ShowDetails}"
-                  onChange={event => updateBehavior({ visibleExpression: event.target.value })}
+                  onChange={value => updateBehavior({ visibleExpression: value })}
+                  onOpen={() => setExpressionTarget({ field: 'visibleExpression', label: t('bandProperties.visibleExpression') })}
+                  t={t}
                 />
               </Form.Item>
-              <Form.Item label={t('bandProperties.printOn')} labelCol={{ span: 24 }} wrapperCol={{ span: 24 }}>
+              <Form.Item label={t('bandProperties.printOn')}>
                 <Select
                   aria-label={t('bandProperties.printOn')}
                   value={behavior.printOn}
+                  size="small"
+                  style={{ width: '100%' }}
                   options={printOnOptions(t)}
                   onChange={(printOn: BandPrintOn) => updateBehavior({ printOn })}
                 />
@@ -411,3 +452,47 @@ function moveRule<T>(rules: T[], from: number, to: number): T[] {
   next.splice(to, 0, item);
   return next;
 }
+
+function getBandExpressionValue(
+  field: BandExpressionTarget,
+  band: { dataBand?: DataBandOptions; group?: GroupBandOptions },
+  behavior: { visibleExpression?: string },
+): string {
+  switch (field) {
+    case 'visibleExpression':
+      return behavior.visibleExpression ?? '';
+    case 'filterExpression':
+      return band.dataBand?.filterExpression ?? '';
+    case 'groupExpression':
+      return band.group?.conditionExpression ?? '';
+  }
+}
+
+const BandExpressionField: React.FC<{
+  label: string;
+  value: string;
+  placeholder: string;
+  onChange: (value: string) => void;
+  onOpen: () => void;
+  t: (key: DesignerMessageKey, values?: Record<string, string | number>) => string;
+}> = ({ label, onChange, onOpen, placeholder, t, value }) => {
+  const title = t('bandProperties.openExpressionEditorFor', { field: label });
+  return (
+    <Space.Compact style={{ width: '100%' }}>
+      <Input
+        aria-label={label}
+        value={value}
+        placeholder={placeholder}
+        size="small"
+        onChange={event => onChange(event.target.value)}
+      />
+      <Button
+        aria-label={title}
+        title={title}
+        icon={<EditOutlined />}
+        onClick={onOpen}
+        style={{ width: 32 }}
+      />
+    </Space.Compact>
+  );
+};
