@@ -131,8 +131,11 @@ describe('example sample paper defaults', () => {
     const sample = sampleReports.find(report => report.key === 'customChineseFont');
     const components = sample?.template.pages.flatMap(page => page.bands.flatMap(band => band.components)) ?? [];
     const textComponents = components.filter(component => component.type === 'text') as any[];
+    const reportTitleBand = sample?.template.pages[0].bands.find(band => band.type === 'reportTitle');
 
     expect(sample?.label).toBe('Custom Chinese Font');
+    expect(sample?.template.pages[0].bands.some(band => band.type === 'data')).toBe(false);
+    expect(reportTitleBand?.components).toHaveLength(textComponents.length);
     expect(sample?.template.fonts).toEqual(expect.arrayContaining([
       expect.objectContaining({ name: '微软雅黑', family: 'Microsoft YaHei' }),
       expect.objectContaining({ name: '宋体', family: 'SimSun' }),
@@ -149,10 +152,10 @@ describe('example sample paper defaults', () => {
       'FangSong',
     ]));
 
-    const document = renderReport(sample!.template, sample!.data);
+    const document = renderReport(sample!.template, {});
     expect(document.fonts?.map(font => font.name)).toEqual(expect.arrayContaining(['微软雅黑', '宋体', '黑体', '楷体', '仿宋']));
     expect(document.pages.flatMap(page => page.items).flatMap(item => item.components).map((component: any) => component.content)).toEqual(
-      expect.arrayContaining(['常见中文字体代码注册示例']),
+      expect.arrayContaining(['常见中文字体代码注册示例', '微软雅黑：采购入库单、供应商、仓库、明细合计。']),
     );
   });
 });
