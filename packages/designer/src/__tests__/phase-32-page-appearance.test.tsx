@@ -35,6 +35,23 @@ function makeTemplate(name = '页面外观'): ReportTemplate {
   return createDefaultTemplate(name);
 }
 
+function selectAntdOption(scope: HTMLElement, label: string, optionText: string) {
+  const labelElement = within(scope).getByText(label);
+  const formItem = labelElement.closest('.ant-form-item');
+  const target = within(scope).getByLabelText(label);
+  const trigger = (
+    target.closest('.ant-select')?.querySelector('.ant-select-selector')
+    ?? target.closest('.ant-select')?.querySelector('.ant-select-content')
+    ?? target.parentElement?.querySelector('.ant-select-selector')
+    ?? target.parentElement?.querySelector('.ant-select-content')
+    ?? formItem?.querySelector('.ant-select-selector')
+    ?? formItem?.querySelector('.ant-select-content')
+  ) as HTMLElement | null;
+  if (!trigger) throw new Error(`Unable to find select trigger for ${label}`);
+  fireEvent.mouseDown(trigger);
+  fireEvent.click(screen.getByText(optionText));
+}
+
 describe('Phase 32 designer page appearance', () => {
   it('shows page appearance controls when no component is selected', () => {
     render(<Designer template={makeTemplate()} />);
@@ -92,7 +109,7 @@ describe('Phase 32 designer page appearance', () => {
 
     const pageProperties = screen.getByTestId('designer-page-properties');
     fireEvent.click(within(pageProperties).getByLabelText('启用页面边框'));
-    fireEvent.click(within(pageProperties).getByRole('radio', { name: '虚线' }));
+    selectAntdOption(pageProperties, '边框样式', '虚线');
     fireEvent.change(within(pageProperties).getByLabelText('边框颜色'), { target: { value: '#1677ff' } });
     fireEvent.change(within(pageProperties).getByLabelText('边框宽度'), { target: { value: '0.6' } });
     fireEvent.click(within(pageProperties).getByLabelText('右'));

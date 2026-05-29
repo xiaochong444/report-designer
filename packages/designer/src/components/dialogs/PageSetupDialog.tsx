@@ -250,7 +250,7 @@ const PageAppearanceDialogFields: React.FC<{
       </Typography.Text>
       <Space orientation="vertical" size={10} style={{ width: '100%' }}>
         <DialogSwitchField label={t('pageSettings.pageBorder')} ariaLabel={t('pageSettings.pageBorderEnabled')} checked={pageBorder.enabled} onChange={enabled => onPageBorderChange({ enabled })} />
-        <DialogSegmentedField
+        <DialogSelectField
           label={t('pageSettings.borderStyle')}
           ariaLabel={t('pageSettings.borderStyle')}
           value={pageBorder.style}

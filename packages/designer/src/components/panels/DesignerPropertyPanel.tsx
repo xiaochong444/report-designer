@@ -762,10 +762,11 @@ const PageAppearanceControls: React.FC<{
         />
       </Form.Item>
       <Form.Item label={t('pageSettings.borderStyle')}>
-        <Segmented
+        <Select
           aria-label={t('pageSettings.borderStyle')}
           value={pageBorder.style}
-          block
+          virtual={false}
+          style={{ width: '100%' }}
           options={[
             { value: 'solid', label: t('pageSettings.borderSolid') },
             { value: 'dashed', label: t('pageSettings.borderDashed') },
