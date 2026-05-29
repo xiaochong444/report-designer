@@ -93,4 +93,23 @@ describe('Phase 42 band insertion placement', () => {
     expect(bands.map(band => band.type)).toEqual(['reportTitle', 'pageHeader', 'data', 'pageFooter']);
     expect(useDesignerStore.getState().selectedBandId).toBeNull();
   });
+
+  it('reorders bands by dragging a band title on the canvas', () => {
+    render(<Designer template={createDefaultTemplate('Band Drag Reorder')} locale="en-US" />);
+
+    const pageHeaderTitle = screen.getByTestId('designer-band-title-pageHeader');
+    fireEvent.mouseDown(pageHeaderTitle, { clientY: 40 });
+    fireEvent.mouseMove(window, { clientY: 560 });
+    const dragPreview = screen.getByTestId('designer-band-drag-preview');
+    expect(dragPreview).toHaveTextContent('PageHeaderBand1');
+    const previewTop = dragPreview.style.top;
+    fireEvent.mouseMove(window, { clientY: 620 });
+    expect(screen.getByTestId('designer-band-drag-preview').style.top).not.toBe(previewTop);
+    fireEvent.mouseUp(window, { clientY: 560 });
+
+    const bands = useDesignerStore.getState().template.pages[0].bands;
+    expect(bands.map(band => band.type)).toEqual(['reportTitle', 'data', 'pageFooter', 'pageHeader']);
+    expect(useDesignerStore.getState().selectedBandId).toBe(bands[3].id);
+    expect(screen.queryByTestId('designer-band-drag-preview')).not.toBeInTheDocument();
+  });
 });

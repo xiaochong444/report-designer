@@ -111,6 +111,7 @@ export interface DesignerState {
   cancelBandInsert: () => void;
   insertBandAfter: (pageId: string, afterBandId: string, bandType?: BandType) => void;
   duplicateBandAfter: (pageId: string, bandId: string) => void;
+  moveBand: (pageId: string, bandId: string, targetIndex: number) => void;
   selectTableCell: (selection: TableCellSelection | null) => void;
   openEventEditorTarget: (target: DesignerEventNavigationTarget) => void;
   consumeEventEditorTarget: (requestId: number) => void;
@@ -205,6 +206,7 @@ const DEFAULT_PAGE_HEIGHT = 297;
 const UPDATE_COMPONENTS_COMMAND = 'update-components';
 const INSERT_BAND_COMMAND = 'insert-band';
 const DELETE_BAND_COMMAND = 'delete-band';
+const MOVE_BAND_COMMAND = 'move-band';
 
 const DEFAULT_BAND_HEIGHTS: Record<BandType, number> = {
   reportTitle: 40,
@@ -269,6 +271,14 @@ if (!CommandDispatcher.isAllowed(DELETE_BAND_COMMAND)) {
         };
       }),
     }),
+  );
+}
+
+if (!CommandDispatcher.isAllowed(MOVE_BAND_COMMAND)) {
+  registerCommand(
+    MOVE_BAND_COMMAND,
+    (state, payload) => moveBandInTemplate(state, payload.pageId, payload.bandId, payload.targetIndex),
+    (state, payload) => moveBandInTemplate(state, payload.pageId, payload.bandId, payload.fromIndex),
   );
 }
 
@@ -519,6 +529,36 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       template: newTemplate,
       selectedComponentIds: [],
       selectedBandId: band.id,
+      selectedTableCell: null,
+      pendingBandInsertType: null,
+    });
+  },
+
+  moveBand: (pageId, bandId, targetIndex) => {
+    const { template, dispatcher } = get();
+    const page = template.pages.find(item => item.id === pageId);
+    const fromIndex = page?.bands.findIndex(band => band.id === bandId) ?? -1;
+    if (!page || fromIndex < 0) return;
+    const normalizedTargetIndex = clampBandIndex(targetIndex, page.bands.length);
+    if (fromIndex === normalizedTargetIndex) {
+      set({
+        selectedBandId: bandId,
+        selectedComponentIds: [],
+        selectedTableCell: null,
+      });
+      return;
+    }
+
+    const newTemplate = dispatcher.execute(template, {
+      type: MOVE_BAND_COMMAND,
+      payload: { pageId, bandId, fromIndex, targetIndex: normalizedTargetIndex },
+      execute: () => template,
+      undo: () => template,
+    });
+    set({
+      template: newTemplate,
+      selectedBandId: bandId,
+      selectedComponentIds: [],
       selectedTableCell: null,
       pendingBandInsertType: null,
     });
@@ -1554,6 +1594,29 @@ function insertBandInTemplate(template: ReportTemplate, pageId: string, afterBan
           ...page.bands.slice(targetIndex + 1),
         ],
       };
+    }),
+  };
+}
+
+function clampBandIndex(index: number, length: number): number {
+  if (length <= 0) return 0;
+  if (!Number.isFinite(index)) return length - 1;
+  return Math.max(0, Math.min(Math.round(index), length - 1));
+}
+
+function moveBandInTemplate(template: ReportTemplate, pageId: string, bandId: string, targetIndex: number): ReportTemplate {
+  return {
+    ...template,
+    pages: template.pages.map(page => {
+      if (page.id !== pageId) return page;
+      const fromIndex = page.bands.findIndex(band => band.id === bandId);
+      if (fromIndex < 0) return page;
+      const normalizedTargetIndex = clampBandIndex(targetIndex, page.bands.length);
+      if (fromIndex === normalizedTargetIndex) return page;
+      const bands = [...page.bands];
+      const [band] = bands.splice(fromIndex, 1);
+      bands.splice(normalizedTargetIndex, 0, band);
+      return { ...page, bands };
     }),
   };
 }

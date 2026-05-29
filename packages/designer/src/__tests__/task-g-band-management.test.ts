@@ -75,6 +75,19 @@ describe('Task G: Band管理 + 页面设置', () => {
       expect(newPage.bands[2].id).toBe('band_data');
     });
 
+    it('should move a band to a target index and keep it selected', () => {
+      resetStore();
+      useDesignerStore.getState().selectBand('band_ph');
+
+      useDesignerStore.getState().moveBand('page_test', 'band_ph', 2);
+
+      const state = useDesignerStore.getState();
+      expect(state.template.pages[0].bands.map(band => band.id)).toEqual(['band_data', 'band_pf', 'band_ph']);
+      expect(state.selectedBandId).toBe('band_ph');
+      expect(state.selectedComponentIds).toEqual([]);
+      expect(state.selectedTableCell).toBeNull();
+    });
+
     it('should resize a band', () => {
       resetStore();
       const page = useDesignerStore.getState().template.pages[0];

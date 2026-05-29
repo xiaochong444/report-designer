@@ -38,7 +38,10 @@ type Mode =
   | { type: 'move'; compIds: string[]; bandMap: Record<string, string>; origPositions: Record<string, { x: number; y: number }>; startClientX: number; startClientY: number; dragStarted: boolean }
   | { type: 'resize'; compId: string; bandId: string; handle: ResizeHandle; startX: number; startY: number; origX: number; origY: number; origW: number; origH: number }
   | { type: 'select'; startX: number; startY: number }
-  | { type: 'band-resize'; bandId: string; startY: number; origHeight: number };
+  | { type: 'band-resize'; bandId: string; startY: number; origHeight: number }
+  | { type: 'band-sort'; bandId: string; startClientY: number; startPointerContentY: number; startVisualTop: number; fromIndex: number; targetIndex: number; dragStarted: boolean };
+
+type BandLayout = { band: Band; cumY: number; visualY: number };
 
 // ---- Alignment Guide ----
 
@@ -162,6 +165,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const updateComponentSilent = useDesignerStore(s => s.updateComponentSilent);
   const resizeBand = useDesignerStore(s => s.resizeBand);
   const resizeBandSilent = useDesignerStore(s => s.resizeBandSilent);
+  const moveBand = useDesignerStore(s => s.moveBand);
   const copySelected = useDesignerStore(s => s.copySelected);
   const cutSelected = useDesignerStore(s => s.cutSelected);
   const duplicateSelected = useDesignerStore(s => s.duplicateSelected);
@@ -187,11 +191,13 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const [contextMenu, setContextMenu] = useState<ContextMenuPos | null>(null);
   const [bandContextMenu, setBandContextMenu] = useState<BandContextMenuPos | null>(null);
   const [bandInsertPointer, setBandInsertPointer] = useState<{ x: number; y: number } | null>(null);
+  const [bandReorderTarget, setBandReorderTarget] = useState<{ bandId: string; targetIndex: number } | null>(null);
+  const [bandDragPreview, setBandDragPreview] = useState<{ bandId: string; top: number } | null>(null);
 
   const currentPage = useMemo(() => template.pages.find(p => p.id === currentPageId), [template, currentPageId]);
 
   const bands = useMemo(() => {
-    if (!currentPage) return [] as { band: Band; cumY: number; visualY: number }[];
+    if (!currentPage) return [] as BandLayout[];
     let contentY = 0;
     let visualY = 0;
     return currentPage.bands.map(band => {
@@ -232,10 +238,19 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   flatRef.current = flat;
   const othersRef = useRef(others);
   othersRef.current = others;
+  const bandsRef = useRef(bands);
+  bandsRef.current = bands;
   const currentPageIdRef = useRef(currentPageId);
   currentPageIdRef.current = currentPageId;
   const selBoxRef = useRef(selBox);
   selBoxRef.current = selBox;
+
+  const getPointerContentY = useCallback((clientY: number) => {
+    if (!pageRef.current) return 0;
+    const rect = pageRef.current.getBoundingClientRect();
+    const marginTop = mmToPx(currentPage?.margins?.top ?? 0);
+    return (clientY - rect.top) / zoom - marginTop;
+  }, [currentPage, zoom]);
 
   // ---- Hit tests ----
 
@@ -487,6 +502,20 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         const nh = Math.max(5, Math.round((m.origHeight + dy) * 10) / 10);
         resizeBandSilent(currentPageIdRef.current, m.bandId, nh);
 
+      } else if (m.type === 'band-sort') {
+        const dyPx = Math.abs(e.clientY - m.startClientY);
+        if (!m.dragStarted && dyPx < DRAG_THRESHOLD) return;
+        const pointerContentY = getPointerContentY(e.clientY);
+        const targetIndex = getBandReorderTargetIndex(bandsRef.current, m.bandId, pointerContentY);
+        const nextMode: Mode = { ...m, targetIndex, dragStarted: true };
+        modeRef.current = nextMode;
+        setMode(nextMode);
+        setBandReorderTarget({ bandId: m.bandId, targetIndex });
+        setBandDragPreview({
+          bandId: m.bandId,
+          top: m.startVisualTop + pointerContentY - m.startPointerContentY,
+        });
+
       } else if (m.type === 'select') {
         if (!pageRef.current) return;
         const rect = pageRef.current.getBoundingClientRect();
@@ -552,11 +581,17 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             resizeBand(currentPageIdRef.current, m.bandId, band.height, m.origHeight);
           }
         }
+      } else if (m.type === 'band-sort') {
+        if (m.dragStarted && m.targetIndex !== m.fromIndex) {
+          moveBand(currentPageIdRef.current, m.bandId, m.targetIndex);
+        }
       }
       modeRef.current = { type: 'idle' };
       setMode({ type: 'idle' });
       setSelBox(null);
       setGuides([]);
+      setBandReorderTarget(null);
+      setBandDragPreview(null);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -565,7 +600,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [moveComponent, updateComponent, resizeBand, selectComponents, zoom]);
+  }, [moveComponent, updateComponent, resizeBand, moveBand, selectComponents, getPointerContentY, zoom]);
 
   // ---- Keyboard shortcuts ----
 
@@ -844,6 +879,28 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     });
   }, [pendingBandInsertType, zoom]);
 
+  const handleStartBandSort = useCallback((bandId: string, event: React.MouseEvent<HTMLDivElement>) => {
+    if (pendingBandInsertType) return;
+    const fromIndex = bands.findIndex(item => item.band.id === bandId);
+    if (fromIndex < 0) return;
+    const bandLayout = bands[fromIndex];
+    const startPointerContentY = getPointerContentY(event.clientY);
+    const targetIndex = getBandReorderTargetIndex(bands, bandId, getPointerContentY(event.clientY));
+    const nextMode: Mode = {
+      type: 'band-sort',
+      bandId,
+      startClientY: event.clientY,
+      startPointerContentY,
+      startVisualTop: mmToPx(bandLayout.visualY),
+      fromIndex,
+      targetIndex,
+      dragStarted: false,
+    };
+    modeRef.current = nextMode;
+    setMode(nextMode);
+    setBandReorderTarget(null);
+  }, [bands, getPointerContentY, pendingBandInsertType]);
+
   const handleBandContextMenu = useCallback((bandId: string, event: React.MouseEvent<HTMLDivElement>) => {
     event.preventDefault();
     event.stopPropagation();
@@ -884,6 +941,12 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const printableHeightMm = Math.max(0, currentPage.height - margins.top - margins.bottom);
   const rawPrintableWidthPx = mmToPx(printableWidthMm);
   const rawPrintableHeightPx = mmToPx(printableHeightMm);
+  const bandReorderLineTop = bandReorderTarget
+    ? getBandReorderLineTop(bands, bandReorderTarget.bandId, bandReorderTarget.targetIndex)
+    : null;
+  const bandDragPreviewLayout = bandDragPreview
+    ? bands.find(item => item.band.id === bandDragPreview.bandId)
+    : undefined;
 
   return (
     <div ref={containerRef} className={className}
@@ -962,9 +1025,34 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
                 selectedIds={selectedComponentIds}
                 selectedTableCell={selectedTableCell}
                 fonts={template.fonts}
+                isDragging={bandDragPreview?.bandId === band.id}
                 onOpenContextMenu={handleBandContextMenu}
+                onStartBandSort={handleStartBandSort}
                 onUpdateComponent={updateComponent} currentPageId={currentPageId} />
             ))}
+            {bandDragPreview && bandDragPreviewLayout ? (
+              <BandDragPreview
+                band={bandDragPreviewLayout.band}
+                labelIndex={bandLabelIndexes[bandDragPreviewLayout.band.id] ?? 1}
+                top={bandDragPreview.top}
+              />
+            ) : null}
+            {bandReorderLineTop !== null ? (
+              <div
+                data-testid="designer-band-reorder-line"
+                style={{
+                  position: 'absolute',
+                  left: 0,
+                  right: 0,
+                  top: safeCssNumber(bandReorderLineTop),
+                  height: 2,
+                  backgroundColor: '#1677ff',
+                  boxShadow: '0 0 0 1px rgba(22,119,255,0.16)',
+                  pointerEvents: 'none',
+                  zIndex: 9997,
+                }}
+              />
+            ) : null}
           </div>
           {pendingBandInsertType ? (
             <BandInsertCursor
@@ -1454,10 +1542,12 @@ const BandView: React.FC<{
   pendingBandInsertType: BandType | null;
   selectedTableCell: TableCellSelection | null;
   fonts?: ReportFont[];
+  isDragging?: boolean;
   onOpenContextMenu: (bandId: string, event: React.MouseEvent<HTMLDivElement>) => void;
+  onStartBandSort: (bandId: string, event: React.MouseEvent<HTMLDivElement>) => void;
   onUpdateComponent: (pageId: string, bandId: string, compId: string, updates: Record<string, any>, prev?: Record<string, any>) => void;
   currentPageId: string;
-}> = ({ band, visualY, labelIndex, isSelected, pendingBandInsertType, selectedIds, selectedTableCell, fonts, onOpenContextMenu, onUpdateComponent, currentPageId }) => {
+}> = ({ band, visualY, labelIndex, isSelected, pendingBandInsertType, selectedIds, selectedTableCell, fonts, isDragging, onOpenContextMenu, onStartBandSort, onUpdateComponent, currentPageId }) => {
   const { t } = useDesignerI18n();
   const [editId, setEditId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<'text' | 'richtext' | null>(null);
@@ -1487,6 +1577,10 @@ const BandView: React.FC<{
     }
     selectComponents([]);
     selectBand(band.id);
+    if (target.closest('[data-band-sort-handle]')) {
+      event.preventDefault();
+      onStartBandSort(band.id, event);
+    }
   };
 
   return (
@@ -1496,6 +1590,7 @@ const BandView: React.FC<{
       boxSizing: 'border-box',
       backgroundColor: `${baseColor}10`,
       cursor: pendingBandInsertType ? 'copy' : 'default',
+      opacity: isDragging ? 0.35 : 1,
     }}>
       <div style={{
         position: 'absolute', left: 0, right: 0, top: 0, height: safeCssNumber(headerHeight),
@@ -1504,9 +1599,10 @@ const BandView: React.FC<{
         display: 'flex', alignItems: 'center',
         padding: '0 3px',
         fontSize: 12, lineHeight: `${headerHeight}px`, color: '#111',
-        cursor: pendingBandInsertType ? 'copy' : 'default', zIndex: 30, pointerEvents: 'none',
+        cursor: pendingBandInsertType ? 'copy' : 'grab', zIndex: 30, pointerEvents: 'auto',
         boxSizing: 'border-box',
       }}
+      data-band-sort-handle
       data-testid={`designer-band-title-${band.type}`}>
         <span>{bandLabel}</span>
         <span style={{ position: 'absolute', width: 1, height: 1, overflow: 'hidden', clipPath: 'inset(50%)', whiteSpace: 'nowrap' }}>
@@ -1554,6 +1650,52 @@ const BandView: React.FC<{
             onCancelEdit={() => { setEditId(null); setEditKind(null); }}
             onEditTextChange={setEditText} />
         ))}
+      </div>
+    </div>
+  );
+};
+
+const BandDragPreview: React.FC<{ band: Band; labelIndex: number; top: number }> = ({ band, labelIndex, top }) => {
+  const { t } = useDesignerI18n();
+  const baseColor = BAND_COLORS[band.type] || '#757575';
+  const baseLabel = BAND_LABEL_KEYS[band.type] ? t(BAND_LABEL_KEYS[band.type]) : band.type;
+  const bandLabel = `${baseLabel}${labelIndex}`;
+  const headerHeight = mmToPx(BAND_HEADER_MM);
+  const bodyHeight = mmToPx(band.height);
+
+  return (
+    <div
+      data-testid="designer-band-drag-preview"
+      style={{
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        top: safeCssNumber(top),
+        height: safeCssNumber(headerHeight + bodyHeight),
+        border: `1px solid ${baseColor}`,
+        backgroundColor: `${baseColor}18`,
+        boxShadow: '0 8px 18px rgba(0,0,0,0.22)',
+        boxSizing: 'border-box',
+        opacity: 0.86,
+        pointerEvents: 'none',
+        zIndex: 9998,
+      }}
+    >
+      <div
+        style={{
+          height: safeCssNumber(headerHeight),
+          backgroundColor: `${baseColor}66`,
+          borderBottom: `1px solid ${baseColor}88`,
+          boxSizing: 'border-box',
+          color: '#111',
+          display: 'flex',
+          alignItems: 'center',
+          fontSize: 12,
+          lineHeight: `${headerHeight}px`,
+          padding: '0 3px',
+        }}
+      >
+        {bandLabel}
       </div>
     </div>
   );
@@ -1951,6 +2093,27 @@ function getCompContent(
     default:
       return '';
   }
+}
+
+function getBandReorderTargetIndex(bandLayouts: BandLayout[], draggedBandId: string, pointerContentY: number): number {
+  const withoutDragged = bandLayouts.filter(item => item.band.id !== draggedBandId);
+  let targetIndex = 0;
+  for (const item of withoutDragged) {
+    const centerY = mmToPx(item.visualY + (BAND_HEADER_MM + item.band.height) / 2);
+    if (pointerContentY > centerY) {
+      targetIndex += 1;
+    }
+  }
+  return targetIndex;
+}
+
+function getBandReorderLineTop(bandLayouts: BandLayout[], draggedBandId: string, targetIndex: number): number {
+  const withoutDragged = bandLayouts.filter(item => item.band.id !== draggedBandId);
+  if (withoutDragged.length === 0 || targetIndex <= 0) {
+    return 0;
+  }
+  const previous = withoutDragged[Math.min(targetIndex - 1, withoutDragged.length - 1)];
+  return mmToPx(previous.visualY + BAND_HEADER_MM + previous.band.height);
 }
 
 function textLikePreviewStyle(component: { font?: unknown; textAlign?: string; verticalAlign?: string }, fallbackAlign: 'left' | 'center' | 'right'): React.CSSProperties {
