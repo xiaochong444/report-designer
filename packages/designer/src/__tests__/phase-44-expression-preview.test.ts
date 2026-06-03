@@ -29,7 +29,9 @@ describe('phase 44 expression preview', () => {
 
   it('returns a readable error for invalid expressions', () => {
     const result = previewReportExpression('UNKNOWN({Orders.Amount})', templateWithOrders());
-    expect(result.ok).toBe(false);
+    if (result.ok) {
+      throw new Error(`Expected preview to fail but received ${String(result.value)}`);
+    }
     expect(result.message).toContain('Unknown function');
   });
 });

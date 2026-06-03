@@ -8,6 +8,16 @@ import { BandPropertyGrid } from '../components/properties/BandPropertyGrid';
 import { DesignerI18nProvider } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 
+vi.mock('@monaco-editor/react', () => ({
+  default: (props: Record<string, unknown>) => (
+    <textarea
+      aria-label={props['aria-label'] as string}
+      value={props.value as string}
+      onChange={(event) => (props.onChange as (value: string | undefined) => void)(event.target.value)}
+    />
+  ),
+}));
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
@@ -191,7 +201,7 @@ describe('Phase 22 DataBand sorting property grid', () => {
     await chooseCombobox('Filter field 1', 'Amount');
     await chooseCombobox('Filter comparison 1', 'Greater than or equal');
     fireEvent.click(screen.getByRole('button', { name: 'Open expression editor: Filter value 1' }));
-    fireEvent.change(screen.getByPlaceholderText('{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}'), {
+    fireEvent.change(screen.getByLabelText('Expression'), {
       target: { value: '{Parameters.MinAmount}' },
     });
     const okButtons = await screen.findAllByRole('button', { name: 'OK' });
