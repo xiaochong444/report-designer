@@ -1,6 +1,6 @@
 # Monaco Expression Editor Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]` / `- [x]`) syntax for tracking.
 
 **Goal:** Replace the report expression textarea with a Monaco-based editor that provides report-expression syntax, function/field completion, diagnostics, and design-time test evaluation.
 
@@ -29,7 +29,7 @@
 - Create: `packages/designer/src/expression/function-catalog.ts`
 - Test: `packages/designer/src/__tests__/phase-44-expression-function-catalog.test.ts`
 
-- [ ] **Step 1: Write the failing catalog test**
+- [x] **Step 1: Write the failing catalog test**
 
 Create `packages/designer/src/__tests__/phase-44-expression-function-catalog.test.ts`:
 
@@ -74,7 +74,7 @@ describe('phase 44 expression function catalog', () => {
 });
 ```
 
-- [ ] **Step 2: Run the test and verify red**
+- [x] **Step 2: Run the test and verify red**
 
 Run:
 
@@ -84,7 +84,7 @@ pnpm --filter @report-designer/designer test -- phase-44-expression-function-cat
 
 Expected: FAIL because `../expression/function-catalog` does not exist.
 
-- [ ] **Step 3: Implement the function catalog**
+- [x] **Step 3: Implement the function catalog**
 
 Create `packages/designer/src/expression/function-catalog.ts`:
 
@@ -200,7 +200,7 @@ export function getExpressionFunctionNames(): string[] {
 }
 ```
 
-- [ ] **Step 4: Verify green**
+- [x] **Step 4: Verify green**
 
 Run:
 
@@ -210,7 +210,7 @@ pnpm --filter @report-designer/designer test -- phase-44-expression-function-cat
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/designer/src/expression/function-catalog.ts packages/designer/src/__tests__/phase-44-expression-function-catalog.test.ts
@@ -225,7 +225,7 @@ git commit -m "feat(expression): 增加表达式函数目录"
 - Create: `packages/designer/src/expression/expression-validation.ts`
 - Test: `packages/designer/src/__tests__/phase-44-expression-validation.test.ts`
 
-- [ ] **Step 1: Write failing validation tests**
+- [x] **Step 1: Write failing validation tests**
 
 Create `packages/designer/src/__tests__/phase-44-expression-validation.test.ts`:
 
@@ -269,7 +269,7 @@ describe('phase 44 expression validation', () => {
 });
 ```
 
-- [ ] **Step 2: Run tests and verify red**
+- [x] **Step 2: Run tests and verify red**
 
 Run:
 
@@ -279,7 +279,7 @@ pnpm --filter @report-designer/designer test -- phase-44-expression-validation
 
 Expected: FAIL because validation module does not exist.
 
-- [ ] **Step 3: Implement validation**
+- [x] **Step 3: Implement validation**
 
 Create `packages/designer/src/expression/expression-validation.ts`:
 
@@ -378,7 +378,7 @@ function validateFieldReferences(expression: string, template: ReportTemplate): 
 }
 ```
 
-- [ ] **Step 4: Export parser helpers from core if needed**
+- [x] **Step 4: Export parser helpers from core if needed**
 
 If `@report-designer/core` does not export `tokenize` and `parse`, modify `packages/core/src/expression-engine/index.ts`:
 
@@ -394,7 +394,7 @@ Then ensure `packages/core/src/index.ts` re-exports expression-engine:
 export * from './expression-engine';
 ```
 
-- [ ] **Step 5: Verify green**
+- [x] **Step 5: Verify green**
 
 Run:
 
@@ -405,7 +405,7 @@ pnpm --filter @report-designer/core test -- expression
 
 Expected: designer validation tests pass and existing core expression tests pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/designer/src/expression/expression-validation.ts packages/designer/src/__tests__/phase-44-expression-validation.test.ts packages/core/src/expression-engine/index.ts packages/core/src/index.ts
@@ -420,7 +420,7 @@ git commit -m "feat(expression): 增加表达式校验"
 - Create: `packages/designer/src/components/expression/expression-monaco.ts`
 - Test: `packages/designer/src/__tests__/phase-44-expression-monaco.test.ts`
 
-- [ ] **Step 1: Write failing Monaco helper tests**
+- [x] **Step 1: Write failing Monaco helper tests**
 
 Create `packages/designer/src/__tests__/phase-44-expression-monaco.test.ts`:
 
@@ -485,7 +485,7 @@ describe('phase 44 expression monaco helpers', () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify red**
+- [x] **Step 2: Run test and verify red**
 
 Run:
 
@@ -495,7 +495,7 @@ pnpm --filter @report-designer/designer test -- phase-44-expression-monaco
 
 Expected: FAIL because `expression-monaco.ts` does not exist.
 
-- [ ] **Step 3: Implement Monaco helpers**
+- [x] **Step 3: Implement Monaco helpers**
 
 Create `packages/designer/src/components/expression/expression-monaco.ts`:
 
@@ -585,7 +585,7 @@ export function buildExpressionCompletions(template: ReportTemplate, locale: Des
 }
 ```
 
-- [ ] **Step 4: Verify green**
+- [x] **Step 4: Verify green**
 
 Run:
 
@@ -595,7 +595,7 @@ pnpm --filter @report-designer/designer test -- phase-44-expression-monaco
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/designer/src/components/expression/expression-monaco.ts packages/designer/src/__tests__/phase-44-expression-monaco.test.ts
@@ -610,7 +610,7 @@ git commit -m "feat(expression): 增加monaco表达式语言提示"
 - Create: `packages/designer/src/components/expression/ExpressionMonacoEditor.tsx`
 - Test: `packages/designer/src/__tests__/phase-44-expression-monaco-editor.test.tsx`
 
-- [ ] **Step 1: Write failing component test**
+- [x] **Step 1: Write failing component test**
 
 Create `packages/designer/src/__tests__/phase-44-expression-monaco-editor.test.tsx`:
 
@@ -666,7 +666,7 @@ describe('phase 44 expression monaco editor component', () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify red**
+- [x] **Step 2: Run test and verify red**
 
 Run:
 
@@ -676,7 +676,7 @@ pnpm --filter @report-designer/designer test -- phase-44-expression-monaco-edito
 
 Expected: FAIL because `ExpressionMonacoEditor` does not exist.
 
-- [ ] **Step 3: Implement component**
+- [x] **Step 3: Implement component**
 
 Create `packages/designer/src/components/expression/ExpressionMonacoEditor.tsx`:
 
@@ -777,7 +777,7 @@ export const ExpressionMonacoEditor: React.FC<{
 };
 ```
 
-- [ ] **Step 4: Verify green**
+- [x] **Step 4: Verify green**
 
 Run:
 
@@ -787,7 +787,7 @@ pnpm --filter @report-designer/designer test -- phase-44-expression-monaco-edito
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/designer/src/components/expression/ExpressionMonacoEditor.tsx packages/designer/src/__tests__/phase-44-expression-monaco-editor.test.tsx
@@ -802,7 +802,7 @@ git commit -m "feat(expression): 封装monaco表达式编辑器"
 - Create: `packages/designer/src/expression/expression-preview.ts`
 - Test: `packages/designer/src/__tests__/phase-44-expression-preview.test.ts`
 
-- [ ] **Step 1: Write failing preview tests**
+- [x] **Step 1: Write failing preview tests**
 
 Create `packages/designer/src/__tests__/phase-44-expression-preview.test.ts`:
 
@@ -842,7 +842,7 @@ describe('phase 44 expression preview', () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify red**
+- [x] **Step 2: Run test and verify red**
 
 Run:
 
@@ -852,7 +852,7 @@ pnpm --filter @report-designer/designer test -- phase-44-expression-preview
 
 Expected: FAIL because preview module does not exist.
 
-- [ ] **Step 3: Implement preview**
+- [x] **Step 3: Implement preview**
 
 Create `packages/designer/src/expression/expression-preview.ts`:
 
@@ -897,7 +897,7 @@ function defaultFieldValue(type: string | undefined) {
 }
 ```
 
-- [ ] **Step 4: Verify green**
+- [x] **Step 4: Verify green**
 
 Run:
 
@@ -907,7 +907,7 @@ pnpm --filter @report-designer/designer test -- phase-44-expression-preview
 
 Expected: PASS.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/designer/src/expression/expression-preview.ts packages/designer/src/__tests__/phase-44-expression-preview.test.ts
@@ -924,7 +924,7 @@ git commit -m "feat(expression): 增加表达式测试预览"
 - Test: `packages/designer/src/__tests__/phase-44-expression-editor-monaco-shell.test.tsx`
 - Update existing tests that mock `@monaco-editor/react`: `packages/designer/src/__tests__/phase-16-dictionary-expression-shell.test.tsx`, `packages/designer/src/__tests__/phase-35-band-properties.test.tsx`, `packages/designer/src/__tests__/phase-27-component-property-model.test.tsx`
 
-- [ ] **Step 1: Write failing shell test**
+- [x] **Step 1: Write failing shell test**
 
 Create `packages/designer/src/__tests__/phase-44-expression-editor-monaco-shell.test.tsx`:
 
@@ -993,7 +993,7 @@ describe('phase 44 expression editor monaco shell', () => {
 });
 ```
 
-- [ ] **Step 2: Run test and verify red**
+- [x] **Step 2: Run test and verify red**
 
 Run:
 
@@ -1003,7 +1003,7 @@ pnpm --filter @report-designer/designer test -- phase-44-expression-editor-monac
 
 Expected: FAIL because `ExpressionEditor` still renders textarea and does not expose new categories/test button.
 
-- [ ] **Step 3: Add i18n keys**
+- [x] **Step 3: Add i18n keys**
 
 Modify `packages/designer/src/i18n/messages.ts` message key union and messages:
 
@@ -1056,7 +1056,7 @@ English values:
 'expressionEditor.noDiagnostics': 'No errors',
 ```
 
-- [ ] **Step 4: Refactor ExpressionEditor shell**
+- [x] **Step 4: Refactor ExpressionEditor shell**
 
 Modify `packages/designer/src/components/ExpressionEditor.tsx`:
 
@@ -1103,11 +1103,11 @@ Modify `packages/designer/src/components/ExpressionEditor.tsx`:
 
 - Keep `onOk` behavior exactly the same: call `onChange(expression)` and `onClose()`.
 
-- [ ] **Step 5: Update existing ExpressionEditor tests to mock Monaco**
+- [x] **Step 5: Update existing ExpressionEditor tests to mock Monaco**
 
 For tests that render `ExpressionEditor`, add the same `vi.mock('@monaco-editor/react', ...)` textarea mock used in the new shell test. This keeps existing tests focused on expression behavior instead of loading real Monaco in jsdom.
 
-- [ ] **Step 6: Verify green**
+- [x] **Step 6: Verify green**
 
 Run:
 
@@ -1120,7 +1120,7 @@ pnpm --filter @report-designer/designer test -- phase-27-component-property-mode
 
 Expected: PASS.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add packages/designer/src/components/ExpressionEditor.tsx packages/designer/src/i18n/messages.ts packages/designer/src/__tests__/phase-44-expression-editor-monaco-shell.test.tsx packages/designer/src/__tests__/phase-16-dictionary-expression-shell.test.tsx packages/designer/src/__tests__/phase-35-band-properties.test.tsx packages/designer/src/__tests__/phase-27-component-property-model.test.tsx
@@ -1134,7 +1134,7 @@ git commit -m "feat(expression): 使用monaco重构表达式编辑器"
 **Files:**
 - No new files.
 
-- [ ] **Step 1: Run full designer test suite**
+- [x] **Step 1: Run full designer test suite**
 
 Run:
 
@@ -1144,7 +1144,7 @@ pnpm --filter @report-designer/designer test
 
 Expected: all designer tests pass.
 
-- [ ] **Step 2: Run designer build**
+- [x] **Step 2: Run designer build**
 
 Run:
 
@@ -1154,7 +1154,7 @@ pnpm --filter @report-designer/designer build
 
 Expected: `tsc -p tsconfig.json` exits with code 0.
 
-- [ ] **Step 3: Check working tree**
+- [x] **Step 3: Check working tree**
 
 Run:
 
