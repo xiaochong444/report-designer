@@ -27,8 +27,8 @@ export type DesignerMessageKey =
   | 'expressionEditor.category.systemSubtitle'
   | 'expressionEditor.example'
   | 'expressionEditor.validate'
-  | 'expressionEditor.test'
-  | 'expressionEditor.result'
+  | 'expressionEditor.run'
+  | 'expressionEditor.runResult'
   | 'expressionEditor.noDiagnostics'
   | 'expressionEditor.category.common'
   | 'expressionEditor.category.aggregate'
@@ -676,8 +676,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.category.systemSubtitle': 'System',
     'expressionEditor.example': '示例: Text: {Expression}, {DataSource.Field}',
     'expressionEditor.validate': '校验',
-    'expressionEditor.test': '测试',
-    'expressionEditor.result': '结果',
+    'expressionEditor.run': '执行',
+    'expressionEditor.runResult': '执行结果',
     'expressionEditor.noDiagnostics': '未发现错误',
     'expressionEditor.category.common': '常用',
     'expressionEditor.category.aggregate': '聚合',
@@ -1322,8 +1322,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.category.systemSubtitle': 'Variables',
     'expressionEditor.example': 'Example: Text: {Expression}, {DataSource.Field}',
     'expressionEditor.validate': 'Validate',
-    'expressionEditor.test': 'Test',
-    'expressionEditor.result': 'Result',
+    'expressionEditor.run': 'Run',
+    'expressionEditor.runResult': 'Run Result',
     'expressionEditor.noDiagnostics': 'No errors',
     'expressionEditor.category.common': 'Common',
     'expressionEditor.category.aggregate': 'Aggregate',

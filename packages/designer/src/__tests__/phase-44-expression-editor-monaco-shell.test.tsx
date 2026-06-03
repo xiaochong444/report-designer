@@ -62,8 +62,8 @@ describe('phase 44 expression editor monaco shell', () => {
     expect(screen.getByRole('button', { name: /文本/ })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('表达式'), { target: { value: 'FORMAT("N2", {Orders.Amount})' } });
-    fireEvent.click(screen.getByRole('button', { name: '测试' }));
-    expect(await screen.findByText(/88.80/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: '执行' }));
+    expect(await screen.findByText(/执行结果.*88.80/)).toBeInTheDocument();
 
     fireEvent.click(await screen.findByRole('button', { name: /确\s*定/ }));
     await waitFor(() => expect(value).toBe('FORMAT("N2", {Orders.Amount})'));

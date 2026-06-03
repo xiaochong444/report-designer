@@ -219,7 +219,7 @@ export const ExpressionEditor: React.FC<{
     setDiagnostics(validateReportExpression(expression, template));
   };
 
-  const runPreview = () => {
+  const runExpression = () => {
     setDiagnostics(validateReportExpression(expression, template));
     setPreviewResult(previewReportExpression(expression, template));
   };
@@ -285,7 +285,7 @@ export const ExpressionEditor: React.FC<{
               {diagnostics.length > 0 ? (
                 <Alert type="error" showIcon title={formatDiagnostics(diagnostics)} />
               ) : previewResult?.ok ? (
-                <Alert type="success" showIcon title={`${t('expressionEditor.result')}: ${String(previewResult.value)}`} />
+                <Alert type="success" showIcon title={`${t('expressionEditor.runResult')}: ${String(previewResult.value)}`} />
               ) : previewResult ? (
                 <Alert type="error" showIcon title={previewResult.message} />
               ) : (
@@ -296,8 +296,8 @@ export const ExpressionEditor: React.FC<{
               <Button size="small" aria-label={t('expressionEditor.validate')} onClick={runValidation}>
                 {t('expressionEditor.validate')}
               </Button>
-              <Button size="small" aria-label={t('expressionEditor.test')} onClick={runPreview}>
-                {t('expressionEditor.test')}
+              <Button size="small" aria-label={t('expressionEditor.run')} onClick={runExpression}>
+                {t('expressionEditor.run')}
               </Button>
             </Space>
           </div>
