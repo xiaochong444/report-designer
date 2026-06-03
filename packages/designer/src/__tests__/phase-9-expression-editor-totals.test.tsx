@@ -1,11 +1,21 @@
 /* @vitest-environment jsdom */
 import React from 'react';
 import { render, screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { createDefaultTemplate } from '@report-designer/core';
 import { ExpressionEditor } from '../components/ExpressionEditor';
 import { useDesignerStore } from '../store/designer-store';
+
+vi.mock('@monaco-editor/react', () => ({
+  default: (props: Record<string, unknown>) => (
+    <textarea
+      aria-label={props['aria-label'] as string}
+      value={props.value as string}
+      onChange={(event) => (props.onChange as (value: string | undefined) => void)(event.target.value)}
+    />
+  ),
+}));
 
 describe('Phase 9 expression editor total shortcuts', () => {
   it('does not list page and report total functions in the expression browser', async () => {

@@ -1,29 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Input, Modal, Tree } from 'antd';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Alert, Button, Input, Modal, Space, Tree, Typography } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
+import { EXPRESSION_FUNCTION_CATEGORIES, getExpressionFunctionsByCategory } from '../expression/function-catalog';
+import { previewReportExpression, type ExpressionPreviewResult } from '../expression/expression-preview';
+import { validateReportExpression, type ExpressionDiagnostic } from '../expression/expression-validation';
 import { useDesignerStore } from '../store/designer-store';
-
-const BUILT_IN_FUNCTIONS = [
-  { name: 'SUM', desc: { 'zh-CN': '求和', 'en-US': 'Sum' }, insert: 'SUM()' },
-  { name: 'AVG', desc: { 'zh-CN': '平均值', 'en-US': 'Average' }, insert: 'AVG()' },
-  { name: 'COUNT', desc: { 'zh-CN': '计数', 'en-US': 'Count' }, insert: 'COUNT()' },
-  { name: 'MAX', desc: { 'zh-CN': '最大值', 'en-US': 'Maximum' }, insert: 'MAX()' },
-  { name: 'MIN', desc: { 'zh-CN': '最小值', 'en-US': 'Minimum' }, insert: 'MIN()' },
-  { name: 'RMBUPPER', desc: { 'zh-CN': '金额大写', 'en-US': 'RMB uppercase' }, insert: 'RMBUPPER()' },
-  { name: 'MONEYUPPER', desc: { 'zh-CN': '金额大写别名', 'en-US': 'Money uppercase alias' }, insert: 'MONEYUPPER()' },
-  { name: 'CNYUPPER', desc: { 'zh-CN': '人民币大写别名', 'en-US': 'CNY uppercase alias' }, insert: 'CNYUPPER()' },
-  { name: 'CHINESEMONEY', desc: { 'zh-CN': '中文金额大写别名', 'en-US': 'Chinese money uppercase alias' }, insert: 'CHINESEMONEY()' },
-  { name: 'IF', desc: { 'zh-CN': '条件判断', 'en-US': 'Conditional' }, insert: 'IF(, , )' },
-  { name: 'IIF', desc: { 'zh-CN': '条件判断', 'en-US': 'Conditional' }, insert: 'IIF(, , )' },
-  { name: 'ISNULL', desc: { 'zh-CN': '是否为空', 'en-US': 'Is null' }, insert: 'ISNULL()' },
-  { name: 'FORMAT', desc: { 'zh-CN': '格式化', 'en-US': 'Format' }, insert: 'FORMAT()' },
-  { name: 'ROUND', desc: { 'zh-CN': '四舍五入', 'en-US': 'Round' }, insert: 'ROUND()' },
-  { name: 'NOW', desc: { 'zh-CN': '当前日期时间', 'en-US': 'Current date/time' }, insert: 'NOW()' },
-  { name: 'TODAY', desc: { 'zh-CN': '当前日期', 'en-US': 'Current date' }, insert: 'TODAY()' },
-  { name: 'PAGE', desc: { 'zh-CN': '当前页码', 'en-US': 'Current page' }, insert: 'PAGE()' },
-  { name: 'TOTALPAGES', desc: { 'zh-CN': '总页数', 'en-US': 'Total pages' }, insert: 'TOTALPAGES()' },
-];
+import { ExpressionMonacoEditor } from './expression/ExpressionMonacoEditor';
 
 const SYSTEM_VARIABLES = [
   { name: '{Today}', insert: '{Today}' },
@@ -33,6 +16,9 @@ const SYSTEM_VARIABLES = [
 ];
 
 const FORMAT_PATTERNS = [
+  { name: 'FORMAT("N2", value)', insert: 'FORMAT("N2", value)' },
+  { name: 'FORMAT("C", value)', insert: 'FORMAT("C", value)' },
+  { name: 'FORMAT("D", value)', insert: 'FORMAT("D", value)' },
   { name: '#,##0.00', insert: '#,##0.00' },
   { name: 'yyyy-MM-dd', insert: 'yyyy-MM-dd' },
   { name: 'yyyy-MM-dd HH:mm:ss', insert: 'yyyy-MM-dd HH:mm:ss' },
@@ -52,6 +38,12 @@ const CATEGORY_ITEMS: Array<{ key: ExpressionCategory; labelKey: DesignerMessage
   { key: 'data', labelKey: 'expressionEditor.category.data', subtitleKey: 'expressionEditor.category.dataSubtitle' },
   { key: 'system', labelKey: 'expressionEditor.category.system', subtitleKey: 'expressionEditor.category.systemSubtitle' },
 ];
+
+const FUNCTION_FOLDER_LABELS: Partial<Record<string, DesignerMessageKey>> = {
+  aggregate: 'expressionEditor.tree.aggregateFunctions',
+  logic: 'expressionEditor.tree.logicFunctions',
+  money: 'expressionEditor.tree.moneyFunctions',
+};
 
 function makeTreeNode(
   key: string,
@@ -78,37 +70,25 @@ function safeTreeKey(key: string) {
 }
 
 function filterTreeNodes(nodes: TreeNodeMeta[], query: string): TreeNodeMeta[] {
-  if (!query) {
-    return nodes;
-  }
+  if (!query) return nodes;
 
   return nodes
     .map((node) => {
       const children = node.children ? filterTreeNodes(node.children, query) : [];
       if ((node.searchText ?? '').includes(query) || children.length > 0) {
-        return {
-          ...node,
-          children,
-        };
+        return { ...node, children };
       }
       return null;
     })
     .filter(Boolean) as TreeNodeMeta[];
 }
 
-function validateExpression(expression: string, t: (key: DesignerMessageKey) => string) {
-  const openBraces = (expression.match(/{/g) ?? []).length;
-  const closeBraces = (expression.match(/}/g) ?? []).length;
-  const openParens = (expression.match(/\(/g) ?? []).length;
-  const closeParens = (expression.match(/\)/g) ?? []).length;
+function snippetToPlainText(insertText: string) {
+  return insertText.replace(/\$\{\d+:([^}]+)\}/g, '$1');
+}
 
-  if (openBraces !== closeBraces) {
-    return t('expressionEditor.validation.braces');
-  }
-  if (openParens !== closeParens) {
-    return t('expressionEditor.validation.parens');
-  }
-  return t('expressionEditor.validation.passed');
+function formatDiagnostics(diagnostics: ExpressionDiagnostic[]) {
+  return diagnostics.map(item => item.message).join('\n');
 }
 
 export const ExpressionEditor: React.FC<{
@@ -122,35 +102,21 @@ export const ExpressionEditor: React.FC<{
   const [expression, setExpression] = useState(value);
   const [activeCategory, setActiveCategory] = useState<ExpressionCategory>('expression');
   const [searchTerm, setSearchTerm] = useState('');
-  const [validationMessage, setValidationMessage] = useState(() => t('expressionEditor.example'));
-  const inputRef = useRef<any>(null);
+  const [diagnostics, setDiagnostics] = useState<ExpressionDiagnostic[]>([]);
+  const [previewResult, setPreviewResult] = useState<ExpressionPreviewResult | null>(null);
 
   useEffect(() => {
     if (open) {
       setExpression(value);
       setSearchTerm('');
-      setValidationMessage(t('expressionEditor.example'));
+      setDiagnostics([]);
+      setPreviewResult(null);
     }
-  }, [locale, open, value]);
+  }, [open, value]);
 
   const insertAtCursor = (text: string) => {
-    const input = inputRef.current?.resizableTextArea?.textArea || inputRef.current;
-    if (input) {
-      const start = input.selectionStart ?? expression.length;
-      const end = input.selectionEnd ?? expression.length;
-      const before = expression.slice(0, start);
-      const after = expression.slice(end);
-      const nextValue = `${before}${text}${after}`;
-      setExpression(nextValue);
-      setTimeout(() => {
-        input.focus();
-        const nextCursor = start + text.length;
-        input.setSelectionRange(nextCursor, nextCursor);
-      }, 0);
-      return;
-    }
-
-    setExpression((current) => `${current}${text}`);
+    setExpression((current) => `${current}${snippetToPlainText(text)}`);
+    setPreviewResult(null);
   };
 
   const dataSourceNodes = useMemo<TreeNodeMeta[]>(
@@ -159,15 +125,10 @@ export const ExpressionEditor: React.FC<{
         makeTreeNode(`ds.${dataSource.id}`, dataSource.name, 'folder', {
           searchText: `${dataSource.name} ${dataSource.id}`.toLowerCase(),
           children: (dataSource.schema ?? dataSource.fields ?? []).map((field) =>
-            makeTreeNode(
-              `${dataSource.id}.${field.name}`,
-              `${dataSource.id}.${field.name}`,
-              'field',
-              {
-                insertValue: `{${dataSource.id}.${field.name}}`,
-                searchText: `${dataSource.id}.${field.name} ${field.label ?? ''}`.toLowerCase(),
-              },
-            ),
+            makeTreeNode(`${dataSource.id}.${field.name}`, `${dataSource.id}.${field.name}`, 'field', {
+              insertValue: `{${dataSource.id}.${field.name}}`,
+              searchText: `${dataSource.id}.${field.name} ${field.label ?? ''}`.toLowerCase(),
+            }),
           ),
         }),
       ),
@@ -175,32 +136,21 @@ export const ExpressionEditor: React.FC<{
   );
 
   const functionNodes = useMemo<TreeNodeMeta[]>(
-    () => [
-      makeTreeNode('fn.aggregate', t('expressionEditor.tree.aggregateFunctions'), 'folder', {
-        children: BUILT_IN_FUNCTIONS.filter((item) => ['SUM', 'AVG', 'COUNT', 'MAX', 'MIN'].includes(item.name)).map((item) =>
-          makeTreeNode(`fn.${item.name}`, item.name, 'function', {
-            insertValue: item.insert,
-            searchText: `${item.name} ${item.desc[locale]}`.toLowerCase(),
-          }),
-        ),
-      }),
-      makeTreeNode('fn.logic', t('expressionEditor.tree.logicFunctions'), 'folder', {
-        children: BUILT_IN_FUNCTIONS.filter((item) => ['IF', 'IIF', 'ISNULL'].includes(item.name)).map((item) =>
-          makeTreeNode(`fn.${item.name}`, item.name, 'function', {
-            insertValue: item.insert,
-            searchText: `${item.name} ${item.desc[locale]}`.toLowerCase(),
-          }),
-        ),
-      }),
-      makeTreeNode('fn.money', t('expressionEditor.tree.moneyFunctions'), 'folder', {
-        children: BUILT_IN_FUNCTIONS.filter((item) => ['RMBUPPER', 'MONEYUPPER', 'CNYUPPER', 'CHINESEMONEY'].includes(item.name)).map((item) =>
-          makeTreeNode(`fn.${item.name}`, item.name, 'function', {
-            insertValue: item.insert,
-            searchText: `${item.name} ${item.desc[locale]}`.toLowerCase(),
-          }),
-        ),
-      }),
-    ],
+    () =>
+      EXPRESSION_FUNCTION_CATEGORIES
+        .filter(item => item.key !== 'common')
+        .map((category) => {
+          const folderLabelKey = FUNCTION_FOLDER_LABELS[category.key] ?? category.labelKey;
+          return makeTreeNode(`fn.${category.key}`, t(folderLabelKey as DesignerMessageKey), 'folder', {
+            searchText: `${t(folderLabelKey as DesignerMessageKey)} ${category.key}`.toLowerCase(),
+            children: getExpressionFunctionsByCategory(category.key).map((item) =>
+              makeTreeNode(`fn.${category.key}.${item.name}`, item.name, 'function', {
+                insertValue: item.insertText,
+                searchText: `${item.name} ${item.description[locale]}`.toLowerCase(),
+              }),
+            ),
+          });
+        }),
     [locale, t],
   );
 
@@ -264,13 +214,23 @@ export const ExpressionEditor: React.FC<{
     onClose();
   };
 
+  const runValidation = () => {
+    setPreviewResult(null);
+    setDiagnostics(validateReportExpression(expression, template));
+  };
+
+  const runPreview = () => {
+    setDiagnostics(validateReportExpression(expression, template));
+    setPreviewResult(previewReportExpression(expression, template));
+  };
+
   return (
     <Modal
       title={t('expressionEditor.title')}
       open={open}
       onOk={handleOk}
       onCancel={handleCancel}
-      width={960}
+      width={1040}
       okText={t('common.ok')}
       cancelText={t('common.cancel')}
       destroyOnHidden
@@ -297,28 +257,54 @@ export const ExpressionEditor: React.FC<{
         </aside>
 
         <section className="rd-expression-editor-main">
-          <Input.TextArea
-            ref={inputRef}
-            className="rd-expression-editor-textarea"
+          <div className="rd-expression-function-strip">
+            {EXPRESSION_FUNCTION_CATEGORIES.filter(item => item.key !== 'common').map((item) => (
+              <Button
+                key={item.key}
+                size="small"
+                type="text"
+                onClick={() => setSearchTerm(t(item.labelKey as DesignerMessageKey).toLowerCase())}
+              >
+                {t(item.labelKey as DesignerMessageKey)}
+              </Button>
+            ))}
+          </div>
+          <ExpressionMonacoEditor
+            ariaLabel={t('expressionEditor.inline.expression')}
             value={expression}
-            onChange={(event) => setExpression(event.target.value)}
-            autoSize={false}
-            placeholder="{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}"
+            template={template}
+            locale={locale}
+            onChange={(nextValue) => {
+              setExpression(nextValue);
+              setPreviewResult(null);
+            }}
+            onDiagnostics={setDiagnostics}
           />
           <div className="rd-expression-editor-footer">
-            <span>{validationMessage}</span>
-            <Button
-              type="link"
-              size="small"
-              onClick={() => setValidationMessage(validateExpression(expression, t))}
-            >
-              {t('expressionEditor.validate')}
-            </Button>
+            <div className="rd-expression-editor-result">
+              {diagnostics.length > 0 ? (
+                <Alert type="error" showIcon title={formatDiagnostics(diagnostics)} />
+              ) : previewResult?.ok ? (
+                <Alert type="success" showIcon title={`${t('expressionEditor.result')}: ${String(previewResult.value)}`} />
+              ) : previewResult ? (
+                <Alert type="error" showIcon title={previewResult.message} />
+              ) : (
+                <Typography.Text type="secondary">{t('expressionEditor.noDiagnostics')}</Typography.Text>
+              )}
+            </div>
+            <Space size={6}>
+              <Button size="small" aria-label={t('expressionEditor.validate')} onClick={runValidation}>
+                {t('expressionEditor.validate')}
+              </Button>
+              <Button size="small" aria-label={t('expressionEditor.test')} onClick={runPreview}>
+                {t('expressionEditor.test')}
+              </Button>
+            </Space>
           </div>
         </section>
 
         <aside className="rd-expression-browser">
-          <Input
+          <Input.Search
             allowClear
             size="small"
             placeholder={t('common.search')}

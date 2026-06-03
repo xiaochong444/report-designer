@@ -2,12 +2,22 @@
 import React from 'react';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ReportComponent, ReportTemplate } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { PropertyEditor } from '../components/PropertyEditor';
 import { DesignerI18nProvider } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
+
+vi.mock('@monaco-editor/react', () => ({
+  default: (props: Record<string, unknown>) => (
+    <textarea
+      aria-label={props['aria-label'] as string}
+      value={props.value as string}
+      onChange={(event) => (props.onChange as (value: string | undefined) => void)(event.target.value)}
+    />
+  ),
+}));
 
 function loadSelectedComponent(component: ReportComponent, prepare?: (template: ReportTemplate) => void) {
   const template = createDefaultTemplate('Phase 27 Property Model');
@@ -28,7 +38,7 @@ function selectedComponent() {
 
 async function editExpression(buttonName: string, nextValue: string) {
   fireEvent.click(screen.getByRole('button', { name: buttonName }));
-  const editor = await screen.findByPlaceholderText('{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}');
+  const editor = await screen.findByLabelText('表达式');
   fireEvent.change(editor, { target: { value: nextValue } });
   const confirmButton = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement | null;
   if (!confirmButton) throw new Error('Expression editor confirm button was not found');

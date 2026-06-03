@@ -1,12 +1,22 @@
 /* @vitest-environment jsdom */
 import React from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { createDefaultTemplate } from '@report-designer/core';
 import { DesignerI18nProvider } from '../i18n';
 import { BandPropertyGrid } from '../components/properties/BandPropertyGrid';
 import { useDesignerStore } from '../store/designer-store';
+
+vi.mock('@monaco-editor/react', () => ({
+  default: (props: Record<string, unknown>) => (
+    <textarea
+      aria-label={props['aria-label'] as string}
+      value={props.value as string}
+      onChange={(event) => (props.onChange as (value: string | undefined) => void)(event.target.value)}
+    />
+  ),
+}));
 
 function loadSelectedDataBand() {
   const template = createDefaultTemplate('Band Properties');
@@ -101,7 +111,7 @@ describe('phase 35 band properties', () => {
     );
 
     fireEvent.click(screen.getByRole('button', { name: '打开表达式编辑器：可见表达式' }));
-    fireEvent.change(screen.getByPlaceholderText('{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}'), {
+    fireEvent.change(screen.getByLabelText('表达式'), {
       target: { value: '{Parameters.VisibleBand}' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /确\s*定/ }));
@@ -137,7 +147,7 @@ describe('phase 35 band properties', () => {
     fireEvent.mouseDown(screen.getByLabelText('分组排序'));
     fireEvent.click(screen.getByText('降序'));
     fireEvent.click(screen.getByRole('button', { name: '打开表达式编辑器：分组表达式' }));
-    fireEvent.change(screen.getByPlaceholderText('{Sum(Products.UnitPrice * Products.UnitsInStock) - 0}'), {
+    fireEvent.change(screen.getByLabelText('表达式'), {
       target: { value: '{Employees.Department}' },
     });
     fireEvent.click(await screen.findByRole('button', { name: /确\s*定/ }));

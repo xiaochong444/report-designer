@@ -9,6 +9,16 @@ import { ExpressionEditor } from '../components/ExpressionEditor';
 import { DesignerI18nProvider } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 
+vi.mock('@monaco-editor/react', () => ({
+  default: (props: Record<string, unknown>) => (
+    <textarea
+      aria-label={props['aria-label'] as string}
+      value={props.value as string}
+      onChange={(event) => (props.onChange as (value: string | undefined) => void)(event.target.value)}
+    />
+  ),
+}));
+
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: vi.fn().mockImplementation((query: string) => ({
@@ -89,14 +99,14 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     expect(screen.getByRole('button', { name: /表达式/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /数据列/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /系统变量/i })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /聚合/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /聚合/i })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /html/i })).not.toBeInTheDocument();
 
     const treeSearch = screen.getByPlaceholderText('搜索');
     const editorInput = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement;
     expect(treeSearch).toBeInTheDocument();
     expect(screen.getByText('数据源')).toBeInTheDocument();
-    expect(screen.getByText('格式')).toBeInTheDocument();
+    expect(screen.getAllByText('格式').length).toBeGreaterThan(0);
 
     fireEvent.change(treeSearch, { target: { value: 'UnitPrice' } });
     const unitPriceItem = await screen.findByRole('treeitem', { name: 'Products.UnitPrice' });
@@ -133,13 +143,13 @@ describe('Phase 16 dictionary tree and expression shell', () => {
       </DesignerI18nProvider>,
     );
 
-    expect(screen.getByText('Text')).toBeInTheDocument();
+    expect(screen.getAllByText('Text').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: /Expression/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /Data Column/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /System/i })).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Search')).toBeInTheDocument();
     expect(screen.getByText('Data sources')).toBeInTheDocument();
-    expect(screen.getByText('Format')).toBeInTheDocument();
+    expect(screen.getAllByText('Format').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Validate' })).toBeInTheDocument();
   });
 

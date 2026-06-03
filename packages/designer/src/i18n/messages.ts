@@ -27,6 +27,18 @@ export type DesignerMessageKey =
   | 'expressionEditor.category.systemSubtitle'
   | 'expressionEditor.example'
   | 'expressionEditor.validate'
+  | 'expressionEditor.test'
+  | 'expressionEditor.result'
+  | 'expressionEditor.noDiagnostics'
+  | 'expressionEditor.category.common'
+  | 'expressionEditor.category.aggregate'
+  | 'expressionEditor.category.number'
+  | 'expressionEditor.category.text'
+  | 'expressionEditor.category.date'
+  | 'expressionEditor.category.logic'
+  | 'expressionEditor.category.report'
+  | 'expressionEditor.category.money'
+  | 'expressionEditor.category.format'
   | 'expressionEditor.validation.braces'
   | 'expressionEditor.validation.parens'
   | 'expressionEditor.validation.passed'
@@ -664,6 +676,18 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.category.systemSubtitle': 'System',
     'expressionEditor.example': '示例: Text: {Expression}, {DataSource.Field}',
     'expressionEditor.validate': '校验',
+    'expressionEditor.test': '测试',
+    'expressionEditor.result': '结果',
+    'expressionEditor.noDiagnostics': '未发现错误',
+    'expressionEditor.category.common': '常用',
+    'expressionEditor.category.aggregate': '聚合',
+    'expressionEditor.category.number': '数字',
+    'expressionEditor.category.text': '文本',
+    'expressionEditor.category.date': '日期',
+    'expressionEditor.category.logic': '逻辑',
+    'expressionEditor.category.report': '报表',
+    'expressionEditor.category.money': '金额',
+    'expressionEditor.category.format': '格式',
     'expressionEditor.validation.braces': '大括号数量不匹配',
     'expressionEditor.validation.parens': '括号数量不匹配',
     'expressionEditor.validation.passed': '表达式校验通过',
@@ -1298,6 +1322,18 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'expressionEditor.category.systemSubtitle': 'Variables',
     'expressionEditor.example': 'Example: Text: {Expression}, {DataSource.Field}',
     'expressionEditor.validate': 'Validate',
+    'expressionEditor.test': 'Test',
+    'expressionEditor.result': 'Result',
+    'expressionEditor.noDiagnostics': 'No errors',
+    'expressionEditor.category.common': 'Common',
+    'expressionEditor.category.aggregate': 'Aggregate',
+    'expressionEditor.category.number': 'Number',
+    'expressionEditor.category.text': 'Text',
+    'expressionEditor.category.date': 'Date',
+    'expressionEditor.category.logic': 'Logic',
+    'expressionEditor.category.report': 'Report',
+    'expressionEditor.category.money': 'Money',
+    'expressionEditor.category.format': 'Format',
     'expressionEditor.validation.braces': 'Brace count does not match',
     'expressionEditor.validation.parens': 'Parenthesis count does not match',
     'expressionEditor.validation.passed': 'Expression validation passed',
