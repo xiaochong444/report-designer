@@ -197,6 +197,13 @@ function filterTreeNodes(nodes: TreeNodeMeta[], query: string): TreeNodeMeta[] {
     .filter(Boolean) as TreeNodeMeta[];
 }
 
+function collectExpandableTreeKeys(nodes: TreeNodeMeta[]): React.Key[] {
+  return nodes.flatMap((node) => {
+    const childKeys = node.children ? collectExpandableTreeKeys(node.children) : [];
+    return node.children && node.children.length > 0 ? [node.key, ...childKeys] : childKeys;
+  });
+}
+
 function snippetToPlainText(insertText: string) {
   return insertText.replace(/\$\{\d+:([^}]+)\}/g, '$1');
 }
@@ -216,6 +223,7 @@ export const ExpressionEditor: React.FC<{
   const [expression, setExpression] = useState(value);
   const [activeCategory, setActiveCategory] = useState<ExpressionCategory>('expression');
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedTreeKeys, setExpandedTreeKeys] = useState<React.Key[]>([]);
   const [selectedTreeDescription, setSelectedTreeDescription] = useState<ExpressionTreeDescription | null>(null);
   const [diagnostics, setDiagnostics] = useState<ExpressionDiagnostic[]>([]);
   const [previewResult, setPreviewResult] = useState<ExpressionPreviewResult | null>(null);
@@ -224,6 +232,7 @@ export const ExpressionEditor: React.FC<{
     if (open) {
       setExpression(value);
       setSearchTerm('');
+      setExpandedTreeKeys([]);
       setSelectedTreeDescription(null);
       setDiagnostics([]);
       setPreviewResult(null);
@@ -325,6 +334,11 @@ export const ExpressionEditor: React.FC<{
     () => filterTreeNodes(treeData, searchTerm.trim().toLowerCase()),
     [searchTerm, treeData],
   );
+  const normalizedSearchTerm = searchTerm.trim();
+  const visibleExpandedTreeKeys = useMemo(
+    () => (normalizedSearchTerm ? collectExpandableTreeKeys(filteredTree) : expandedTreeKeys),
+    [expandedTreeKeys, filteredTree, normalizedSearchTerm],
+  );
 
   const handleTreeSelect = (_keys: React.Key[], info: { node: TreeNodeMeta }) => {
     setSelectedTreeDescription(info.node.description ?? null);
@@ -374,6 +388,7 @@ export const ExpressionEditor: React.FC<{
               onClick={() => {
                 setActiveCategory(item.key);
                 setSearchTerm('');
+                setExpandedTreeKeys([]);
                 setSelectedTreeDescription(null);
               }}
             >
@@ -437,7 +452,8 @@ export const ExpressionEditor: React.FC<{
               key={activeCategory}
               className="rd-expression-tree"
               treeData={filteredTree}
-              defaultExpandAll
+              expandedKeys={visibleExpandedTreeKeys}
+              onExpand={setExpandedTreeKeys}
               blockNode
               onSelect={handleTreeSelect}
             />

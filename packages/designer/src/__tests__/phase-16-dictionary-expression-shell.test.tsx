@@ -113,6 +113,8 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     expect(searchButton).toBeInTheDocument();
     expect(screen.getByText('数据源')).toBeInTheDocument();
     expect(screen.getAllByText('格式').length).toBeGreaterThan(0);
+    expect(screen.queryByRole('treeitem', { name: 'ProductName' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('treeitem', { name: 'SUM' })).not.toBeInTheDocument();
 
     fireEvent.change(treeSearch, { target: { value: 'UnitPrice' } });
     const unitPriceItem = await screen.findByRole('treeitem', { name: 'UnitPrice' });
