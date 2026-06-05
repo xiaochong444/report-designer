@@ -257,29 +257,20 @@ export const ExpressionEditor: React.FC<{
         </aside>
 
         <section className="rd-expression-editor-main">
-          <div className="rd-expression-function-strip">
-            {EXPRESSION_FUNCTION_CATEGORIES.filter(item => item.key !== 'common').map((item) => (
-              <Button
-                key={item.key}
-                size="small"
-                type="text"
-                onClick={() => setSearchTerm(t(item.labelKey as DesignerMessageKey).toLowerCase())}
-              >
-                {t(item.labelKey as DesignerMessageKey)}
-              </Button>
-            ))}
+          <div className="rd-expression-monaco-host">
+            <ExpressionMonacoEditor
+              ariaLabel={t('expressionEditor.inline.expression')}
+              value={expression}
+              template={template}
+              locale={locale}
+              height="100%"
+              onChange={(nextValue) => {
+                setExpression(nextValue);
+                setPreviewResult(null);
+              }}
+              onDiagnostics={setDiagnostics}
+            />
           </div>
-          <ExpressionMonacoEditor
-            ariaLabel={t('expressionEditor.inline.expression')}
-            value={expression}
-            template={template}
-            locale={locale}
-            onChange={(nextValue) => {
-              setExpression(nextValue);
-              setPreviewResult(null);
-            }}
-            onDiagnostics={setDiagnostics}
-          />
           <div className="rd-expression-editor-footer">
             <div className="rd-expression-editor-result">
               {diagnostics.length > 0 ? (

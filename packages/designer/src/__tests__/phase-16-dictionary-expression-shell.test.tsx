@@ -99,12 +99,14 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     expect(screen.getByRole('button', { name: /表达式/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /数据列/i })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /系统变量/i })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /聚合/i })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '聚合' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /html/i })).not.toBeInTheDocument();
 
     const treeSearch = screen.getByPlaceholderText('搜索');
     const editorInput = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement;
     expect(treeSearch).toBeInTheDocument();
+    expect(editorInput.closest('.rd-expression-editor-main')).toBeInTheDocument();
+    expect(treeSearch.closest('.rd-expression-browser')).toBeInTheDocument();
     expect(treeSearch.closest('.ant-input-search')).toBeInTheDocument();
     const searchButton = treeSearch.closest('.rd-expression-browser')?.querySelector('.ant-input-search-btn');
     expect(searchButton).toBeInTheDocument();

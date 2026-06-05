@@ -728,10 +728,11 @@
 .rd-dictionary-glyph-format::before { content: "#"; }
 
 .rd-expression-editor {
+  --rd-expression-panel-height: 430px;
   display: grid;
   grid-template-columns: 118px minmax(0, 1fr) 250px;
   gap: 12px;
-  min-height: 480px;
+  align-items: start;
 }
 
 .rd-expression-rail {
@@ -781,7 +782,16 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  height: var(--rd-expression-panel-height);
+  border: 1px solid var(--rd-border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rd-expression-monaco-host {
+  flex: 1;
+  min-height: 0;
 }
 
 .rd-expression-editor-textarea.ant-input {
@@ -796,7 +806,9 @@
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  min-height: 24px;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--rd-border);
   color: #7a8593;
   font-size: 11px;
 }
@@ -805,6 +817,12 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  height: var(--rd-expression-panel-height);
+  border: 1px solid var(--rd-border);
+  border-radius: 4px;
+  padding: 8px;
+  overflow: hidden;
+  background: #fff;
 }
 
 .rd-expression-browser .ant-input-affix-wrapper,
@@ -815,10 +833,8 @@
 .rd-expression-browser-tree {
   flex: 1;
   min-height: 0;
-  border: 1px solid var(--rd-border);
-  border-radius: 4px;
   overflow: auto;
-  padding: 6px 4px;
+  padding: 4px 0;
 }
 
 .rd-expression-tree .ant-tree-treenode {

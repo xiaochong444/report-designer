@@ -57,9 +57,9 @@ describe('phase 44 expression editor monaco shell', () => {
     );
 
     expect(monacoEditorMock.lastProps).toMatchObject({ language: 'report-expression' });
-    expect(screen.getByRole('button', { name: /日期/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /数字/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /文本/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '日期' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '数字' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: '文本' })).not.toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText('表达式'), { target: { value: 'FORMAT("N2", {Orders.Amount})' } });
     fireEvent.click(screen.getByRole('button', { name: '执行' }));
