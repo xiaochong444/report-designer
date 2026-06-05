@@ -14,15 +14,17 @@ import { DesignerPropertyPanel } from '../panels/DesignerPropertyPanel';
 import { DesignerRibbon } from '../ribbon/DesignerRibbon';
 import { useDesignerStore } from '../../store/designer-store';
 import { useDesignerI18n } from '../../i18n';
+import type { ExpressionCatalogExtensions } from '../../expression/expression-catalog';
 import { DesignerStatusBar } from './DesignerStatusBar';
 import '../../styles/designer-shell.css';
 
 interface DesignerShellProps {
   className?: string;
   subreports?: Record<string, ReportTemplate>;
+  expressionExtensions?: ExpressionCatalogExtensions;
 }
 
-export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subreports }) => {
+export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subreports, expressionExtensions }) => {
   const template = useDesignerStore(s => s.template);
   const undo = useDesignerStore(s => s.undo);
   const redo = useDesignerStore(s => s.redo);
@@ -40,7 +42,7 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subrepo
       <div className="rd-designer-body">
         <DesignerLeftPanel />
         <DesignerCanvasFrame subreports={subreports} />
-        <DesignerPropertyPanel />
+        <DesignerPropertyPanel expressionExtensions={expressionExtensions} />
       </div>
       <DesignerStatusBar />
       <TextStyleLibraryDialog open={textStyleLibraryOpen} onClose={closeTextStyleLibrary} />

@@ -14,6 +14,8 @@ interface ViewerProps {
   data: Record<string, any[]>;
   className?: string;
   subreports?: RenderReportOptions['subreports'];
+  expressionVariables?: RenderReportOptions['expressionVariables'];
+  expressionFunctions?: RenderReportOptions['expressionFunctions'];
   printOptions?: PrintReportOptions;
   onEventLogSelect?: (entry: EventLogEntry) => void;
   onEventLogsClear?: () => void;
@@ -30,6 +32,8 @@ export const Viewer: React.FC<ViewerProps> = ({
   onEventLogsClear,
   onEventLogsExport,
   subreports,
+  expressionVariables,
+  expressionFunctions,
   printOptions,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
@@ -41,8 +45,8 @@ export const Viewer: React.FC<ViewerProps> = ({
   const messages = getViewerMessages(locale);
 
   const document = useMemo(
-    () => renderReport(template, data, { subreports, mode: 'preview' }),
-    [template, data, subreports],
+    () => renderReport(template, data, { subreports, expressionVariables, expressionFunctions, mode: 'preview' }),
+    [template, data, subreports, expressionVariables, expressionFunctions],
   );
   const totalPages = document.pages.length;
   const eventLogs = eventLogsCleared ? [] : [...(document.eventLogs ?? []), ...outputEventLogs];
@@ -53,7 +57,7 @@ export const Viewer: React.FC<ViewerProps> = ({
   }, [document]);
 
   const handleExportPDF = async () => {
-    const pdfDocument = renderReport(template, data, { subreports, mode: 'pdf' });
+    const pdfDocument = renderReport(template, data, { subreports, expressionVariables, expressionFunctions, mode: 'pdf' });
     setEventLogsCleared(false);
     setOutputEventLogs(pdfDocument.eventLogs ?? []);
     const pdfBytes = await exportToPDF(pdfDocument);
@@ -61,7 +65,7 @@ export const Viewer: React.FC<ViewerProps> = ({
   };
 
   const handlePrint = () => {
-    const printDocument = renderReport(template, data, { subreports, mode: 'print' });
+    const printDocument = renderReport(template, data, { subreports, expressionVariables, expressionFunctions, mode: 'print' });
     setEventLogsCleared(false);
     setOutputEventLogs(printDocument.eventLogs ?? []);
     void printReport(printDocument, printOptions);

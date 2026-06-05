@@ -1,13 +1,35 @@
 import { evalExpression, type JsonFieldType, type ReportTemplate } from '@report-designer/core';
+import {
+  getExpressionVariableValues,
+  resolveExpressionCatalog,
+  type ExpressionCatalogExtensions,
+} from './expression-catalog';
 
 export type ExpressionPreviewResult =
   | { ok: true; value: unknown }
   | { ok: false; message: string };
 
-export function previewReportExpression(expression: string, template: ReportTemplate): ExpressionPreviewResult {
+export function previewReportExpression(
+  expression: string,
+  template: ReportTemplate,
+  extensions?: ExpressionCatalogExtensions,
+): ExpressionPreviewResult {
   try {
+    const catalog = resolveExpressionCatalog(extensions);
     const sampleRows = buildSampleRows(template);
-    const value = evalExpression(expression, (source, field) => sampleRows[source]?.[field]);
+    const variables = getExpressionVariableValues(catalog, {
+      templateName: template.name,
+      rowIndex: 0,
+      date: new Date(),
+    });
+    const value = evalExpression(
+      expression,
+      (source, field) => sampleRows[source]?.[field],
+      0,
+      variables,
+      undefined,
+      catalog.runtimeFunctions,
+    );
     return { ok: true, value };
   } catch (error) {
     return { ok: false, message: error instanceof Error ? error.message : String(error) };

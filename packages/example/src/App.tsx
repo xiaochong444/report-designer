@@ -3,6 +3,7 @@ import { Button, Layout, Select, Typography } from 'antd';
 import { renderReport, type EventLogEntry, type ReportTemplate } from '@report-designer/core';
 import { Designer, type DesignerEventNavigationTarget, type DesignerLocale } from '@report-designer/designer';
 import { printReport, Viewer } from '@report-designer/viewer';
+import { expressionExtensions, expressionFunctions, expressionVariables } from './expression-extensions';
 import { sampleReports } from './templates';
 
 const { Content, Header } = Layout;
@@ -87,6 +88,8 @@ function App() {
     try {
       const printDocument = renderReport(previewTemplate, selected.data, {
         subreports: 'subreports' in selected ? selected.subreports : undefined,
+        expressionFunctions,
+        expressionVariables,
         mode: 'print',
       });
       await printReport(printDocument, {
@@ -111,6 +114,8 @@ function App() {
     try {
       const printDocument = renderReport(previewTemplate, selected.data, {
         subreports: 'subreports' in selected ? selected.subreports : undefined,
+        expressionFunctions,
+        expressionVariables,
         mode: 'print',
       });
       await printReport(printDocument, {
@@ -221,6 +226,8 @@ function App() {
             template={previewTemplate}
             data={selected.data}
             subreports={'subreports' in selected ? selected.subreports : undefined}
+            expressionFunctions={expressionFunctions}
+            expressionVariables={expressionVariables}
             locale={locale}
             onEventLogSelect={handleEventLogSelect}
           />
@@ -230,6 +237,7 @@ function App() {
             template={designerTemplate}
             data={selected.data}
             subreports={'subreports' in selected ? selected.subreports : undefined}
+            expressionExtensions={expressionExtensions}
             locale={locale}
             eventNavigationTarget={eventNavigationTarget}
             onTemplateChange={handleDesignerTemplateChange}

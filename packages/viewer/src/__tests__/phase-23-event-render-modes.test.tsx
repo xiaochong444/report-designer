@@ -56,6 +56,16 @@ function eventTemplate(): ReportTemplate {
   };
 }
 
+function expressionTemplate(): ReportTemplate {
+  const template = eventTemplate();
+  template.events = undefined;
+  const title = template.pages[0].bands[0].components[0] as TextComponent;
+  title.text = 'CONCAT(MASKPHONE({Customers.Phone}), " - ", {TenantName})';
+  template.pages[0].bands[0].type = 'data';
+  template.pages[0].bands[0].dataBand = { dataSourceId: 'Customers' };
+  return template;
+}
+
 function firstTextContent(document: RenderDocument): string | undefined {
   const text = document.pages[0]?.items.flatMap(item => item.components).find(component => component.type === 'text');
   return text && 'content' in text ? text.content : undefined;
@@ -86,5 +96,27 @@ describe('phase 23 viewer event render modes', () => {
     await waitFor(() => expect(exportToPDF).toHaveBeenCalledTimes(1));
     expect(firstTextContent(vi.mocked(exportToPDF).mock.calls[0][0] as RenderDocument)).toBe('Output Title');
     expect(downloadPDF).toHaveBeenCalledWith(new Uint8Array([1, 2, 3]), 'report.pdf');
+  });
+
+  it('passes custom expression functions and variables to preview, print, and pdf renders', async () => {
+    render(
+      <Viewer
+        template={expressionTemplate()}
+        data={{ Customers: [{ Phone: '13812345678' }] }}
+        expressionVariables={{ TenantName: '演示租户' }}
+        expressionFunctions={{
+          MASKPHONE: ([phone]) => String(phone).replace(/^(\d{3})\d{4}(\d+)$/, '$1****$2'),
+        }}
+      />,
+    );
+
+    expect(screen.getByText('138****5678 - 演示租户')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Print' }));
+    expect(firstTextContent(vi.mocked(printReport).mock.calls.at(-1)?.[0] as RenderDocument)).toBe('138****5678 - 演示租户');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Export PDF' }));
+    await waitFor(() => expect(exportToPDF).toHaveBeenCalled());
+    expect(firstTextContent(vi.mocked(exportToPDF).mock.calls.at(-1)?.[0] as RenderDocument)).toBe('138****5678 - 演示租户');
   });
 });

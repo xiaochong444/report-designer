@@ -6,6 +6,7 @@ import type { RenderBandBox, RenderComponentBox, RenderDocument, RenderPage, Ren
 import type { Band, Page, PageBorder, PageWatermark, ReportTemplate, SubreportComponent, TableComponent } from '../template-model/types';
 import { normalizeTemplate } from '../template-model';
 import { evalExpression } from '../expression-engine/evaluator';
+import type { BuiltinFunction } from '../expression-engine/evaluator';
 import { applyPageNumberPass } from './page-number-pass';
 import {
   cloneReportTemplate,
@@ -20,6 +21,8 @@ export interface RenderReportOptions {
   subreports?: Record<string, ReportTemplate>;
   maxSubreportDepth?: number;
   parameters?: Record<string, unknown>;
+  expressionVariables?: Record<string, unknown>;
+  expressionFunctions?: Record<string, BuiltinFunction>;
   mode?: EventMode;
 }
 
@@ -160,11 +163,14 @@ function renderReportInternal(
 
   const templatePage = normalizedTemplate.pages[0];
   const plan = buildBandPlan(normalizedTemplate);
-  const logicalItems = executeBandPlan(plan, data);
+  const logicalItems = executeBandPlan(plan, data, {
+    expressionVariables: options.expressionVariables,
+    expressionFunctions: options.expressionFunctions,
+  });
   if (!options.suppressEvents) {
     runReportEvent(normalizedTemplate, 'afterData', eventRuntime);
   }
-  const pages = paginate(templatePage, plan.pageBands, logicalItems, data, normalizedTemplate.styles, {
+  const pages = paginate(templatePage, plan.pageBands, logicalItems, data, normalizedTemplate.styles, normalizedTemplate.conditionalFormats, {
     ...options,
     eventRuntime: options.suppressEvents ? undefined : eventRuntime,
   });
@@ -182,6 +188,7 @@ export function paginate(
   logicalItems: LogicalBandItem[],
   rowsByBand: Record<string, Record<string, unknown>[]> = {},
   styles: ReportTemplate['styles'] = [],
+  conditionalFormats: ReportTemplate['conditionalFormats'] = [],
   options: InternalRenderReportOptions = {},
 ): RenderPage[] {
   const pages: RenderPage[] = [];
@@ -213,13 +220,13 @@ export function paginate(
     pageRows.set(currentPage, {});
     cursorY = templatePage.margins.top;
     for (const header of pageBands.pageHeader) {
-      placeBand(header, createEmptyContext(options.parameters), true);
+      placeBand(header, createEmptyContext(options), true);
     }
     for (const groupHeader of repeatedGroups) {
-      placeBand(groupHeader, createEmptyContext(options.parameters), true);
+      placeBand(groupHeader, createEmptyContext(options), true);
     }
     for (const sectionBand of activeSectionRepeatBands) {
-      placeBand(sectionBand, createEmptyContext(options.parameters), true);
+      placeBand(sectionBand, createEmptyContext(options), true);
     }
   };
 
@@ -231,31 +238,32 @@ export function paginate(
 
   const placeBand = (band: Band, context: RenderContext, force = false): RenderBandBox | undefined => {
     ensurePage();
-    const eventBand = prepareBandInstance(band, context, options, templatePage);
+    const runtimeContext = withRuntimeContext(context, options);
+    const eventBand = prepareBandInstance(band, runtimeContext, options, templatePage);
     if (!eventBand) {
       return undefined;
     }
 
-    const layoutContext = withParameters(context, options.parameters);
+    const layoutContext = withParameters(runtimeContext, options.parameters);
     const behavior = getBandBehavior(eventBand);
     if (!shouldPrintBand(behavior, currentPage!.pageNumber, layoutContext, rowsByBand)) {
       return undefined;
     }
     let layoutState = createLayoutState(options);
     const currentPageRows = currentPage ? pageRows.get(currentPage) ?? {} : {};
-    let preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: currentPageRows, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'measure' });
+    let preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: currentPageRows, styles, conditionalFormats, renderSubreport: createSubreportRenderer(rowsByBand, options, false), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'measure' });
     if (behavior.printIfEmpty === false && preview.components.length === 0) {
       return undefined;
     }
     const breakIfLessThan = behavior.breakIfLessThan ?? 0;
     if (!force && breakIfLessThan > 0 && pageBottomY - cursorY < breakIfLessThan && currentPage!.items.length > 0) {
       newPage();
-      preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'measure' });
+      preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, conditionalFormats, renderSubreport: createSubreportRenderer(rowsByBand, options, false), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'measure' });
     }
 
     if (!force && cursorY + preview.height > pageBottomY && currentPage!.items.length > 0) {
       newPage();
-      preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, false), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'measure' });
+      preview = layoutBand(eventBand, { x: printableX, y: cursorY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, conditionalFormats, renderSubreport: createSubreportRenderer(rowsByBand, options, false), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'measure' });
     }
 
     const splitTable = !force ? splitTableBand(eventBand, preview, cursorY, pageBottomY, templatePage.margins.top) : undefined;
@@ -267,20 +275,20 @@ export function paginate(
         }
         const box = createTableChunkBandBox(preview, chunk, cursorY);
         currentPage!.items.push(box);
-        collectPageRow(pageRows.get(currentPage!)!, eventBand, context);
+        collectPageRow(pageRows.get(currentPage!)!, eventBand, runtimeContext);
         cursorY += box.height;
         placedBox = box;
       }
-      finishBandInstance(eventBand, context, options, templatePage);
+      finishBandInstance(eventBand, runtimeContext, options, templatePage);
       return placedBox;
     }
 
     const targetY = behavior.printAtBottom ? pageBottomY - preview.height : cursorY;
-    const box = layoutBand(eventBand, { x: printableX, y: targetY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, renderSubreport: createSubreportRenderer(rowsByBand, options, true), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'render' });
+    const box = layoutBand(eventBand, { x: printableX, y: targetY, width: printableWidth, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, conditionalFormats, renderSubreport: createSubreportRenderer(rowsByBand, options, true), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'render' });
     currentPage!.items.push(box);
-    collectPageRow(pageRows.get(currentPage!)!, eventBand, context);
+    collectPageRow(pageRows.get(currentPage!)!, eventBand, runtimeContext);
     cursorY = behavior.printAtBottom ? pageBottomY : cursorY + box.height;
-    finishBandInstance(eventBand, context, options, templatePage);
+    finishBandInstance(eventBand, runtimeContext, options, templatePage);
     return box;
   };
 
@@ -327,7 +335,7 @@ export function paginate(
 
   for (const page of pages) {
     for (const overlay of pageBands.overlay) {
-      const box = renderFixedBand(overlay, createEmptyContext(options.parameters), templatePage.margins.top, pageRows.get(page) ?? {}, templatePage, page.pageNumber, printableX, printableWidth, rowsByBand, styles, options);
+      const box = renderFixedBand(overlay, createEmptyContext(options), templatePage.margins.top, pageRows.get(page) ?? {}, templatePage, page.pageNumber, printableX, printableWidth, rowsByBand, styles, conditionalFormats, options);
       if (box) {
         page.items.unshift(box);
       }
@@ -335,7 +343,7 @@ export function paginate(
 
     let footerY = templatePage.height - templatePage.margins.bottom - footerHeight;
     for (const footer of pageBands.pageFooter) {
-      const box = renderFixedBand(footer, createEmptyContext(options.parameters), footerY, pageRows.get(page) ?? {}, templatePage, page.pageNumber, printableX, printableWidth, rowsByBand, styles, options);
+      const box = renderFixedBand(footer, createEmptyContext(options), footerY, pageRows.get(page) ?? {}, templatePage, page.pageNumber, printableX, printableWidth, rowsByBand, styles, conditionalFormats, options);
       if (box) {
         page.items.push(box);
         footerY += box.height;
@@ -386,14 +394,16 @@ function renderFixedBand(
   width: number,
   rowsByBand: Record<string, Record<string, unknown>[]>,
   styles: ReportTemplate['styles'],
+  conditionalFormats: ReportTemplate['conditionalFormats'],
   options: InternalRenderReportOptions,
 ): RenderBandBox | undefined {
-  const eventBand = prepareBandInstance(band, context, options, templatePage);
+  const runtimeContext = withRuntimeContext(context, options);
+  const eventBand = prepareBandInstance(band, runtimeContext, options, templatePage);
   if (!eventBand) {
     return undefined;
   }
 
-  const layoutContext = withParameters(context, options.parameters);
+  const layoutContext = withParameters(runtimeContext, options.parameters);
   const behavior = getBandBehavior(eventBand);
   if (!shouldPrintBand(behavior, pageNumber, layoutContext, rowsByBand)) {
     return undefined;
@@ -407,6 +417,7 @@ function renderFixedBand(
     rowsByBand,
     pageRowsByBand,
     styles,
+    conditionalFormats,
     renderSubreport: createSubreportRenderer(rowsByBand, options, true),
     eventRuntime: withEventPage(options.eventRuntime, templatePage),
   });
@@ -414,7 +425,7 @@ function renderFixedBand(
     return undefined;
   }
 
-  finishBandInstance(eventBand, context, options, templatePage);
+  finishBandInstance(eventBand, runtimeContext, options, templatePage);
   return box;
 }
 
@@ -732,6 +743,21 @@ function resolveTemplateValue(
 
   const placeholderPattern = /\{([^{}]+)\}/g;
   const isSinglePlaceholder = value.trim().match(/^\{([^{}]+)\}$/);
+  if (!isSinglePlaceholder) {
+    try {
+      return evalExpression(
+        value,
+        (source, field) => resolveField(context, source, field),
+        context.rowIndex,
+        expressionVariables(context, { rowsByBand }),
+        undefined,
+        context.expressionFunctions,
+      );
+    } catch {
+      // Fall through to mixed literal placeholder replacement.
+    }
+  }
+
   if (!isSinglePlaceholder && placeholderPattern.test(value)) {
     return value.replace(/\{([^{}]+)\}/g, (match, expressionBody) => {
       try {
@@ -739,7 +765,9 @@ function resolveTemplateValue(
           `{${expressionBody}}`,
           (source, field) => resolveField(context, source, field),
           context.rowIndex,
-          { row: context.row, groupValues: context.groupValues, parameters: context.parameters },
+          expressionVariables(context),
+          undefined,
+          context.expressionFunctions,
         );
         return result == null ? '' : String(result);
       } catch {
@@ -753,7 +781,9 @@ function resolveTemplateValue(
       value,
       (source, field) => resolveField(context, source, field),
       context.rowIndex,
-      { row: context.row, groupValues: context.groupValues, parameters: context.parameters, rowsByBand },
+      expressionVariables(context, { rowsByBand }),
+      undefined,
+      context.expressionFunctions,
     );
   } catch {
     return value;
@@ -767,6 +797,10 @@ function resolveField(context: RenderContext, source: string, field: string): un
 
   if (!source && context.parameters && field in context.parameters) {
     return context.parameters[field];
+  }
+
+  if (!source && context.expressionVariables && field in context.expressionVariables) {
+    return context.expressionVariables[field];
   }
 
   const row = context.row ?? {};
@@ -786,17 +820,39 @@ function collectPageRow(pageRows: Record<string, Record<string, unknown>[]>, ban
   pageRows[context.dataSourceId].push(context.row);
 }
 
-function createEmptyContext(parameters?: Record<string, unknown>): RenderContext {
+function createEmptyContext(options: Pick<InternalRenderReportOptions, 'parameters' | 'expressionVariables' | 'expressionFunctions'>): RenderContext {
   return {
     rowIndex: 0,
     groupValues: {},
-    parameters,
+    parameters: options.parameters,
+    expressionVariables: options.expressionVariables,
+    expressionFunctions: options.expressionFunctions,
   };
 }
 
 function withParameters(context: RenderContext, parameters?: Record<string, unknown>): RenderContext {
-  if (!parameters || context.parameters) return context;
-  return { ...context, parameters };
+  return {
+    ...context,
+    parameters: context.parameters ?? parameters,
+  };
+}
+
+function withRuntimeContext(context: RenderContext, options: Pick<InternalRenderReportOptions, 'expressionVariables' | 'expressionFunctions'>): RenderContext {
+  return {
+    ...context,
+    expressionVariables: context.expressionVariables ?? options.expressionVariables,
+    expressionFunctions: context.expressionFunctions ?? options.expressionFunctions,
+  };
+}
+
+function expressionVariables(context: RenderContext, extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    row: context.row,
+    groupValues: context.groupValues,
+    parameters: context.parameters,
+    ...extra,
+    ...(context.expressionVariables ?? {}),
+  };
 }
 
 function getBandBehavior(band: Band): NonNullable<Band['behavior']> {

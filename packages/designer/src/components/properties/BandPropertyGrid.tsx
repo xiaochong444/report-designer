@@ -8,6 +8,7 @@ import { useDesignerI18n, type DesignerMessageKey } from '../../i18n';
 import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDialog';
 import { buildEventEditorDataContext } from '../events/event-editor-utils';
 import { ExpressionEditor } from '../ExpressionEditor';
+import type { ExpressionCatalogExtensions } from '../../expression/expression-catalog';
 
 type BandExpressionTarget = 'visibleExpression' | 'groupExpression';
 type SortRule = NonNullable<DataBandOptions['sort']>[number];
@@ -19,7 +20,7 @@ interface FilterCondition {
   value: string;
 }
 
-export const BandPropertyGrid: React.FC = () => {
+export const BandPropertyGrid: React.FC<{ expressionExtensions?: ExpressionCatalogExtensions }> = ({ expressionExtensions }) => {
   const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const selectedBandId = useDesignerStore(s => s.selectedBandId);
@@ -156,12 +157,14 @@ export const BandPropertyGrid: React.FC = () => {
       <ExpressionEditor
         open={Boolean(expressionTarget)}
         value={expressionValue}
+        expressionExtensions={expressionExtensions}
         onChange={applyExpressionValue}
         onClose={() => setExpressionTarget(null)}
       />
       <ExpressionEditor
         open={filterValueExpressionIndex != null}
         value={filterExpressionValue}
+        expressionExtensions={expressionExtensions}
         onChange={updateFilterValue}
         onClose={() => setFilterValueExpressionIndex(null)}
       />

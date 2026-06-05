@@ -3,6 +3,7 @@ import type { ReportTemplate } from '@report-designer/core';
 import { DesignerShell } from './shell/DesignerShell';
 import { useDesignerStore, type DesignerEventNavigationTarget } from '../store/designer-store';
 import { DesignerI18nProvider, type DesignerLocale } from '../i18n';
+import type { ExpressionCatalogExtensions } from '../expression/expression-catalog';
 
 interface DesignerProps {
   /** Optional initial template to load */
@@ -14,11 +15,12 @@ interface DesignerProps {
   /** Emits the current in-designer template so hosts can preview or persist draft edits. */
   onTemplateChange?: (template: ReportTemplate) => void;
   locale?: DesignerLocale;
+  expressionExtensions?: ExpressionCatalogExtensions;
   eventNavigationTarget?: DesignerEventNavigationTarget;
   className?: string;
 }
 
-export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, onTemplateChange, locale = 'zh-CN', eventNavigationTarget, className }) => {
+export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, onTemplateChange, locale = 'zh-CN', expressionExtensions, eventNavigationTarget, className }) => {
   const loadTemplate = useDesignerStore(s => s.loadTemplate);
   const setDataSources = useDesignerStore(s => s.setDataSources);
   const currentTemplate = useDesignerStore(s => s.template);
@@ -74,7 +76,7 @@ export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, 
 
   return (
     <DesignerI18nProvider locale={locale}>
-      <DesignerShell className={className} subreports={subreports} />
+      <DesignerShell className={className} subreports={subreports} expressionExtensions={expressionExtensions} />
     </DesignerI18nProvider>
   );
 };

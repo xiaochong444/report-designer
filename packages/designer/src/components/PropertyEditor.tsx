@@ -23,6 +23,7 @@ import { TextFormatEditor } from './TextFormatEditor';
 import { useDesignerI18n, type DesignerLocale } from '../i18n';
 import { EventEditorDialog, type EventTreeItem } from './events/EventEditorDialog';
 import { buildEventEditorDataContext } from './events/event-editor-utils';
+import type { ExpressionCatalogExtensions } from '../expression/expression-catalog';
 
 const DEFAULT_BORDER: BorderConfig = {
   style: 'none',
@@ -32,7 +33,7 @@ const DEFAULT_BORDER: BorderConfig = {
 };
 const NO_CONDITIONAL_FORMAT = '__none__';
 
-export const PropertyEditor: React.FC = () => {
+export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalogExtensions }> = ({ expressionExtensions }) => {
   const { locale, t: globalT } = useDesignerI18n();
   const t = createPropertyT(locale);
   const template = useDesignerStore(s => s.template);
@@ -944,6 +945,7 @@ export const PropertyEditor: React.FC = () => {
       <ExpressionEditor
         open={Boolean(expressionTarget)}
         value={expressionTarget ? String(comp[expressionTarget.field] ?? '') : ''}
+        expressionExtensions={expressionExtensions}
         onChange={(v) => {
           if (expressionTarget) handleChange(expressionTarget.field, v);
         }}

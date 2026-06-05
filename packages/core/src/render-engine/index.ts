@@ -4,7 +4,7 @@ import type {
   ConditionalFormat, ReportStyle, FontConfig, BorderConfig, TextFormatConfig,
 } from '../template-model/types';
 import { evalExpression } from '../expression-engine';
-import type { EvalContext } from '../expression-engine/evaluator';
+import type { BuiltinFunction, EvalContext } from '../expression-engine/evaluator';
 import { applyConditionalFormatsToStyle } from '../conditional-format';
 
 /** A fully resolved/rendered component */
@@ -64,6 +64,11 @@ export interface RenderTree {
   rowCount: Record<string, number>;
 }
 
+export interface RenderTemplateOptions {
+  expressionVariables?: Record<string, unknown>;
+  expressionFunctions?: Record<string, BuiltinFunction>;
+}
+
 /** Resolve an expression string or return static value */
 export function resolveValue(
   value: string | undefined,
@@ -73,7 +78,7 @@ export function resolveValue(
   // If it looks like an expression
   if (value.includes('{') || value.includes('(') || value.includes('=')) {
     try {
-      return evalExpression(value, ctx.resolveField.bind(ctx), ctx.rowIndex, ctx.variables);
+      return evalExpression(value, ctx.resolveField.bind(ctx), ctx.rowIndex, ctx.variables, ctx.reportRuntime, ctx.functions);
     } catch {
       return value;
     }
@@ -213,6 +218,7 @@ function resolveRenderedBandBackground(band: Band, rowIndex: number, hasRow: boo
 export function renderTemplate(
   template: ReportTemplate,
   data: Record<string, any[]>,
+  options: RenderTemplateOptions = {},
 ): RenderTree {
   const formats = template.conditionalFormats || [];
   const templateStyles = template.styles || [];
@@ -226,9 +232,10 @@ export function renderTemplate(
       // Static bands (title, header, footer) - render once with no data context
       if (band.type === 'reportTitle' || band.type === 'pageHeader' || band.type === 'pageFooter') {
         const ctx: EvalContext = {
-          resolveField: () => null,
+          resolveField: (source, field) => resolveRenderField(undefined, source, field, options),
           rowIndex: 0,
-          variables: {},
+          variables: { ...(options.expressionVariables ?? {}) },
+          functions: options.expressionFunctions,
         };
         renderedBands.push(renderBand(band, ctx, formats, templateStyles));
         continue;
@@ -244,13 +251,11 @@ export function renderTemplate(
           const row = rows[i];
           const ctx: EvalContext = {
             resolveField: (source: string, field: string) => {
-              if (source && row[source] && typeof row[source] === 'object') {
-                return row[source][field];
-              }
-              return row[field] ?? row[source] ?? null;
+              return resolveRenderField(row, source, field, options);
             },
             rowIndex: i,
-            variables: { rowIndex: i, row: row },
+            variables: { rowIndex: i, row, ...(options.expressionVariables ?? {}) },
+            functions: options.expressionFunctions,
           };
           renderedBands.push(renderBand(band, ctx, formats, templateStyles));
         }
@@ -259,9 +264,10 @@ export function renderTemplate(
 
       // Default: render once
       const ctx: EvalContext = {
-        resolveField: () => null,
+        resolveField: (source, field) => resolveRenderField(undefined, source, field, options),
         rowIndex: 0,
-        variables: {},
+        variables: { ...(options.expressionVariables ?? {}) },
+        functions: options.expressionFunctions,
       };
       renderedBands.push(renderBand(band, ctx, formats, templateStyles));
     }
@@ -278,6 +284,21 @@ export function renderTemplate(
     totalPages: pages.length,
     rowCount,
   };
+}
+
+function resolveRenderField(
+  row: Record<string, any> | undefined,
+  source: string,
+  field: string,
+  options: RenderTemplateOptions,
+): unknown {
+  if (!source && options.expressionVariables && field in options.expressionVariables) {
+    return options.expressionVariables[field];
+  }
+  if (source && row?.[source] && typeof row[source] === 'object') {
+    return row[source][field];
+  }
+  return row?.[field] ?? row?.[source] ?? null;
 }
 
 /** Get a summary of the render tree for debugging */

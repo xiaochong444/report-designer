@@ -1,6 +1,10 @@
 import type { ReportTemplate } from '@report-designer/core';
 import type { DesignerLocale } from '../../i18n/messages';
-import { EXPRESSION_FUNCTIONS, formatExpressionFunctionDocumentation } from '../../expression/function-catalog';
+import { formatExpressionFunctionDocumentation } from '../../expression/function-catalog';
+import {
+  resolveExpressionCatalog,
+  type ExpressionCatalogExtensions,
+} from '../../expression/expression-catalog';
 
 export const REPORT_EXPRESSION_LANGUAGE_ID = 'report-expression';
 
@@ -66,9 +70,11 @@ export function buildExpressionCompletions(
   template: ReportTemplate,
   locale: DesignerLocale,
   monaco: MonacoCompletionConstants,
+  extensions?: ExpressionCatalogExtensions,
 ): ExpressionCompletionItem[] {
   const constants = getCompletionConstants(monaco);
-  const functionCompletions = EXPRESSION_FUNCTIONS.map(item => ({
+  const catalog = resolveExpressionCatalog(extensions);
+  const functionCompletions = catalog.functions.map(item => ({
     label: item.name,
     kind: constants.CompletionItemKind.Function,
     detail: item.signature,
@@ -87,29 +93,17 @@ export function buildExpressionCompletions(
       };
     }),
   );
-  const systemVariables = ['{Today}', '{PageNumber}', '{TotalPages}', '{Line}'].map(variable => ({
-    label: variable,
+  const systemVariables = catalog.variables.map(variable => ({
+    label: variable.name,
     kind: constants.CompletionItemKind.Variable,
-    insertText: variable,
+    insertText: variable.insertText ?? variable.name,
+    documentation: variable.description[locale],
   }));
-  const formatSnippets = [
-    {
-      label: 'FORMAT("N2", value)',
-      detail: 'Number with 2 decimals',
-      insertText: 'FORMAT("${1:N2}", ${2:value})',
-    },
-    {
-      label: 'FORMAT("C", value)',
-      detail: 'Currency',
-      insertText: 'FORMAT("${1:C}", ${2:value})',
-    },
-    {
-      label: 'FORMAT("D", value)',
-      detail: 'Date',
-      insertText: 'FORMAT("${1:D}", ${2:value})',
-    },
-  ].map(item => ({
-    ...item,
+  const formatSnippets = catalog.formats.map(item => ({
+    label: item.name,
+    detail: item.detail[locale],
+    documentation: item.description[locale],
+    insertText: item.insertText,
     kind: constants.CompletionItemKind.Snippet,
     insertTextRules: constants.CompletionItemInsertTextRule.InsertAsSnippet,
   }));

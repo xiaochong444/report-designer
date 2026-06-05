@@ -24,7 +24,7 @@ export function evaluateConditionRule(rule: ConditionRule, ctx: EvalContext): bo
   const expression = rule.expression?.trim();
   if (!expression) return false;
   try {
-    return Boolean(evalExpression(expression, ctx.resolveField.bind(ctx), ctx.rowIndex, ctx.variables));
+    return Boolean(evalExpression(expression, ctx.resolveField.bind(ctx), ctx.rowIndex, ctx.variables, ctx.reportRuntime, ctx.functions));
   } catch {
     return false;
   }
@@ -99,7 +99,7 @@ function resolveRuleValue(value: unknown, ctx: EvalContext) {
   const trimmed = value.trim();
   if (!trimmed) return '';
   try {
-    return evalExpression(trimmed, ctx.resolveField.bind(ctx), ctx.rowIndex, ctx.variables);
+    return evalExpression(trimmed, ctx.resolveField.bind(ctx), ctx.rowIndex, ctx.variables, ctx.reportRuntime, ctx.functions);
   } catch {
     return value;
   }

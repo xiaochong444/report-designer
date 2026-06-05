@@ -1,4 +1,5 @@
 import type { Band } from '../template-model/types';
+import type { BuiltinFunction } from '../expression-engine/evaluator';
 
 export interface BandPlan {
   pageBands: {
@@ -32,6 +33,8 @@ export interface RenderContext {
   parentRow?: Record<string, unknown>;
   rowsByBand?: Record<string, Record<string, unknown>[]>;
   parameters?: Record<string, unknown>;
+  expressionVariables?: Record<string, unknown>;
+  expressionFunctions?: Record<string, BuiltinFunction>;
 }
 
 export type LogicalBandItem =

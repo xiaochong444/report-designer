@@ -6,6 +6,7 @@ import '@testing-library/jest-dom/vitest';
 import { createDefaultTemplate, type ReportTemplate } from '@report-designer/core';
 import { Designer } from '../components/Designer';
 import { ExpressionEditor } from '../components/ExpressionEditor';
+import type { ExpressionCatalogExtensions } from '../expression/expression-catalog';
 import { DesignerI18nProvider } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 
@@ -62,6 +63,80 @@ function makeDictionaryTemplate(): ReportTemplate {
   ];
   return template;
 }
+
+const expressionExtensions: ExpressionCatalogExtensions = {
+  functions: [
+    {
+      name: 'DISCOUNT',
+      category: 'number',
+      signature: 'DISCOUNT(price, rate)',
+      detail: 'DISCOUNT(price, rate)',
+      insertText: 'DISCOUNT(${1:price}, ${2:rate})',
+      description: {
+        'zh-CN': '按折扣率计算折后金额。',
+        'en-US': 'Calculates a discounted amount by rate.',
+      },
+      examples: ['DISCOUNT({Products.UnitPrice}, 0.8)'],
+      evaluate: ([price, rate]) => Number(price) * Number(rate),
+    },
+    {
+      name: 'SUM',
+      category: 'aggregate',
+      signature: 'SUM(custom)',
+      detail: 'SUM(custom)',
+      insertText: 'SUM(${1:custom})',
+      description: {
+        'zh-CN': '重复函数不应显示。',
+        'en-US': 'Duplicate function should not be shown.',
+      },
+      examples: ['SUM(custom)'],
+    },
+  ],
+  variables: [
+    {
+      name: '{TenantName}',
+      description: {
+        'zh-CN': '当前租户名称。',
+        'en-US': 'Current tenant name.',
+      },
+      previewValue: '演示租户',
+    },
+    {
+      name: '{Today}',
+      description: {
+        'zh-CN': '重复变量不应显示。',
+        'en-US': 'Duplicate variable should not be shown.',
+      },
+      previewValue: 'duplicate',
+    },
+  ],
+  formats: [
+    {
+      name: 'FORMAT("CN_DATE", value)',
+      insertText: 'FORMAT("${1:CN_DATE}", ${2:value})',
+      detail: {
+        'zh-CN': '中文日期',
+        'en-US': 'Chinese date',
+      },
+      description: {
+        'zh-CN': '按中文日期习惯展示年月日。',
+        'en-US': 'Formats a value as a Chinese date.',
+      },
+    },
+    {
+      name: 'FORMAT("N2", value)',
+      insertText: 'FORMAT("${1:N2}", ${2:value})',
+      detail: {
+        'zh-CN': '重复格式',
+        'en-US': 'Duplicate format',
+      },
+      description: {
+        'zh-CN': '重复格式不应显示。',
+        'en-US': 'Duplicate format should not be shown.',
+      },
+    },
+  ],
+};
 
 describe('Phase 16 dictionary tree and expression shell', () => {
   it('shows a larger searchable dictionary tree and filters fields by name', async () => {
@@ -191,6 +266,55 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     const numberFormatItem = await screen.findByRole('treeitem', { name: 'FORMAT("N2", value)' });
     fireEvent.click(within(numberFormatItem).getByText('FORMAT("N2", value)'));
     expect(screen.getByTestId('expression-tree-description')).toHaveTextContent('Formats a number with two decimal places.');
+  });
+
+  it('shows injected custom functions, variables, and formats with localized descriptions without duplicates', async () => {
+    useDesignerStore.getState().loadTemplate(makeDictionaryTemplate());
+
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <ExpressionEditor
+          open
+          value=""
+          expressionExtensions={expressionExtensions}
+          onChange={() => {}}
+          onClose={() => {}}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    const treeSearch = screen.getByPlaceholderText('Search');
+    const editorInput = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement;
+
+    fireEvent.change(treeSearch, { target: { value: 'DISCOUNT' } });
+    const discountItem = await screen.findByRole('treeitem', { name: 'DISCOUNT' });
+    expect(discountItem.querySelector('.rd-expression-tree-glyph-function')).toBeInTheDocument();
+    fireEvent.click(within(discountItem).getByText('DISCOUNT'));
+    expect(screen.getByTestId('expression-tree-description')).toHaveTextContent('Calculates a discounted amount by rate.');
+    expect(screen.getByTestId('expression-tree-description')).toHaveTextContent('Example: DISCOUNT({Products.UnitPrice}, 0.8)');
+    await waitFor(() => {
+      expect(editorInput.value).toContain('DISCOUNT(price, rate)');
+    });
+
+    fireEvent.change(treeSearch, { target: { value: 'TenantName' } });
+    const tenantItem = await screen.findByRole('treeitem', { name: '{TenantName}' });
+    fireEvent.click(within(tenantItem).getByText('{TenantName}'));
+    expect(screen.getByTestId('expression-tree-description')).toHaveTextContent('Current tenant name.');
+    expect(editorInput.value).toContain('{TenantName}');
+
+    fireEvent.change(treeSearch, { target: { value: 'CN_DATE' } });
+    const formatItem = await screen.findByRole('treeitem', { name: 'FORMAT("CN_DATE", value)' });
+    fireEvent.click(within(formatItem).getByText('FORMAT("CN_DATE", value)'));
+    expect(screen.getByTestId('expression-tree-description')).toHaveTextContent('Formats a value as a Chinese date.');
+
+    fireEvent.change(treeSearch, { target: { value: 'SUM' } });
+    expect(await screen.findAllByRole('treeitem', { name: 'SUM' })).toHaveLength(1);
+
+    fireEvent.change(treeSearch, { target: { value: 'Today' } });
+    expect(await screen.findAllByRole('treeitem', { name: '{Today}' })).toHaveLength(1);
+
+    fireEvent.change(treeSearch, { target: { value: 'N2' } });
+    expect(await screen.findAllByRole('treeitem', { name: 'FORMAT("N2", value)' })).toHaveLength(1);
   });
 
   it('does not expose HTML helper entries in the expression shell', async () => {

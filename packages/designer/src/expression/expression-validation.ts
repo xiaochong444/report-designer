@@ -1,6 +1,6 @@
 import type { ReportTemplate } from '@report-designer/core';
 import { parse, tokenize } from '@report-designer/core';
-import { getExpressionFunctionNames } from './function-catalog';
+import { resolveExpressionCatalog, type ExpressionCatalogExtensions } from './expression-catalog';
 
 export interface ExpressionDiagnostic {
   severity: 'error' | 'warning';
@@ -22,14 +22,19 @@ function diagnostic(message: string, column = 1, severity: ExpressionDiagnostic[
   };
 }
 
-export function validateReportExpression(expression: string, template: ReportTemplate): ExpressionDiagnostic[] {
+export function validateReportExpression(
+  expression: string,
+  template: ReportTemplate,
+  extensions?: ExpressionCatalogExtensions,
+): ExpressionDiagnostic[] {
   const trimmed = expression.trim();
   if (!trimmed) return [];
+  const catalog = resolveExpressionCatalog(extensions);
 
   const diagnostics: ExpressionDiagnostic[] = [
     ...validateBalancedCharacters(expression),
-    ...validateFunctionNames(expression),
-    ...validateFieldReferences(expression, template),
+    ...validateFunctionNames(expression, catalog.functions.map(item => item.name)),
+    ...validateFieldReferences(expression, template, catalog.variables.map(item => item.name)),
   ];
 
   if (diagnostics.length === 0) {
@@ -61,8 +66,8 @@ function countMatches(value: string, regex: RegExp): number {
   return (value.match(regex) ?? []).length;
 }
 
-function validateFunctionNames(expression: string): ExpressionDiagnostic[] {
-  const supported = new Set(getExpressionFunctionNames().map(name => name.toUpperCase()));
+function validateFunctionNames(expression: string, functionNames: string[]): ExpressionDiagnostic[] {
+  const supported = new Set(functionNames.map(name => name.toUpperCase()));
   const diagnostics: ExpressionDiagnostic[] = [];
   const functionCallPattern = /\b([A-Za-z][A-Za-z0-9_]*)\s*\(/g;
   let match: RegExpExecArray | null;
@@ -77,13 +82,14 @@ function validateFunctionNames(expression: string): ExpressionDiagnostic[] {
   return diagnostics;
 }
 
-function validateFieldReferences(expression: string, template: ReportTemplate): ExpressionDiagnostic[] {
+function validateFieldReferences(expression: string, template: ReportTemplate, variableNames: string[]): ExpressionDiagnostic[] {
   const fields = new Set<string>();
   for (const source of template.dataSources) {
     for (const field of source.schema ?? source.fields ?? []) {
       fields.add(`${source.id}.${field.name}`.toLowerCase());
     }
   }
+  const variables = new Set(variableNames.map(name => name.trim().replace(/^\{/, '').replace(/\}$/, '').toLowerCase()));
 
   const diagnostics: ExpressionDiagnostic[] = [];
   const fieldPattern = /{([^{}]+)}/g;
@@ -91,6 +97,9 @@ function validateFieldReferences(expression: string, template: ReportTemplate): 
 
   while ((match = fieldPattern.exec(expression))) {
     const fieldPath = match[1].trim();
+    if (!fieldPath.includes('.') && variables.has(fieldPath.toLowerCase())) {
+      continue;
+    }
     if (fieldPath.includes('.') && !fields.has(fieldPath.toLowerCase())) {
       diagnostics.push(diagnostic(`Unknown field: {${fieldPath}}`, match.index + 1));
     }

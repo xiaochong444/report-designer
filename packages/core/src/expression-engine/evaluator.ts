@@ -13,6 +13,8 @@ export interface EvalContext {
   rowIndex?: number;
   /** Optional variables map */
   variables?: Record<string, any>;
+  /** Optional host-provided function registry */
+  functions?: Record<string, BuiltinFunction>;
   /** Optional report runtime for aggregate and page functions */
   reportRuntime?: ReportFunctionRuntime;
 }
@@ -174,6 +176,22 @@ reg('ABS', (args, ctx) => {
   return Math.abs(toNumber(args[0]));
 });
 
+reg('POWER', (args, ctx) => {
+  return Math.pow(toNumber(args[0]), toNumber(args[1]));
+});
+
+reg('SQRT', (args, ctx) => {
+  return Math.sqrt(toNumber(args[0]));
+});
+
+reg('MAXVALUE', (args, ctx) => {
+  return Math.max(...args.map(toNumber));
+});
+
+reg('MINVALUE', (args, ctx) => {
+  return Math.min(...args.map(toNumber));
+});
+
 reg('CONCAT', (args, ctx) => {
   return args.map(toString).join('');
 });
@@ -216,6 +234,24 @@ reg('SUBSTRING', (args, ctx) => {
   return str.substring(start);
 });
 
+reg('LEFT', (args, ctx) => {
+  return toString(args[0]).slice(0, Math.max(0, toNumber(args[1])));
+});
+
+reg('RIGHT', (args, ctx) => {
+  const str = toString(args[0]);
+  const count = Math.max(0, toNumber(args[1]));
+  return str.slice(Math.max(0, str.length - count));
+});
+
+reg('REPLACE', (args, ctx) => {
+  return toString(args[0]).split(toString(args[1])).join(toString(args[2]));
+});
+
+reg('INDEXOF', (args, ctx) => {
+  return toString(args[0]).indexOf(toString(args[1]));
+});
+
 reg('FORMAT', (args, ctx) => {
   const pattern = toString(args[0]);
   const value = args[1];
@@ -235,6 +271,13 @@ reg('FORMAT', (args, ctx) => {
   if (pattern.toUpperCase() === 'T') {
     return new Date(value).toLocaleTimeString();
   }
+  if (pattern.toUpperCase() === 'BOOL') {
+    return Boolean(value) ? 'Yes' : 'No';
+  }
+  if (pattern.toUpperCase() === 'CN_DATE') {
+    const date = new Date(value);
+    return `${date.getFullYear()}年${date.getMonth() + 1}月${date.getDate()}日`;
+  }
   return toString(value);
 });
 
@@ -244,6 +287,18 @@ reg('TOSTRING', (args, ctx) => {
 
 reg('TONUMBER', (args, ctx) => {
   return toNumber(args[0]);
+});
+
+reg('ISNUMBER', (args, ctx) => {
+  return isNumeric(args[0]);
+});
+
+reg('ISDATE', (args, ctx) => {
+  return !Number.isNaN(new Date(args[0]).getTime());
+});
+
+reg('ISEMPTY', (args, ctx) => {
+  return args[0] === null || args[0] === undefined || args[0] === '';
 });
 
 reg('NOW', (args, ctx) => {
@@ -270,6 +325,18 @@ reg('MONTH', (args, ctx) => {
 
 reg('DAY', (args, ctx) => {
   return new Date(args[0]).getDate();
+});
+
+reg('DATEFORMAT', (args, ctx) => {
+  const date = new Date(args[0]);
+  const pattern = toString(args[1]) || 'yyyy-MM-dd';
+  return pattern
+    .replace(/yyyy/g, String(date.getFullYear()))
+    .replace(/MM/g, String(date.getMonth() + 1).padStart(2, '0'))
+    .replace(/dd/g, String(date.getDate()).padStart(2, '0'))
+    .replace(/HH/g, String(date.getHours()).padStart(2, '0'))
+    .replace(/mm/g, String(date.getMinutes()).padStart(2, '0'))
+    .replace(/ss/g, String(date.getSeconds()).padStart(2, '0'));
 });
 
 reg('DATEADD', (args, ctx) => {
@@ -311,6 +378,9 @@ export function evaluate(node: ASTNode, ctx: EvalContext): any {
 
     case ASTNodeType.FieldRef: {
       const fr = node as FieldRefNode;
+      if (!fr.source && ctx.variables && Object.prototype.hasOwnProperty.call(ctx.variables, fr.field)) {
+        return ctx.variables[fr.field];
+      }
       return ctx.resolveField(fr.source, fr.field);
     }
 
@@ -333,7 +403,7 @@ export function evaluate(node: ASTNode, ctx: EvalContext): any {
       const args = ctx.reportRuntime && RUNTIME_AGGREGATE_FUNCTIONS.has(fnName)
         ? fn.args.map(a => aggregateArgValue(a, ctx))
         : fn.args.map(a => evalArg(a, ctx));
-      const fnImpl = builtinFunctions[fnName];
+      const fnImpl = ctx.functions?.[fnName] ?? builtinFunctions[fnName];
       if (!fnImpl) {
         throw new Error(`Unknown function: ${fn.name}`);
       }
@@ -416,8 +486,9 @@ export function evalExpression(
   rowIndex?: number,
   variables?: Record<string, any>,
   reportRuntime?: ReportFunctionRuntime,
+  functions?: Record<string, BuiltinFunction>,
 ): any {
   const tokens = tokenize(expression);
   const ast = parse(tokens);
-  return evaluate(ast, { resolveField, rowIndex, variables, reportRuntime });
+  return evaluate(ast, { resolveField, rowIndex, variables, reportRuntime, functions });
 }

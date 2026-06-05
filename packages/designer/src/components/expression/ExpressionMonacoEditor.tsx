@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useRef } from 'react';
 import Editor from '@monaco-editor/react';
 import type { ReportTemplate } from '@report-designer/core';
 import type { DesignerLocale } from '../../i18n/messages';
+import type { ExpressionCatalogExtensions } from '../../expression/expression-catalog';
 import { validateReportExpression, type ExpressionDiagnostic } from '../../expression/expression-validation';
 import {
   buildExpressionCompletions,
@@ -16,6 +17,7 @@ export interface ExpressionMonacoEditorProps {
   value: string;
   template: ReportTemplate;
   locale: DesignerLocale;
+  expressionExtensions?: ExpressionCatalogExtensions;
   height?: number | string;
   onChange: (value: string) => void;
   onDiagnostics: (diagnostics: ExpressionDiagnostic[]) => void;
@@ -46,6 +48,7 @@ export function ExpressionMonacoEditor({
   value,
   template,
   locale,
+  expressionExtensions,
   height = 260,
   onChange,
   onDiagnostics,
@@ -53,7 +56,7 @@ export function ExpressionMonacoEditor({
   const monacoRef = useRef<MonacoLike | undefined>(undefined);
   const editorRef = useRef<MonacoEditorLike | undefined>(undefined);
   const completionDisposableRef = useRef<Disposable | undefined>(undefined);
-  const completionInput = useMemo(() => ({ template, locale }), [locale, template]);
+  const completionInput = useMemo(() => ({ template, locale, expressionExtensions }), [expressionExtensions, locale, template]);
   const latestCompletionInputRef = useRef(completionInput);
 
   useEffect(() => {
@@ -67,7 +70,7 @@ export function ExpressionMonacoEditor({
 
   const updateDiagnostics = useCallback(
     (nextValue: string) => {
-      const diagnostics = validateReportExpression(nextValue, template);
+      const diagnostics = validateReportExpression(nextValue, template, expressionExtensions);
       onDiagnostics(diagnostics);
       monacoRef.current?.editor?.setModelMarkers?.(
         editorRef.current?.getModel?.(),
@@ -75,7 +78,7 @@ export function ExpressionMonacoEditor({
         diagnostics,
       );
     },
-    [onDiagnostics, template],
+    [expressionExtensions, onDiagnostics, template],
   );
 
   useEffect(() => {
@@ -111,6 +114,7 @@ export function ExpressionMonacoEditor({
             latestCompletionInputRef.current.template,
             latestCompletionInputRef.current.locale,
             (monaco.languages ?? monaco) as MonacoCompletionConstants,
+            latestCompletionInputRef.current.expressionExtensions,
           ),
         }),
       });

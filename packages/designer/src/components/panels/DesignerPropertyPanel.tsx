@@ -19,8 +19,9 @@ import { PropertyEditor } from '../PropertyEditor';
 import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDialog';
 import { buildEventEditorDataContext } from '../events/event-editor-utils';
 import { TextFormatEditor } from '../TextFormatEditor';
+import type { ExpressionCatalogExtensions } from '../../expression/expression-catalog';
 
-export const DesignerPropertyPanel: React.FC = () => {
+export const DesignerPropertyPanel: React.FC<{ expressionExtensions?: ExpressionCatalogExtensions }> = ({ expressionExtensions }) => {
   const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
@@ -51,11 +52,11 @@ export const DesignerPropertyPanel: React.FC = () => {
         {showTableCellProperties ? <TableCellProperties /> : null}
         {showBandProperties ? (
           <div className="rd-property-grid-band">
-            <BandPropertyGrid />
+            <BandPropertyGrid expressionExtensions={expressionExtensions} />
           </div>
         ) : null}
         {showPageProperties ? <PageProperties /> : null}
-        {!showTableCellProperties && !showBandProperties && !showPageProperties ? <PropertyEditor /> : null}
+        {!showTableCellProperties && !showBandProperties && !showPageProperties ? <PropertyEditor expressionExtensions={expressionExtensions} /> : null}
       </div>
     </aside>
   );

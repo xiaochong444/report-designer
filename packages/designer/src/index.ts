@@ -17,3 +17,9 @@ export { useDesignerStore } from './store/designer-store';
 export type { DesignerEventNavigationTarget } from './store/designer-store';
 export { DesignerI18nProvider, useDesignerI18n } from './i18n';
 export type { DesignerLocale, DesignerMessageKey } from './i18n';
+export type {
+  ExpressionCatalogExtensions,
+  ExpressionFormatMeta,
+  ExpressionRuntimeFunction,
+  ExpressionSystemVariableMeta,
+} from './expression/expression-catalog';

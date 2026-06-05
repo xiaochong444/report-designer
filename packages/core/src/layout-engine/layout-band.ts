@@ -3,6 +3,7 @@ import { AggregateRuntime } from '../aggregate-engine';
 import type { RenderContext } from '../band-planner/band-plan';
 import { createEventContext, runEventScript } from '../event-engine';
 import type { EventLogCollector, EventMode, EventRuntimeState, EventExecutionState } from '../event-engine';
+import { applyConditionalFormatsToStyle } from '../conditional-format';
 import type { RenderBandBox, RenderComponentBox, RenderTable } from '../render-document/types';
 import type {
   Band,
@@ -39,6 +40,7 @@ export interface LayoutBandOptions {
   rowsByBand?: Record<string, Record<string, unknown>[]>;
   pageRowsByBand?: Record<string, Record<string, unknown>[]>;
   styles?: ReportStyle[];
+  conditionalFormats?: ReportTemplate['conditionalFormats'];
   renderSubreport?: (component: SubreportComponent, x: number, y: number, context: RenderContext) => { children: RenderComponentBox[]; missing: boolean; height?: number };
   eventRuntime?: LayoutEventRuntime;
   eventState?: LayoutEventState;
@@ -205,12 +207,16 @@ function layoutComponent(
   band: Band,
   options: LayoutBandOptions,
   execution?: EventExecutionState,
-): RenderComponentBox {
+): RenderComponentBox | undefined {
   if (component.type === 'text') {
     const textComponent = component as TextComponent;
     const effective = resolveTextComponentStyle(textComponent, options.styles ?? []);
+    const style = applyTextConditionalFormats(effective, component, options);
+    if (style.enabled === false) {
+      return undefined;
+    }
     const text = resolveText(textComponent, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}, execution);
-    const measured = measureTextBox(effective, text);
+    const measured = measureTextBox({ ...effective, ...style, backgroundColor: style.background }, text);
     return {
       id: component.id,
       type: 'text',
@@ -221,12 +227,12 @@ function layoutComponent(
       content: text,
       overflow: measured.overflow,
       style: {
-        font: effective.font,
-        border: effective.border,
-        backgroundColor: effective.backgroundColor,
-        textAlign: effective.textAlign,
-        verticalAlign: effective.verticalAlign,
-        padding: effective.padding,
+        font: style.font ?? effective.font,
+        border: style.border ?? effective.border,
+        backgroundColor: style.background ?? effective.backgroundColor,
+        textAlign: style.textAlign ?? effective.textAlign,
+        verticalAlign: style.verticalAlign ?? effective.verticalAlign,
+        padding: style.padding ?? effective.padding,
       },
     };
   }
@@ -633,8 +639,9 @@ function resolveChartExpressionValue(expression: string, row: Record<string, unk
       expression,
       (source, field) => resolveFieldForChart(row, context, source, field),
       context.rowIndex,
-      { row, groupValues: context.groupValues },
+      expressionVariables(context, { row }),
       new AggregateRuntime({ rowsByBand: context.rowsByBand ?? {}, pageRowsByBand: {} }),
+      context.expressionFunctions,
     );
   } catch {
     return expression;
@@ -647,6 +654,9 @@ function resolveFieldForChart(row: Record<string, unknown>, context: RenderConte
   }
   if (!source && context.parameters && field in context.parameters) {
     return context.parameters[field];
+  }
+  if (!source && context.expressionVariables && field in context.expressionVariables) {
+    return context.expressionVariables[field];
   }
   const scoped = row[source];
   if (scoped && typeof scoped === 'object' && !Array.isArray(scoped)) {
@@ -1100,8 +1110,9 @@ function resolveText(
       component.text,
       (source, field) => resolveField(context, source, field),
       context.rowIndex,
-      { row: context.row, groupValues: context.groupValues },
+      expressionVariables(context),
       new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand, pageRowsByBand }),
+      context.expressionFunctions,
     );
     return formatValue(value, component.format);
   } catch {
@@ -1137,8 +1148,9 @@ function resolveTemplateValue(
           `{${expressionBody}}`,
           (source, field) => resolveField(context, source, field),
           context.rowIndex,
-          { row: context.row, groupValues: context.groupValues },
+          expressionVariables(context),
           new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand, pageRowsByBand }),
+          context.expressionFunctions,
         );
         return result == null ? '' : String(result);
       } catch {
@@ -1152,8 +1164,9 @@ function resolveTemplateValue(
       value,
       (source, field) => resolveField(context, source, field),
       context.rowIndex,
-      { row: context.row, groupValues: context.groupValues },
+      expressionVariables(context),
       new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand, pageRowsByBand }),
+      context.expressionFunctions,
     );
     return result == null ? '' : String(result);
   } catch {
@@ -1183,6 +1196,42 @@ function resolveTextComponentStyle(component: TextComponent, styles: ReportStyle
   };
 }
 
+function applyTextConditionalFormats(component: TextComponent, sourceComponent: ReportComponent, options: LayoutBandOptions) {
+  const baseStyle = {
+    font: component.font,
+    background: component.backgroundColor,
+    border: component.border,
+    padding: component.padding,
+    textAlign: component.textAlign,
+    verticalAlign: component.verticalAlign,
+    format: component.format,
+    canGrow: component.canGrow,
+    canShrink: component.canShrink,
+    enabled: true,
+  };
+
+  return applyConditionalFormatsToStyle(baseStyle, options.conditionalFormats ?? [], sourceComponent, {
+    resolveField: (source, field) => resolveField(options.context, source, field),
+    rowIndex: options.context.rowIndex,
+    variables: expressionVariables(options.context),
+    functions: options.context.expressionFunctions,
+    reportRuntime: new AggregateRuntime({
+      rowsByBand: options.context.rowsByBand ?? options.rowsByBand ?? {},
+      pageRowsByBand: options.pageRowsByBand ?? {},
+    }),
+  });
+}
+
+function expressionVariables(context: RenderContext, extra: Record<string, unknown> = {}): Record<string, unknown> {
+  return {
+    row: context.row,
+    groupValues: context.groupValues,
+    parameters: context.parameters,
+    ...extra,
+    ...(context.expressionVariables ?? {}),
+  };
+}
+
 function resolveField(context: RenderContext, source: string, field: string): unknown {
   if (['Parameter', 'Parameters', 'Params'].includes(source)) {
     return context.parameters?.[field];
@@ -1190,6 +1239,10 @@ function resolveField(context: RenderContext, source: string, field: string): un
 
   if (!source && context.parameters && field in context.parameters) {
     return context.parameters[field];
+  }
+
+  if (!source && context.expressionVariables && field in context.expressionVariables) {
+    return context.expressionVariables[field];
   }
 
   if (source === 'Group' || source === 'Groups') {
