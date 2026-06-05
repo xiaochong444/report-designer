@@ -841,6 +841,27 @@
   padding: 4px 0;
 }
 
+.rd-expression-tree-description {
+  flex: none;
+  height: 96px;
+  box-sizing: border-box;
+  overflow: auto;
+  border-top: 1px dotted #b8c1cc;
+  padding: 8px 2px 2px;
+  color: #2f3b4a;
+  font-size: 11px;
+  line-height: 1.35;
+}
+
+.rd-expression-tree-description-title {
+  margin-bottom: 5px;
+  font-weight: 600;
+}
+
+.rd-expression-tree-description-body {
+  white-space: pre-line;
+}
+
 .rd-expression-tree .ant-tree-treenode {
   padding: 0;
   align-items: center;

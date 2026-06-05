@@ -21,6 +21,15 @@ export interface ExpressionFunctionMeta {
   examples: string[];
 }
 
+export function formatExpressionFunctionDocumentation(item: ExpressionFunctionMeta, locale: DesignerLocale): string {
+  const exampleLabel = locale === 'zh-CN' ? '示例' : 'Example';
+  return [
+    item.signature,
+    item.description[locale],
+    ...item.examples.map(example => `${exampleLabel}: ${example}`),
+  ].join('\n');
+}
+
 export const EXPRESSION_FUNCTION_CATEGORIES: Array<{ key: ExpressionFunctionCategory; labelKey: string }> = [
   { key: 'common', labelKey: 'expressionEditor.category.common' },
   { key: 'aggregate', labelKey: 'expressionEditor.category.aggregate' },
@@ -54,57 +63,57 @@ function fn(
 }
 
 export const EXPRESSION_FUNCTIONS: ExpressionFunctionMeta[] = [
-  fn('IF', 'common', '条件判断', 'Conditional expression', 'IF(condition, trueValue, falseValue)', 'IF(${1:condition}, ${2:trueValue}, ${3:falseValue})', ['IF({Orders.Amount} > 0, "Y", "N")']),
+  fn('IF', 'common', '根据条件返回两个值中的一个', 'Returns one of two values based on a condition.', 'IF(condition, trueValue, falseValue)', 'IF(${1:condition}, ${2:trueValue}, ${3:falseValue})', ['IF({Orders.Amount} > 0, "Y", "N")']),
 
-  fn('SUM', 'aggregate', '求和', 'Sum', 'SUM(expression)', 'SUM(${1:{Orders.Amount}})', ['SUM({Orders.Amount})']),
-  fn('AVG', 'aggregate', '平均值', 'Average', 'AVG(expression)', 'AVG(${1:{Orders.Amount}})', ['AVG({Orders.Amount})']),
-  fn('COUNT', 'aggregate', '计数', 'Count', 'COUNT(expression)', 'COUNT(${1:{Orders.Id}})', ['COUNT({Orders.Id})']),
-  fn('COUNTDISTINCT', 'aggregate', '去重计数', 'Distinct count', 'COUNTDISTINCT(expression)', 'COUNTDISTINCT(${1:{Orders.CustomerId}})', ['COUNTDISTINCT({Orders.CustomerId})']),
-  fn('MIN', 'aggregate', '最小值', 'Minimum', 'MIN(expression)', 'MIN(${1:{Orders.Amount}})', ['MIN({Orders.Amount})']),
-  fn('MAX', 'aggregate', '最大值', 'Maximum', 'MAX(expression)', 'MAX(${1:{Orders.Amount}})', ['MAX({Orders.Amount})']),
-  fn('SUMIF', 'aggregate', '条件求和', 'Conditional sum', 'SUMIF(expression, condition)', 'SUMIF(${1:{Orders.Amount}}, "${2:{Orders.Status} = \\"OK\\"}")', ['SUMIF({Orders.Amount}, "{Orders.Status} = \\"OK\\"")']),
-  fn('COUNTIF', 'aggregate', '条件计数', 'Conditional count', 'COUNTIF(condition)', 'COUNTIF("${1:{Orders.Status} = \\"OK\\"}")', ['COUNTIF("{Orders.Status} = \\"OK\\"")']),
-  fn('RUNNINGSUM', 'aggregate', '运行合计', 'Running sum', 'RUNNINGSUM(expression)', 'RUNNINGSUM(${1:{Orders.Amount}})', ['RUNNINGSUM({Orders.Amount})']),
+  fn('SUM', 'aggregate', '对指定字段表达式进行求和', 'Sums the values of a field expression.', 'SUM(expression)', 'SUM(${1:{Orders.Amount}})', ['SUM({Orders.Amount})']),
+  fn('AVG', 'aggregate', '计算指定字段表达式的平均值', 'Calculates the average value of a field expression.', 'AVG(expression)', 'AVG(${1:{Orders.Amount}})', ['AVG({Orders.Amount})']),
+  fn('COUNT', 'aggregate', '统计指定字段表达式的非空记录数', 'Counts non-empty values for a field expression.', 'COUNT(expression)', 'COUNT(${1:{Orders.Id}})', ['COUNT({Orders.Id})']),
+  fn('COUNTDISTINCT', 'aggregate', '统计指定字段表达式的去重值数量', 'Counts distinct non-empty values for a field expression.', 'COUNTDISTINCT(expression)', 'COUNTDISTINCT(${1:{Orders.CustomerId}})', ['COUNTDISTINCT({Orders.CustomerId})']),
+  fn('MIN', 'aggregate', '返回指定字段表达式的最小值', 'Returns the minimum value of a field expression.', 'MIN(expression)', 'MIN(${1:{Orders.Amount}})', ['MIN({Orders.Amount})']),
+  fn('MAX', 'aggregate', '返回指定字段表达式的最大值', 'Returns the maximum value of a field expression.', 'MAX(expression)', 'MAX(${1:{Orders.Amount}})', ['MAX({Orders.Amount})']),
+  fn('SUMIF', 'aggregate', '对满足条件的记录汇总指定字段表达式', 'Sums a field expression for rows that match a condition.', 'SUMIF(expression, condition)', 'SUMIF(${1:{Orders.Amount}}, "${2:{Orders.Status} = \\"OK\\"}")', ['SUMIF({Orders.Amount}, "{Orders.Status} = \\"OK\\"")']),
+  fn('COUNTIF', 'aggregate', '统计满足条件的记录数量', 'Counts rows that match a condition.', 'COUNTIF(condition)', 'COUNTIF("${1:{Orders.Status} = \\"OK\\"}")', ['COUNTIF("{Orders.Status} = \\"OK\\"")']),
+  fn('RUNNINGSUM', 'aggregate', '按当前行位置计算运行合计', 'Calculates a running sum up to the current row.', 'RUNNINGSUM(expression)', 'RUNNINGSUM(${1:{Orders.Amount}})', ['RUNNINGSUM({Orders.Amount})']),
 
-  fn('ROUND', 'number', '四舍五入', 'Round', 'ROUND(value, digits)', 'ROUND(${1:value}, ${2:2})', ['ROUND({Orders.Amount}, 2)']),
-  fn('CEIL', 'number', '向上取整', 'Ceiling', 'CEIL(value)', 'CEIL(${1:value})', ['CEIL({Orders.Amount})']),
-  fn('FLOOR', 'number', '向下取整', 'Floor', 'FLOOR(value)', 'FLOOR(${1:value})', ['FLOOR({Orders.Amount})']),
-  fn('ABS', 'number', '绝对值', 'Absolute value', 'ABS(value)', 'ABS(${1:value})', ['ABS({Orders.Amount})']),
-  fn('TONUMBER', 'number', '转换为数字', 'Convert to number', 'TONUMBER(value)', 'TONUMBER(${1:value})', ['TONUMBER({Orders.AmountText})']),
+  fn('ROUND', 'number', '按指定小数位四舍五入数字', 'Rounds a number to the specified number of digits.', 'ROUND(value, digits)', 'ROUND(${1:value}, ${2:2})', ['ROUND({Orders.Amount}, 2)']),
+  fn('CEIL', 'number', '返回大于或等于该值的最小整数', 'Returns the smallest integer greater than or equal to the value.', 'CEIL(value)', 'CEIL(${1:value})', ['CEIL({Orders.Amount})']),
+  fn('FLOOR', 'number', '返回小于或等于该值的最大整数', 'Returns the largest integer less than or equal to the value.', 'FLOOR(value)', 'FLOOR(${1:value})', ['FLOOR({Orders.Amount})']),
+  fn('ABS', 'number', '返回数字的绝对值', 'Returns the absolute value of a number.', 'ABS(value)', 'ABS(${1:value})', ['ABS({Orders.Amount})']),
+  fn('TONUMBER', 'number', '将文本或值转换为数字', 'Converts text or another value to a number.', 'TONUMBER(value)', 'TONUMBER(${1:value})', ['TONUMBER({Orders.AmountText})']),
 
-  fn('CONCAT', 'text', '拼接文本', 'Concatenate text', 'CONCAT(value1, value2)', 'CONCAT(${1:value1}, ${2:value2})', ['CONCAT({Customer.Name}, " - ", {Orders.Code})']),
-  fn('LEN', 'text', '文本长度', 'Text length', 'LEN(value)', 'LEN(${1:value})', ['LEN({Customer.Name})']),
-  fn('UPPER', 'text', '转换为大写', 'Uppercase', 'UPPER(value)', 'UPPER(${1:value})', ['UPPER({Customer.Code})']),
-  fn('LOWER', 'text', '转换为小写', 'Lowercase', 'LOWER(value)', 'LOWER(${1:value})', ['LOWER({Customer.Code})']),
-  fn('TRIM', 'text', '去除首尾空格', 'Trim whitespace', 'TRIM(value)', 'TRIM(${1:value})', ['TRIM({Customer.Name})']),
-  fn('SUBSTRING', 'text', '截取文本', 'Substring', 'SUBSTRING(value, start, length)', 'SUBSTRING(${1:value}, ${2:0}, ${3:3})', ['SUBSTRING({Customer.Name}, 0, 3)']),
-  fn('CONTAINS', 'text', '包含文本', 'Contains text', 'CONTAINS(value, search)', 'CONTAINS(${1:value}, ${2:search})', ['CONTAINS({Customer.Name}, "Ltd")']),
-  fn('STARTSWITH', 'text', '以文本开头', 'Starts with', 'STARTSWITH(value, search)', 'STARTSWITH(${1:value}, ${2:search})', ['STARTSWITH({Customer.Code}, "A")']),
-  fn('ENDSWITH', 'text', '以文本结尾', 'Ends with', 'ENDSWITH(value, search)', 'ENDSWITH(${1:value}, ${2:search})', ['ENDSWITH({Customer.Code}, "Z")']),
-  fn('TOSTRING', 'text', '转换为文本', 'Convert to string', 'TOSTRING(value)', 'TOSTRING(${1:value})', ['TOSTRING({Orders.Amount})']),
+  fn('CONCAT', 'text', '按顺序拼接多个文本或字段值', 'Concatenates text and field values in order.', 'CONCAT(value1, value2)', 'CONCAT(${1:value1}, ${2:value2})', ['CONCAT({Customer.Name}, " - ", {Orders.Code})']),
+  fn('LEN', 'text', '返回文本的字符长度', 'Returns the character length of a text value.', 'LEN(value)', 'LEN(${1:value})', ['LEN({Customer.Name})']),
+  fn('UPPER', 'text', '将文本转换为大写', 'Converts text to uppercase.', 'UPPER(value)', 'UPPER(${1:value})', ['UPPER({Customer.Code})']),
+  fn('LOWER', 'text', '将文本转换为小写', 'Converts text to lowercase.', 'LOWER(value)', 'LOWER(${1:value})', ['LOWER({Customer.Code})']),
+  fn('TRIM', 'text', '移除文本首尾空白字符', 'Removes leading and trailing whitespace.', 'TRIM(value)', 'TRIM(${1:value})', ['TRIM({Customer.Name})']),
+  fn('SUBSTRING', 'text', '按起始位置和长度截取文本', 'Returns part of a text value by start position and length.', 'SUBSTRING(value, start, length)', 'SUBSTRING(${1:value}, ${2:0}, ${3:3})', ['SUBSTRING({Customer.Name}, 0, 3)']),
+  fn('CONTAINS', 'text', '判断文本是否包含指定内容', 'Checks whether text contains the specified value.', 'CONTAINS(value, search)', 'CONTAINS(${1:value}, ${2:search})', ['CONTAINS({Customer.Name}, "Ltd")']),
+  fn('STARTSWITH', 'text', '判断文本是否以指定内容开头', 'Checks whether text starts with the specified value.', 'STARTSWITH(value, search)', 'STARTSWITH(${1:value}, ${2:search})', ['STARTSWITH({Customer.Code}, "A")']),
+  fn('ENDSWITH', 'text', '判断文本是否以指定内容结尾', 'Checks whether text ends with the specified value.', 'ENDSWITH(value, search)', 'ENDSWITH(${1:value}, ${2:search})', ['ENDSWITH({Customer.Code}, "Z")']),
+  fn('TOSTRING', 'text', '将值转换为文本', 'Converts a value to text.', 'TOSTRING(value)', 'TOSTRING(${1:value})', ['TOSTRING({Orders.Amount})']),
 
-  fn('NOW', 'date', '当前日期时间', 'Current date and time', 'NOW()', 'NOW()', ['NOW()']),
-  fn('TODAY', 'date', '当前日期', 'Current date', 'TODAY()', 'TODAY()', ['TODAY()']),
-  fn('YEAR', 'date', '年份', 'Year', 'YEAR(date)', 'YEAR(${1:date})', ['YEAR({Orders.Date})']),
-  fn('MONTH', 'date', '月份', 'Month', 'MONTH(date)', 'MONTH(${1:date})', ['MONTH({Orders.Date})']),
-  fn('DAY', 'date', '日期中的天', 'Day', 'DAY(date)', 'DAY(${1:date})', ['DAY({Orders.Date})']),
-  fn('DATEADD', 'date', '日期加减', 'Add date interval', 'DATEADD(date, unit, amount)', 'DATEADD(${1:date}, "${2:day}", ${3:1})', ['DATEADD({Orders.Date}, "day", 7)']),
-  fn('DATEDIFF', 'date', '日期差值', 'Date difference', 'DATEDIFF(start, end, unit)', 'DATEDIFF(${1:start}, ${2:end}, "${3:day}")', ['DATEDIFF({Orders.Start}, {Orders.End}, "day")']),
+  fn('NOW', 'date', '返回当前日期和时间', 'Returns the current date and time.', 'NOW()', 'NOW()', ['NOW()']),
+  fn('TODAY', 'date', '返回当前日期，不包含时间部分', 'Returns the current date without a time component.', 'TODAY()', 'TODAY()', ['TODAY()']),
+  fn('YEAR', 'date', '返回日期中的年份', 'Returns the year part of a date.', 'YEAR(date)', 'YEAR(${1:date})', ['YEAR({Orders.Date})']),
+  fn('MONTH', 'date', '返回日期中的月份', 'Returns the month part of a date.', 'MONTH(date)', 'MONTH(${1:date})', ['MONTH({Orders.Date})']),
+  fn('DAY', 'date', '返回日期中的日', 'Returns the day part of a date.', 'DAY(date)', 'DAY(${1:date})', ['DAY({Orders.Date})']),
+  fn('DATEADD', 'date', '按指定单位对日期进行加减', 'Adds or subtracts a date interval using the specified unit.', 'DATEADD(date, unit, amount)', 'DATEADD(${1:date}, "${2:day}", ${3:1})', ['DATEADD({Orders.Date}, "day", 7)']),
+  fn('DATEDIFF', 'date', '按指定单位计算两个日期之间的差值', 'Calculates the difference between two dates using the specified unit.', 'DATEDIFF(start, end, unit)', 'DATEDIFF(${1:start}, ${2:end}, "${3:day}")', ['DATEDIFF({Orders.Start}, {Orders.End}, "day")']),
 
-  fn('IIF', 'logic', '条件判断别名', 'Conditional alias', 'IIF(condition, trueValue, falseValue)', 'IIF(${1:condition}, ${2:trueValue}, ${3:falseValue})', ['IIF({Orders.Amount} > 0, "Y", "N")']),
-  fn('ISNULL', 'logic', '是否为空', 'Is null', 'ISNULL(value)', 'ISNULL(${1:value})', ['ISNULL({Customer.Name})']),
-  fn('COALESCE', 'logic', '返回第一个非空值', 'First non-null value', 'COALESCE(value1, value2)', 'COALESCE(${1:value1}, ${2:value2})', ['COALESCE({Customer.Name}, "Unknown")']),
+  fn('IIF', 'logic', 'IF 函数的别名，根据条件返回两个值中的一个', 'Alias of IF; returns one of two values based on a condition.', 'IIF(condition, trueValue, falseValue)', 'IIF(${1:condition}, ${2:trueValue}, ${3:falseValue})', ['IIF({Orders.Amount} > 0, "Y", "N")']),
+  fn('ISNULL', 'logic', '判断值是否为空或未定义', 'Checks whether a value is null or undefined.', 'ISNULL(value)', 'ISNULL(${1:value})', ['ISNULL({Customer.Name})']),
+  fn('COALESCE', 'logic', '返回参数中的第一个非空值', 'Returns the first non-null value from the provided arguments.', 'COALESCE(value1, value2)', 'COALESCE(${1:value1}, ${2:value2})', ['COALESCE({Customer.Name}, "Unknown")']),
 
-  fn('PAGE', 'report', '当前页码', 'Current page', 'PAGE()', 'PAGE()', ['PAGE()']),
-  fn('TOTALPAGES', 'report', '总页数', 'Total pages', 'TOTALPAGES()', 'TOTALPAGES()', ['TOTALPAGES()']),
-  fn('ROWINDEX', 'report', '当前行索引', 'Current row index', 'ROWINDEX()', 'ROWINDEX()', ['ROWINDEX()']),
+  fn('PAGE', 'report', '返回当前渲染页码', 'Returns the current rendered page number.', 'PAGE()', 'PAGE()', ['PAGE()']),
+  fn('TOTALPAGES', 'report', '返回报表总页数', 'Returns the total number of rendered pages.', 'TOTALPAGES()', 'TOTALPAGES()', ['TOTALPAGES()']),
+  fn('ROWINDEX', 'report', '返回当前数据行的从零开始索引', 'Returns the zero-based index of the current data row.', 'ROWINDEX()', 'ROWINDEX()', ['ROWINDEX()']),
 
-  fn('RMBUPPER', 'money', '人民币金额大写', 'RMB uppercase', 'RMBUPPER(value)', 'RMBUPPER(${1:value})', ['RMBUPPER({Orders.Amount})']),
-  fn('MONEYUPPER', 'money', '金额大写别名', 'Money uppercase alias', 'MONEYUPPER(value)', 'MONEYUPPER(${1:value})', ['MONEYUPPER({Orders.Amount})']),
-  fn('CNYUPPER', 'money', '人民币大写别名', 'CNY uppercase alias', 'CNYUPPER(value)', 'CNYUPPER(${1:value})', ['CNYUPPER({Orders.Amount})']),
-  fn('CHINESEMONEY', 'money', '中文金额大写别名', 'Chinese money uppercase alias', 'CHINESEMONEY(value)', 'CHINESEMONEY(${1:value})', ['CHINESEMONEY({Orders.Amount})']),
+  fn('RMBUPPER', 'money', '将金额转换为人民币中文大写', 'Converts an amount to uppercase Chinese RMB text.', 'RMBUPPER(value)', 'RMBUPPER(${1:value})', ['RMBUPPER({Orders.Amount})']),
+  fn('MONEYUPPER', 'money', '将金额转换为中文大写金额文本', 'Converts an amount to uppercase Chinese money text.', 'MONEYUPPER(value)', 'MONEYUPPER(${1:value})', ['MONEYUPPER({Orders.Amount})']),
+  fn('CNYUPPER', 'money', '将金额转换为人民币中文大写文本', 'Converts an amount to uppercase Chinese CNY text.', 'CNYUPPER(value)', 'CNYUPPER(${1:value})', ['CNYUPPER({Orders.Amount})']),
+  fn('CHINESEMONEY', 'money', '人民币中文大写金额函数别名', 'Alias for uppercase Chinese money formatting.', 'CHINESEMONEY(value)', 'CHINESEMONEY(${1:value})', ['CHINESEMONEY({Orders.Amount})']),
 
-  fn('FORMAT', 'format', '格式化值', 'Format value', 'FORMAT(pattern, value)', 'FORMAT("${1:N2}", ${2:value})', ['FORMAT("C", {Orders.Amount})']),
+  fn('FORMAT', 'format', '按指定格式化模式输出值', 'Formats a value with the specified format pattern.', 'FORMAT(pattern, value)', 'FORMAT("${1:N2}", ${2:value})', ['FORMAT("C", {Orders.Amount})']),
 ];
 
 export function getExpressionFunctionsByCategory(category: ExpressionFunctionCategory): ExpressionFunctionMeta[] {

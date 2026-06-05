@@ -138,6 +138,11 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     fireEvent.change(treeSearch, { target: { value: 'SUM' } });
     const sumItem = await screen.findByRole('treeitem', { name: 'SUM' });
     fireEvent.click(within(sumItem).getByText('SUM'));
+    const functionDescription = screen.getByTestId('expression-tree-description');
+    expect(functionDescription).toHaveTextContent('SUM');
+    expect(functionDescription).toHaveTextContent('对指定字段表达式进行求和');
+    expect(functionDescription).toHaveTextContent('示例: SUM({Orders.Amount})');
+    expect(functionDescription).toHaveClass('rd-expression-tree-description');
     await waitFor(() => {
       expect(editorInput.value).toContain('SUM');
     });
@@ -171,6 +176,19 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     expect(screen.getByText('Data sources')).toBeInTheDocument();
     expect(screen.getAllByText('Format').length).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Validate' })).toBeInTheDocument();
+
+    const treeSearch = screen.getByPlaceholderText('Search');
+    fireEvent.change(treeSearch, { target: { value: 'Today' } });
+    const todayItem = await screen.findByRole('treeitem', { name: '{Today}' });
+    fireEvent.click(within(todayItem).getByText('{Today}'));
+    const systemDescription = screen.getByTestId('expression-tree-description');
+    expect(systemDescription).toHaveTextContent('{Today}');
+    expect(systemDescription).toHaveTextContent('Current date');
+
+    fireEvent.change(treeSearch, { target: { value: 'N2' } });
+    const numberFormatItem = await screen.findByRole('treeitem', { name: 'FORMAT("N2", value)' });
+    fireEvent.click(within(numberFormatItem).getByText('FORMAT("N2", value)'));
+    expect(screen.getByTestId('expression-tree-description')).toHaveTextContent('Formats a number with two decimal places.');
   });
 
   it('does not expose HTML helper entries in the expression shell', async () => {

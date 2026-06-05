@@ -67,6 +67,8 @@ describe('phase 44 expression monaco helpers', () => {
         expect.objectContaining({
           label: 'DATEADD',
           kind: monaco.languages.CompletionItemKind.Function,
+          detail: 'DATEADD(date, unit, amount)',
+          documentation: expect.stringContaining('按指定单位对日期进行加减'),
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
         }),
         expect.objectContaining({
@@ -87,6 +89,7 @@ describe('phase 44 expression monaco helpers', () => {
         }),
       ]),
     );
+    expect(completions.find(item => item.label === 'SUM')?.documentation).toContain('示例: SUM({Orders.Amount})');
   });
 
   it('supports Monaco instances that expose completion constants at the root', () => {
@@ -98,6 +101,7 @@ describe('phase 44 expression monaco helpers', () => {
     expect(completions.find(item => item.label === 'DATEADD')).toMatchObject({
       kind: monaco.languages.CompletionItemKind.Function,
       detail: 'DATEADD(date, unit, amount)',
+      documentation: expect.stringContaining('Example: DATEADD({Orders.Date}, "day", 7)'),
     });
   });
 

@@ -2,27 +2,105 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Input, Modal, Space, Tree, Typography } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
-import { EXPRESSION_FUNCTION_CATEGORIES, getExpressionFunctionsByCategory } from '../expression/function-catalog';
+import { EXPRESSION_FUNCTION_CATEGORIES, formatExpressionFunctionDocumentation, getExpressionFunctionsByCategory } from '../expression/function-catalog';
+import type { DesignerLocale } from '../i18n/messages';
 import { previewReportExpression, type ExpressionPreviewResult } from '../expression/expression-preview';
 import { validateReportExpression, type ExpressionDiagnostic } from '../expression/expression-validation';
 import { useDesignerStore } from '../store/designer-store';
 import { ExpressionMonacoEditor } from './expression/ExpressionMonacoEditor';
 
 const SYSTEM_VARIABLES = [
-  { name: '{Today}', insert: '{Today}' },
-  { name: '{PageNumber}', insert: '{PageNumber}' },
-  { name: '{TotalPages}', insert: '{TotalPages}' },
-  { name: '{Line}', insert: '{Line}' },
+  {
+    name: '{Today}',
+    insert: '{Today}',
+    description: {
+      'zh-CN': '当前日期。返回运行报表时的日期，可用于页眉、页脚和日期字段。',
+      'en-US': 'Current date. Returns the date when the report runs and is commonly used in headers, footers, and date fields.',
+    },
+  },
+  {
+    name: '{PageNumber}',
+    insert: '{PageNumber}',
+    description: {
+      'zh-CN': '当前页码。渲染和打印时按实际分页结果输出当前页序号。',
+      'en-US': 'Current page number. Prints the page index from the actual rendered pagination result.',
+    },
+  },
+  {
+    name: '{TotalPages}',
+    insert: '{TotalPages}',
+    description: {
+      'zh-CN': '总页数。渲染完成后输出报表的总页数。',
+      'en-US': 'Total pages. Prints the total number of pages after the report has been rendered.',
+    },
+  },
+  {
+    name: '{Line}',
+    insert: '{Line}',
+    description: {
+      'zh-CN': '当前数据行序号。通常用于明细区显示行号。',
+      'en-US': 'Current line number. Usually used in detail bands to display row numbers.',
+    },
+  },
 ];
 
 const FORMAT_PATTERNS = [
-  { name: 'FORMAT("N2", value)', insert: 'FORMAT("N2", value)' },
-  { name: 'FORMAT("C", value)', insert: 'FORMAT("C", value)' },
-  { name: 'FORMAT("D", value)', insert: 'FORMAT("D", value)' },
-  { name: '#,##0.00', insert: '#,##0.00' },
-  { name: 'yyyy-MM-dd', insert: 'yyyy-MM-dd' },
-  { name: 'yyyy-MM-dd HH:mm:ss', insert: 'yyyy-MM-dd HH:mm:ss' },
-  { name: '0.00%', insert: '0.00%' },
+  {
+    name: 'FORMAT("N2", value)',
+    insert: 'FORMAT("N2", value)',
+    description: {
+      'zh-CN': '将数字格式化为保留两位小数的文本。',
+      'en-US': 'Formats a number with two decimal places.',
+    },
+  },
+  {
+    name: 'FORMAT("C", value)',
+    insert: 'FORMAT("C", value)',
+    description: {
+      'zh-CN': '将数字格式化为货币文本。',
+      'en-US': 'Formats a number as currency text.',
+    },
+  },
+  {
+    name: 'FORMAT("D", value)',
+    insert: 'FORMAT("D", value)',
+    description: {
+      'zh-CN': '将日期或时间值格式化为短日期文本。',
+      'en-US': 'Formats a date or time value as a short date.',
+    },
+  },
+  {
+    name: '#,##0.00',
+    insert: '#,##0.00',
+    description: {
+      'zh-CN': '常用数字格式，包含千分位并保留两位小数。',
+      'en-US': 'Common number pattern with group separators and two decimal places.',
+    },
+  },
+  {
+    name: 'yyyy-MM-dd',
+    insert: 'yyyy-MM-dd',
+    description: {
+      'zh-CN': '常用日期格式，输出年、月、日。',
+      'en-US': 'Common date pattern that prints year, month, and day.',
+    },
+  },
+  {
+    name: 'yyyy-MM-dd HH:mm:ss',
+    insert: 'yyyy-MM-dd HH:mm:ss',
+    description: {
+      'zh-CN': '常用日期时间格式，输出日期、小时、分钟和秒。',
+      'en-US': 'Common date-time pattern that prints date, hour, minute, and second.',
+    },
+  },
+  {
+    name: '0.00%',
+    insert: '0.00%',
+    description: {
+      'zh-CN': '常用百分比格式，保留两位小数。',
+      'en-US': 'Common percentage pattern with two decimal places.',
+    },
+  },
 ];
 
 type ExpressionCategory = 'expression' | 'data' | 'system';
@@ -30,7 +108,13 @@ type ExpressionCategory = 'expression' | 'data' | 'system';
 type TreeNodeMeta = DataNode & {
   searchText?: string;
   insertValue?: string;
+  description?: ExpressionTreeDescription;
   children?: TreeNodeMeta[];
+};
+
+type ExpressionTreeDescription = {
+  title: string;
+  body: string;
 };
 
 type ExpressionTreeGlyphKind =
@@ -60,12 +144,13 @@ function makeTreeNode(
   key: string,
   label: string,
   kind: ExpressionTreeGlyphKind,
-  options?: { insertValue?: string; searchText?: string; children?: TreeNodeMeta[] },
+  options?: { insertValue?: string; searchText?: string; description?: ExpressionTreeDescription; children?: TreeNodeMeta[] },
 ): TreeNodeMeta {
   return {
     key: safeTreeKey(key),
     searchText: options?.searchText ?? label.toLowerCase(),
     insertValue: options?.insertValue,
+    description: options?.description,
     title: (
       <div className="rd-expression-tree-node">
         <span className={`rd-expression-tree-glyph rd-expression-tree-glyph-${kind}`} aria-hidden />
@@ -74,6 +159,10 @@ function makeTreeNode(
     ),
     children: options?.children,
   };
+}
+
+function localizedDescriptionText(description: Record<DesignerLocale, string>, locale: DesignerLocale): string {
+  return description[locale];
 }
 
 function getExpressionFieldGlyphKind(type: string | undefined): ExpressionTreeGlyphKind {
@@ -127,6 +216,7 @@ export const ExpressionEditor: React.FC<{
   const [expression, setExpression] = useState(value);
   const [activeCategory, setActiveCategory] = useState<ExpressionCategory>('expression');
   const [searchTerm, setSearchTerm] = useState('');
+  const [selectedTreeDescription, setSelectedTreeDescription] = useState<ExpressionTreeDescription | null>(null);
   const [diagnostics, setDiagnostics] = useState<ExpressionDiagnostic[]>([]);
   const [previewResult, setPreviewResult] = useState<ExpressionPreviewResult | null>(null);
 
@@ -134,6 +224,7 @@ export const ExpressionEditor: React.FC<{
     if (open) {
       setExpression(value);
       setSearchTerm('');
+      setSelectedTreeDescription(null);
       setDiagnostics([]);
       setPreviewResult(null);
     }
@@ -172,6 +263,10 @@ export const ExpressionEditor: React.FC<{
               makeTreeNode(`fn.${category.key}.${item.name}`, item.name, 'function', {
                 insertValue: item.insertText,
                 searchText: `${item.name} ${item.description[locale]}`.toLowerCase(),
+                description: {
+                  title: item.name,
+                  body: formatExpressionFunctionDocumentation(item, locale),
+                },
               }),
             ),
           });
@@ -184,10 +279,14 @@ export const ExpressionEditor: React.FC<{
       SYSTEM_VARIABLES.map((item) =>
         makeTreeNode(`sys.${item.name}`, item.name, 'system', {
           insertValue: item.insert,
-          searchText: item.name.toLowerCase(),
+          searchText: `${item.name} ${localizedDescriptionText(item.description, locale)}`.toLowerCase(),
+          description: {
+            title: item.name,
+            body: localizedDescriptionText(item.description, locale),
+          },
         }),
       ),
-    [],
+    [locale],
   );
 
   const formatNodes = useMemo<TreeNodeMeta[]>(
@@ -195,10 +294,14 @@ export const ExpressionEditor: React.FC<{
       FORMAT_PATTERNS.map((item) =>
         makeTreeNode(`format.${item.name}`, item.name, 'format', {
           insertValue: item.insert,
-          searchText: item.name.toLowerCase(),
+          searchText: `${item.name} ${localizedDescriptionText(item.description, locale)}`.toLowerCase(),
+          description: {
+            title: item.name,
+            body: localizedDescriptionText(item.description, locale),
+          },
         }),
       ),
-    [],
+    [locale],
   );
 
   const treeData = useMemo<TreeNodeMeta[]>(() => {
@@ -224,6 +327,7 @@ export const ExpressionEditor: React.FC<{
   );
 
   const handleTreeSelect = (_keys: React.Key[], info: { node: TreeNodeMeta }) => {
+    setSelectedTreeDescription(info.node.description ?? null);
     if (info.node.insertValue) {
       insertAtCursor(info.node.insertValue);
     }
@@ -270,6 +374,7 @@ export const ExpressionEditor: React.FC<{
               onClick={() => {
                 setActiveCategory(item.key);
                 setSearchTerm('');
+                setSelectedTreeDescription(null);
               }}
             >
               <span className={`rd-expression-tree-glyph rd-expression-tree-glyph-${item.key}`} aria-hidden />
@@ -337,6 +442,12 @@ export const ExpressionEditor: React.FC<{
               onSelect={handleTreeSelect}
             />
           </div>
+          {selectedTreeDescription ? (
+            <div className="rd-expression-tree-description" data-testid="expression-tree-description">
+              <div className="rd-expression-tree-description-title">{selectedTreeDescription.title}</div>
+              <div className="rd-expression-tree-description-body">{selectedTreeDescription.body}</div>
+            </div>
+          ) : null}
         </aside>
       </div>
     </Modal>

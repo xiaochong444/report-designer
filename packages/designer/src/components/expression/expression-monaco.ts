@@ -1,6 +1,6 @@
 import type { ReportTemplate } from '@report-designer/core';
 import type { DesignerLocale } from '../../i18n/messages';
-import { EXPRESSION_FUNCTIONS } from '../../expression/function-catalog';
+import { EXPRESSION_FUNCTIONS, formatExpressionFunctionDocumentation } from '../../expression/function-catalog';
 
 export const REPORT_EXPRESSION_LANGUAGE_ID = 'report-expression';
 
@@ -72,7 +72,7 @@ export function buildExpressionCompletions(
     label: item.name,
     kind: constants.CompletionItemKind.Function,
     detail: item.signature,
-    documentation: item.description[locale],
+    documentation: formatExpressionFunctionDocumentation(item, locale),
     insertText: item.insertText,
     insertTextRules: constants.CompletionItemInsertTextRule.InsertAsSnippet,
   }));
