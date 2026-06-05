@@ -22,7 +22,7 @@ export class AggregateRuntime implements AggregateRuntimeContract {
     if (fnName === 'PAGE') return this.pageNumber;
     if (fnName === 'TOTALPAGES') return this.totalPages;
 
-    const [bandName, expression, condition] = normalizeAggregateArgs(args, this.defaultBandName());
+    const [bandName, expression, condition] = normalizeAggregateArgs(fnName, args, this.defaultBandName());
 
     if (fnName === 'RUNNINGSUM') {
       const rows = (this.options.rowsByBand[bandName] ?? []).slice(0, (ctx.rowIndex ?? 0) + 1);
@@ -81,24 +81,24 @@ function normalizeFunctionName(functionName: string): string {
   return functionName.replace(/\s+/g, '').toUpperCase();
 }
 
-function normalizeAggregateArgs(args: unknown[], fallbackBandName: string): [string, string | undefined, string | undefined] {
-  if (args.length === 0) {
-    return [fallbackBandName, undefined, undefined];
+function normalizeAggregateArgs(functionName: string, args: unknown[], fallbackBandName: string): [string, string | undefined, string | undefined] {
+  const first = typeof args[0] === 'string' ? args[0] : undefined;
+  const second = typeof args[1] === 'string' ? args[1] : undefined;
+
+  if (functionName === 'COUNTIF') {
+    return [extractSourceName(first) ?? fallbackBandName, undefined, first];
   }
 
-  if (args.length === 1) {
-    return [
-      fallbackBandName,
-      typeof args[0] === 'string' ? args[0] : undefined,
-      undefined,
-    ];
+  if (functionName === 'SUMIF') {
+    return [extractSourceName(first) ?? extractSourceName(second) ?? fallbackBandName, first, second];
   }
 
-  return [
-    String(args[0] ?? fallbackBandName),
-    typeof args[1] === 'string' ? args[1] : undefined,
-    typeof args[2] === 'string' ? args[2] : undefined,
-  ];
+  return [extractSourceName(first) ?? fallbackBandName, first, undefined];
+}
+
+function extractSourceName(expression: string | undefined): string | undefined {
+  const match = expression?.match(/\{([A-Za-z0-9_-]+)\.[^}]+}/);
+  return match?.[1];
 }
 
 function resolveRowField(row: Record<string, unknown>, source: string, field: string): unknown {

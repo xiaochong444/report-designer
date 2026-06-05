@@ -221,11 +221,11 @@ describe('Phase 9 page and report totals', () => {
       pageRowsByBand: { employees: rows.slice(0, 2) },
     });
 
-    expect(evalExpression('PAGESUM("employees", "{employees.Salary}")', () => null, 0, {}, runtime)).toBe(300);
-    expect(evalExpression('PAGECOUNT("employees")', () => null, 0, {}, runtime)).toBe(2);
-    expect(evalExpression('REPORTSUM("employees", "{employees.Salary}")', () => null, 0, {}, runtime)).toBe(450);
-    expect(evalExpression('TOTALS.PAGESUM("employees", "{employees.Salary}")', () => null, 0, {}, runtime)).toBe(300);
-    expect(evalExpression('TOTALS.REPORTSUM("employees", "{employees.Salary}")', () => null, 0, {}, runtime)).toBe(450);
+    expect(evalExpression('PAGESUM({employees.Salary})', () => null, 0, {}, runtime)).toBe(300);
+    expect(evalExpression('PAGECOUNT({employees.Salary})', () => null, 0, {}, runtime)).toBe(2);
+    expect(evalExpression('REPORTSUM({employees.Salary})', () => null, 0, {}, runtime)).toBe(450);
+    expect(evalExpression('TOTALS.PAGESUM({employees.Salary})', () => null, 0, {}, runtime)).toBe(300);
+    expect(evalExpression('TOTALS.REPORTSUM({employees.Salary})', () => null, 0, {}, runtime)).toBe(450);
   });
 
   it('renders page totals in PageFooter per physical page and report totals in ReportSummary', () => {
@@ -246,7 +246,7 @@ describe('Phase 9 page and report totals', () => {
         height: 8,
         components: [{
           id: 'report-total', type: 'text', x: 0, y: 0, width: 50, height: 8,
-          text: 'REPORTSUM("employees", "{employees.Salary}")',
+          text: 'REPORTSUM({employees.Salary})',
           font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
           textAlign: 'left', verticalAlign: 'top',
           border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
@@ -258,7 +258,7 @@ describe('Phase 9 page and report totals', () => {
         behavior: { enabled: true, printOn: 'allPages', printIfEmpty: true, printOnAllPages: true, keepTogether: false, canBreak: false, printAtBottom: true },
         components: [{
           id: 'page-total', type: 'text', x: 0, y: 0, width: 50, height: 8,
-          text: 'PAGESUM("employees", "{employees.Salary}")',
+          text: 'PAGESUM({employees.Salary})',
           font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
           textAlign: 'left', verticalAlign: 'top',
           border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
@@ -424,10 +424,10 @@ Expected: FAIL because these shortcuts are missing.
 Extend `BUILT_IN_FUNCTIONS` with:
 
 ```ts
-{ name: 'PAGESUM', desc: '按页求和', usage: 'PAGESUM("DataBand", "{DataBand.Field}")', insert: 'PAGESUM("", "")' }
-{ name: 'REPORTSUM', desc: '按报表求和', usage: 'REPORTSUM("DataBand", "{DataBand.Field}")', insert: 'REPORTSUM("", "")' }
-{ name: 'TOTALS.PAGESUM', desc: '按页即时求和', usage: 'TOTALS.PAGESUM("DataBand", "{DataBand.Field}")', insert: 'TOTALS.PAGESUM("", "")' }
-{ name: 'TOTALS.REPORTSUM', desc: '按报表即时求和', usage: 'TOTALS.REPORTSUM("DataBand", "{DataBand.Field}")', insert: 'TOTALS.REPORTSUM("", "")' }
+{ name: 'PAGESUM', desc: '按页求和', usage: 'PAGESUM({DataBand.Field})', insert: 'PAGESUM({DataBand.Field})' }
+{ name: 'REPORTSUM', desc: '按报表求和', usage: 'REPORTSUM({DataBand.Field})', insert: 'REPORTSUM({DataBand.Field})' }
+{ name: 'TOTALS.PAGESUM', desc: '按页即时求和', usage: 'TOTALS.PAGESUM({DataBand.Field})', insert: 'TOTALS.PAGESUM({DataBand.Field})' }
+{ name: 'TOTALS.REPORTSUM', desc: '按报表即时求和', usage: 'TOTALS.REPORTSUM({DataBand.Field})', insert: 'TOTALS.REPORTSUM({DataBand.Field})' }
 ```
 
 Add a totals tree group named `合计函数`.

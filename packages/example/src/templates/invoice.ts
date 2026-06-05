@@ -40,9 +40,9 @@ export const invoiceTemplate = template('invoice', 'Invoice', [
     text('inv-total', moneyExpression('invoiceLines', 'lineTotal'), 154, 1, 28, 5, { style: commonTextStyleIds.data, textAlign: 'right' }),
   ], { dataBand: { dataSourceId: 'invoiceLines' } }),
   band('inv-footer', 'footer', 20, [
-    text('inv-subtotal', 'SUM("invoiceLines", "{invoiceLines.lineTotal}")', 100, 1, 82, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
-    text('inv-tax', 'SUM("invoiceLines", "{invoiceLines.lineTotal}") * 0.1', 100, 7, 82, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
-    text('inv-grand', 'SUM("invoiceLines", "{invoiceLines.lineTotal}") * 1.1', 100, 13, 82, 5, { style: 'invoice-total-emphasis', textAlign: 'right' }),
+    text('inv-subtotal', 'SUM({invoiceLines.lineTotal})', 100, 1, 82, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
+    text('inv-tax', 'SUM({invoiceLines.lineTotal}) * 0.1', 100, 7, 82, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
+    text('inv-grand', 'SUM({invoiceLines.lineTotal}) * 1.1', 100, 13, 82, 5, { style: 'invoice-total-emphasis', textAlign: 'right' }),
   ]),
   band('inv-page-footer', 'pageFooter', 8, [
     text('inv-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footer, textAlign: 'center' }),

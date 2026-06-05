@@ -21,12 +21,12 @@ export const groupedEmployeesTemplate = template('grouped-employees', 'Grouped E
     text('ge-salary', moneyExpression('employees', 'salary'), 130, 1, 40, 5, { style: commonTextStyleIds.data, textAlign: 'right' }),
   ], { dataBand: { dataSourceId: 'employees', sort: [{ field: 'department', direction: 'asc' }, { field: 'name', direction: 'asc' }] } }),
   band('ge-group-footer', 'groupFooter', 10, [
-    text('ge-group-count', 'COUNT("employees")', 0, 2, 50, 5, { style: commonTextStyleIds.footer }),
-    text('ge-group-sum', 'SUM("employees", "{employees.salary}")', 90, 2, 80, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
+    text('ge-group-count', 'COUNT({employees.name})', 0, 2, 50, 5, { style: commonTextStyleIds.footer }),
+    text('ge-group-sum', 'SUM({employees.salary})', 90, 2, 80, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
   ]),
   band('ge-footer', 'footer', 10, [
-    text('ge-total-count', 'COUNT("employees")', 0, 2, 70, 5, { style: commonTextStyleIds.footer }),
-    text('ge-total-salary', 'SUM("employees", "{employees.salary}")', 90, 2, 80, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
+    text('ge-total-count', 'COUNT({employees.name})', 0, 2, 70, 5, { style: commonTextStyleIds.footer }),
+    text('ge-total-salary', 'SUM({employees.salary})', 90, 2, 80, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
   ]),
   band('ge-page-footer', 'pageFooter', 8, [
     text('ge-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footer, textAlign: 'center' }),

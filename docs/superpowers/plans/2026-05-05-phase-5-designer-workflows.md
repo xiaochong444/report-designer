@@ -115,7 +115,7 @@ Supported quick inserts:
 - `{DataSource.Field}`
 - `{PageNumber}`
 - `{TotalPages}`
-- `SUM("DataBand1", "{Orders.Total}")`
+- `SUM({Orders.Total})`
 - `Totals.Sum("{Orders.Total}")`
 
 ### Task 5: Property Grid current model

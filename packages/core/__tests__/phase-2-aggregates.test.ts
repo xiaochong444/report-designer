@@ -20,7 +20,7 @@ describe('Phase 2 aggregates', () => {
 
   it('supports running totals by current data row', () => {
     const runtime = new AggregateRuntime({ rowsByBand: { employees: rows } });
-    const result = runtime.evaluateFunction('RUNNINGSUM', ['employees', '{employees.Salary}'], {
+    const result = runtime.evaluateFunction('RUNNINGSUM', ['{employees.Salary}'], {
       resolveField: () => null,
       rowIndex: 1,
     });
@@ -28,13 +28,29 @@ describe('Phase 2 aggregates', () => {
     expect(result).toBe(300);
   });
 
-  it('delegates band aggregate expressions to the report runtime while preserving scalar calls', () => {
+  it('delegates single-field aggregate expressions to the report runtime while preserving scalar calls', () => {
     const runtime = new AggregateRuntime({ rowsByBand: { employees: rows }, pageNumber: 2, totalPages: 5 });
 
     expect(evalExpression('SUM(1, 2, 3)', () => null)).toBe(6);
     expect(evalExpression('SUM({employees.Salary})', () => null, 0, {}, runtime)).toBe(450);
+    expect(evalExpression('AVG({employees.Salary})', () => null, 0, {}, runtime)).toBe(150);
+    expect(evalExpression('COUNT({employees.Salary})', () => null, 0, {}, runtime)).toBe(3);
     expect(evalExpression('COUNTDISTINCT({employees.Department})', () => null, 0, {}, runtime)).toBe(2);
+    expect(evalExpression('SUMIF({employees.Salary}, "{employees.Department} = \\"Engineering\\"")', () => null, 0, {}, runtime)).toBe(300);
+    expect(evalExpression('COUNTIF("{employees.Department} = \\"Engineering\\"")', () => null, 0, {}, runtime)).toBe(2);
+    expect(evalExpression('RUNNINGSUM({employees.Salary})', () => null, 1, {}, runtime)).toBe(300);
     expect(evalExpression('PAGE()', () => null, 0, {}, runtime)).toBe(2);
     expect(evalExpression('TOTALPAGES()', () => null, 0, {}, runtime)).toBe(5);
+  });
+
+  it('rejects legacy source-first aggregate signatures when a report runtime is present', () => {
+    const runtime = new AggregateRuntime({ rowsByBand: { employees: rows } });
+
+    expect(() => evalExpression('SUM("employees", "{employees.Salary}")', () => null, 0, {}, runtime)).toThrow(
+      'Aggregate functions use field expressions, for example SUM({employees.Salary}).',
+    );
+    expect(() => evalExpression('COUNT("employees")', () => null, 0, {}, runtime)).toThrow(
+      'Aggregate functions use field expressions, for example SUM({employees.Salary}).',
+    );
   });
 });

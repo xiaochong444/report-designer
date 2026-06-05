@@ -154,7 +154,7 @@ Create `report-functions.ts` with functions:
 
 Extend `EvalContext` with optional `reportRuntime`.
 
-Scalar calls such as `SUM(1, 2, 3)` should keep current behavior. Band calls such as `SUM("DataBand1", "{Orders.Total}")` should delegate to the aggregate runtime.
+Scalar calls such as `SUM(1, 2, 3)` should keep current behavior. Report aggregate calls such as `SUM({Orders.Total})` should delegate to the aggregate runtime and infer the data source from the field expression.
 
 ### Task 5: Verify
 

@@ -36,10 +36,10 @@ export const masterDetailOrdersTemplate = template('master-detail-orders', 'Mast
     text('mdo-line-total', moneyExpression('orderLines', 'lineTotal'), 136, 1, 34, 5, { style: commonTextStyleIds.data, textAlign: 'right' }),
   ], { dataBand: { dataSourceId: 'orderLines', sort: [{ field: 'orderNo', direction: 'asc' }] } }),
   band('mdo-group-footer', 'groupFooter', 9, [
-    text('mdo-order-total', 'SUM("orderLines", "{orderLines.lineTotal}")', 90, 1, 80, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
+    text('mdo-order-total', 'SUM({orderLines.lineTotal})', 90, 1, 80, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
   ]),
   band('mdo-footer', 'footer', 10, [
-    text('mdo-report-total', 'SUM("orderLines", "{orderLines.lineTotal}")', 90, 2, 80, 5, { style: 'mdo-total-emphasis', textAlign: 'right' }),
+    text('mdo-report-total', 'SUM({orderLines.lineTotal})', 90, 2, 80, 5, { style: 'mdo-total-emphasis', textAlign: 'right' }),
   ]),
   band('mdo-page-footer', 'pageFooter', 8, [
     text('mdo-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footer, textAlign: 'center' }),
