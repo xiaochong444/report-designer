@@ -105,6 +105,9 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     const treeSearch = screen.getByPlaceholderText('搜索');
     const editorInput = screen.getAllByRole('textbox')[0] as HTMLTextAreaElement;
     expect(treeSearch).toBeInTheDocument();
+    expect(treeSearch.closest('.ant-input-search')).toBeInTheDocument();
+    const searchButton = treeSearch.closest('.rd-expression-browser')?.querySelector('.ant-input-search-btn');
+    expect(searchButton).toBeInTheDocument();
     expect(screen.getByText('数据源')).toBeInTheDocument();
     expect(screen.getAllByText('格式').length).toBeGreaterThan(0);
 
