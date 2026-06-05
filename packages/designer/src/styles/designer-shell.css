@@ -739,6 +739,8 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+  box-sizing: border-box;
+  height: var(--rd-expression-panel-height);
   padding-right: 10px;
   border-right: 1px solid var(--rd-border);
 }
@@ -782,6 +784,7 @@
   min-width: 0;
   display: flex;
   flex-direction: column;
+  box-sizing: border-box;
   height: var(--rd-expression-panel-height);
   border: 1px solid var(--rd-border);
   border-radius: 4px;
@@ -817,6 +820,7 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
+  box-sizing: border-box;
   height: var(--rd-expression-panel-height);
   border: 1px solid var(--rd-border);
   border-radius: 4px;
