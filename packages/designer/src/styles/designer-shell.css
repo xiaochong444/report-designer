@@ -906,7 +906,10 @@
 .rd-expression-tree-glyph-system::before,
 .rd-expression-tree-glyph-aggregates::before,
 .rd-expression-tree-glyph-html::before,
-.rd-expression-tree-glyph-field::before,
+.rd-expression-tree-glyph-field-string::before,
+.rd-expression-tree-glyph-field-number::before,
+.rd-expression-tree-glyph-field-date::before,
+.rd-expression-tree-glyph-field-boolean::before,
 .rd-expression-tree-glyph-function::before,
 .rd-expression-tree-glyph-format::before,
 .rd-expression-tree-glyph-resource::before {
@@ -922,7 +925,10 @@
 
 .rd-expression-tree-glyph-expression::before { content: "E"; }
 .rd-expression-tree-glyph-data::before,
-.rd-expression-tree-glyph-field::before { content: "ab"; font-size: 6px; }
+.rd-expression-tree-glyph-field-string::before { content: "ab"; font-size: 6px; }
+.rd-expression-tree-glyph-field-number::before { content: "1"; }
+.rd-expression-tree-glyph-field-date::before { content: "D"; }
+.rd-expression-tree-glyph-field-boolean::before { content: "T"; }
 .rd-expression-tree-glyph-system::before { content: "Σ"; }
 .rd-expression-tree-glyph-aggregates::before,
 .rd-expression-tree-glyph-function::before { content: "fx"; font-size: 6px; }

@@ -55,6 +55,7 @@ function makeDictionaryTemplate(): ReportTemplate {
         { name: 'ProductID', type: 'number' },
         { name: 'ProductName', type: 'string' },
         { name: 'UnitPrice', type: 'number' },
+        { name: 'CreatedAt', type: 'date' },
         { name: 'Discontinued', type: 'boolean' },
       ],
     },
@@ -114,11 +115,25 @@ describe('Phase 16 dictionary tree and expression shell', () => {
     expect(screen.getAllByText('格式').length).toBeGreaterThan(0);
 
     fireEvent.change(treeSearch, { target: { value: 'UnitPrice' } });
-    const unitPriceItem = await screen.findByRole('treeitem', { name: 'Products.UnitPrice' });
-    fireEvent.click(within(unitPriceItem).getByText('Products.UnitPrice'));
+    const unitPriceItem = await screen.findByRole('treeitem', { name: 'UnitPrice' });
+    expect(screen.queryByRole('treeitem', { name: 'Products.UnitPrice' })).not.toBeInTheDocument();
+    expect(unitPriceItem.querySelector('.rd-expression-tree-glyph-field-number')).toBeInTheDocument();
+    fireEvent.click(within(unitPriceItem).getByText('UnitPrice'));
     await waitFor(() => {
       expect(editorInput.value).toContain('{Products.UnitPrice}');
     });
+
+    fireEvent.change(treeSearch, { target: { value: 'ProductName' } });
+    const productNameItem = await screen.findByRole('treeitem', { name: 'ProductName' });
+    expect(productNameItem.querySelector('.rd-expression-tree-glyph-field-string')).toBeInTheDocument();
+
+    fireEvent.change(treeSearch, { target: { value: 'CreatedAt' } });
+    const createdAtItem = await screen.findByRole('treeitem', { name: 'CreatedAt' });
+    expect(createdAtItem.querySelector('.rd-expression-tree-glyph-field-date')).toBeInTheDocument();
+
+    fireEvent.change(treeSearch, { target: { value: 'Discontinued' } });
+    const discontinuedItem = await screen.findByRole('treeitem', { name: 'Discontinued' });
+    expect(discontinuedItem.querySelector('.rd-expression-tree-glyph-field-boolean')).toBeInTheDocument();
 
     fireEvent.change(treeSearch, { target: { value: 'SUM' } });
     const sumItem = await screen.findByRole('treeitem', { name: 'SUM' });

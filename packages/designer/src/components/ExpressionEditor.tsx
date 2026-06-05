@@ -33,6 +33,17 @@ type TreeNodeMeta = DataNode & {
   children?: TreeNodeMeta[];
 };
 
+type ExpressionTreeGlyphKind =
+  | 'folder'
+  | 'field-string'
+  | 'field-number'
+  | 'field-date'
+  | 'field-boolean'
+  | 'system'
+  | 'function'
+  | 'format'
+  | 'resource';
+
 const CATEGORY_ITEMS: Array<{ key: ExpressionCategory; labelKey: DesignerMessageKey; subtitleKey: DesignerMessageKey }> = [
   { key: 'expression', labelKey: 'expressionEditor.category.expression', subtitleKey: 'expressionEditor.category.expressionSubtitle' },
   { key: 'data', labelKey: 'expressionEditor.category.data', subtitleKey: 'expressionEditor.category.dataSubtitle' },
@@ -48,7 +59,7 @@ const FUNCTION_FOLDER_LABELS: Partial<Record<string, DesignerMessageKey>> = {
 function makeTreeNode(
   key: string,
   label: string,
-  kind: 'folder' | 'field' | 'system' | 'function' | 'format' | 'resource',
+  kind: ExpressionTreeGlyphKind,
   options?: { insertValue?: string; searchText?: string; children?: TreeNodeMeta[] },
 ): TreeNodeMeta {
   return {
@@ -63,6 +74,20 @@ function makeTreeNode(
     ),
     children: options?.children,
   };
+}
+
+function getExpressionFieldGlyphKind(type: string | undefined): ExpressionTreeGlyphKind {
+  const normalizedType = type?.toLowerCase();
+  if (normalizedType === 'number' || normalizedType === 'integer' || normalizedType === 'decimal') {
+    return 'field-number';
+  }
+  if (normalizedType === 'date' || normalizedType === 'datetime') {
+    return 'field-date';
+  }
+  if (normalizedType === 'boolean' || normalizedType === 'bool') {
+    return 'field-boolean';
+  }
+  return 'field-string';
 }
 
 function safeTreeKey(key: string) {
@@ -125,9 +150,9 @@ export const ExpressionEditor: React.FC<{
         makeTreeNode(`ds.${dataSource.id}`, dataSource.name, 'folder', {
           searchText: `${dataSource.name} ${dataSource.id}`.toLowerCase(),
           children: (dataSource.schema ?? dataSource.fields ?? []).map((field) =>
-            makeTreeNode(`${dataSource.id}.${field.name}`, `${dataSource.id}.${field.name}`, 'field', {
+            makeTreeNode(`${dataSource.id}.${field.name}`, field.name, getExpressionFieldGlyphKind(field.type), {
               insertValue: `{${dataSource.id}.${field.name}}`,
-              searchText: `${dataSource.id}.${field.name} ${field.label ?? ''}`.toLowerCase(),
+              searchText: `${dataSource.id}.${field.name} ${field.name} ${field.label ?? ''}`.toLowerCase(),
             }),
           ),
         }),
