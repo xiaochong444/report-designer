@@ -79,13 +79,13 @@ describe('phase 23 viewer event render modes', () => {
     expect(screen.queryByText('Output Title')).not.toBeInTheDocument();
   });
 
-  it('renders print output with print mode', () => {
+  it('prints the current preview document through the browser print path', () => {
     render(<Viewer template={eventTemplate()} data={{}} />);
 
     fireEvent.click(screen.getByRole('button', { name: 'Print' }));
 
     expect(printReport).toHaveBeenCalledTimes(1);
-    expect(firstTextContent(vi.mocked(printReport).mock.calls[0][0] as RenderDocument)).toBe('Output Title');
+    expect(firstTextContent(vi.mocked(printReport).mock.calls[0][0] as RenderDocument)).toBe('Preview Title');
   });
 
   it('renders PDF output with pdf mode before exporting', async () => {

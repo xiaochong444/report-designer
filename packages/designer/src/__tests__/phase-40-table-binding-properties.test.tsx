@@ -72,76 +72,57 @@ function selectedTable() {
 }
 
 describe('phase 40 table binding properties', () => {
-  it('shows table binding controls and stores detail binding metadata', () => {
+  it('shows structure controls and removes table binding controls', () => {
     loadSelectedTable();
 
     render(<PropertyEditor />);
 
-    expect(screen.getByLabelText('绑定模式')).toBeInTheDocument();
-    expect(screen.getByText('固定')).toBeInTheDocument();
-    expect(screen.getByText('明细')).toBeInTheDocument();
-    expect(screen.getByLabelText('绑定数组属性')).toBeInTheDocument();
-    expect(screen.getByLabelText('数组路径')).toBeInTheDocument();
+    expect(screen.getByLabelText('列数')).toBeInTheDocument();
+    expect(screen.getByLabelText('行数')).toBeInTheDocument();
+    expect(screen.queryByLabelText('绑定模式')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('绑定数组属性')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('数组路径')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('表格数据源')).not.toBeInTheDocument();
+  });
 
-    fireEvent.click(screen.getByText('明细'));
-    fireEvent.mouseDown(screen.getByLabelText('绑定数组属性'));
-    fireEvent.click(screen.getByText('Items (orders.items)'));
-    fireEvent.change(screen.getByLabelText('数组路径'), { target: { value: 'Items' } });
+  it('edits table border with the same border controls as other components', () => {
+    loadSelectedTable(tableComponent({
+      border: { style: 'solid', width: 0.2, color: '#9ca3af', sides: { top: true, right: true, bottom: true, left: true } },
+    }));
 
-    expect(selectedTable().binding).toMatchObject({
-      mode: 'detail',
-      dataSourceId: 'orders.items',
-      arrayPath: 'Items',
+    render(<PropertyEditor />);
+
+    expect(screen.getByLabelText('边框样式')).toBeInTheDocument();
+    expect(screen.getByLabelText('边框宽度')).toBeInTheDocument();
+    expect(screen.getByLabelText('边框颜色')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText('边框宽度'), { target: { value: '0.5' } });
+
+    expect(selectedTable().border).toMatchObject({
+      style: 'solid',
+      width: 0.5,
+      color: '#9ca3af',
+      sides: { top: true, right: true, bottom: true, left: true },
     });
   });
 
-  it('updates table binding through the store in one table edit command', () => {
+  it('updates table row and column count through the store in one table edit command', () => {
     loadSelectedTable();
 
     act(() => {
       useDesignerStore.getState().updateSelectedTable({
-        binding: { mode: 'detail', dataSourceId: 'orders.items', arrayPath: 'Items' },
+        rowCount: 4,
+        columnCount: 3,
       });
     });
 
-    expect(selectedTable().binding).toEqual({
-      mode: 'detail',
-      dataSourceId: 'orders.items',
-      arrayPath: 'Items',
-    });
+    expect(selectedTable().rows).toHaveLength(4);
+    expect(selectedTable().rows?.[0]?.cells).toHaveLength(3);
+    expect(selectedTable().binding).toBeUndefined();
+    expect(selectedTable().columns).toBeUndefined();
   });
 
-  it('localizes table binding controls in English', () => {
-    loadSelectedTable(tableComponent({ binding: { mode: 'detail', dataSourceId: 'orders.items', arrayPath: 'Items' } }));
-
-    render(
-      <DesignerI18nProvider locale="en-US">
-        <PropertyEditor />
-      </DesignerI18nProvider>,
-    );
-
-    expect(screen.getByLabelText('Binding mode')).toBeInTheDocument();
-    expect(screen.getByText('Fixed')).toBeInTheDocument();
-    expect(screen.getByText('Detail')).toBeInTheDocument();
-    expect(screen.getByLabelText('Bound array property')).toBeInTheDocument();
-    expect(screen.getByLabelText('Array path')).toHaveValue('Items');
-    expect(screen.queryByLabelText('Table data source')).not.toBeInTheDocument();
-  });
-
-  it('uses fields from the bound array item for table cell field choices', () => {
-    loadSelectedTable(tableComponent({ binding: { mode: 'detail', dataSourceId: 'orders.items', arrayPath: 'Items' } }));
-
-    render(<PropertyEditor />);
-
-    const fieldInput = screen.getByLabelText('第 1 列字段');
-    expect(fieldInput).toHaveAttribute('list');
-    const options = Array.from(document.querySelectorAll(`#${fieldInput.getAttribute('list')} option`)).map(option => option.getAttribute('value'));
-
-    expect(options).toEqual(['name', 'qty']);
-  });
-
-  it('only exposes text table column type for the current table rendering contract', () => {
+  it('localizes table structure controls in English', () => {
     loadSelectedTable();
 
     render(
@@ -150,11 +131,9 @@ describe('phase 40 table binding properties', () => {
       </DesignerI18nProvider>,
     );
 
-    fireEvent.mouseDown(screen.getByLabelText('Column 1 type'));
-
-    expect(screen.getAllByText('Text').length).toBeGreaterThan(0);
-    expect(screen.queryByText('Image')).not.toBeInTheDocument();
-    expect(screen.queryByText('Barcode')).not.toBeInTheDocument();
-    expect(screen.queryByText('Checkbox')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Columns')).toBeInTheDocument();
+    expect(screen.getByLabelText('Rows')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Binding mode')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Table data source')).not.toBeInTheDocument();
   });
 });

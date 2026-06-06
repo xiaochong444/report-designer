@@ -3,6 +3,64 @@ import { createDefaultTemplate } from '../src/template-model/template';
 import type { TableComponent } from '../src/template-model/types';
 
 describe('phase 34 table rendering', () => {
+  it('renders row-cell tables with inherited styles and current band fields', () => {
+    const template = createDefaultTemplate('Row Cell Table Rendering');
+    template.dataSources = [{
+      id: 'items',
+      name: 'items',
+      type: 'json',
+      schema: [{ name: 'product.name', type: 'string' }, { name: 'qty', type: 'number' }],
+    }];
+    const dataBand = template.pages[0].bands.find(band => band.type === 'data');
+    if (!dataBand) throw new Error('Missing data band');
+    dataBand.dataBand = { dataSourceId: 'items' };
+    dataBand.components = [{
+      id: 'table-1',
+      type: 'table',
+      x: 0,
+      y: 0,
+      width: 90,
+      height: 16,
+      showBorder: true,
+      border: { style: 'solid', width: 0.2, color: '#333333', sides: { top: true, right: true, bottom: true, left: true } },
+      rows: [{
+        id: 'row-1',
+        height: 8,
+        textAlign: 'center',
+        cells: [
+          { id: 'cell-1', text: '{items.product.name}', width: 30 },
+          { id: 'cell-2', text: '{items.qty}', textAlign: 'right' },
+          { id: 'cell-3', text: 'pcs' },
+        ],
+      }],
+    } as TableComponent];
+
+    const document = renderReport(template, {
+      items: [{ product: { name: 'Widget' }, qty: 2 }],
+    });
+    const table = document.pages[0].items.flatMap(item => item.components).find(component => component.id === 'table-1');
+
+    expect(table).toMatchObject({
+      type: 'table',
+      columns: [{ width: 30 }, { width: 30 }, { width: 30 }],
+      rows: [[
+        {
+          content: 'Widget',
+          style: { textAlign: 'center', border: { sides: { top: true, left: true, right: true, bottom: true } } },
+        },
+        {
+          content: '2',
+          style: { textAlign: 'right', border: { sides: { top: true, left: false, right: true, bottom: true } } },
+        },
+        {
+          content: 'pcs',
+          style: { textAlign: 'center', border: { sides: { top: true, left: false, right: true, bottom: true } } },
+        },
+      ]],
+    });
+    expect(table?.type === 'table' ? table.style?.border : undefined).toBeUndefined();
+  });
+
   it('carries table cell expression, format, and style into the render document', () => {
     const template = createDefaultTemplate('Table Cell Rendering');
     template.dataSources = [{
@@ -57,7 +115,7 @@ describe('phase 34 table rendering', () => {
             padding: { top: 1, right: 2, bottom: 1, left: 2 },
             textAlign: 'right',
             verticalAlign: 'middle',
-            border: { style: 'solid', width: 0.2, color: '#1677ff', sides: { top: true, right: true, bottom: true, left: true } },
+            border: { style: 'solid', width: 0.2, color: '#1677ff', sides: { top: false, right: true, bottom: true, left: true } },
           },
         }],
       ],
@@ -112,7 +170,7 @@ describe('phase 34 table rendering', () => {
     page.bands = [{
       id: 'report-table-band',
       type: 'reportTitle',
-      height: 60,
+      height: 68,
       components: [{
         id: 'table-1',
         type: 'table',
@@ -173,7 +231,7 @@ describe('phase 34 table rendering', () => {
     page.bands = [{
       id: 'report-table-band',
       type: 'reportTitle',
-      height: 60,
+      height: 68,
       components: [{
         id: 'table-1',
         type: 'table',
@@ -359,7 +417,7 @@ describe('phase 34 table rendering', () => {
         [{ content: 'Row 5' }],
         [{ content: 'Row 6' }],
       ],
-      height: 60,
+      height: 68,
     });
   });
 });

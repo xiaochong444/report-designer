@@ -2,7 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { Layout } from 'antd';
 import { renderReport, type EventLogEntry, type RenderReportOptions, type ReportTemplate } from '@report-designer/core';
 import { ViewerToolbar } from './ViewerToolbar';
-import { downloadPDF, exportToPDF, printReport, type PrintReportOptions } from '../export';
+import { downloadPDF, exportToPDF, printReport, type PdfExportOptions, type PrintReportOptions } from '../export';
 import { RenderDocumentView } from '../renderers/dom/RenderDocumentView';
 import { EventLogPanel } from './EventLogPanel';
 import { getViewerMessages, type ViewerLocale } from '../i18n';
@@ -17,6 +17,7 @@ interface ViewerProps {
   expressionVariables?: RenderReportOptions['expressionVariables'];
   expressionFunctions?: RenderReportOptions['expressionFunctions'];
   printOptions?: PrintReportOptions;
+  pdfOptions?: PdfExportOptions;
   onEventLogSelect?: (entry: EventLogEntry) => void;
   onEventLogsClear?: () => void;
   onEventLogsExport?: (logs: EventLogEntry[]) => void;
@@ -35,6 +36,7 @@ export const Viewer: React.FC<ViewerProps> = ({
   expressionVariables,
   expressionFunctions,
   printOptions,
+  pdfOptions,
 }) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [zoom, setZoom] = useState(100);
@@ -60,15 +62,14 @@ export const Viewer: React.FC<ViewerProps> = ({
     const pdfDocument = renderReport(template, data, { subreports, expressionVariables, expressionFunctions, mode: 'pdf' });
     setEventLogsCleared(false);
     setOutputEventLogs(pdfDocument.eventLogs ?? []);
-    const pdfBytes = await exportToPDF(pdfDocument);
+    const pdfBytes = await exportToPDF(pdfDocument, pdfOptions);
     await downloadPDF(pdfBytes, 'report.pdf');
   };
 
   const handlePrint = () => {
-    const printDocument = renderReport(template, data, { subreports, expressionVariables, expressionFunctions, mode: 'print' });
     setEventLogsCleared(false);
-    setOutputEventLogs(printDocument.eventLogs ?? []);
-    void printReport(printDocument, printOptions);
+    setOutputEventLogs(document.eventLogs ?? []);
+    void printReport(document, printOptions);
   };
 
   return (

@@ -200,6 +200,8 @@ describe('Phase 9 text binding and style UI', () => {
 
     const [salaryText, hireDateText] = textComponents();
 
+    expect(salaryText.text).toBe('{employees.Salary}');
+    expect(hireDateText.text).toBe('{employees.HireDate}');
     expect(salaryText.style).toBe('default-style');
     expect(salaryText.textAlign).toBe('center');
     expect(salaryText.format).toMatchObject({ type: 'currency', pattern: 'C2', nullValue: 'n/a', trueText: '', falseText: '' });

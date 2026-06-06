@@ -1,9 +1,11 @@
 import { buildBandPlan, executeBandPlan } from '../band-planner';
+import { expandJsonDataBySources, mergeInferredDataSources } from '../data-dictionary';
 import type { LogicalBandItem, RenderContext } from '../band-planner';
 import { createLayoutEventState, layoutBand } from '../layout-engine/layout-band';
 import type { LayoutEventRuntime, LayoutEventState } from '../layout-engine/layout-band';
 import type { RenderBandBox, RenderComponentBox, RenderDocument, RenderPage, RenderTable, RenderTableCell } from '../render-document/types';
 import type { Band, Page, PageBorder, PageWatermark, ReportTemplate, SubreportComponent, TableComponent } from '../template-model/types';
+import { isRepeatOnEveryPageBandType } from '../template-model/types';
 import { normalizeTemplate } from '../template-model';
 import { evalExpression } from '../expression-engine/evaluator';
 import type { BuiltinFunction } from '../expression-engine/evaluator';
@@ -143,8 +145,9 @@ function renderReportInternal(
   data: Record<string, Record<string, unknown>[]>,
   options: InternalRenderReportOptions,
 ): RenderDocument {
-  const normalizedTemplate = normalizeTemplate(cloneReportTemplate(template));
-  const eventRuntime = createRenderEventRuntime(normalizedTemplate, data, options);
+  const normalizedTemplate = normalizeTemplate(mergeInferredDataSources(cloneReportTemplate(template), data));
+  const expandedData = expandJsonDataBySources(data, normalizedTemplate.dataSources);
+  const eventRuntime = createRenderEventRuntime(normalizedTemplate, expandedData, options);
 
   if (!options.suppressEvents) {
     const modeEvent: ReportEventName = eventRuntime.mode === 'preview' ? 'beforePreview' : 'beforePrint';
@@ -163,14 +166,14 @@ function renderReportInternal(
 
   const templatePage = normalizedTemplate.pages[0];
   const plan = buildBandPlan(normalizedTemplate);
-  const logicalItems = executeBandPlan(plan, data, {
+  const logicalItems = executeBandPlan(plan, expandedData, {
     expressionVariables: options.expressionVariables,
     expressionFunctions: options.expressionFunctions,
   });
   if (!options.suppressEvents) {
     runReportEvent(normalizedTemplate, 'afterData', eventRuntime);
   }
-  const pages = paginate(templatePage, plan.pageBands, logicalItems, data, normalizedTemplate.styles, normalizedTemplate.conditionalFormats, {
+  const pages = paginate(templatePage, plan.pageBands, logicalItems, expandedData, normalizedTemplate.styles, normalizedTemplate.conditionalFormats, {
     ...options,
     eventRuntime: options.suppressEvents ? undefined : eventRuntime,
   });
@@ -860,7 +863,7 @@ function getBandBehavior(band: Band): NonNullable<Band['behavior']> {
     enabled: true,
     printOn: 'allPages',
     printIfEmpty: true,
-    printOnAllPages: band.type === 'pageHeader' || band.type === 'pageFooter' || band.type === 'groupHeader',
+    printOnAllPages: isRepeatOnEveryPageBandType(band.type),
     keepTogether: false,
     canBreak: band.type === 'data' || band.type === 'child',
     printAtBottom: band.type === 'pageFooter',

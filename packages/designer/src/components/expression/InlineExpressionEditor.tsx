@@ -2,6 +2,7 @@ import React, { useMemo } from 'react';
 import { Button, Input, Space, Tag, Typography } from 'antd';
 import type { DataSource } from '@report-designer/core';
 import { useDesignerI18n } from '../../i18n';
+import { formatDataFieldExpression } from '../../data-source-fields';
 
 interface InlineExpressionEditorProps {
   value: string;
@@ -21,19 +22,20 @@ export const InlineExpressionEditor: React.FC<InlineExpressionEditorProps> = ({ 
   }, [dataSources]);
 
   const append = (snippet: string) => onChange(`${value}${snippet}`);
+  const fieldExpression = (source: DataSource, fieldName: string) => formatDataFieldExpression(source.id, fieldName);
 
   return (
     <Space orientation="vertical" size={10} style={{ width: '100%' }}>
       <Input.TextArea aria-label={t('expressionEditor.inline.expression')} value={value} rows={4} onChange={event => onChange(event.target.value)} />
       <Space wrap>
         {dataSources.flatMap(source => (source.schema ?? source.fields ?? []).map(field => (
-          <Button key={`${source.id}.${field.name}`} size="small" onClick={() => append(`{${source.id}.${field.name}}`)}>
+          <Button key={`${source.id}.${field.name}`} size="small" onClick={() => append(fieldExpression(source, field.name))}>
             {source.id}.{field.name}
           </Button>
         )))}
       </Space>
       <Space wrap>
-        <Button size="small" onClick={() => numericField && append(`SUM({${numericField.source.id}.${numericField.field.name}})`)}>
+        <Button size="small" onClick={() => numericField && append(`SUM(${fieldExpression(numericField.source, numericField.field.name)})`)}>
           SUM
         </Button>
         <Button size="small" onClick={() => append('{PageNumber}')}>{'{PageNumber}'}</Button>

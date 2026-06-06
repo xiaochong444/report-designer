@@ -58,6 +58,10 @@ function selectedComponent() {
   return useDesignerStore.getState().template.pages[0].bands.flatMap(band => band.components)[0] as any;
 }
 
+function selectedCell(row: number, column: number) {
+  return selectedComponent().rows?.[row]?.cells[column];
+}
+
 function selectedBandId() {
   return useDesignerStore.getState().template.pages[0].bands.find(band => band.components.some(component => component.id === 'table-1'))!.id;
 }
@@ -67,13 +71,14 @@ describe('Phase 8 selected table cell store operations', () => {
     loadWith(tableComponent());
 
     useDesignerStore.getState().mergeSelectedTableCellRight(1, 1);
-    expect(selectedComponent().cells).toContainEqual({ row: 1, column: 1, text: 'Subtotal', rowSpan: 1, colSpan: 2 });
+    expect(selectedCell(1, 1)).toMatchObject({ text: 'Subtotal', rowSpan: 1, colSpan: 2 });
 
     useDesignerStore.getState().splitSelectedTableCell(1, 1);
-    expect(selectedComponent().cells).toContainEqual({ row: 1, column: 1, text: 'Subtotal', rowSpan: 1, colSpan: 1 });
+    expect(selectedCell(1, 1)).toMatchObject({ text: 'Subtotal', rowSpan: 1, colSpan: 1 });
 
     useDesignerStore.getState().clearSelectedTableCell(1, 1);
-    expect(selectedComponent().cells).toContainEqual({ row: 1, column: 1, rowSpan: 1, colSpan: 1 });
+    expect(selectedCell(1, 1)).toMatchObject({ rowSpan: 1, colSpan: 1 });
+    expect(selectedCell(1, 1)?.text).toBeUndefined();
   });
 
   it('equalizes selected table columns and rows', () => {
@@ -82,8 +87,8 @@ describe('Phase 8 selected table cell store operations', () => {
     useDesignerStore.getState().equalizeSelectedTableColumns();
     useDesignerStore.getState().equalizeSelectedTableRows();
 
-    expect(selectedComponent().columns.map((column: any) => column.width)).toEqual([30, 30, 30]);
-    expect(selectedComponent().rowHeight).toBe(10);
+    expect(selectedComponent().rows[0].cells.map((cell: any) => cell.width)).toEqual([undefined, undefined, undefined]);
+    expect(selectedComponent().rows.map((row: any) => row.height)).toEqual([10, 10, 10]);
   });
 
   it('leaves non-table selected components unchanged', () => {
@@ -139,9 +144,7 @@ describe('Phase 8 selected table cell store operations', () => {
     useDesignerStore.getState().updateSelectedTableCell({ text: 'Target' });
     useDesignerStore.getState().pasteSelectedTableCellStyle(2, 0);
 
-    expect(selectedComponent().cells).toContainEqual(expect.objectContaining({
-      row: 2,
-      column: 0,
+    expect(selectedCell(2, 0)).toMatchObject({
       text: 'Target',
       backgroundColor: '#ffeecc',
       textAlign: 'center',
@@ -150,17 +153,16 @@ describe('Phase 8 selected table cell store operations', () => {
       padding: { top: 1, right: 2, bottom: 3, left: 4 },
       border: { style: 'solid', width: 0.2, color: '#112233', sides: { top: true, right: true, bottom: true, left: true } },
       format: { type: 'number', decimalDigits: 2, useGroupSeparator: true },
-    }));
+    });
 
     useDesignerStore.getState().clearSelectedTableCellStyle(1, 1);
 
-    expect(selectedComponent().cells).toContainEqual({
-      row: 1,
-      column: 1,
+    expect(selectedCell(1, 1)).toMatchObject({
       rowSpan: 1,
       colSpan: 2,
       text: 'Styled',
     });
+    expect(selectedCell(1, 1)?.backgroundColor).toBeUndefined();
   });
 
   it('merges the selected rectangular table cell range from the top-left cell', () => {
@@ -176,7 +178,7 @@ describe('Phase 8 selected table cell store operations', () => {
 
     useDesignerStore.getState().mergeSelectedTableCellRange();
 
-    expect(selectedComponent().cells).toContainEqual({ row: 1, column: 0, rowSpan: 2, colSpan: 3 });
-    expect(selectedComponent().cells?.some((cell: any) => cell.row === 1 && cell.column === 1)).toBe(false);
+    expect(selectedCell(1, 0)).toMatchObject({ rowSpan: 2, colSpan: 3 });
+    expect(selectedCell(1, 1)).toBeDefined();
   });
 });

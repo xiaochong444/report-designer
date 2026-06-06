@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ReportTemplate, TextComponent } from '@report-designer/core';
@@ -108,12 +108,13 @@ describe('phase 36 event log panel', () => {
     expect(onEventLogsClear).toHaveBeenCalledTimes(1);
   });
 
-  it('keeps print-only event errors visible in the event log panel', () => {
+  it('keeps output-mode event errors visible in the event log panel after PDF export', async () => {
     render(<Viewer template={printOnlyEventLogTemplate()} data={{}} />);
 
     expect(screen.queryByRole('button', { name: 'Event Logs' })).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Print' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Export PDF' }));
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Event Logs' })).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Event Logs' }));
 
     expect(screen.getByText('print-only boom')).toBeInTheDocument();

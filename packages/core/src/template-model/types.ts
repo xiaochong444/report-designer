@@ -304,14 +304,26 @@ export interface TableColumn {
   id: string;
   header: string;
   field: string;
-  width: number;
+  width?: number;
   cellType: 'text' | 'image' | 'barcode' | 'checkbox';
 }
 
+export interface TableStyle {
+  backgroundColor?: string;
+  font?: FontConfig;
+  border?: BorderConfig;
+  padding?: Padding;
+  textAlign?: TextAlign;
+  verticalAlign?: VerticalAlign;
+  format?: TextFormatConfig;
+}
+
 export interface TableCell {
-  row: number;
-  column: number;
+  id?: string;
+  row?: number;
+  column?: number;
   text?: Expression;
+  width?: number;
   rowSpan?: number;
   colSpan?: number;
   backgroundColor?: string;
@@ -321,6 +333,22 @@ export interface TableCell {
   textAlign?: TextAlign;
   verticalAlign?: VerticalAlign;
   format?: TextFormatConfig;
+  style?: TableStyle;
+}
+
+export interface TableRow {
+  id: string;
+  height?: number;
+  role?: 'normal' | 'header' | 'footer';
+  backgroundColor?: string;
+  font?: FontConfig;
+  border?: BorderConfig;
+  padding?: Padding;
+  textAlign?: TextAlign;
+  verticalAlign?: VerticalAlign;
+  format?: TextFormatConfig;
+  style?: TableStyle;
+  cells: TableCell[];
 }
 
 export interface TableBinding {
@@ -331,18 +359,23 @@ export interface TableBinding {
 
 export interface TableComponent extends ReportComponent {
   type: 'table';
-  dataSource: string;
+  dataSource?: string;
   binding?: TableBinding;
-  columns: TableColumn[];
+  columns?: TableColumn[];
+  rows?: TableRow[];
   rowCount?: number;
   columnCount?: number;
   headerRowsCount?: number;
   footerRowsCount?: number;
   canBreak?: boolean;
   cells?: TableCell[];
-  headerHeight: number;
-  rowHeight: number;
-  showBorder: boolean;
+  headerHeight?: number;
+  rowHeight?: number;
+  showBorder?: boolean;
+  font?: FontConfig;
+  textAlign?: TextAlign;
+  verticalAlign?: VerticalAlign;
+  format?: TextFormatConfig;
 }
 
 export type BarcodeFormat = 'QR_CODE' | 'CODE128' | 'EAN13' | 'EAN8' | 'UPC' | 'CODE39' | 'ITF14';
@@ -455,6 +488,18 @@ export const STANDARD_BAND_TYPES = [
 export type StandardBandType = typeof STANDARD_BAND_TYPES[number];
 export type BandType = StandardBandType;
 export type BandPrintOn = 'allPages' | 'firstPage' | 'exceptFirstPage' | 'lastPage' | 'oddPages' | 'evenPages';
+
+const REPEAT_ON_EVERY_PAGE_BAND_TYPES: readonly BandType[] = [
+  'pageHeader',
+  'pageFooter',
+  'header',
+  'groupHeader',
+  'columnHeader',
+];
+
+export function isRepeatOnEveryPageBandType(type: BandType): boolean {
+  return REPEAT_ON_EVERY_PAGE_BAND_TYPES.includes(type);
+}
 
 export interface BandBehavior {
   enabled: boolean;

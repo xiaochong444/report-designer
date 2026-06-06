@@ -86,6 +86,7 @@ function validateFieldReferences(expression: string, template: ReportTemplate, v
   const fields = new Set<string>();
   for (const source of template.dataSources) {
     for (const field of source.schema ?? source.fields ?? []) {
+      fields.add(field.name.toLowerCase());
       fields.add(`${source.id}.${field.name}`.toLowerCase());
     }
   }

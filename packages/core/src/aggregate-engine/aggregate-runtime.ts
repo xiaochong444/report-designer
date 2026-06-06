@@ -22,7 +22,12 @@ export class AggregateRuntime implements AggregateRuntimeContract {
     if (fnName === 'PAGE') return this.pageNumber;
     if (fnName === 'TOTALPAGES') return this.totalPages;
 
-    const [bandName, expression, condition] = normalizeAggregateArgs(fnName, args, this.defaultBandName());
+    const [bandName, expression, condition] = normalizeAggregateArgs(
+      fnName,
+      args,
+      this.defaultBandName(),
+      new Set(Object.keys(this.options.rowsByBand)),
+    );
 
     if (fnName === 'RUNNINGSUM') {
       const rows = (this.options.rowsByBand[bandName] ?? []).slice(0, (ctx.rowIndex ?? 0) + 1);
@@ -73,7 +78,7 @@ export class AggregateRuntime implements AggregateRuntimeContract {
   }
 
   private defaultBandName(): string {
-    return Object.keys(this.options.rowsByBand)[0] ?? '';
+    return this.options.defaultDataSourceId ?? Object.keys(this.options.rowsByBand)[0] ?? '';
   }
 }
 
@@ -81,24 +86,25 @@ function normalizeFunctionName(functionName: string): string {
   return functionName.replace(/\s+/g, '').toUpperCase();
 }
 
-function normalizeAggregateArgs(functionName: string, args: unknown[], fallbackBandName: string): [string, string | undefined, string | undefined] {
+function normalizeAggregateArgs(functionName: string, args: unknown[], fallbackBandName: string, sourceIds: Set<string>): [string, string | undefined, string | undefined] {
   const first = typeof args[0] === 'string' ? args[0] : undefined;
   const second = typeof args[1] === 'string' ? args[1] : undefined;
 
   if (functionName === 'COUNTIF') {
-    return [extractSourceName(first) ?? fallbackBandName, undefined, first];
+    return [extractSourceName(first, sourceIds) ?? fallbackBandName, undefined, first];
   }
 
   if (functionName === 'SUMIF') {
-    return [extractSourceName(first) ?? extractSourceName(second) ?? fallbackBandName, first, second];
+    return [extractSourceName(first, sourceIds) ?? extractSourceName(second, sourceIds) ?? fallbackBandName, first, second];
   }
 
-  return [extractSourceName(first) ?? fallbackBandName, first, undefined];
+  return [extractSourceName(first, sourceIds) ?? fallbackBandName, first, undefined];
 }
 
-function extractSourceName(expression: string | undefined): string | undefined {
-  const match = expression?.match(/\{([A-Za-z0-9_-]+)\.[^}]+}/);
-  return match?.[1];
+function extractSourceName(expression: string | undefined, sourceIds: Set<string>): string | undefined {
+  const match = expression?.match(/\{([A-Za-z0-9_.-]+)\.[^}]+}/);
+  const candidate = match?.[1];
+  return candidate && sourceIds.has(candidate) ? candidate : undefined;
 }
 
 function resolveRowField(row: Record<string, unknown>, source: string, field: string): unknown {

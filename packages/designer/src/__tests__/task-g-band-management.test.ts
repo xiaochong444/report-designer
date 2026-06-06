@@ -43,6 +43,19 @@ describe('Task G: Band管理 + 页面设置', () => {
       expect(page.bands.some(b => b.type === 'reportTitle')).toBe(true);
     });
 
+    it('should create header bands that repeat on every page by default', () => {
+      resetStore();
+
+      useDesignerStore.getState().insertBandAfter('page_test', 'band_ph', 'header');
+      const headerBand = useDesignerStore.getState().template.pages[0].bands.find(band => band.type === 'header');
+
+      useDesignerStore.getState().insertBandAfter('page_test', headerBand!.id, 'columnHeader');
+      const columnHeaderBand = useDesignerStore.getState().template.pages[0].bands.find(band => band.type === 'columnHeader');
+
+      expect(headerBand?.behavior?.printOnAllPages).toBe(true);
+      expect(columnHeaderBand?.behavior?.printOnAllPages).toBe(true);
+    });
+
     it('should delete a band', () => {
       resetStore();
       useDesignerStore.getState().deleteBand('page_test', 'band_ph');

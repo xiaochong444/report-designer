@@ -4,49 +4,72 @@ import { band, makeTemplate } from './phase-2-helpers';
 import type { ReportComponent } from '../src';
 
 describe('Phase 29 table render contract', () => {
-  it('renders table headers and detail values into the render document', () => {
+  it('renders table headers and data band row values into the render document', () => {
+    const headerTable: ReportComponent = {
+      id: 'table-header',
+      type: 'table',
+      x: 0,
+      y: 0,
+      width: 80,
+      height: 8,
+      rowCount: 1,
+      columnCount: 2,
+      rows: [{
+        id: 'header-row',
+        height: 8,
+        role: 'header',
+        cells: [
+          { id: 'h-name', text: 'Name', width: 50 },
+          { id: 'h-salary', text: 'Salary', width: 30 },
+        ],
+      }],
+      showBorder: true,
+    } as ReportComponent;
+
+    const detailTable: ReportComponent = {
+      id: 'table-detail',
+      type: 'table',
+      x: 0,
+      y: 0,
+      width: 80,
+      height: 8,
+      rowCount: 1,
+      columnCount: 2,
+      rows: [{
+        id: 'detail-row',
+        height: 8,
+        cells: [
+          { id: 'd-name', text: '{employees.name}', width: 50 },
+          { id: 'd-salary', text: '{employees.salary}', width: 30 },
+        ],
+      }],
+      showBorder: true,
+    } as ReportComponent;
+
     const template = makeTemplate([
-      band('title', 'reportTitle', {
-        height: 40,
-        components: [{
-          id: 'table-1',
-          type: 'table',
-          x: 0,
-          y: 0,
-          width: 80,
-          height: 24,
-          dataSource: 'employees',
-          columns: [
-            { id: 'name', header: 'Name', field: 'name', width: 50, cellType: 'text' },
-            { id: 'salary', header: 'Salary', field: 'salary', width: 30, cellType: 'text' },
-          ],
-          rowCount: 3,
-          columnCount: 2,
-          headerRowsCount: 1,
-          footerRowsCount: 0,
-          canBreak: true,
-          headerHeight: 8,
-          rowHeight: 8,
-          showBorder: true,
-        } as ReportComponent],
+      band('header', 'header', { height: 8, components: [headerTable] }),
+      band('data', 'data', {
+        height: 8,
+        dataBand: { dataSourceId: 'employees' },
+        components: [detailTable],
       }),
     ]);
 
-    const table = renderReport(template, {
+    const document = renderReport(template, {
       employees: [
         { name: 'Alice', salary: 98000 },
         { name: 'Ben', salary: 91000 },
       ],
-    }).pages[0].items[0].components[0] as any;
+    });
+    const tables = document.pages[0].items.flatMap(item => item.components).filter(component => component.type === 'table') as any[];
 
-    expect(table.type).toBe('table');
-    expect(table.columns.map((column: any) => column.width)).toEqual([50, 30]);
-    expect(table.rows.map((row: any[]) => row.map(cell => cell.content))).toEqual([
-      ['Name', 'Salary'],
-      ['Alice', '98000'],
-      ['Ben', '91000'],
+    expect(tables[0].columns.map((column: any) => column.width)).toEqual([50, 30]);
+    expect(tables.map(table => table.rows.map((row: any[]) => row.map(cell => cell.content)))).toEqual([
+      [['Name', 'Salary']],
+      [['Alice', '98000']],
+      [['Ben', '91000']],
     ]);
-    expect(table.rows[0][0]).toMatchObject({ isHeader: true, height: 8 });
-    expect(table.rows[1][0]).toMatchObject({ field: 'name', height: 8 });
+    expect(tables[0].rows[0][0]).toMatchObject({ isHeader: true, height: 8 });
+    expect(tables[1].rows[0][0]).toMatchObject({ height: 8 });
   });
 });

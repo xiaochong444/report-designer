@@ -2,8 +2,9 @@ import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import { sanitizeRichHtml, type ReportComponent, type Band, type BandType, type BorderConfig, type ChartComponent, type ChartDataPoint, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type RichTextDocument, type TableCell, type TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import type { TableCellSelection } from '../store/designer-store';
-import { normalizeTable } from '../table/table-structure';
+import { normalizeTable, resolveCollapsedCellBorder, resolveTableCellStyle, resolveTableRowCellWidths } from '../table/table-structure';
 import { createDefaultComponent, createFieldExpressionComponent, createTextExpressionComponent } from '../component-factory';
+import { formatDataFieldExpression } from '../data-source-fields';
 import { RichTextInlineEditor } from './richtext/RichTextInlineEditor';
 import { useDesignerI18n } from '../i18n';
 import { BAND_COLORS, BAND_LABEL_KEYS } from '../band-metadata';
@@ -30,6 +31,10 @@ function safeCssNumber(value: number): number {
   return Number.isFinite(value) ? value : 0;
 }
 function pxToMm(px: number, zoom = 1): number { return Math.round(px / (MM_TO_PX * zoom) * 10) / 10; }
+function elementFromPointSafe(clientX: number, clientY: number): Element | null {
+  if (typeof document.elementFromPoint !== 'function') return null;
+  return document.elementFromPoint(clientX, clientY);
+}
 
 // ---- Interaction Mode (互斥) ----
 
@@ -37,6 +42,7 @@ type Mode =
   | { type: 'idle' }
   | { type: 'move'; compIds: string[]; bandMap: Record<string, string>; origPositions: Record<string, { x: number; y: number }>; startClientX: number; startClientY: number; dragStarted: boolean }
   | { type: 'resize'; compId: string; bandId: string; handle: ResizeHandle; startX: number; startY: number; origX: number; origY: number; origW: number; origH: number }
+  | { type: 'table-cell-resize'; tableId: string; bandId: string; row: number; column: number; startX: number; origWidth: number }
   | { type: 'select'; startX: number; startY: number }
   | { type: 'band-resize'; bandId: string; startY: number; origHeight: number }
   | { type: 'band-sort'; bandId: string; startClientY: number; startPointerContentY: number; startVisualTop: number; fromIndex: number; targetIndex: number; dragStarted: boolean };
@@ -163,6 +169,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const addComponent = useDesignerStore(s => s.addComponent);
   const addComponentToPanel = useDesignerStore(s => s.addComponentToPanel);
   const updateComponentSilent = useDesignerStore(s => s.updateComponentSilent);
+  const setSelectedTableCellWidth = useDesignerStore(s => s.setSelectedTableCellWidth);
   const resizeBand = useDesignerStore(s => s.resizeBand);
   const resizeBandSilent = useDesignerStore(s => s.resizeBandSilent);
   const moveBand = useDesignerStore(s => s.moveBand);
@@ -255,7 +262,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   // ---- Hit tests ----
 
   const findResizeHandleAtPoint = useCallback((clientX: number, clientY: number) => {
-    const el = document.elementFromPoint(clientX, clientY);
+    const el = elementFromPointSafe(clientX, clientY);
     if (!el) return null;
     const handleEl = el.closest('[data-resize-handle]') as HTMLElement | null;
     if (!handleEl) return null;
@@ -267,7 +274,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   }, []);
 
   const findBandResizeAtPoint = useCallback((clientX: number, clientY: number) => {
-    const el = document.elementFromPoint(clientX, clientY);
+    const el = elementFromPointSafe(clientX, clientY);
     if (!el) return null;
     const handleEl = el.closest('[data-band-resize]') as HTMLElement | null;
     if (!handleEl) return null;
@@ -275,7 +282,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   }, []);
 
   const findComponentAtPoint = useCallback((clientX: number, clientY: number) => {
-    const el = document.elementFromPoint(clientX, clientY);
+    const el = elementFromPointSafe(clientX, clientY);
     if (!el) return null;
     const compEl = el.closest('[data-component-id]') as HTMLElement | null;
     if (!compEl) return null;
@@ -287,7 +294,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   }, [flat]);
 
   const findTableCellAtPoint = useCallback((clientX: number, clientY: number) => {
-    const el = document.elementFromPoint(clientX, clientY);
+    const el = elementFromPointSafe(clientX, clientY);
     if (!el) return null;
     const cellEl = el.closest('[data-table-row][data-table-column]') as HTMLElement | null;
     if (!cellEl) return null;
@@ -298,6 +305,21 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     if (!Number.isInteger(row) || !Number.isInteger(column)) return null;
     if (!tableId || !bandId) return null;
     return { tableId, bandId, row, column };
+  }, []);
+
+  const findTableCellResizeAtPoint = useCallback((clientX: number, clientY: number) => {
+    const el = elementFromPointSafe(clientX, clientY);
+    if (!el) return null;
+    const handleEl = el.closest('[data-table-cell-resize]') as HTMLElement | null;
+    if (!handleEl) return null;
+    const row = Number(handleEl.dataset.tableRow);
+    const column = Number(handleEl.dataset.tableColumn);
+    const width = Number(handleEl.dataset.cellWidth);
+    const tableId = handleEl.dataset.tableId;
+    const bandId = handleEl.dataset.bandId;
+    if (!Number.isInteger(row) || !Number.isInteger(column) || !Number.isFinite(width)) return null;
+    if (!tableId || !bandId) return null;
+    return { tableId, bandId, row, column, width };
   }, []);
 
   // ---- Mouse down ----
@@ -336,6 +358,34 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       return;
     }
     if (e.button !== 0) return;
+
+    // 1. Resize handle
+    const tableResize = findTableCellResizeAtPoint(e.clientX, e.clientY);
+    if (tableResize) {
+      e.preventDefault();
+      e.stopPropagation();
+      selectComponents([tableResize.tableId]);
+      selectTableCell({
+        tableId: tableResize.tableId,
+        bandId: tableResize.bandId,
+        startRow: tableResize.row,
+        startColumn: tableResize.column,
+        endRow: tableResize.row,
+        endColumn: tableResize.column,
+      });
+      const m: Mode = {
+        type: 'table-cell-resize',
+        tableId: tableResize.tableId,
+        bandId: tableResize.bandId,
+        row: tableResize.row,
+        column: tableResize.column,
+        startX: e.clientX,
+        origWidth: tableResize.width,
+      };
+      modeRef.current = m;
+      setMode(m);
+      return;
+    }
 
     // 1. Resize handle
     const hr = findResizeHandleAtPoint(e.clientX, e.clientY);
@@ -393,14 +443,21 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
               endRow: tableCell.row,
               endColumn: tableCell.column,
             };
+        selectBand(null);
+        if (!selectedComponentIds.includes(ch.compId)) {
+          selectComponents([ch.compId]);
+        }
         selectTableCell(nextSelection);
-        return;
       }
 
       // Clear band selection when selecting a component
-      selectBand(null);
+      if (!tableCell || ch.compId !== tableCell.tableId) {
+        selectBand(null);
+      }
 
-      if (e.ctrlKey || e.metaKey) {
+      if (tableCell && ch.compId === tableCell.tableId) {
+        // Keep the cell selected, but still arm a normal component move so the whole table can be dragged.
+      } else if (e.ctrlKey || e.metaKey) {
         const cur = [...selectedComponentIds];
         const idx = cur.indexOf(ch.compId);
         if (idx >= 0) cur.splice(idx, 1); else cur.push(ch.compId);
@@ -443,7 +500,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     modeRef.current = m;
     setMode(m);
     setSelBox({ x: sx, y: sy, w: 0, h: 0 });
-  }, [flat, bands, selectedComponentIds, selectComponents, selectBand, selectTableCell, findComponentAtPoint, findTableCellAtPoint, findResizeHandleAtPoint, findBandResizeAtPoint, zoom]);
+  }, [flat, bands, selectedComponentIds, selectComponents, selectBand, selectTableCell, findComponentAtPoint, findTableCellAtPoint, findTableCellResizeAtPoint, findResizeHandleAtPoint, findBandResizeAtPoint, zoom]);
 
   // ---- Global mouse move/up ----
 
@@ -497,6 +554,9 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
           { x: nx, y: ny, width: nw, height: nh },
         );
 
+      } else if (m.type === 'table-cell-resize') {
+        // Width is committed on mouseup to keep the operation a single undoable edit.
+
       } else if (m.type === 'band-resize') {
         const dy = pxToMm(e.clientY - m.startY, zoom);
         const nh = Math.max(5, Math.round((m.origHeight + dy) * 10) / 10);
@@ -528,7 +588,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseUp = (e: MouseEvent) => {
       const m = modeRef.current;
       if (m.type === 'select' && selBoxRef.current) {
         const page = useDesignerStore.getState().template.pages.find(p => p.id === currentPageIdRef.current);
@@ -572,6 +632,9 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             { x: m.origX, y: m.origY, width: m.origW, height: m.origH },
           );
         }
+      } else if (m.type === 'table-cell-resize') {
+        const width = Math.max(1, Math.round((m.origWidth + pxToMm(e.clientX - m.startX, zoom)) * 10) / 10);
+        setSelectedTableCellWidth(m.row, m.column, width);
       } else if (m.type === 'band-resize') {
         const state = useDesignerStore.getState();
         const page = state.template.pages.find(p => p.id === currentPageIdRef.current);
@@ -600,7 +663,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [moveComponent, updateComponent, resizeBand, moveBand, selectComponents, getPointerContentY, zoom]);
+  }, [moveComponent, updateComponent, resizeBand, moveBand, selectComponents, setSelectedTableCellWidth, getPointerContentY, zoom]);
 
   // ---- Keyboard shortcuts ----
 
@@ -837,9 +900,25 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     if (!fieldBinding && !expressionBinding && !componentType) return;
 
     event.preventDefault();
+    const tableCellTarget = findTableCellAtPoint(event.clientX, event.clientY);
     if (fieldBinding) {
       try {
         const field = JSON.parse(fieldBinding);
+        if (tableCellTarget) {
+          const expression = formatDataFieldExpression(field.dataSourceId, field.fieldName);
+          const state = useDesignerStore.getState();
+          state.selectComponents([tableCellTarget.tableId]);
+          state.selectTableCell({
+            tableId: tableCellTarget.tableId,
+            bandId: tableCellTarget.bandId,
+            startRow: tableCellTarget.row,
+            startColumn: tableCellTarget.column,
+            endRow: tableCellTarget.row,
+            endColumn: tableCellTarget.column,
+          });
+          state.updateSelectedTableCell({ text: expression });
+          return;
+        }
         const component = createFieldExpressionComponent(field, position.xMm, position.yMm);
         if ('targetPanelId' in position && position.targetPanelId) {
           addComponentToPanel(currentPageId, position.targetBandId, position.targetPanelId, component);
@@ -853,6 +932,20 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     }
 
     if (expressionBinding) {
+      if (tableCellTarget) {
+        const state = useDesignerStore.getState();
+        state.selectComponents([tableCellTarget.tableId]);
+        state.selectTableCell({
+          tableId: tableCellTarget.tableId,
+          bandId: tableCellTarget.bandId,
+          startRow: tableCellTarget.row,
+          startColumn: tableCellTarget.column,
+          endRow: tableCellTarget.row,
+          endColumn: tableCellTarget.column,
+        });
+        state.updateSelectedTableCell({ text: expressionBinding });
+        return;
+      }
       const component = createTextExpressionComponent(expressionBinding, position.xMm, position.yMm);
       if ('targetPanelId' in position && position.targetPanelId) {
         addComponentToPanel(currentPageId, position.targetBandId, position.targetPanelId, component);
@@ -868,7 +961,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     } else {
       addComponent(currentPageId, position.targetBandId, component);
     }
-  }, [addComponent, addComponentToPanel, currentPageId, getDropPosition]);
+  }, [addComponent, addComponentToPanel, currentPageId, findTableCellAtPoint, getDropPosition]);
 
   const handlePageMouseMove = useCallback((event: React.MouseEvent<HTMLDivElement>) => {
     if (!pendingBandInsertType || !pageRef.current) return;
@@ -1095,15 +1188,20 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             onInsertTableRowBelow={() => { useDesignerStore.getState().insertSelectedTableRow(contextMenu.tableCell?.row); setContextMenu(null); }}
             onDeleteTableRow={() => { useDesignerStore.getState().deleteSelectedTableRow(contextMenu.tableCell?.row); setContextMenu(null); }}
             onSetHeaderRow={() => {
-              if (contextMenu.tableCell) {
-                useDesignerStore.getState().updateSelectedTable({ headerRowsCount: contextMenu.tableCell.row + 1 });
+              const tableTarget = flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]));
+              if (contextMenu.tableCell && tableTarget?.comp.type === 'table') {
+                const state = useDesignerStore.getState();
+                state.selectTableRow({ tableId: tableTarget.comp.id, bandId: tableTarget.bandId, row: contextMenu.tableCell.row });
+                state.updateSelectedTableRow({ role: 'header' });
               }
               setContextMenu(null);
             }}
             onSetFooterRow={() => {
-              const table = flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]))?.comp as TableComponent | undefined;
-              if (table?.type === 'table' && contextMenu.tableCell) {
-                useDesignerStore.getState().updateSelectedTable({ footerRowsCount: Math.max(0, (table.rowCount ?? 1) - contextMenu.tableCell.row) });
+              const tableTarget = flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]));
+              if (contextMenu.tableCell && tableTarget?.comp.type === 'table') {
+                const state = useDesignerStore.getState();
+                state.selectTableRow({ tableId: tableTarget.comp.id, bandId: tableTarget.bandId, row: contextMenu.tableCell.row });
+                state.updateSelectedTableRow({ role: 'footer' });
               }
               setContextMenu(null);
             }}
@@ -1781,8 +1879,8 @@ function horizontalAlignToFlex(value?: string): React.CSSProperties['justifyCont
 
 const BandResizeHandle: React.FC<{ bandId: string }> = ({ bandId }) => (
   <div data-band-resize data-band-id={bandId} style={{
-    position: 'absolute', left: 0, right: 0, bottom: -3, height: 6,
-    cursor: 'ns-resize', backgroundColor: 'transparent', zIndex: 2,
+    position: 'absolute', left: 0, right: 0, bottom: -4, height: 8,
+    cursor: 'ns-resize', backgroundColor: 'transparent', zIndex: 300,
   }}
     onMouseEnter={(e) => { (e.target as HTMLElement).style.backgroundColor = '#1890ff44'; }}
     onMouseLeave={(e) => { (e.target as HTMLElement).style.backgroundColor = 'transparent'; }}
@@ -1830,7 +1928,7 @@ const ComponentView: React.FC<{
   return (
     <div style={{
       position: 'absolute', left: x, top: y, width: w, height: h,
-      border: selected ? '2px solid #1890ff' : '2px solid transparent',
+      outline: selected ? '2px solid #1890ff' : 'none',
       borderRadius: 2,
     }}>
       <div data-component-id={component.id}
@@ -1842,7 +1940,8 @@ const ComponentView: React.FC<{
         style={{
           position: 'absolute', inset: 0,
           boxSizing: 'border-box', cursor: editing ? 'text' : 'grab',
-          overflow: 'hidden', padding: 2,
+          overflow: 'hidden',
+          padding: 0,
           backgroundColor: selected ? 'rgba(24,144,255,0.06)' : 'transparent',
           zIndex: selected ? 100 : 10,
           ...getCompStyle(component),
@@ -1869,6 +1968,8 @@ const ComponentView: React.FC<{
         })}
       </div>
 
+      <ComponentBorderOverlay component={component} zIndex={150} />
+
       {selected && !editing && RESIZE_HANDLES.map(handle => (
         <div key={handle}
           data-resize-handle="" data-comp-id={component.id} data-band-id={bandId} data-handle-name={handle}
@@ -1883,15 +1984,32 @@ const ComponentView: React.FC<{
   );
 };
 
+const ComponentBorderOverlay: React.FC<{ component: ReportComponent; zIndex: number }> = ({ component, zIndex }) => {
+  const style = componentBorderToCss(component);
+  if (!style) return null;
+
+  return (
+    <div
+      data-component-border-id={component.id}
+      style={{
+        position: 'absolute',
+        inset: 0,
+        boxSizing: 'border-box',
+        pointerEvents: 'none',
+        zIndex,
+        ...style,
+      }}
+    />
+  );
+};
+
 // ---- Helpers ----
 
 function getCompStyle(comp: ReportComponent): React.CSSProperties {
   if (comp.type === 'panel') {
-    const panel = comp as any;
     const pad = comp.padding;
     return {
       backgroundColor: comp.backgroundColor || 'transparent',
-      ...borderToCss(panel.border),
       ...(pad ? {
         paddingTop: `${pad.top * MM_TO_PX}px`,
         paddingRight: `${pad.right * MM_TO_PX}px`,
@@ -1922,19 +2040,12 @@ function getCompStyle(comp: ReportComponent): React.CSSProperties {
         paddingBottom: `${pad.bottom * MM_TO_PX}px`,
         paddingLeft: `${pad.left * MM_TO_PX}px`,
       } : {}),
-      ...(t.border && t.border.style !== 'none' ? {
-        borderTop: t.border.sides.top ? `${t.border.width}mm ${t.border.style} ${t.border.color}` : 'none',
-        borderRight: t.border.sides.right ? `${t.border.width}mm ${t.border.style} ${t.border.color}` : 'none',
-        borderBottom: t.border.sides.bottom ? `${t.border.width}mm ${t.border.style} ${t.border.color}` : 'none',
-        borderLeft: t.border.sides.left ? `${t.border.width}mm ${t.border.style} ${t.border.color}` : 'none',
-      } : {}),
     };
   }
   if (comp.type === 'chart') {
     const pad = comp.padding;
     return {
       backgroundColor: comp.backgroundColor || '#ffffff',
-      ...borderToCss((comp as ChartComponent).border),
       ...(pad ? {
         paddingTop: `${pad.top * MM_TO_PX}px`,
         paddingRight: `${pad.right * MM_TO_PX}px`,
@@ -1944,6 +2055,17 @@ function getCompStyle(comp: ReportComponent): React.CSSProperties {
     };
   }
   return {};
+}
+
+function componentBorderToCss(component: ReportComponent): React.CSSProperties | null {
+  const border = (component as ReportComponent & { border?: BorderConfig }).border;
+  if (!hasVisibleBorder(border)) return null;
+  return borderToCss(border);
+}
+
+function hasVisibleBorder(border: BorderConfig | undefined): border is BorderConfig {
+  if (!border || border.style === 'none' || !border.width) return false;
+  return Boolean(border.sides?.top || border.sides?.right || border.sides?.bottom || border.sides?.left);
 }
 
 function borderToCss(border: any): React.CSSProperties {
@@ -2350,7 +2472,7 @@ const PanelChildPreview: React.FC<{ component: ReportComponent }> = ({ component
         height: safeCssNumber(mmToPx(component.height)),
         boxSizing: 'border-box',
         overflow: 'hidden',
-        padding: 2,
+        padding: 0,
         ...getCompStyle(component),
       }}
     >
@@ -2359,6 +2481,7 @@ const PanelChildPreview: React.FC<{ component: ReportComponent }> = ({ component
         subreportPlaceholder: t('canvas.subreportPlaceholder'),
         localTemplatePlaceholder: t('canvas.localTemplatePlaceholder'),
       })}
+      <ComponentBorderOverlay component={component} zIndex={150} />
     </div>
   );
 };
@@ -2399,97 +2522,122 @@ function formatDesignDateTime(date: Date, pattern: string): string {
 
 const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTableCell: TableCellSelection | null }> = ({ table, bandId, selectedTableCell }) => {
   const normalized = normalizeTable(table);
-  const rowCount = normalized.rowCount ?? 3;
-  const columnCount = normalized.columnCount ?? normalized.columns.length;
-  const headerRowsCount = normalized.headerRowsCount ?? 1;
-  const footerRowsCount = normalized.footerRowsCount ?? 0;
-  const cellBorder = normalized.showBorder ? '1px solid #8c8c8c' : '1px dashed #d9d9d9';
-  const columnTemplate = normalized.columns
-    .slice(0, columnCount)
-    .map(column => `${safeCssNumber(mmToPx(column.width))}px`)
-    .join(' ');
-  const rowTemplate = Array.from({ length: rowCount }, (_, row) => (
-    `${safeCssNumber(mmToPx(row < headerRowsCount ? normalized.headerHeight : normalized.rowHeight))}px`
-  )).join(' ');
+  const rows = normalized.rows ?? [];
+  const rowCount = rows.length;
+  const rowHeights = rows.map(row => row.height ?? 8);
+  const rowTops = rowHeights.reduce<number[]>((tops, height, index) => {
+    tops[index + 1] = (tops[index] ?? 0) + height;
+    return tops;
+  }, [0]);
   const coveredCells = new Set<string>();
-
-  for (const cell of normalized.cells ?? []) {
-    const rowSpan = Math.max(1, Math.min(cell.rowSpan ?? 1, rowCount - cell.row));
-    const colSpan = Math.max(1, Math.min(cell.colSpan ?? 1, columnCount - cell.column));
-    for (let r = cell.row; r < cell.row + rowSpan; r += 1) {
-      for (let c = cell.column; c < cell.column + colSpan; c += 1) {
-        if (r === cell.row && c === cell.column) continue;
-        coveredCells.add(`${r}-${c}`);
-      }
-    }
-  }
-
   const cells: React.ReactNode[] = [];
-  for (let row = 0; row < rowCount; row += 1) {
-    for (let column = 0; column < columnCount; column += 1) {
-      if (coveredCells.has(`${row}-${column}`)) continue;
+  const borderLines: React.ReactNode[] = [];
 
-    const customCell = normalized.cells?.find(cell => cell.row === row && cell.column === column);
-    const rowSpan = customCell ? Math.max(1, Math.min(customCell.rowSpan ?? 1, rowCount - row)) : 1;
-    const colSpan = customCell ? Math.max(1, Math.min(customCell.colSpan ?? 1, columnCount - column)) : 1;
-    const isHeader = row < headerRowsCount;
-    const isFooter = row >= rowCount - footerRowsCount;
-    const isSelected = Boolean(
-      selectedTableCell
-      && selectedTableCell.tableId === normalized.id
-      && row >= selectedTableCell.startRow
-      && row <= selectedTableCell.endRow
-      && column >= selectedTableCell.startColumn
-      && column <= selectedTableCell.endColumn,
-    );
-    const label = customCell?.text
-      ?? (isHeader ? normalized.columns[column]?.header || `Header ${column + 1}` : '');
-    const baseBackgroundColor = isHeader ? '#f0f5ff' : isFooter ? '#fff7e6' : '#fff';
-    const cellStyle = designTableCellStyle(customCell, {
-      defaultBorder: cellBorder,
-      baseBackgroundColor,
-      isSelected,
-      row,
-      column,
-      rowSpan,
-      colSpan,
-      rowCount,
-      columnCount,
+  rows.forEach((row, rowIndex) => {
+    const widths = resolveTableRowCellWidths(row, normalized.width);
+    const columnLefts = widths.reduce<number[]>((lefts, width, index) => {
+      lefts[index + 1] = (lefts[index] ?? 0) + width;
+      return lefts;
+    }, [0]);
+    row.cells.forEach((cell, columnIndex) => {
+      if (coveredCells.has(`${rowIndex}-${columnIndex}`)) return;
+      const rowSpan = Math.max(1, Math.min(cell.rowSpan ?? 1, rowCount - rowIndex));
+      const colSpan = Math.max(1, Math.min(cell.colSpan ?? 1, row.cells.length - columnIndex));
+      for (let r = rowIndex; r < rowIndex + rowSpan; r += 1) {
+        for (let c = columnIndex; c < columnIndex + colSpan; c += 1) {
+          if (r === rowIndex && c === columnIndex) continue;
+          coveredCells.add(`${r}-${c}`);
+        }
+      }
+
+      const isSelected = Boolean(
+        selectedTableCell
+        && selectedTableCell.tableId === normalized.id
+        && rowIndex >= selectedTableCell.startRow
+        && rowIndex <= selectedTableCell.endRow
+        && columnIndex >= selectedTableCell.startColumn
+        && columnIndex <= selectedTableCell.endColumn,
+      );
+      const inheritedStyle = resolveTableCellStyle(normalized, row, cell);
+      const border = resolveCollapsedCellBorder(normalized, row, cell, rowIndex, columnIndex);
+      const width = widths.slice(columnIndex, columnIndex + colSpan).reduce((sum, item) => sum + item, 0);
+      const height = rowHeights.slice(rowIndex, rowIndex + rowSpan).reduce((sum, item) => sum + item, 0);
+      const leftPx = safeCssNumber(mmToPx(columnLefts[columnIndex] ?? 0));
+      const topPx = safeCssNumber(mmToPx(rowTops[rowIndex] ?? 0));
+      const widthPx = safeCssNumber(mmToPx(width));
+      const heightPx = safeCssNumber(mmToPx(height));
+
+      if (hasVisibleBorder(border)) {
+        borderLines.push(...tableBorderLinesToNodes(border, {
+          key: `${rowIndex}-${columnIndex}`,
+          left: leftPx,
+          top: topPx,
+          width: widthPx,
+          height: heightPx,
+        }));
+      }
+
+      cells.push(
+        <div
+          key={`${rowIndex}-${columnIndex}`}
+          data-table-id={normalized.id}
+          data-band-id={bandId}
+          data-table-row={rowIndex}
+          data-table-column={columnIndex}
+          data-testid={`designer-table-cell-${rowIndex}-${columnIndex}`}
+          style={{
+            position: 'absolute',
+            left: leftPx,
+            top: topPx,
+            width: widthPx,
+            height: heightPx,
+            boxSizing: 'border-box',
+            minWidth: 0,
+            minHeight: 0,
+            display: 'flex',
+            justifyContent: tableTextAlignToFlex(inheritedStyle.textAlign),
+            alignItems: verticalAlignToFlex(inheritedStyle.verticalAlign),
+            textAlign: inheritedStyle.textAlign ?? 'left',
+            backgroundColor: isSelected ? '#e6f4ff' : inheritedStyle.backgroundColor ?? 'transparent',
+            padding: tablePaddingToCss(inheritedStyle.padding),
+            color: inheritedStyle.font?.color ?? '#333',
+            outline: isSelected ? '2px solid #1677ff' : undefined,
+            outlineOffset: -2,
+            fontFamily: inheritedStyle.font?.family,
+            fontSize: inheritedStyle.font?.size ?? 10,
+            fontWeight: inheritedStyle.font?.bold ? 700 : 400,
+            fontStyle: inheritedStyle.font?.italic ? 'italic' : undefined,
+            textDecoration: tableFontTextDecoration(inheritedStyle.font),
+            lineHeight: 1.2,
+            overflow: 'hidden',
+            whiteSpace: 'nowrap',
+            textOverflow: 'ellipsis',
+          }}
+        >
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell.text ?? ''}</span>
+          {columnIndex < row.cells.length - 1 ? (
+            <div
+              data-table-cell-resize
+              data-table-id={normalized.id}
+              data-band-id={bandId}
+              data-table-row={rowIndex}
+              data-table-column={columnIndex}
+              data-cell-width={widths[columnIndex]}
+              style={{
+                position: 'absolute',
+                top: 0,
+                right: -3,
+                width: 6,
+                height: '100%',
+                cursor: 'col-resize',
+                zIndex: 4,
+              }}
+            />
+          ) : null}
+        </div>,
+      );
     });
-
-    cells.push(
-      <div
-        key={`${row}-${column}`}
-        data-table-id={normalized.id}
-        data-band-id={bandId}
-        data-table-row={row}
-        data-table-column={column}
-        data-testid={`designer-table-cell-${row}-${column}`}
-        style={{
-          ...cellStyle,
-          gridColumn: colSpan > 1 ? `span ${colSpan}` : undefined,
-          gridRow: rowSpan > 1 ? `span ${rowSpan}` : undefined,
-          minWidth: 0,
-          minHeight: 0,
-          color: customCell?.font?.color ?? (isHeader || isFooter ? '#333' : '#999'),
-          outline: isSelected ? '2px solid #1677ff' : undefined,
-          outlineOffset: -2,
-          fontFamily: customCell?.font?.family,
-          fontSize: customCell?.font?.size ?? 10,
-          fontWeight: customCell?.font?.bold ? 700 : 400,
-          fontStyle: customCell?.font?.italic ? 'italic' : undefined,
-          textDecoration: tableFontTextDecoration(customCell?.font),
-          lineHeight: 1.2,
-          overflow: 'hidden',
-          whiteSpace: 'nowrap',
-          textOverflow: 'ellipsis',
-        }}
-      >
-        {label || (row === headerRowsCount && column === 0 ? normalized.dataSource || 'Data' : '')}
-      </div>
-    );
-    }
-  }
+  });
 
   return (
     <div
@@ -2497,50 +2645,16 @@ const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTa
       style={{
         width: '100%',
         height: '100%',
-        display: 'grid',
-        gridTemplateColumns: columnTemplate || `repeat(${columnCount}, minmax(0, 1fr))`,
-        gridTemplateRows: rowTemplate || `repeat(${rowCount}, minmax(0, 1fr))`,
-        border: cellBorder,
+        position: 'relative',
         boxSizing: 'border-box',
-        backgroundColor: '#fff',
+        backgroundColor: normalized.backgroundColor ?? 'transparent',
       }}
     >
       {cells}
+      {borderLines}
     </div>
   );
 };
-
-function designTableCellStyle(
-  cell: TableCell | undefined,
-  options: {
-    defaultBorder: string;
-    baseBackgroundColor: string;
-    isSelected: boolean;
-    row: number;
-    column: number;
-    rowSpan: number;
-    colSpan: number;
-    rowCount: number;
-    columnCount: number;
-  },
-): React.CSSProperties {
-  const style: React.CSSProperties = {
-    display: 'flex',
-    justifyContent: tableTextAlignToFlex(cell?.textAlign),
-    alignItems: verticalAlignToFlex(cell?.verticalAlign),
-    textAlign: cell?.textAlign ?? 'left',
-    backgroundColor: cell?.backgroundColor ?? (options.isSelected ? '#e6f4ff' : options.baseBackgroundColor),
-    padding: tablePaddingToCss(cell?.padding),
-  };
-  const border = cell?.border;
-  if (border && border.style !== 'none' && (border.width ?? 0) > 0) {
-    Object.assign(style, tableBorderToCss(border));
-  } else {
-    style.borderRight = options.column + options.colSpan >= options.columnCount ? 'none' : options.defaultBorder;
-    style.borderBottom = options.row + options.rowSpan >= options.rowCount ? 'none' : options.defaultBorder;
-  }
-  return style;
-}
 
 function tableFontTextDecoration(font?: TableCell['font']): string | undefined {
   const decorations = [
@@ -2555,14 +2669,52 @@ function tablePaddingToCss(padding?: Padding): string {
   return `${mmToPx(padding.top)}px ${mmToPx(padding.right)}px ${mmToPx(padding.bottom)}px ${mmToPx(padding.left)}px`;
 }
 
-function tableBorderToCss(border: BorderConfig): React.CSSProperties {
+function tableBorderLinesToNodes(border: BorderConfig, rect: { key: string; left: number; top: number; width: number; height: number }): React.ReactNode[] {
   const value = `${border.width}mm ${border.style} ${border.color}`;
-  return {
-    borderTop: border.sides.top ? value : 'none',
-    borderRight: border.sides.right ? value : 'none',
-    borderBottom: border.sides.bottom ? value : 'none',
-    borderLeft: border.sides.left ? value : 'none',
+  const base: React.CSSProperties = {
+    position: 'absolute',
+    pointerEvents: 'none',
+    zIndex: 3,
+    boxSizing: 'border-box',
   };
+  const lines: React.ReactNode[] = [];
+  if (border.sides.top) {
+    lines.push(
+      <div
+        key={`${rect.key}-top`}
+        data-testid={`designer-table-border-line-${rect.key}-top`}
+        style={{ ...base, left: rect.left, top: rect.top, width: rect.width, height: 0, borderTop: value }}
+      />,
+    );
+  }
+  if (border.sides.right) {
+    lines.push(
+      <div
+        key={`${rect.key}-right`}
+        data-testid={`designer-table-border-line-${rect.key}-right`}
+        style={{ ...base, left: rect.left + rect.width, top: rect.top, width: 0, height: rect.height, borderLeft: value }}
+      />,
+    );
+  }
+  if (border.sides.bottom) {
+    lines.push(
+      <div
+        key={`${rect.key}-bottom`}
+        data-testid={`designer-table-border-line-${rect.key}-bottom`}
+        style={{ ...base, left: rect.left, top: rect.top + rect.height, width: rect.width, height: 0, borderTop: value }}
+      />,
+    );
+  }
+  if (border.sides.left) {
+    lines.push(
+      <div
+        key={`${rect.key}-left`}
+        data-testid={`designer-table-border-line-${rect.key}-left`}
+        style={{ ...base, left: rect.left, top: rect.top, width: 0, height: rect.height, borderLeft: value }}
+      />,
+    );
+  }
+  return lines;
 }
 
 function tableTextAlignToFlex(value?: string): React.CSSProperties['justifyContent'] {

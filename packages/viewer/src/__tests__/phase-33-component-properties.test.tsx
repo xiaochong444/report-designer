@@ -181,7 +181,7 @@ describe('phase 33 component properties viewer', () => {
     expect(html).toContain('border-top:0.4mm dashed #445566');
     expect(html).toContain('background-color:#e6f4ff');
     expect(html).toContain('padding:1mm 2mm 1mm 2mm');
-    expect(html).toContain('border-top:0.2mm solid #1677ff');
+    expect(html).toContain('border-top:0.3mm solid #1677ff');
     expect(html).toContain('repeating-linear-gradient(90deg,#0088cc 0 1px,#fff 1px 3px)');
     expect(html).toContain('color:#123456');
     expect(html).toContain('font-family:Consolas');

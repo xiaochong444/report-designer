@@ -34,7 +34,15 @@ export function stripHtmlToPdfText(html: string): string {
   );
 }
 
-export function safePdfText(text: string): string {
+export function safePdfText(text: string, font?: { encodeText?: (value: string) => unknown }): string {
+  if (font?.encodeText) {
+    try {
+      font.encodeText(text);
+      return text;
+    } catch {
+      return text.replace(/[^\x00-\x7F]/g, '?');
+    }
+  }
   return text.replace(/[^\x00-\x7F]/g, '?');
 }
 

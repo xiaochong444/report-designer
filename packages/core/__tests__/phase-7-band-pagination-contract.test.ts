@@ -55,4 +55,21 @@ describe('Phase 7 band pagination contract', () => {
     expect(document.pages[0].items.map(item => item.bandId)).toContain('column-header');
     expect(document.pages[1].items.map(item => item.bandId).slice(0, 2)).toEqual(['section-header', 'column-header']);
   });
+
+  it('repeats HeaderBand and ColumnHeader on a new page with default behavior', () => {
+    const template = makeTemplate([
+      { id: 'section-header', type: 'header', height: 8, components: [] },
+      { id: 'column-header', type: 'columnHeader', height: 8, components: [] },
+      band('data', 'data', { height: 18, dataBand: { dataSourceId: 'employees' } }),
+    ]);
+    template.pages[0].height = 64;
+    template.pages[0].margins = { top: 5, right: 5, bottom: 5, left: 5 };
+
+    const document = renderReport(template, {
+      employees: Array.from({ length: 5 }, (_, index) => ({ Name: `N${index}` })),
+    });
+
+    expect(document.pages.length).toBeGreaterThan(1);
+    expect(document.pages[1].items.map(item => item.bandId).slice(0, 2)).toEqual(['section-header', 'column-header']);
+  });
 });

@@ -1,6 +1,7 @@
 import React from 'react';
 import { buildReportFontCss, type PageBorder, type PageWatermark, type RenderDocument, type RenderPage } from '@report-designer/core';
 import { RenderComponent, MM_TO_PX } from './renderComponent';
+import { printableBorderWidthPx } from '../border-width';
 
 interface RenderDocumentViewProps {
   document: RenderDocument;
@@ -139,7 +140,7 @@ const PageWatermarkView: React.FC<{ watermark?: PageWatermark; scale: number; zI
 
 const PageBorderView: React.FC<{ pageBorder?: PageBorder; scale: number }> = ({ pageBorder, scale }) => {
   if (!pageBorder?.enabled || pageBorder.style === 'none' || pageBorder.width <= 0) return null;
-  const border = `${pageBorder.width * MM_TO_PX * scale}px ${pageBorder.style} ${pageBorder.color}`;
+  const border = `${printableBorderWidthPx(pageBorder.width, scale)}px ${pageBorder.style} ${pageBorder.color}`;
 
   return (
     <div

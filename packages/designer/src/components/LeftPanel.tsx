@@ -7,15 +7,22 @@ import {
 } from '@ant-design/icons';
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerStore } from '../store/designer-store';
-import type { ReportComponent, BandType } from '@report-designer/core';
+import type { ReportComponent, BandType, TableComponent, ReportTemplate } from '@report-designer/core';
 import { getBandDisplayName, getComponentNamePrefix } from '../report-structure';
 import { useEffect, useMemo, useState } from 'react';
 import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
 import { createDefaultComponent, createFieldExpressionComponent, createTextExpressionComponent } from '../component-factory';
 import { PanelSearchBox } from './panels/PanelSearchBox';
 import { COMPONENT_GROUPS, COMPONENT_TYPES } from '../component-palette-model';
+import { buildFieldPathTree, type FieldPathTreeNode } from '../data-source-fields';
+import {
+  resolveExpressionCatalog,
+  type ExpressionCatalogExtensions,
+} from '../expression/expression-catalog';
+import { EXPRESSION_FUNCTION_CATEGORIES, FUNCTION_FOLDER_LABELS } from '../expression/function-catalog';
+import { normalizeTable } from '../table/table-structure';
 
-export const LeftPanel: React.FC = () => {
+export const LeftPanel: React.FC<{ expressionExtensions?: ExpressionCatalogExtensions }> = ({ expressionExtensions }) => {
   const { t } = useDesignerI18n();
 
   return (
@@ -36,7 +43,7 @@ export const LeftPanel: React.FC = () => {
             label: (
               <span><DatabaseOutlined /> {t('leftPanel.dictionary')}</span>
             ),
-            children: <DataDictionary />,
+            children: <DataDictionary expressionExtensions={expressionExtensions} />,
           },
           {
             key: 'tree',
@@ -248,11 +255,48 @@ function filterTreeNodes(nodes: SearchableDataNode[], query: string): Searchable
     .filter(Boolean) as SearchableDataNode[];
 }
 
-const DataDictionary: React.FC = () => {
-  const { t } = useDesignerI18n();
+function collectExpandableDictionaryKeys(nodes: SearchableDataNode[]): React.Key[] {
+  return nodes.flatMap((node) => {
+    const childKeys = node.children ? collectExpandableDictionaryKeys(node.children) : [];
+    return node.children && node.children.length > 0 ? [node.key, ...childKeys] : childKeys;
+  });
+}
+
+function renderDictionaryFieldNodes(
+  nodes: FieldPathTreeNode[],
+  onFieldDragStart: (event: React.DragEvent, sourceId: string, fieldName: string, fieldType: string) => void,
+): SearchableDataNode[] {
+  return nodes.map((node) => {
+    const isField = Boolean(node.field);
+    return {
+      key: node.key,
+      searchText: node.searchText,
+      title: (
+        <div
+          className={isField ? 'rd-dictionary-node rd-dictionary-node-field' : 'rd-dictionary-node'}
+          draggable={isField}
+          onDragStart={isField
+            ? (event) => onFieldDragStart(event, node.sourceId, node.field!.name, node.field!.type)
+            : undefined}
+        >
+          {renderDictionaryGlyph(isField ? `field-${node.field!.type}` as DictionaryNodeKind : 'folder')}
+          <span>{node.label}</span>
+        </div>
+      ),
+      children: node.children
+        ? renderDictionaryFieldNodes(node.children, onFieldDragStart)
+        : undefined,
+    };
+  });
+}
+
+const DataDictionary: React.FC<{ expressionExtensions?: ExpressionCatalogExtensions }> = ({ expressionExtensions }) => {
+  const { locale, t } = useDesignerI18n();
   const dataSources = useDesignerStore(s => s.template.dataSources);
   const [searchTerm, setSearchTerm] = useState('');
+  const [expandedKeys, setExpandedKeys] = useState<React.Key[]>([]);
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
+  const expressionCatalog = useMemo(() => resolveExpressionCatalog(expressionExtensions), [expressionExtensions]);
 
   const handleFieldDragStart = (e: React.DragEvent, dsId: string, fieldName: string, fieldType: string) => {
     e.dataTransfer.setData('fieldBinding', JSON.stringify({ dataSourceId: dsId, fieldName, fieldType }));
@@ -262,6 +306,83 @@ const DataDictionary: React.FC = () => {
     e.dataTransfer.setData('expressionBinding', expression);
     e.dataTransfer.effectAllowed = 'copy';
   };
+
+  const rootSource = dataSources.find(source => source.id === 'root');
+  const visibleDataSourceNodes = dataSources.filter(source => source.id !== 'root').map((ds) => ({
+    key: ds.id,
+    searchText: `${ds.id} ${ds.name}`,
+    title: (
+      <div className="rd-dictionary-node">
+        {renderDictionaryGlyph('datasource')}
+        <span>{`${ds.name || ds.id} [${ds.id}]`}</span>
+      </div>
+    ),
+    children: renderDictionaryFieldNodes(buildFieldPathTree(ds), handleFieldDragStart),
+  }));
+  const rootFieldNodes = rootSource
+    ? renderDictionaryFieldNodes(buildFieldPathTree(rootSource), handleFieldDragStart)
+    : [];
+  const systemVariableNodes = expressionCatalog.variables.map((item) => ({
+    key: safeDictionaryKey(`sys.${item.name}`),
+    searchText: `${item.name} ${item.description[locale]}`.toLowerCase(),
+    title: (
+      <div
+        className="rd-dictionary-node"
+        draggable
+        onDragStart={(event) => handleExpressionDragStart(event, item.insertText ?? item.name)}
+      >
+        {renderDictionaryGlyph('system')}
+        <span>{item.name}</span>
+      </div>
+    ),
+  }));
+  const functionNodes = EXPRESSION_FUNCTION_CATEGORIES
+    .map((category) => {
+      const functions = expressionCatalog.functions.filter(item => item.category === category.key);
+      if (functions.length === 0) return null;
+      const folderLabelKey = FUNCTION_FOLDER_LABELS[category.key] ?? category.labelKey;
+      const folderLabel = t(folderLabelKey as DesignerMessageKey);
+
+      return {
+        key: safeDictionaryKey(`function.${category.key}`),
+        searchText: `${folderLabel} ${category.key}`.toLowerCase(),
+        title: (
+          <div className="rd-dictionary-node">
+            {renderDictionaryGlyph('folder')}
+            <span>{folderLabel}</span>
+          </div>
+        ),
+        children: functions.map((item) => ({
+          key: safeDictionaryKey(`function.${category.key}.${item.name}`),
+          searchText: `${item.name} ${item.description[locale]} ${item.signature}`.toLowerCase(),
+          title: (
+            <div
+              className="rd-dictionary-node"
+              draggable
+              onDragStart={(event) => handleExpressionDragStart(event, snippetToPlainText(item.insertText))}
+            >
+              {renderDictionaryGlyph('function')}
+              <span>{item.name}</span>
+            </div>
+          ),
+        })),
+      };
+    })
+    .filter(Boolean) as SearchableDataNode[];
+  const formatNodes = expressionCatalog.formats.map((item) => ({
+    key: safeDictionaryKey(`format.${item.name}`),
+    searchText: `${item.name} ${item.detail[locale]} ${item.description[locale]}`.toLowerCase(),
+    title: (
+      <div
+        className="rd-dictionary-node"
+        draggable
+        onDragStart={(event) => handleExpressionDragStart(event, snippetToPlainText(item.insertText))}
+      >
+        {renderDictionaryGlyph('format')}
+        <span>{item.name}</span>
+      </div>
+    ),
+  }));
 
   const baseTreeData: SearchableDataNode[] = [
     {
@@ -273,30 +394,7 @@ const DataDictionary: React.FC = () => {
           <span>{t('leftPanel.dataSources')}</span>
         </div>
       ),
-      children: dataSources.map((ds) => ({
-        key: ds.id,
-        searchText: `${ds.id} ${ds.name}`,
-        title: (
-          <div className="rd-dictionary-node">
-            {renderDictionaryGlyph('datasource')}
-            <span>{`${ds.name || ds.id} [${ds.id}]`}</span>
-          </div>
-        ),
-        children: (ds.schema ?? ds.fields ?? []).map((field) => ({
-          key: `${ds.id}.${field.name}`,
-          searchText: `${ds.id} ${ds.name} ${field.name} ${field.label ?? ''} ${field.type}`,
-          title: (
-            <div
-              className="rd-dictionary-node rd-dictionary-node-field"
-              draggable
-              onDragStart={(event) => handleFieldDragStart(event, ds.id, field.name, field.type)}
-            >
-              {renderDictionaryGlyph(`field-${field.type}` as DictionaryNodeKind)}
-              <span>{field.label || field.name}</span>
-            </div>
-          ),
-        })),
-      })),
+      children: [...rootFieldNodes, ...visibleDataSourceNodes],
     },
     {
       key: 'dictionary-system-variables',
@@ -307,11 +405,7 @@ const DataDictionary: React.FC = () => {
           <span>{t('leftPanel.systemVariables')}</span>
         </div>
       ),
-      children: [
-        { key: 'sys.Today', searchText: 'Today', title: <div className="rd-dictionary-node" draggable onDragStart={(event) => handleExpressionDragStart(event, '{Today}')}>{renderDictionaryGlyph('system')}<span>{'{Today}'}</span></div> },
-        { key: 'sys.PageNumber', searchText: 'PageNumber', title: <div className="rd-dictionary-node" draggable onDragStart={(event) => handleExpressionDragStart(event, '{PageNumber}')}>{renderDictionaryGlyph('system')}<span>{'{PageNumber}'}</span></div> },
-        { key: 'sys.TotalPages', searchText: 'TotalPages', title: <div className="rd-dictionary-node" draggable onDragStart={(event) => handleExpressionDragStart(event, '{TotalPages}')}>{renderDictionaryGlyph('system')}<span>{'{TotalPages}'}</span></div> },
-      ],
+      children: systemVariableNodes,
     },
     {
       key: 'dictionary-functions',
@@ -322,14 +416,25 @@ const DataDictionary: React.FC = () => {
           <span>{t('leftPanel.functions')}</span>
         </div>
       ),
-      children: [
-        { key: 'function.Sum', searchText: 'SUM', title: <div className="rd-dictionary-node" draggable onDragStart={(event) => handleExpressionDragStart(event, '{SUM()}')}>{renderDictionaryGlyph('function')}<span>SUM</span></div> },
-        { key: 'function.Count', searchText: 'COUNT', title: <div className="rd-dictionary-node" draggable onDragStart={(event) => handleExpressionDragStart(event, '{COUNT()}')}>{renderDictionaryGlyph('function')}<span>COUNT</span></div> },
-      ],
+      children: functionNodes,
+    },
+    {
+      key: 'dictionary-formats',
+      searchText: t('styleLibrary.format'),
+      title: (
+        <div className="rd-dictionary-node">
+          {renderDictionaryGlyph('format')}
+          <span>{t('styleLibrary.format')}</span>
+        </div>
+      ),
+      children: formatNodes,
     },
   ];
 
   const treeData = filterTreeNodes(baseTreeData, normalizedSearchTerm);
+  const visibleExpandedKeys = normalizedSearchTerm
+    ? collectExpandableDictionaryKeys(treeData)
+    : expandedKeys;
 
   return (
     <div className="rd-dictionary-panel" data-testid="dictionary-tree">
@@ -343,12 +448,21 @@ const DataDictionary: React.FC = () => {
       <Tree
         className="rd-dictionary-tree"
         treeData={treeData}
-        defaultExpandAll
+        expandedKeys={visibleExpandedKeys}
+        onExpand={(keys) => setExpandedKeys(keys)}
         blockNode
       />
     </div>
   );
 };
+
+function safeDictionaryKey(key: string) {
+  return key.replace(/[^A-Za-z0-9_-]/g, '_');
+}
+
+function snippetToPlainText(insertText: string) {
+  return insertText.replace(/\$\{\d+:([^}]+)\}/g, '$1');
+}
 
 // ---- Page Tree ----
 
@@ -407,68 +521,165 @@ function matchesSearch(values: Array<string | undefined>, query: string) {
   return values.some(value => value?.toLowerCase().includes(query));
 }
 
+function tableRowKey(tableId: string, rowIndex: number) {
+  return `${tableId}::row::${rowIndex}`;
+}
+
+function tableCellKey(tableId: string, rowIndex: number, columnIndex: number) {
+  return `${tableId}::cell::${rowIndex}::${columnIndex}`;
+}
+
+function parseTableTreeKey(key: string):
+  | { type: 'row'; tableId: string; row: number }
+  | { type: 'cell'; tableId: string; row: number; column: number }
+  | null {
+  const parts = key.split('::');
+  if (parts.length === 3 && parts[1] === 'row') {
+    const row = Number(parts[2]);
+    return Number.isInteger(row) ? { type: 'row', tableId: parts[0], row } : null;
+  }
+  if (parts.length === 4 && parts[1] === 'cell') {
+    const row = Number(parts[2]);
+    const column = Number(parts[3]);
+    return Number.isInteger(row) && Number.isInteger(column) ? { type: 'cell', tableId: parts[0], row, column } : null;
+  }
+  return null;
+}
+
+function treeTitle(key: React.Key, children: React.ReactNode) {
+  return (
+    <div data-report-tree-key={String(key)}>
+      {children}
+    </div>
+  );
+}
+
+function collectExpandableTreeKeys(nodes: DataNode[]): string[] {
+  const keys: string[] = [];
+  const visit = (items: DataNode[]) => {
+    for (const item of items) {
+      if (item.children && item.children.length > 0) {
+        keys.push(String(item.key));
+        visit(item.children);
+      }
+    }
+  };
+  visit(nodes);
+  return keys;
+}
+
+function findComponentLocation(template: ReportTemplate, componentId: string) {
+  for (const page of template.pages) {
+    for (const band of page.bands) {
+      const component = band.components.find(item => item.id === componentId);
+      if (component) {
+        return { pageId: page.id, bandId: band.id, component };
+      }
+    }
+  }
+  return null;
+}
+
+function findBandLocation(template: ReportTemplate, bandId: string) {
+  for (const page of template.pages) {
+    const band = page.bands.find(item => item.id === bandId);
+    if (band) {
+      return { pageId: page.id, bandId: band.id };
+    }
+  }
+  return null;
+}
+
+function getSelectedTreeExpansionKeys(
+  template: ReportTemplate,
+  selectedComponentIds: string[],
+  selectedBandId: string | null,
+  selectedTableRow: { tableId: string; row: number } | null,
+  selectedTableCell: { tableId: string; startRow: number } | null,
+): string[] {
+  if (selectedTableCell) {
+    const location = findComponentLocation(template, selectedTableCell.tableId);
+    return location ? ['report-root', location.pageId, location.bandId, selectedTableCell.tableId, tableRowKey(selectedTableCell.tableId, selectedTableCell.startRow)] : [];
+  }
+  if (selectedTableRow) {
+    const location = findComponentLocation(template, selectedTableRow.tableId);
+    return location ? ['report-root', location.pageId, location.bandId, selectedTableRow.tableId] : [];
+  }
+  if (selectedComponentIds.length > 0) {
+    const location = findComponentLocation(template, selectedComponentIds[0]);
+    return location ? ['report-root', location.pageId, location.bandId] : [];
+  }
+  if (selectedBandId) {
+    const location = findBandLocation(template, selectedBandId);
+    return location ? ['report-root', location.pageId] : [];
+  }
+  return [];
+}
+
+function tableStructureMatches(component: ReportComponent, query: string): boolean {
+  if (!query || component.type !== 'table') return false;
+  const table = normalizeTable(component as TableComponent);
+  return (table.rows ?? []).some((row, rowIndex) => {
+    const rowName = `row ${rowIndex + 1} ${row.role ?? ''}`;
+    if (rowName.toLowerCase().includes(query)) return true;
+    return row.cells.some((cell, columnIndex) => {
+      const cellName = `cell ${rowIndex + 1}.${columnIndex + 1} ${cell.text ?? ''}`;
+      return cellName.toLowerCase().includes(query);
+    });
+  });
+}
+
 const PageTree: React.FC = () => {
   const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
   const selectedBandId = useDesignerStore(s => s.selectedBandId);
+  const selectedTableRow = useDesignerStore(s => s.selectedTableRow);
+  const selectedTableCell = useDesignerStore(s => s.selectedTableCell);
   const selectComponents = useDesignerStore(s => s.selectComponents);
   const selectBand = useDesignerStore(s => s.selectBand);
+  const selectTableRow = useDesignerStore(s => s.selectTableRow);
+  const selectTableCell = useDesignerStore(s => s.selectTableCell);
 
   const [searchTerm, setSearchTerm] = useState('');
   const normalizedSearchTerm = searchTerm.trim().toLowerCase();
-  const autoExpandedKeys = useMemo(
-    () => [
-      'report-root',
-      ...template.pages.flatMap((page) => [page.id, ...page.bands.map((band) => band.id)]),
-    ],
-    [template.pages],
-  );
-  const [expandedKeys, setExpandedKeys] = useState<string[]>(autoExpandedKeys);
+  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
 
-  useEffect(() => {
-    setExpandedKeys((previousKeys) => {
-      const nextKeys = [...previousKeys];
-      for (const key of autoExpandedKeys) {
-        if (!nextKeys.includes(key)) {
-          nextKeys.push(key);
-        }
-      }
-      return nextKeys.length === previousKeys.length ? previousKeys : nextKeys;
-    });
-  }, [autoExpandedKeys]);
-
-  const selectedKeys = selectedComponentIds.length > 0
-    ? selectedComponentIds
-      : selectedBandId
-        ? [selectedBandId]
-        : [currentPageId];
+  const selectedKeys = selectedTableCell
+    ? [tableCellKey(selectedTableCell.tableId, selectedTableCell.startRow, selectedTableCell.startColumn)]
+    : selectedTableRow
+      ? [tableRowKey(selectedTableRow.tableId, selectedTableRow.row)]
+      : selectedComponentIds.length > 0
+        ? selectedComponentIds
+        : selectedBandId
+          ? [selectedBandId]
+          : [currentPageId];
 
   const treeData: DataNode[] = [
     {
       key: 'report-root',
       selectable: false,
-      title: (
+      title: treeTitle('report-root', (
         <div className="rd-report-tree-root" data-testid="report-tree-root">
           {renderTreeDocGlyph('report')}
           <span>{template.name || t('shell.untitledReport')}</span>
         </div>
-      ),
+      )),
       children: template.pages.map((page, pageIndex) => {
         const bandTypeCounters: Partial<Record<BandType, number>> = {};
         const pageName = page.name || `${t('leftPanel.page')}${pageIndex + 1}`;
         const pageMatches = matchesSearch([pageName, page.id], normalizedSearchTerm);
         return {
           key: page.id,
-          title: (
+          title: treeTitle(page.id, (
             <div className="rd-report-tree-node rd-report-tree-page-node">
               <div className="rd-report-tree-node-main">
                 {renderTreeDocGlyph('page')}
                 <span>{pageName}</span>
               </div>
             </div>
-          ),
+          )),
           children: page.bands.map((band) => {
             bandTypeCounters[band.type] = (bandTypeCounters[band.type] ?? 0) + 1;
             const bandIndex = bandTypeCounters[band.type] ?? 1;
@@ -480,7 +691,8 @@ const PageTree: React.FC = () => {
               }
 
               const componentName = comp.name?.trim() || getComponentNamePrefix(comp.type);
-              return matchesSearch([componentName, comp.id, comp.type, getComponentNamePrefix(comp.type)], normalizedSearchTerm);
+              return matchesSearch([componentName, comp.id, comp.type, getComponentNamePrefix(comp.type)], normalizedSearchTerm)
+                || tableStructureMatches(comp, normalizedSearchTerm);
             });
 
             if (normalizedSearchTerm && !bandMatches && visibleComponents.length === 0) {
@@ -489,7 +701,7 @@ const PageTree: React.FC = () => {
 
             return {
               key: band.id,
-              title: (
+              title: treeTitle(band.id, (
                 <div
                   className="rd-report-tree-node rd-report-tree-band-node"
                   data-testid={`report-tree-band-${band.id}`}
@@ -499,24 +711,39 @@ const PageTree: React.FC = () => {
                     <span>{bandName}</span>
                   </div>
                 </div>
-              ),
-              children: visibleComponents.map((comp) => ({
-                key: comp.id,
-                title: (
-                  <div className="rd-report-tree-node rd-report-tree-component-node" data-testid={`report-tree-component-${comp.id}`}>
-                    <div className="rd-report-tree-node-main">
-                      {renderComponentTreeIcon(comp.type)}
-                      <span>{comp.name?.trim() || getComponentNamePrefix(comp.type)}</span>
-                    </div>
-                  </div>
-                ),
-              })),
+              )),
+              children: visibleComponents.map((comp) => componentTreeNode(comp)),
             };
           }).filter(Boolean) as DataNode[],
         };
       }).filter((pageNode) => !normalizedSearchTerm || (pageNode.children?.length ?? 0) > 0 || matchesSearch([String(pageNode.key)], normalizedSearchTerm)),
     },
   ];
+  const visibleExpandedKeys = normalizedSearchTerm ? collectExpandableTreeKeys(treeData) : expandedKeys;
+
+  useEffect(() => {
+    if (normalizedSearchTerm) return;
+    const selectedExpansionKeys = getSelectedTreeExpansionKeys(template, selectedComponentIds, selectedBandId, selectedTableRow, selectedTableCell);
+    setExpandedKeys(previousKeys => {
+      if (previousKeys.length === selectedExpansionKeys.length && previousKeys.every((key, index) => key === selectedExpansionKeys[index])) {
+        return previousKeys;
+      }
+      return selectedExpansionKeys;
+    });
+  }, [normalizedSearchTerm, selectedBandId, selectedComponentIds, selectedTableCell, selectedTableRow, template]);
+
+  useEffect(() => {
+    const selectedKey = selectedKeys[0];
+    if (!selectedKey) return;
+    const timer = window.setTimeout(() => {
+      const node = Array.from(document.querySelectorAll<HTMLElement>('[data-report-tree-key]'))
+        .find(element => element.getAttribute('data-report-tree-key') === String(selectedKey));
+      if (typeof node?.scrollIntoView === 'function') {
+        node.scrollIntoView({ block: 'nearest' });
+      }
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [selectedKeys, visibleExpandedKeys]);
 
   return (
     <div className="rd-report-tree" data-testid="report-tree">
@@ -532,13 +759,32 @@ const PageTree: React.FC = () => {
           className="rd-report-tree-tree"
           treeData={treeData}
           blockNode
-          expandedKeys={expandedKeys}
+          expandedKeys={visibleExpandedKeys}
           selectedKeys={selectedKeys}
           onExpand={(keys) => setExpandedKeys(keys as string[])}
           onSelect={(keys) => {
             if (keys.length > 0) {
               const key = keys[0] as string;
               if (key === 'report-root') return;
+              const tableTreeKey = parseTableTreeKey(key);
+              if (tableTreeKey) {
+                const band = template.pages.flatMap(p => p.bands).find(item => item.components.some(component => component.id === tableTreeKey.tableId));
+                if (!band) return;
+                selectBand(null);
+                if (tableTreeKey.type === 'row') {
+                  selectTableRow({ tableId: tableTreeKey.tableId, bandId: band.id, row: tableTreeKey.row });
+                } else {
+                  selectTableCell({
+                    tableId: tableTreeKey.tableId,
+                    bandId: band.id,
+                    startRow: tableTreeKey.row,
+                    startColumn: tableTreeKey.column,
+                    endRow: tableTreeKey.row,
+                    endColumn: tableTreeKey.column,
+                  });
+                }
+                return;
+              }
               const isPage = template.pages.some(p => p.id === key);
               const isBand = template.pages.flatMap(p => p.bands).some(b => b.id === key);
               if (isPage) {
@@ -558,4 +804,43 @@ const PageTree: React.FC = () => {
       </div>
     </div>
   );
+
+  function componentTreeNode(comp: ReportComponent): DataNode {
+    const children = comp.type === 'table'
+      ? (normalizeTable(comp as TableComponent).rows ?? []).map((row, rowIndex) => ({
+          key: tableRowKey(comp.id, rowIndex),
+          title: treeTitle(tableRowKey(comp.id, rowIndex), (
+            <div className="rd-report-tree-node rd-report-tree-table-row-node" data-testid={`report-tree-table-row-${comp.id}-${rowIndex}`}>
+              <div className="rd-report-tree-node-main">
+                <span className="rd-report-tree-glyph rd-report-tree-glyph-table-row" aria-hidden />
+                <span>{`Row ${rowIndex + 1}`}</span>
+              </div>
+            </div>
+          )),
+          children: row.cells.map((cell, columnIndex) => ({
+            key: tableCellKey(comp.id, rowIndex, columnIndex),
+            title: treeTitle(tableCellKey(comp.id, rowIndex, columnIndex), (
+              <div className="rd-report-tree-node rd-report-tree-table-cell-node" data-testid={`report-tree-table-cell-${comp.id}-${rowIndex}-${columnIndex}`}>
+                <div className="rd-report-tree-node-main">
+                  <span className="rd-report-tree-glyph rd-report-tree-glyph-table-cell" aria-hidden />
+                  <span>{`Cell ${columnIndex + 1}`}</span>
+                </div>
+              </div>
+            )),
+          })),
+        }))
+      : undefined;
+    return {
+      key: comp.id,
+      title: treeTitle(comp.id, (
+        <div className="rd-report-tree-node rd-report-tree-component-node" data-testid={`report-tree-component-${comp.id}`}>
+          <div className="rd-report-tree-node-main">
+            {renderComponentTreeIcon(comp.type)}
+            <span>{comp.name?.trim() || getComponentNamePrefix(comp.type)}</span>
+          </div>
+        </div>
+      )),
+      children,
+    };
+  }
 };

@@ -1,4 +1,4 @@
-import type { BorderConfig, FontConfig, Band, ReportComponent, ReportStyle, ReportTemplate, TextComponent } from '@report-designer/core';
+import { isRepeatOnEveryPageBandType, type BorderConfig, type FontConfig, type Band, type ReportComponent, type ReportStyle, type ReportTemplate, type TextComponent } from '@report-designer/core';
 
 type TextOptions = Omit<Partial<TextComponent>, 'font' | 'border'> & {
   font?: Partial<FontConfig>;
@@ -137,7 +137,7 @@ export function band(id: string, type: Band['type'], height: number, components:
       enabled: true,
       printOn: 'allPages',
       printIfEmpty: true,
-      printOnAllPages: type === 'pageHeader' || type === 'pageFooter' || type === 'groupHeader',
+      printOnAllPages: isRepeatOnEveryPageBandType(type),
       keepTogether: false,
       canBreak: type === 'data' || type === 'child',
       printAtBottom: type === 'pageFooter',

@@ -1,4 +1,4 @@
-import type { RenderDocument, Band, ReportTemplate, TextComponent } from '@report-designer/core';
+import { isRepeatOnEveryPageBandType, type RenderDocument, type Band, type ReportTemplate, type TextComponent } from '@report-designer/core';
 
 export function makeViewerTemplate(rowCount = 2): { template: ReportTemplate; data: Record<string, Record<string, unknown>[]> } {
   const data = {
@@ -88,7 +88,7 @@ function band(
       enabled: true,
       printOn: 'allPages',
       printIfEmpty: true,
-      printOnAllPages: type === 'pageHeader' || type === 'pageFooter',
+      printOnAllPages: isRepeatOnEveryPageBandType(type),
       keepTogether: false,
       canBreak: true,
       printAtBottom: type === 'pageFooter',

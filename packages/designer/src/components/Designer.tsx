@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import type { ReportTemplate } from '@report-designer/core';
+import { expandJsonDataBySources, mergeInferredDataSources, type ReportTemplate } from '@report-designer/core';
 import { DesignerShell } from './shell/DesignerShell';
 import { useDesignerStore, type DesignerEventNavigationTarget } from '../store/designer-store';
 import { DesignerI18nProvider, type DesignerLocale } from '../i18n';
@@ -29,20 +29,24 @@ export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, 
   const selectComponents = useDesignerStore(s => s.selectComponents);
   const openEventEditorTarget = useDesignerStore(s => s.openEventEditorTarget);
   const loadedTemplateIdRef = useRef<string | undefined>(undefined);
+  const loadedDataSignatureRef = useRef<string | undefined>(undefined);
   const handledNavigationKeyRef = useRef<string | undefined>(undefined);
+  const dataSignature = data ? Object.keys(data).join('|') : '';
 
   useEffect(() => {
-    if (template && loadedTemplateIdRef.current !== template.id) {
+    if (template && (loadedTemplateIdRef.current !== template.id || loadedDataSignatureRef.current !== dataSignature)) {
       loadedTemplateIdRef.current = template.id;
-      loadTemplate(template);
+      loadedDataSignatureRef.current = dataSignature;
+      loadTemplate(mergeInferredDataSources(template, data));
     }
-  }, [template, loadTemplate]);
+  }, [data, dataSignature, template, loadTemplate]);
 
   useEffect(() => {
     if (data) {
-      setDataSources(data);
+      const sources = mergeInferredDataSources(template ?? currentTemplate, data).dataSources;
+      setDataSources(expandJsonDataBySources(data, sources));
     }
-  }, [data, setDataSources]);
+  }, [currentTemplate, data, setDataSources, template]);
 
   useEffect(() => {
     if (!onTemplateChange) return;

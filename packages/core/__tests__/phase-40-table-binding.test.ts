@@ -1,110 +1,81 @@
 import { describe, expect, it } from 'vitest';
 import { renderReport } from '../src';
 import { normalizeTemplate } from '../src/template-model/normalize-template';
-import type { ReportTemplate, TableComponent } from '../src';
+import type { ReportComponent, ReportTemplate } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
-function tableTemplate(overrides: Partial<TableComponent> = {}): ReportTemplate {
-  const table = {
-    id: 'table-1',
+function rowTable(text: string, id = 'table-1'): ReportComponent {
+  return {
+    id,
     type: 'table',
     x: 0,
     y: 0,
     width: 60,
-    height: 24,
-    dataSource: 'orders',
-    columns: [{ id: 'c1', header: 'Name', field: 'Name', width: 60, cellType: 'text' }],
-    rowCount: 2,
+    height: 8,
+    rowCount: 1,
     columnCount: 1,
-    headerRowsCount: 1,
-    footerRowsCount: 0,
-    headerHeight: 8,
-    rowHeight: 8,
+    rows: [{
+      id: `${id}-row`,
+      height: 8,
+      cells: [{ id: `${id}-cell`, text, width: 60 }],
+    }],
     showBorder: true,
-    cells: [{ row: 1, column: 0, text: '{Name}' }],
-    ...overrides,
-  } as TableComponent;
+  } as ReportComponent;
+}
 
+function tableTemplate(component: ReportComponent): ReportTemplate {
   return makeTemplate([
     band('data', 'data', {
-      height: 30,
+      height: 8,
       dataBand: { dataSourceId: 'orders' },
-      components: [table],
+      components: [component],
     }),
   ]);
 }
 
-function renderedTable(document: ReturnType<typeof renderReport>) {
-  const table = document.pages[0].items[0].components[0];
-  if (table.type !== 'table') {
-    throw new Error('Expected a rendered table');
-  }
-  return table;
+function renderedTables(document: ReturnType<typeof renderReport>) {
+  return document.pages.flatMap(page => page.items).flatMap(item => item.components).filter(component => component.type === 'table') as any[];
 }
 
-describe('phase 40 table binding', () => {
-  it('normalizes existing tables to fixed binding mode', () => {
-    const normalized = normalizeTemplate(tableTemplate());
-    const table = normalized.pages[0].bands[0].components[0];
+describe('phase 40 table binding removal', () => {
+  it('normalizes table binding fields away', () => {
+    const normalized = normalizeTemplate(tableTemplate({
+      ...rowTable('{orders.Name}'),
+      dataSource: 'orders',
+      binding: { mode: 'detail', dataSourceId: 'items', arrayPath: 'Items' },
+    } as ReportComponent));
+    const table = normalized.pages[0].bands[0].components[0] as any;
 
-    expect(table).toMatchObject({ type: 'table', binding: { mode: 'fixed' } });
+    expect(table.binding).toBeUndefined();
+    expect(table.dataSource).toBeUndefined();
   });
 
-  it('keeps fixed tables from expanding current-row array fields', () => {
+  it('does not expand rows from obsolete table binding settings', () => {
     const template = tableTemplate({
-      binding: { mode: 'fixed' },
-      cells: [{ row: 1, column: 0, text: '{Items.Name}' }],
-    } as Partial<TableComponent>);
-
-    const document = renderReport(template, {
-      orders: [{ Items: [{ Name: 'A' }, { Name: 'B' }] }],
-    });
-
-    expect(renderedTable(document).rows).toHaveLength(2);
-  });
-
-  it('expands detail tables from a current-row array path', () => {
-    const template = tableTemplate({
+      ...rowTable('{orders.Name}'),
       binding: { mode: 'detail', arrayPath: 'Items' },
-      cells: [{ row: 1, column: 0, text: '{Name}' }],
-    } as Partial<TableComponent>);
+    } as ReportComponent);
 
     const document = renderReport(template, {
-      orders: [{ Items: [{ Name: 'A' }, { Name: 'B' }] }],
+      orders: [{ Name: 'Order A', Items: [{ Name: 'A' }, { Name: 'B' }] }],
     });
 
-    expect(renderedTable(document).rows.map(row => row[0].content)).toEqual(['Name', 'A', 'B']);
+    expect(renderedTables(document).map(table => table.rows[0][0].content)).toEqual(['Order A']);
   });
 
-  it('expands detail tables from a top-level JSON data source', () => {
-    const template = tableTemplate({
-      binding: { mode: 'detail', dataSourceId: 'items' },
-      dataSource: '',
-      cells: [{ row: 1, column: 0, text: '{Name}' }],
-    } as Partial<TableComponent>);
-    template.dataSources.push({ id: 'items', name: 'Items', type: 'json', fields: [] });
+  it('repeats a row-cell table through its data band data source', () => {
+    const template = makeTemplate([
+      band('data', 'data', {
+        height: 8,
+        dataBand: { dataSourceId: 'items' },
+        components: [rowTable('{items.Name}')],
+      }),
+    ]);
 
     const document = renderReport(template, {
-      orders: [{ Name: 'Order A' }],
       items: [{ Name: 'A' }, { Name: 'B' }],
     });
 
-    expect(renderedTable(document).rows.map(row => row[0].content)).toEqual(['Name', 'A', 'B']);
-  });
-
-  it('falls back to the child array data source when no current-row array is available', () => {
-    const template = tableTemplate({
-      binding: { mode: 'detail', dataSourceId: 'orders.items', arrayPath: 'Items' },
-      dataSource: '',
-      cells: [{ row: 1, column: 0, text: '{Name}' }],
-    } as Partial<TableComponent>);
-    template.dataSources.push({ id: 'orders.items', name: 'Items', type: 'json', parentSourceId: 'orders', path: 'orders.Items', fields: [] });
-
-    const document = renderReport(template, {
-      orders: [{ Name: 'Order A' }],
-      'orders.items': [{ Name: 'A' }, { Name: 'B' }],
-    });
-
-    expect(renderedTable(document).rows.map(row => row[0].content)).toEqual(['Name', 'A', 'B']);
+    expect(renderedTables(document).map(table => table.rows[0][0].content)).toEqual(['A', 'B']);
   });
 });

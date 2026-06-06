@@ -1,6 +1,7 @@
 import { type PDFDocument, type PDFPage, type PDFFont } from 'pdf-lib';
 import type { BorderConfig, Padding, RenderBarcode, RenderChart, RenderCheckbox, RenderComponentBox, RenderImage, RenderLine, RenderRichText, RenderShape, RenderTable, RenderTableCell, RenderText } from '@report-designer/core';
 import { barcodePattern, dataUrlMimeType, dataUrlToUint8Array, MM_TO_PT, parsePdfColor, safePdfText, stripHtmlToPdfText } from './pdf-component-rendering';
+import { printableBorderWidthPt } from '../../renderers/border-width';
 
 export interface PdfFontSet {
   regular: PDFFont;
@@ -18,6 +19,42 @@ type PdfFontStyle = {
   italic?: boolean;
 };
 
+type DrawPdfTextOptions = {
+  x: number;
+  y: number;
+  size: number;
+  font: PDFFont;
+  color: ReturnType<typeof parsePdfColor>;
+  colorCss: string;
+  maxWidth: number;
+  family?: string;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+};
+
+type DrawPdfTextBoxOptions = Omit<DrawPdfTextOptions, 'x' | 'y' | 'maxWidth'> & {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  padding: Padding;
+  textAlign?: 'left' | 'center' | 'right';
+  verticalAlign?: 'top' | 'middle' | 'bottom';
+  wrap?: boolean;
+};
+
+type PdfTextLineLayout = {
+  text: string;
+  width: number;
+};
+
+type DrawnPdfTextLine = PdfTextLineLayout & {
+  x: number;
+  y: number;
+};
+
 export async function drawRenderComponent(
   pdfDoc: PDFDocument,
   page: PDFPage,
@@ -30,21 +67,14 @@ export async function drawRenderComponent(
   const width = component.width * MM_TO_PT;
   const height = component.height * MM_TO_PT;
   const backgroundColor = component.style?.backgroundColor;
-  const border = component.style?.border;
+  const border = component.type === 'table' ? undefined : component.style?.border;
 
   if (backgroundColor && backgroundColor.toLowerCase() !== 'transparent') {
     page.drawRectangle({ x, y, width, height, color: parsePdfColor(backgroundColor) });
   }
 
   if (border && border.style !== 'none' && border.width > 0) {
-    page.drawRectangle({
-      x,
-      y,
-      width,
-      height,
-      borderColor: parsePdfColor(border.color),
-      borderWidth: Math.max(0.5, border.width * MM_TO_PT),
-    });
+    drawComponentBorder(page, border, x, y, width, height);
   }
 
   if ((component.type === 'panel' || component.type === 'subreport') && 'children' in component) {
@@ -55,7 +85,7 @@ export async function drawRenderComponent(
   }
 
   if (component.type === 'text' && 'content' in component) {
-    drawText(page, component as RenderText, x, y, width, height, fonts);
+    await drawText(pdfDoc, page, component as RenderText, x, y, width, height, fonts);
     return;
   }
 
@@ -81,12 +111,13 @@ export async function drawRenderComponent(
       return;
     }
     page.drawRectangle({ x, y, width, height, borderColor: parsePdfColor('#d9d9d9'), borderWidth: 0.5 });
-    page.drawText(safePdfText(chart.emptyMessage ?? 'No data'), {
+    await drawPdfText(pdfDoc, page, chart.emptyMessage ?? 'No data', {
       x: x + 4,
       y: y + height / 2,
       size: 10,
       font: fonts.regular,
       color: parsePdfColor('#8c8c8c'),
+      colorCss: '#8c8c8c',
       maxWidth: Math.max(1, width - 8),
     });
     return;
@@ -94,29 +125,34 @@ export async function drawRenderComponent(
 
   if (component.type === 'richtext' && 'html' in component) {
     const richtext = component as RenderRichText;
-    page.drawText(safePdfText(stripHtmlToPdfText(richtext.html)), {
+    const pdfFont = selectPdfFont(fonts, richtext.style?.font);
+    await drawPdfText(pdfDoc, page, stripHtmlToPdfText(richtext.html), {
       x: x + 2,
       y: y + height - 12,
       size: richtext.style?.font?.size ?? 10,
-      font: selectPdfFont(fonts, richtext.style?.font),
+      font: pdfFont,
       color: parsePdfColor(richtext.style?.font?.color ?? '#000000'),
+      colorCss: richtext.style?.font?.color ?? '#000000',
       maxWidth: Math.max(1, width - 4),
+      family: richtext.style?.font?.family,
+      bold: richtext.style?.font?.bold,
+      italic: richtext.style?.font?.italic,
     });
     return;
   }
 
   if (component.type === 'barcode' && 'value' in component) {
-    drawBarcode(page, component as RenderBarcode, x, y, width, height, fonts);
+    await drawBarcode(pdfDoc, page, component as RenderBarcode, x, y, width, height, fonts);
     return;
   }
 
   if (component.type === 'checkbox' && 'checked' in component) {
-    drawCheckbox(page, component as RenderCheckbox, x, y, width, height, fonts);
+    await drawCheckbox(pdfDoc, page, component as RenderCheckbox, x, y, width, height, fonts);
     return;
   }
 
   if (component.type === 'table' && 'rows' in component && 'columns' in component) {
-    drawTable(page, component as RenderTable, x, y, width, height, fonts);
+    await drawTable(pdfDoc, page, component as RenderTable, x, y, height, fonts);
   }
 }
 
@@ -135,31 +171,70 @@ export function normalizeFontFamilyKey(value: string): string {
     .toLowerCase();
 }
 
-function drawText(page: PDFPage, text: RenderText, x: number, y: number, width: number, height: number, fonts: PdfFontSet): void {
+async function drawText(pdfDoc: PDFDocument, page: PDFPage, text: RenderText, x: number, y: number, width: number, height: number, fonts: PdfFontSet): Promise<void> {
   const fontSize = text.style?.font?.size ?? 10;
   const pdfFont = selectPdfFont(fonts, text.style?.font);
-  page.drawText(safePdfText(text.content), {
-    x: x + 2,
-    y: y + height - fontSize - 2,
+  const padding = text.style?.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
+  await drawPdfTextBox(pdfDoc, page, text.content, {
+    x,
+    y,
+    width,
+    height,
+    padding,
     size: fontSize,
     font: pdfFont,
     color: parsePdfColor(text.style?.font?.color ?? '#000000'),
-    maxWidth: Math.max(1, width - 4),
+    colorCss: text.style?.font?.color ?? '#000000',
+    family: text.style?.font?.family,
+    bold: text.style?.font?.bold,
+    italic: text.style?.font?.italic,
+    underline: text.style?.font?.underline,
+    strikethrough: text.style?.font?.strikethrough,
+    textAlign: text.style?.textAlign,
+    verticalAlign: text.style?.verticalAlign,
+    wrap: true,
   });
+}
+
+function drawComponentBorder(
+  page: PDFPage,
+  border: BorderConfig,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+): void {
+  if (border.style === 'none' || border.width <= 0) return;
+  const color = parsePdfColor(border.color);
+  const thickness = printableBorderWidthPt(border.width);
+  const dashArray = pdfBorderDashArray(border.style);
+
+  if (border.sides.top) {
+    page.drawLine({ start: { x, y: y + height }, end: { x: x + width, y: y + height }, thickness, color, dashArray });
+  }
+  if (border.sides.right) {
+    page.drawLine({ start: { x: x + width, y: y + height }, end: { x: x + width, y }, thickness, color, dashArray });
+  }
+  if (border.sides.bottom) {
+    page.drawLine({ start: { x, y }, end: { x: x + width, y }, thickness, color, dashArray });
+  }
+  if (border.sides.left) {
+    page.drawLine({ start: { x, y: y + height }, end: { x, y }, thickness, color, dashArray });
+  }
 }
 
 function drawLine(page: PDFPage, line: RenderLine, x: number, y: number, width: number, height: number): void {
   page.drawLine({
     start: { x: x + (line.startX ?? 0) * MM_TO_PT, y: y + height - (line.startY ?? line.height / 2) * MM_TO_PT },
     end: { x: x + (line.endX ?? line.width) * MM_TO_PT, y: y + height - (line.endY ?? line.height / 2) * MM_TO_PT },
-    thickness: Math.max(0.5, (line.lineWidth ?? 0.2) * MM_TO_PT),
+    thickness: printableBorderWidthPt(line.lineWidth ?? 0.2),
     color: parsePdfColor(line.lineColor ?? '#000000'),
     dashArray: line.lineStyle === 'dashed' ? [6, 4] : line.lineStyle === 'dotted' ? [1, 3] : undefined,
   });
 }
 
 function drawShape(page: PDFPage, shape: RenderShape, x: number, y: number, width: number, height: number): void {
-  const borderWidth = Math.max(0.5, (shape.borderWidth ?? 0.2) * MM_TO_PT);
+  const borderWidth = printableBorderWidthPt(shape.borderWidth ?? 0.2);
   const borderDashArray = pdfBorderDashArray(shape.borderStyle);
   const options = {
     color: pdfFillColor(shape.fillColor),
@@ -228,7 +303,7 @@ async function drawImage(pdfDoc: PDFDocument, page: PDFPage, image: RenderImage,
   }
 }
 
-function drawBarcode(page: PDFPage, barcode: RenderBarcode, x: number, y: number, width: number, height: number, fonts: PdfFontSet): void {
+async function drawBarcode(pdfDoc: PDFDocument, page: PDFPage, barcode: RenderBarcode, x: number, y: number, width: number, height: number, fonts: PdfFontSet): Promise<void> {
   const fontSize = barcode.font?.size ?? 8;
   const textHeight = barcode.showText ? fontSize + 2 : 0;
   const barHeight = Math.max(1, height - textHeight);
@@ -242,11 +317,12 @@ function drawBarcode(page: PDFPage, barcode: RenderBarcode, x: number, y: number
     }
   });
   if (barcode.showText) {
-    page.drawText(safePdfText(barcode.value), { x, y: y + 1, size: fontSize, font: selectPdfFont(fonts, barcode.font), maxWidth: width, color: parsePdfColor(textColor) });
+    const pdfFont = selectPdfFont(fonts, barcode.font);
+    await drawPdfText(pdfDoc, page, barcode.value, { x, y: y + 1, size: fontSize, font: pdfFont, maxWidth: width, color: parsePdfColor(textColor), colorCss: textColor, family: barcode.font?.family, bold: barcode.font?.bold, italic: barcode.font?.italic });
   }
 }
 
-function drawCheckbox(page: PDFPage, checkbox: RenderCheckbox, x: number, y: number, width: number, height: number, fonts: PdfFontSet): void {
+async function drawCheckbox(pdfDoc: PDFDocument, page: PDFPage, checkbox: RenderCheckbox, x: number, y: number, width: number, height: number, fonts: PdfFontSet): Promise<void> {
   const boxSize = Math.min(height, 12);
   const foregroundColor = checkbox.foregroundColor ?? '#333333';
   const labelColor = checkbox.font?.color ?? foregroundColor;
@@ -257,75 +333,84 @@ function drawCheckbox(page: PDFPage, checkbox: RenderCheckbox, x: number, y: num
   }
   if (checkbox.label) {
     const fontSize = checkbox.font?.size ?? 10;
-    page.drawText(safePdfText(checkbox.label), { x: x + boxSize + 4, y: y + height - boxSize + 2, size: fontSize, font: selectPdfFont(fonts, checkbox.font), maxWidth: Math.max(1, width - boxSize - 4), color: parsePdfColor(labelColor) });
+    const pdfFont = selectPdfFont(fonts, checkbox.font);
+    await drawPdfText(pdfDoc, page, checkbox.label, { x: x + boxSize + 4, y: y + height - boxSize + 2, size: fontSize, font: pdfFont, maxWidth: Math.max(1, width - boxSize - 4), color: parsePdfColor(labelColor), colorCss: labelColor, family: checkbox.font?.family, bold: checkbox.font?.bold, italic: checkbox.font?.italic });
   }
 }
 
-function drawTable(page: PDFPage, table: RenderTable, x: number, y: number, width: number, height: number, fonts: PdfFontSet): void {
-  page.drawRectangle({ x, y, width, height, color: parsePdfColor('#ffffff') });
-  page.drawRectangle({
-    x,
-    y,
-    width,
-    height,
-    borderColor: parsePdfColor(table.showBorder ? '#8c8c8c' : '#d9d9d9'),
-    borderWidth: Math.max(0.5, 0.2 * MM_TO_PT),
-    borderDashArray: table.showBorder ? undefined : [6, 4],
-  });
-
-  const columnWidths = table.columns.map(column => column.width * MM_TO_PT);
+async function drawTable(pdfDoc: PDFDocument, page: PDFPage, table: RenderTable, x: number, y: number, height: number, fonts: PdfFontSet): Promise<void> {
+  const columnWidths = table.columns.map(column => (column.width ?? 0) * MM_TO_PT);
   const rowHeights = table.rows.map(row => (row[0]?.height ?? 8) * MM_TO_PT);
   const columnOffsets = cumulativeOffsets(columnWidths);
   const rowOffsets = cumulativeOffsets(rowHeights);
+  const cells = table.rows.flatMap(row => row.map(cell => {
+    const cellX = x + (columnOffsets[cell.column] ?? 0);
+    const rowTopOffset = rowOffsets[cell.row] ?? 0;
+    const cellWidth = spanSize(columnWidths, cell.column, cell.colSpan);
+    const cellHeight = spanSize(rowHeights, cell.row, cell.rowSpan);
+    const cellY = y + height - rowTopOffset - cellHeight;
+    return { cell, x: cellX, y: cellY, width: cellWidth, height: cellHeight };
+  }));
 
-  for (const row of table.rows) {
-    for (const cell of row) {
-      const cellX = x + (columnOffsets[cell.column] ?? 0);
-      const rowTopOffset = rowOffsets[cell.row] ?? 0;
-      const cellWidth = spanSize(columnWidths, cell.column, cell.colSpan);
-      const cellHeight = spanSize(rowHeights, cell.row, cell.rowSpan);
-      const cellY = y + height - rowTopOffset - cellHeight;
-      drawTableCell(page, cell, cellX, cellY, cellWidth, cellHeight, table.columns.length, table.rows.length, fonts, table.showBorder);
-    }
+  for (const item of cells) {
+    drawTableCellBackground(page, item.cell, item.x, item.y, item.width, item.height);
+  }
+  for (const item of cells) {
+    drawTableCellBorders(page, item.cell, item.x, item.y, item.width, item.height);
+  }
+  for (const item of cells) {
+    await drawTableCellContent(pdfDoc, page, item.cell, item.x, item.y, item.width, item.height, fonts);
   }
 }
 
-function drawTableCell(
+function drawTableCellBackground(
   page: PDFPage,
   cell: RenderTableCell,
   x: number,
   y: number,
   width: number,
   height: number,
-  columnCount: number,
-  rowCount: number,
-  fonts: PdfFontSet,
-  showBorder: boolean,
 ): void {
   const backgroundColor = cell.style?.backgroundColor ?? (cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined);
   if (backgroundColor) {
     page.drawRectangle({ x, y, width, height, color: parsePdfColor(backgroundColor) });
   }
+}
 
-  drawTableCellBorders(page, cell, x, y, width, height, columnCount, rowCount, showBorder);
-
+async function drawTableCellContent(
+  pdfDoc: PDFDocument,
+  page: PDFPage,
+  cell: RenderTableCell,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  fonts: PdfFontSet,
+): Promise<void> {
   const padding = cell.style?.padding ?? { top: 1, right: 1.5, bottom: 1, left: 1.5 };
   const fontSize = cell.style?.font?.size ?? 10;
   const pdfFont = selectPdfFont(fonts, cell.style?.font);
-  const safeText = safePdfText(cell.content);
-  const textX = textAlignedX(x, width, padding, safeText, pdfFont, fontSize, cell.style?.textAlign);
-  const textY = textAlignedY(y, height, padding, fontSize, cell.style?.verticalAlign);
   const color = parsePdfColor(cell.style?.font?.color ?? '#111111');
-  const maxWidth = Math.max(1, width - (padding.left + padding.right) * MM_TO_PT);
-  page.drawText(safeText, {
-    x: textX,
-    y: textY,
+  const lines = await drawPdfTextBox(pdfDoc, page, cell.content, {
+    x,
+    y,
+    width,
+    height,
+    padding,
     size: fontSize,
     font: pdfFont,
     color,
-    maxWidth,
+    colorCss: cell.style?.font?.color ?? '#111111',
+    family: cell.style?.font?.family,
+    bold: cell.style?.font?.bold,
+    italic: cell.style?.font?.italic,
+    textAlign: cell.style?.textAlign,
+    verticalAlign: cell.style?.verticalAlign,
+    wrap: false,
   });
-  drawTableTextDecorations(page, cell, textX, textY, Math.min(pdfFont.widthOfTextAtSize(safeText, fontSize), maxWidth), fontSize, color);
+  for (const line of lines) {
+    drawTableTextDecorations(page, cell, line.x, line.y, line.width, fontSize, color);
+  }
 }
 
 function drawTableTextDecorations(
@@ -356,6 +441,224 @@ function drawTableTextDecorations(
   }
 }
 
+async function drawPdfText(pdfDoc: PDFDocument, page: PDFPage, text: string, options: DrawPdfTextOptions): Promise<number> {
+  const encodedText = safePdfText(text, options.font);
+  if (encodedText === text) {
+    page.drawText(text, {
+      x: options.x,
+      y: options.y,
+      size: options.size,
+      font: options.font,
+      color: options.color,
+      maxWidth: options.maxWidth,
+    });
+    return Math.min(options.font.widthOfTextAtSize(text, options.size), options.maxWidth);
+  }
+
+  const rasterized = await rasterizePdfText(text, options);
+  if (rasterized) {
+    const image = await pdfDoc.embedPng(rasterized.bytes);
+    page.drawImage(image, {
+      x: options.x,
+      y: options.y - options.size * 0.15,
+      width: rasterized.width,
+      height: rasterized.height,
+    });
+    return rasterized.width;
+  }
+
+  page.drawText(encodedText, {
+    x: options.x,
+    y: options.y,
+    size: options.size,
+    font: options.font,
+    color: options.color,
+    maxWidth: options.maxWidth,
+  });
+  return Math.min(options.font.widthOfTextAtSize(encodedText, options.size), options.maxWidth);
+}
+
+async function drawPdfTextBox(
+  pdfDoc: PDFDocument,
+  page: PDFPage,
+  text: string,
+  options: DrawPdfTextBoxOptions,
+): Promise<DrawnPdfTextLine[]> {
+  const left = options.x + options.padding.left * MM_TO_PT;
+  const right = options.x + options.width - options.padding.right * MM_TO_PT;
+  const maxWidth = Math.max(1, right - left);
+  const lineBase: Omit<DrawPdfTextOptions, 'x' | 'y' | 'maxWidth'> = {
+    size: options.size,
+    font: options.font,
+    color: options.color,
+    colorCss: options.colorCss,
+    family: options.family,
+    bold: options.bold,
+    italic: options.italic,
+    underline: options.underline,
+    strikethrough: options.strikethrough,
+  };
+  const measureOptions: DrawPdfTextOptions = { ...lineBase, x: left, y: 0, maxWidth };
+  const lines = layoutPdfTextLines(text, measureOptions, options.wrap ?? false);
+  const lineHeight = pdfTextLineHeight(options.size);
+  const firstBaselineY = firstPdfTextBaselineY(options.y, options.height, options.padding, options.size, lineHeight, lines.length, options.verticalAlign);
+  const drawn: DrawnPdfTextLine[] = [];
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+    const lineX = alignedPdfTextX(left, right, line.width, options.textAlign);
+    const lineY = firstBaselineY - index * lineHeight;
+    const drawnWidth = line.text
+      ? await drawPdfText(pdfDoc, page, line.text, { ...lineBase, x: lineX, y: lineY, maxWidth })
+      : 0;
+    drawn.push({ ...line, x: lineX, y: lineY, width: drawnWidth });
+  }
+
+  return drawn;
+}
+
+function layoutPdfTextLines(text: string, options: DrawPdfTextOptions, wrap: boolean): PdfTextLineLayout[] {
+  if (!wrap) return [pdfTextLineLayout(text, options)];
+  const lines: PdfTextLineLayout[] = [];
+  const hardLines = text.split(/\r\n|\r|\n/);
+
+  for (const hardLine of hardLines) {
+    if (hardLine === '') {
+      lines.push(pdfTextLineLayout('', options));
+      continue;
+    }
+    let current = '';
+    for (const token of wrapTokens(hardLine)) {
+      for (const piece of splitTokenForWidth(token, options)) {
+        if (!current) {
+          current = piece;
+          continue;
+        }
+        const candidate = current + piece;
+        if (measurePdfTextWidth(candidate, options) <= options.maxWidth) {
+          current = candidate;
+        } else {
+          lines.push(pdfTextLineLayout(current, options));
+          current = piece;
+        }
+      }
+    }
+    lines.push(pdfTextLineLayout(current, options));
+  }
+
+  return lines.length > 0 ? lines : [pdfTextLineLayout('', options)];
+}
+
+function splitTokenForWidth(token: string, options: DrawPdfTextOptions): string[] {
+  if (measurePdfTextWidth(token, options) <= options.maxWidth) return [token];
+  const pieces: string[] = [];
+  let current = '';
+
+  for (const char of Array.from(token)) {
+    const candidate = current + char;
+    if (!current || measurePdfTextWidth(candidate, options) <= options.maxWidth) {
+      current = candidate;
+    } else {
+      pieces.push(current);
+      current = char;
+    }
+  }
+
+  if (current) pieces.push(current);
+  return pieces.length > 0 ? pieces : [token];
+}
+
+function wrapTokens(text: string): string[] {
+  return text.match(/[A-Za-z0-9_.,:/\\-]+|\s+|./gu) ?? [];
+}
+
+function pdfTextLineLayout(text: string, options: DrawPdfTextOptions): PdfTextLineLayout {
+  return {
+    text,
+    width: Math.min(measurePdfTextWidth(text, options), options.maxWidth),
+  };
+}
+
+function measurePdfTextWidth(text: string, options: DrawPdfTextOptions): number {
+  if (!text) return 0;
+  const encodedText = safePdfText(text, options.font);
+  if (encodedText === text) {
+    return options.font.widthOfTextAtSize(text, options.size);
+  }
+  const canvasWidth = measureCanvasPdfTextWidth(text, options);
+  if (canvasWidth !== undefined) return canvasWidth;
+  return options.font.widthOfTextAtSize(encodedText, options.size);
+}
+
+function measureCanvasPdfTextWidth(text: string, options: DrawPdfTextOptions): number | undefined {
+  const context = createPdfCanvasContext();
+  if (!context) return undefined;
+  const scale = 3;
+  context.font = pdfCanvasFont(options, options.size * scale);
+  return Math.max(1, context.measureText(text).width / scale);
+}
+
+async function rasterizePdfText(text: string, options: DrawPdfTextOptions): Promise<{ bytes: Uint8Array; width: number; height: number } | undefined> {
+  if (!/[^\x00-\x7F]/.test(text)) return undefined;
+  const canvas = createPdfCanvas();
+  if (!canvas) return undefined;
+  const context = canvas.getContext('2d');
+  if (!context) return undefined;
+
+  const scale = 3;
+  const fontSize = options.size;
+  context.font = pdfCanvasFont(options, fontSize * scale);
+  const measuredWidth = Math.min(Math.max(1, context.measureText(text).width / scale), options.maxWidth);
+  const width = Math.max(1, measuredWidth);
+  const height = Math.max(1, fontSize * 1.35);
+  canvas.width = Math.ceil(width * scale);
+  canvas.height = Math.ceil(height * scale);
+
+  context.scale(scale, scale);
+  context.clearRect(0, 0, width, height);
+  context.font = pdfCanvasFont(options, fontSize);
+  context.fillStyle = options.colorCss;
+  context.textBaseline = 'alphabetic';
+  context.fillText(text, 0, fontSize, options.maxWidth);
+  context.strokeStyle = options.colorCss;
+  context.lineWidth = Math.max(0.5, fontSize * 0.05);
+  if (options.underline) {
+    const y = fontSize + fontSize * 0.12;
+    context.beginPath();
+    context.moveTo(0, y);
+    context.lineTo(width, y);
+    context.stroke();
+  }
+  if (options.strikethrough) {
+    const y = fontSize - fontSize * 0.32;
+    context.beginPath();
+    context.moveTo(0, y);
+    context.lineTo(width, y);
+    context.stroke();
+  }
+
+  const dataUrl = canvas.toDataURL('image/png');
+  return { bytes: dataUrlToUint8Array(dataUrl), width, height };
+}
+
+function createPdfCanvas(): HTMLCanvasElement | undefined {
+  const doc = globalThis.document;
+  if (!doc?.createElement) return undefined;
+  return doc.createElement('canvas');
+}
+
+function createPdfCanvasContext(): CanvasRenderingContext2D | undefined {
+  const canvas = createPdfCanvas();
+  return canvas?.getContext('2d') ?? undefined;
+}
+
+function pdfCanvasFont(options: DrawPdfTextOptions, size: number): string {
+  const family = options.family || 'Microsoft YaHei, SimSun, Arial, sans-serif';
+  const style = options.italic ? 'italic ' : '';
+  const weight = options.bold ? '700 ' : '400 ';
+  return `${style}${weight}${size}px ${family}`;
+}
+
 function drawTableCellBorders(
   page: PDFPage,
   cell: RenderTableCell,
@@ -363,27 +666,12 @@ function drawTableCellBorders(
   y: number,
   width: number,
   height: number,
-  columnCount: number,
-  rowCount: number,
-  showBorder: boolean,
 ): void {
-  const fallbackBorder: BorderConfig = {
-    style: showBorder ? 'solid' : 'dashed',
-    width: 0.2,
-    color: showBorder ? '#8c8c8c' : '#d9d9d9',
-    sides: {
-      top: false,
-      right: cell.column + cell.colSpan < columnCount,
-      bottom: cell.row + cell.rowSpan < rowCount,
-      left: false,
-    },
-  };
   const configured = cell.style?.border;
-  const border: BorderConfig = configured && configured.style !== 'none' && configured.width > 0
-    ? configured
-    : fallbackBorder;
+  if (!configured || configured.style === 'none' || configured.width <= 0) return;
+  const border: BorderConfig = configured;
   const sides = border.sides;
-  const borderWidth = Math.max(0.5, border.width * MM_TO_PT);
+  const borderWidth = printableBorderWidthPt(border.width);
   const color = parsePdfColor(border.color);
   const dashArray = pdfBorderDashArray(border.style);
 
@@ -415,26 +703,39 @@ function spanSize(values: number[], start: number, span: number): number {
   return values.slice(start, start + Math.max(1, span)).reduce((sum, value) => sum + value, 0);
 }
 
-function textAlignedX(x: number, width: number, padding: Padding, text: string, font: PDFFont, fontSize: number, align?: 'left' | 'center' | 'right'): number {
-  const left = x + padding.left * MM_TO_PT;
-  const right = x + width - padding.right * MM_TO_PT;
+function alignedPdfTextX(left: number, right: number, textWidth: number, align?: 'left' | 'center' | 'right'): number {
   const availableWidth = Math.max(1, right - left);
   if (align === 'center') {
-    return left + Math.max(0, availableWidth - font.widthOfTextAtSize(text, fontSize)) / 2;
+    return left + Math.max(0, availableWidth - textWidth) / 2;
   }
   if (align === 'right') {
-    return Math.max(left, right - font.widthOfTextAtSize(text, fontSize));
+    return Math.max(left, right - textWidth);
   }
   return left;
 }
 
-function textAlignedY(y: number, height: number, padding: Padding, fontSize: number, align?: 'top' | 'middle' | 'bottom'): number {
-  const topBaseline = y + height - padding.top * MM_TO_PT - fontSize;
+function firstPdfTextBaselineY(
+  y: number,
+  height: number,
+  padding: Padding,
+  fontSize: number,
+  lineHeight: number,
+  lineCount: number,
+  align?: 'top' | 'middle' | 'bottom',
+): number {
+  const contentBottom = y + padding.bottom * MM_TO_PT;
+  const contentTop = y + height - padding.top * MM_TO_PT;
+  const contentHeight = contentTop - contentBottom;
+  const blockHeight = fontSize + Math.max(0, lineCount - 1) * lineHeight;
   if (align === 'middle') {
-    return y + (height - fontSize) / 2;
+    return contentBottom + (contentHeight - blockHeight) / 2 + blockHeight - fontSize;
   }
   if (align === 'bottom') {
-    return y + padding.bottom * MM_TO_PT;
+    return contentBottom + blockHeight - fontSize;
   }
-  return topBaseline;
+  return contentTop - fontSize;
+}
+
+function pdfTextLineHeight(fontSize: number): number {
+  return fontSize * 1.2;
 }

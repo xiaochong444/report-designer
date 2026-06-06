@@ -86,12 +86,37 @@ describe('phase 34 table rendering viewer', () => {
     expect(html).toContain('background-color:#fffbe6');
     expect(html).toContain('padding:1mm 2mm 1mm 2mm');
     expect(html).toContain('text-align:right');
-    expect(html).toContain('border-top:0.2mm solid #1677ff');
+    expect(html).toContain('border-top:0.3mm solid #1677ff');
     expect(html).toContain('font-family:Arial');
     expect(html).toContain('font-size:14.663px');
     expect(html).toContain('font-weight:700');
     expect(html).toContain('font-style:italic');
     expect(html).toContain('text-decoration:underline line-through');
     expect(html).toContain('color:#1677ff');
+  });
+
+  it('does not draw a separate table container border when cell borders are present', () => {
+    render(<RenderDocumentView document={makeDocument()} zoom={100} />);
+
+    const table = screen.getByTestId('render-component-table');
+
+    expect(table).not.toHaveStyle({ borderTopColor: '#8c8c8c' });
+    expect(table).toHaveStyle({ backgroundColor: '#ffffff' });
+    expect(screen.getByText('$1,234.50')).toHaveStyle({
+      borderTopColor: '#1677ff',
+      borderRightColor: '#1677ff',
+      borderBottomColor: '#1677ff',
+      borderLeftColor: '#1677ff',
+    });
+  });
+
+  it('does not emit fallback showBorder table lines in print HTML', () => {
+    const html = buildPrintHtml(makeDocument());
+
+    expect(html).not.toContain('border:0.2mm solid #8c8c8c');
+    expect(html).not.toContain('border:0.2mm dashed #d9d9d9');
+    expect(html).toContain('border-top:0.3mm solid #1677ff');
+    expect(html).toContain('border-right:0.3mm solid #1677ff');
+    expect(html).not.toContain('rd-print-table-border-line');
   });
 });

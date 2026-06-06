@@ -136,7 +136,7 @@ describe('phase 39 table editing history', () => {
     });
   });
 
-  it('clamps cell spans and removes cells covered by property edits', () => {
+  it('clamps cell spans while keeping covered cells addressable in the row model', () => {
     useDesignerStore.getState().selectTableCell({
       tableId: 'table-1',
       bandId: loadTable(),
@@ -148,14 +148,12 @@ describe('phase 39 table editing history', () => {
 
     useDesignerStore.getState().updateSelectedTableCell({ rowSpan: 5, colSpan: 5 });
 
-    expect(selectedTable().cells).toContainEqual({
-      row: 1,
-      column: 1,
+    expect(selectedTable().rows?.[1]?.cells[1]).toMatchObject({
       text: 'Subtotal',
       rowSpan: 2,
       colSpan: 2,
     });
-    expect(selectedTable().cells).not.toContainEqual(expect.objectContaining({ row: 2, column: 2, text: 'Tail' }));
+    expect(selectedTable().rows?.[2]?.cells[2]).toMatchObject({ text: 'Tail' });
   });
 
   it('records column insertion and deletion as undoable commands', () => {

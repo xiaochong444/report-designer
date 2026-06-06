@@ -1,4 +1,4 @@
-import type { Band, DataSource, Page, PanelComponent, ReportComponent, ReportTemplate, TableComponent, ValidationResult } from './types';
+import type { Band, DataSource, Page, PanelComponent, ReportComponent, ReportTemplate, ValidationResult } from './types';
 import { normalizeTemplate } from './normalize-template';
 
 export interface TemplateValidationError {
@@ -93,7 +93,6 @@ function validatePage(
         page,
         band,
         `${path}.components[${componentIndex}]`,
-        dataSources,
         options,
         errors,
         true,
@@ -104,7 +103,6 @@ function validatePage(
         page,
         band,
         `${path}.components[${componentIndex}]`,
-        dataSources,
         options,
         errors,
         true,
@@ -122,7 +120,6 @@ function validateComponent(
   page: Page,
   band: Band,
   path: string,
-  dataSources: Map<string, DataSource>,
   options: TemplateValidationOptions,
   errors: TemplateValidationError[],
   checkPrintableArea: boolean,
@@ -138,57 +135,16 @@ function validateComponent(
     validatePrintableArea(component, page, band, path, errors);
   }
 
-  if (component.type === 'table') {
-    validateTableBinding(component as TableComponent, path, dataSources, errors);
-  }
-
   if (component.type === 'panel') {
     (component as PanelComponent).components.forEach((child, childIndex) => validateComponent(
       child,
       page,
       band,
       `${path}.components[${childIndex}]`,
-      dataSources,
       options,
       errors,
       false,
     ));
-  }
-}
-
-function validateTableBinding(
-  table: TableComponent,
-  path: string,
-  dataSources: Map<string, DataSource>,
-  errors: TemplateValidationError[],
-) {
-  const binding = table.binding;
-  if (!binding || binding.mode !== 'detail') {
-    return;
-  }
-
-  if (!binding.dataSourceId && !binding.arrayPath) {
-    errors.push({
-      path: `${path}.binding`,
-      message: 'Detail table binding requires a dataSourceId or arrayPath',
-    });
-    return;
-  }
-
-  const source = binding.dataSourceId ? dataSources.get(binding.dataSourceId) : undefined;
-  if (binding.dataSourceId && !source) {
-    errors.push({
-      path: `${path}.binding.dataSourceId`,
-      message: `Table detail binding references missing data source "${binding.dataSourceId}"`,
-    });
-    return;
-  }
-
-  if (source?.parentSourceId && !binding.arrayPath) {
-    errors.push({
-      path: `${path}.binding.arrayPath`,
-      message: `Detail table binding for child data source "${source.id}" requires arrayPath`,
-    });
   }
 }
 

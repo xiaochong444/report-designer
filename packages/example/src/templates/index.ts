@@ -8,6 +8,7 @@ import { groupedEmployeesTemplate } from './grouped-employees';
 import { invoiceTemplate } from './invoice';
 import { longTextPaginationTemplate } from './long-text-pagination';
 import { masterDetailOrdersTemplate } from './master-detail-orders';
+import { salesOrderPrintData, salesOrderPrintTemplate } from './sales-order-print';
 import { tableDetailTemplate } from './table-detail';
 
 export const employeesData = employees;
@@ -49,6 +50,7 @@ export const sampleReports = [
   { key: 'groupedEmployees', label: 'Grouped Employees', template: groupedEmployeesTemplate, data: sampleReportData },
   { key: 'charts', label: 'Charts', template: chartsTemplate, data: sampleReportData },
   { key: 'invoice', label: 'Invoice', template: invoiceTemplate, data: sampleReportData },
+  { key: 'salesOrderPrint', label: 'Sales Order Print', template: salesOrderPrintTemplate, data: salesOrderPrintData },
   { key: 'tableDetail', label: 'Table Detail', template: tableDetailTemplate, data: sampleReportData },
   { key: 'masterDetailOrders', label: 'Master Detail Orders', template: masterDetailOrdersTemplate, data: sampleReportData },
   { key: 'customChineseFont', label: 'Custom Chinese Font', template: customChineseFontTemplate, data: sampleReportData },
@@ -73,5 +75,7 @@ export {
   invoiceTemplate,
   longTextPaginationTemplate,
   masterDetailOrdersTemplate,
+  salesOrderPrintData,
+  salesOrderPrintTemplate,
   tableDetailTemplate,
 };

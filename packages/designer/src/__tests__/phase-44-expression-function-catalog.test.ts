@@ -43,6 +43,7 @@ describe('phase 44 expression function catalog', () => {
     expect(getExpressionFunctionsByCategory('aggregate').map(item => item.name)).toEqual(
       expect.arrayContaining(['SUM', 'AVG', 'COUNT', 'COUNTDISTINCT', 'MIN', 'MAX', 'SUMIF', 'COUNTIF', 'RUNNINGSUM']),
     );
+    expect(getExpressionFunctionsByCategory('money').map(item => item.name)).toEqual(['RMBUPPER']);
     expect(getExpressionFunctionsByCategory('aggregate')).toEqual(
       expect.arrayContaining([
         expect.objectContaining({
@@ -79,6 +80,7 @@ describe('phase 44 expression function catalog', () => {
       ),
     ).toBe(false);
     expect(getExpressionFunctionNames()).toContain('DATEADD');
+    expect(getExpressionFunctionNames()).not.toEqual(expect.arrayContaining(['MONEYUPPER', 'CNYUPPER', 'CHINESEMONEY']));
     expect(EXPRESSION_FUNCTIONS.every(item => item.insertText.length > 0 && item.signature.length > 0)).toBe(true);
   });
 });

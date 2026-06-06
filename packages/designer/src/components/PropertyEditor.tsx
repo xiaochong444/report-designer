@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Checkbox, Typography, Segmented } from 'antd';
+import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Typography, Segmented } from 'antd';
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
@@ -13,8 +13,7 @@ import {
 } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
 import { getReportFontOptions } from '@report-designer/core';
-import type { BorderConfig, ChartAggregateMode, ChartComponent, ChartType, ChartVariant, DataSource, ReportTemplate, TableColumn, TableComponent, TextFormatConfig } from '@report-designer/core';
-import type { CSSProperties } from 'react';
+import type { BorderConfig, ChartAggregateMode, ChartComponent, ChartType, ChartVariant, DataSource, Padding, ReportTemplate, TableComponent, TextFormatConfig } from '@report-designer/core';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { ExpressionEditor } from './ExpressionEditor';
 import { normalizeTable } from '../table/table-structure';
@@ -24,13 +23,8 @@ import { useDesignerI18n, type DesignerLocale } from '../i18n';
 import { EventEditorDialog, type EventTreeItem } from './events/EventEditorDialog';
 import { buildEventEditorDataContext } from './events/event-editor-utils';
 import type { ExpressionCatalogExtensions } from '../expression/expression-catalog';
+import { BorderEditor, PaddingEditor } from './properties/BoxStyleEditors';
 
-const DEFAULT_BORDER: BorderConfig = {
-  style: 'none',
-  width: 0.1,
-  color: '#000000',
-  sides: { top: false, right: false, bottom: false, left: false },
-};
 const NO_CONDITIONAL_FORMAT = '__none__';
 
 export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalogExtensions }> = ({ expressionExtensions }) => {
@@ -116,25 +110,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   };
 
   // ---- Border helpers ----
-  const border = (comp.border as BorderConfig) ?? DEFAULT_BORDER;
-  const handleBorderField = (path: string, value: any) => {
-    const parts = path.split('.');
-    const newBorder = { ...border };
-    let target: any = newBorder;
-    for (let i = 0; i < parts.length - 1; i++) {
-      target[parts[i]] = { ...target[parts[i]] };
-      target = target[parts[i]];
-    }
-    target[parts[parts.length - 1]] = value;
-    handleChange('border', newBorder);
-  };
-
-  const borderSideStyle = (): CSSProperties => ({
-    borderTop: border.sides.top ? `${border.width}mm ${border.style} ${border.color}` : '1px solid #eee',
-    borderRight: border.sides.right ? `${border.width}mm ${border.style} ${border.color}` : '1px solid #eee',
-    borderBottom: border.sides.bottom ? `${border.width}mm ${border.style} ${border.color}` : '1px solid #eee',
-    borderLeft: border.sides.left ? `${border.width}mm ${border.style} ${border.color}` : '1px solid #eee',
-  });
+  const border = normalizeOptionalBorder(comp.border as BorderConfig | undefined);
 
   // ---- Font helpers ----
   const font = comp.font ?? { family: '', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' };
@@ -146,14 +122,11 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   const reportFontOptions = getReportFontOptions(template.fonts);
 
   // ---- Padding helpers ----
-  const padding = comp.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
-  const handlePaddingField = (field: string, value: number) => {
-    handleChange('padding', { ...padding, [field]: value });
-  };
+  const padding = normalizeOptionalPadding(comp.padding as Padding | undefined);
 
   const isTextComponent = component.type === 'text';
   const supportsFontProperties = ['text', 'barcode', 'checkbox', 'pagenumber', 'datetime'].includes(component.type);
-  const supportsBorderProperties = ['text', 'image', 'chart', 'barcode', 'checkbox', 'panel', 'pagenumber', 'datetime'].includes(component.type);
+  const supportsBorderProperties = ['text', 'image', 'chart', 'barcode', 'checkbox', 'panel', 'pagenumber', 'datetime', 'table'].includes(component.type);
   const supportsAppearanceProperties = ['text', 'image', 'chart', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport', 'pagenumber', 'datetime'].includes(component.type);
   const supportsForegroundColor = component.type === 'barcode' || component.type === 'checkbox';
   const isTextStyleLocked = (pathOrPrefix: string) => (
@@ -531,65 +504,17 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
             label: t('border'),
             children: (
               <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-                <Form.Item label={t('borderStyle')}>
-                  <Select
-                    aria-label={t('borderStyle')}
-                    value={border.style}
-                    onChange={(v) => handleBorderField('style', v)}
-                    size="small"
-                    disabled={isTextStyleLocked('border.style')}
-                    style={{ width: '100%' }}
-                    options={[
-                      { value: 'none', label: t('borderNone') },
-                      { value: 'solid', label: t('borderSolid') },
-                      { value: 'dashed', label: t('borderDashed') },
-                      { value: 'dotted', label: t('borderDotted') },
-                      { value: 'double', label: t('borderDouble') },
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label={t('borderWidth')}>
-                  <InputNumber
-                    aria-label={t('borderWidth')}
-                    value={formatUnitValue(border.width, reportUnit)}
-                    onChange={(v) => handleBorderField('width', parseUnitValue(v, reportUnit, border.width))}
-                    size="small"
-                    disabled={isTextStyleLocked('border.width')}
-                    style={{ width: '100%' }}
-                    min={formatUnitValue(0.1, reportUnit)}
-                    max={formatUnitValue(5, reportUnit)}
-                    step={fineUnitStep}
-                  />
-                </Form.Item>
-                <Form.Item label={t('borderColor')}>
-                  <ColorPicker
-                    aria-label={t('borderColor')}
-                    size="small"
-                    value={border.color}
-                    onChange={(color) => handleBorderField('color', color.toHexString())}
-                    disabled={isTextStyleLocked('border.color')}
-                  />
-                </Form.Item>
-                <Divider style={{ margin: '4px 0' }} />
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>{t('applySides')}</div>
-                <Checkbox.Group
-                  value={Object.entries(border.sides).filter(([_, v]) => v).map(([k]) => k)}
-                  onChange={(checkedValues) => {
-                    handleBorderField('sides', {
-                      top: checkedValues.includes('top'),
-                      right: checkedValues.includes('right'),
-                      bottom: checkedValues.includes('bottom'),
-                      left: checkedValues.includes('left'),
-                    });
-                  }}
-                  style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}
-                >
-                  <Checkbox value="top" disabled={isTextStyleLocked('border.sides.top')}>{t('top')}</Checkbox>
-                  <Checkbox value="right" disabled={isTextStyleLocked('border.sides.right')}>{t('right')}</Checkbox>
-                  <Checkbox value="bottom" disabled={isTextStyleLocked('border.sides.bottom')}>{t('bottom')}</Checkbox>
-                  <Checkbox value="left" disabled={isTextStyleLocked('border.sides.left')}>{t('left')}</Checkbox>
-                </Checkbox.Group>
-                <div style={{ ...borderSideStyle(), width: 60, height: 40, margin: '8px auto 0' }} />
+                <BorderEditor
+                  value={border}
+                  labels={propertyBorderLabels(t)}
+                  onChange={nextBorder => handleChange('border', nextBorder)}
+                  disabled={isTextStyleLocked}
+                  formatWidth={value => formatUnitValue(value, reportUnit)}
+                  parseWidth={(value, fallback) => parseUnitValue(value, reportUnit, fallback)}
+                  minWidth={formatUnitValue(0.1, reportUnit)}
+                  maxWidth={formatUnitValue(5, reportUnit)}
+                  step={fineUnitStep}
+                />
               </Form>
             ),
           } : null,
@@ -631,55 +556,16 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
                   />
                 </Form.Item>
                 <Divider style={{ margin: '4px 0' }} />
-                <div style={{ fontSize: 12, color: '#666', marginBottom: 4 }}>{t('padding')}</div>
-                <Form.Item label={t('top')}>
-                  <InputNumber
-                    aria-label={t('paddingTop')}
-                    value={formatUnitValue(padding.top, reportUnit)}
-                    onChange={(v) => handlePaddingField('top', parseUnitValue(v, reportUnit, padding.top))}
-                    size="small"
-                    disabled={isTextStyleLocked('padding.top')}
-                    style={{ width: '100%' }}
-                    min={0}
-                    step={unitStep}
-                  />
-                </Form.Item>
-                <Form.Item label={t('right')}>
-                  <InputNumber
-                    aria-label={t('paddingRight')}
-                    value={formatUnitValue(padding.right, reportUnit)}
-                    onChange={(v) => handlePaddingField('right', parseUnitValue(v, reportUnit, padding.right))}
-                    size="small"
-                    disabled={isTextStyleLocked('padding.right')}
-                    style={{ width: '100%' }}
-                    min={0}
-                    step={unitStep}
-                  />
-                </Form.Item>
-                <Form.Item label={t('bottom')}>
-                  <InputNumber
-                    aria-label={t('paddingBottom')}
-                    value={formatUnitValue(padding.bottom, reportUnit)}
-                    onChange={(v) => handlePaddingField('bottom', parseUnitValue(v, reportUnit, padding.bottom))}
-                    size="small"
-                    disabled={isTextStyleLocked('padding.bottom')}
-                    style={{ width: '100%' }}
-                    min={0}
-                    step={unitStep}
-                  />
-                </Form.Item>
-                <Form.Item label={t('left')}>
-                  <InputNumber
-                    aria-label={t('paddingLeft')}
-                    value={formatUnitValue(padding.left, reportUnit)}
-                    onChange={(v) => handlePaddingField('left', parseUnitValue(v, reportUnit, padding.left))}
-                    size="small"
-                    disabled={isTextStyleLocked('padding.left')}
-                    style={{ width: '100%' }}
-                    min={0}
-                    step={unitStep}
-                  />
-                </Form.Item>
+                <PaddingEditor
+                  value={padding}
+                  labels={propertyPaddingLabels(t)}
+                  onChange={nextPadding => handleChange('padding', nextPadding)}
+                  disabled={isTextStyleLocked}
+                  formatValue={value => formatUnitValue(value, reportUnit)}
+                  parseValue={(value, fallback) => parseUnitValue(value, reportUnit, fallback)}
+                  min={0}
+                  step={unitStep}
+                />
               </Form>
             ),
           } : null,
@@ -691,8 +577,6 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
             children: (
               <TablePropertyPanel
                 table={normalizeTable(component as TableComponent)}
-                dataSources={dataSources}
-                dataSourceDefinitions={template.dataSources}
                 onChange={updateSelectedTable}
                 t={t}
               />
@@ -1543,6 +1427,54 @@ function chartAggregateOptions(t: ReturnType<typeof createPropertyT>): Array<{ v
   ];
 }
 
+function normalizeOptionalBorder(border?: BorderConfig): BorderConfig | undefined {
+  if (!border) return undefined;
+  const hasSide = Boolean(border.sides?.top || border.sides?.right || border.sides?.bottom || border.sides?.left);
+  if ((border.style == null || border.style === 'none') && !hasSide) {
+    return undefined;
+  }
+  return border;
+}
+
+function normalizeOptionalPadding(padding?: Padding): Padding | undefined {
+  if (!padding) return undefined;
+  return padding.top || padding.right || padding.bottom || padding.left ? padding : undefined;
+}
+
+function propertyBorderLabels(t: ReturnType<typeof createPropertyT>) {
+  return {
+    style: t('borderStyle'),
+    none: t('borderNone'),
+    solid: t('borderSolid'),
+    dashed: t('borderDashed'),
+    dotted: t('borderDotted'),
+    double: t('borderDouble'),
+    width: t('borderWidth'),
+    color: t('borderColor'),
+    sides: t('applySides'),
+    sideLabels: {
+      top: t('top'),
+      right: t('right'),
+      bottom: t('bottom'),
+      left: t('left'),
+    },
+  };
+}
+
+function propertyPaddingLabels(t: ReturnType<typeof createPropertyT>) {
+  return {
+    title: t('padding'),
+    top: t('top'),
+    right: t('right'),
+    bottom: t('bottom'),
+    left: t('left'),
+    ariaTop: t('paddingTop'),
+    ariaRight: t('paddingRight'),
+    ariaBottom: t('paddingBottom'),
+    ariaLeft: t('paddingLeft'),
+  };
+}
+
 const propertyEditorMessages = {
   'zh-CN': {
     selectComponent: '选择组件以编辑属性',
@@ -2035,105 +1967,23 @@ const VerticalAlignGlyph: React.FC<{ position: VerticalAlignment }> = ({ positio
 
 const TablePropertyPanel: React.FC<{
   table: TableComponent;
-  dataSources: string[];
-  dataSourceDefinitions: DataSource[];
   t: ReturnType<typeof createPropertyT>;
   onChange: (updates: {
     rowCount?: number;
     columnCount?: number;
-    headerRowsCount?: number;
-    footerRowsCount?: number;
-    headerHeight?: number;
-    rowHeight?: number;
     canBreak?: boolean;
-    showBorder?: boolean;
-    dataSource?: string;
-    binding?: TableComponent['binding'];
-    columns?: TableColumn[];
   }) => void;
-}> = ({ table, dataSources, dataSourceDefinitions, onChange, t }) => {
-  const binding = table.binding ?? { mode: 'fixed' as const };
-  const source = dataSourceDefinitions.find(item => (
-    item.id === binding.dataSourceId
-    || item.name === binding.dataSourceId
-    || item.name === table.dataSource
-    || item.id === table.dataSource
-  ));
-  const dataSourceOptions = createDataSourceOptions(dataSources, dataSourceDefinitions);
-  const fieldOptions = (source?.schema ?? source?.fields ?? []).map(field => ({
-    value: field.name,
-    label: field.label || field.name,
-  }));
-  const cellTypeOptions: Array<{ value: TableColumn['cellType']; label: string }> = [
-    { value: 'text', label: t('tableCellTypeText') },
-  ];
-  const updateColumn = (index: number, updates: Partial<TableColumn>) => {
-    onChange({
-      columns: table.columns.map((column, columnIndex) => (
-        columnIndex === index ? { ...column, ...updates } : column
-      )),
-    });
-  };
-  const updateBinding = (updates: Partial<NonNullable<TableComponent['binding']>>) => {
-    const next = {
-      ...binding,
-      ...updates,
-      mode: updates.mode ?? binding.mode ?? 'fixed',
-    };
-    onChange({
-      binding: {
-        mode: next.mode,
-        ...(next.dataSourceId ? { dataSourceId: next.dataSourceId } : {}),
-        ...(next.arrayPath ? { arrayPath: next.arrayPath } : {}),
-      },
-    });
-  };
+}> = ({ table, onChange, t }) => {
+  const rowCount = table.rows?.length ?? table.rowCount ?? 1;
+  const columnCount = table.rows?.[0]?.cells.length ?? table.columnCount ?? 1;
 
   return (
     <Space orientation="vertical" size={12} style={{ width: '100%' }}>
       <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-        <Form.Item label={t('tableBindingMode')}>
-          <Segmented
-            aria-label={t('tableBindingMode')}
-            block
-            value={binding.mode ?? 'fixed'}
-            options={[
-              { value: 'fixed', label: t('tableBindingFixed') },
-              { value: 'detail', label: t('tableBindingDetail') },
-            ]}
-            onChange={(value) => updateBinding({ mode: value as NonNullable<TableComponent['binding']>['mode'] })}
-          />
-        </Form.Item>
-        <Form.Item label={t('tableBindingDataSourceId')}>
-          <Select
-            aria-label={t('tableBindingDataSourceId')}
-            value={binding.dataSourceId || undefined}
-            onChange={(value) => updateBinding({
-              dataSourceId: value,
-              arrayPath: value ? arrayPathForDataSource(value, dataSourceDefinitions) : binding.arrayPath,
-            })}
-            size="small"
-            style={{ width: '100%' }}
-            allowClear
-            disabled={(binding.mode ?? 'fixed') !== 'detail'}
-            placeholder={t('chooseDataSource')}
-            options={dataSourceOptions}
-          />
-        </Form.Item>
-        <Form.Item label={t('tableBindingArrayPath')}>
-          <Input
-            aria-label={t('tableBindingArrayPath')}
-            value={binding.arrayPath ?? ''}
-            onChange={(event) => updateBinding({ arrayPath: event.target.value })}
-            size="small"
-            disabled={(binding.mode ?? 'fixed') !== 'detail'}
-            placeholder={t('tableBindingArrayPathPlaceholder')}
-          />
-        </Form.Item>
         <Form.Item label={t('columnCount')}>
           <InputNumber
             aria-label={t('columnCount')}
-            value={table.columnCount ?? table.columns.length}
+            value={columnCount}
             onChange={(value) => onChange({ columnCount: value ?? 1 })}
             size="small"
             style={{ width: '100%' }}
@@ -2144,58 +1994,12 @@ const TablePropertyPanel: React.FC<{
         <Form.Item label={t('rowCount')}>
           <InputNumber
             aria-label={t('rowCount')}
-            value={table.rowCount ?? 3}
+            value={rowCount}
             onChange={(value) => onChange({ rowCount: value ?? 1 })}
             size="small"
             style={{ width: '100%' }}
             min={1}
             step={1}
-          />
-        </Form.Item>
-        <Form.Item label={t('headerRowsCount')}>
-          <InputNumber
-            aria-label={t('headerRowsCount')}
-            value={table.headerRowsCount ?? 1}
-            onChange={(value) => onChange({ headerRowsCount: value ?? 0 })}
-            size="small"
-            style={{ width: '100%' }}
-            min={0}
-            max={table.rowCount ?? 3}
-            step={1}
-          />
-        </Form.Item>
-        <Form.Item label={t('footerRowsCount')}>
-          <InputNumber
-            aria-label={t('footerRowsCount')}
-            value={table.footerRowsCount ?? 0}
-            onChange={(value) => onChange({ footerRowsCount: value ?? 0 })}
-            size="small"
-            style={{ width: '100%' }}
-            min={0}
-            max={table.rowCount ?? 3}
-            step={1}
-          />
-        </Form.Item>
-        <Form.Item label={t('headerHeight')}>
-          <InputNumber
-            aria-label={t('headerHeight')}
-            value={table.headerHeight}
-            onChange={(value) => onChange({ headerHeight: value ?? table.headerHeight })}
-            size="small"
-            style={{ width: '100%' }}
-            min={0.1}
-            step={0.1}
-          />
-        </Form.Item>
-        <Form.Item label={t('rowHeight')}>
-          <InputNumber
-            aria-label={t('rowHeight')}
-            value={table.rowHeight}
-            onChange={(value) => onChange({ rowHeight: value ?? table.rowHeight })}
-            size="small"
-            style={{ width: '100%' }}
-            min={0.1}
-            step={0.1}
           />
         </Form.Item>
         <Form.Item label={t('canBreak')}>
@@ -2206,70 +2010,8 @@ const TablePropertyPanel: React.FC<{
             onChange={(checked) => onChange({ canBreak: checked })}
           />
         </Form.Item>
-        <Form.Item label={t('showBorder')}>
-          <Switch
-            aria-label={t('showBorder')}
-            size="small"
-            checked={table.showBorder}
-            onChange={(checked) => onChange({ showBorder: checked })}
-          />
-        </Form.Item>
       </Form>
 
-      <Divider style={{ margin: '4px 0' }} />
-      <Typography.Text strong>{t('tableColumns')}</Typography.Text>
-      <Space orientation="vertical" size={8} style={{ width: '100%' }}>
-        {table.columns.map((column, index) => (
-          <div key={column.id} style={{ border: '1px solid #f0f0f0', borderRadius: 4, padding: 8 }}>
-            <Typography.Text type="secondary" style={{ display: 'block', marginBottom: 6 }}>
-              {t('tableColumn', { index: index + 1 })}
-            </Typography.Text>
-            <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-              <Form.Item label={t('tableColumnHeader')}>
-                <Input
-                  aria-label={t('tableColumnHeaderAria', { index: index + 1 })}
-                  value={column.header}
-                  onChange={(event) => updateColumn(index, { header: event.target.value })}
-                  size="small"
-                />
-              </Form.Item>
-              <Form.Item label={t('tableColumnField')}>
-                <Input
-                  aria-label={t('tableColumnFieldAria', { index: index + 1 })}
-                  value={column.field}
-                  onChange={(event) => updateColumn(index, { field: event.target.value })}
-                  size="small"
-                  list={`table-column-fields-${column.id}`}
-                />
-                <datalist id={`table-column-fields-${column.id}`}>
-                  {fieldOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-                </datalist>
-              </Form.Item>
-              <Form.Item label={t('tableColumnWidth')}>
-                <InputNumber
-                  aria-label={t('tableColumnWidthAria', { index: index + 1 })}
-                  value={column.width}
-                  onChange={(value) => updateColumn(index, { width: value ?? column.width })}
-                  size="small"
-                  style={{ width: '100%' }}
-                  min={0.1}
-                  step={0.1}
-                />
-              </Form.Item>
-              <Form.Item label={t('tableColumnType')}>
-                <Select
-                  aria-label={t('tableColumnTypeAria', { index: index + 1 })}
-                  value={column.cellType}
-                  onChange={(value) => updateColumn(index, { cellType: value })}
-                  size="small"
-                  style={{ width: '100%' }}
-                  options={cellTypeOptions}
-                />
-              </Form.Item>
-            </Form>
-          </div>
-        ))}
-      </Space>
     </Space>
   );
 };

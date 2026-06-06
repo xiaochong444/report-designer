@@ -1,6 +1,7 @@
 import { evalExpression } from '../expression-engine/evaluator';
 import type { BuiltinFunction } from '../expression-engine/evaluator';
 import type { Band } from '../template-model/types';
+import { isRepeatOnEveryPageBandType } from '../template-model/types';
 import type { BandPlan, DataSectionPlan, LogicalBandItem, RenderContext } from './band-plan';
 
 type BandLogicalItem = Extract<LogicalBandItem, { kind: 'band' }>;
@@ -314,7 +315,7 @@ function getBandBehavior(band: Band): NonNullable<Band['behavior']> {
     enabled: true,
     printOn: 'allPages',
     printIfEmpty: true,
-    printOnAllPages: band.type === 'pageHeader' || band.type === 'pageFooter' || band.type === 'groupHeader',
+    printOnAllPages: isRepeatOnEveryPageBandType(band.type),
     keepTogether: false,
     canBreak: band.type === 'data' || band.type === 'child',
     printAtBottom: band.type === 'pageFooter',

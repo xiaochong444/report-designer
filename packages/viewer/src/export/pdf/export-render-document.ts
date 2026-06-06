@@ -4,6 +4,7 @@ import type { PageBorder, PageWatermark, RenderDocument } from '@report-designer
 import { drawRenderComponent, normalizeFontFamilyKey, type PdfFontSet, type PdfFontVariants } from './pdf-draw-component';
 import { safePdfText } from './pdf-component-rendering';
 import { resolveChartSnapshots } from '../../renderers/chart/chart-snapshot';
+import { printableBorderWidthPt } from '../../renderers/border-width';
 
 const MM_TO_PT = 72 / 25.4;
 
@@ -169,7 +170,7 @@ function hasFamilyFontBytes(sources: PdfExportOptions['fontBytesByFamily']): boo
 
 function drawPageWatermark(page: ReturnType<PDFDocument['addPage']>, pageWidthMm: number, pageHeightMm: number, watermark?: PageWatermark, font?: Awaited<ReturnType<PDFDocument['embedFont']>>): void {
   if (!watermark?.enabled || !watermark.text || !font) return;
-  const text = safePdfText(watermark.text);
+  const text = safePdfText(watermark.text, font);
   const fontSize = watermark.fontSize * MM_TO_PT;
   const textWidth = font.widthOfTextAtSize(text, fontSize);
   const textHeight = font.heightAtSize(fontSize, { descender: false });
@@ -194,7 +195,7 @@ function drawPageBorder(page: ReturnType<PDFDocument['addPage']>, pageWidthMm: n
   const offset = pageBorder.offset * MM_TO_PT;
   const width = pageWidthMm * MM_TO_PT;
   const height = pageHeightMm * MM_TO_PT;
-  const thickness = Math.max(0.5, pageBorder.width * MM_TO_PT);
+  const thickness = printableBorderWidthPt(pageBorder.width);
   const color = parsePdfColor(pageBorder.color);
   const dashArray = pageBorder.style === 'dashed'
     ? [6, 4]
@@ -202,7 +203,7 @@ function drawPageBorder(page: ReturnType<PDFDocument['addPage']>, pageWidthMm: n
       ? [1, 3]
       : undefined;
   if (pageBorder.style === 'double') {
-    drawDoublePageBorder(page, width, height, offset, pageBorder.width * MM_TO_PT, color, pageBorder);
+    drawDoublePageBorder(page, width, height, offset, printableBorderWidthPt(pageBorder.width), color, pageBorder);
     return;
   }
   const insets = [offset];

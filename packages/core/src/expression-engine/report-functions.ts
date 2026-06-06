@@ -17,7 +17,7 @@ export function evaluateReportFunction(
     return ctx.reportRuntime?.totalPages ?? 1;
   }
 
-  if (name === 'RMBUPPER' || name === 'MONEYUPPER' || name === 'CNYUPPER' || name === 'CHINESEMONEY') {
+  if (name === 'RMBUPPER') {
     return formatChineseRmbUppercase(args[0]);
   }
 

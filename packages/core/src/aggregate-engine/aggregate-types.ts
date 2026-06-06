@@ -14,6 +14,7 @@ export type AggregateFunctionName =
 export interface AggregateRuntimeOptions {
   rowsByBand: Record<string, Array<Record<string, unknown>>>;
   pageRowsByBand?: Record<string, Array<Record<string, unknown>>>;
+  defaultDataSourceId?: string;
   pageNumber?: number;
   totalPages?: number;
 }

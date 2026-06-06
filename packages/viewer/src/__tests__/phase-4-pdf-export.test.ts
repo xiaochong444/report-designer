@@ -2,10 +2,22 @@ import { describe, expect, it } from 'vitest';
 import { PDFFont, PDFDocument, PDFPage, StandardFonts } from 'pdf-lib';
 import { vi } from 'vitest';
 import { exportRenderDocumentToPDF } from '../export/pdf/export-render-document';
-import { barcodePattern, dataUrlToUint8Array, stripHtmlToPdfText } from '../export/pdf/pdf-component-rendering';
+import { barcodePattern, dataUrlToUint8Array, safePdfText, stripHtmlToPdfText } from '../export/pdf/pdf-component-rendering';
 import { makeRenderDocument } from './phase-4-helpers';
 
 describe('Phase 4 PDF export', () => {
+  it('keeps Chinese text when the selected PDF font can encode it', () => {
+    const font = { encodeText: vi.fn() };
+
+    expect(safePdfText('销售订单', font)).toBe('销售订单');
+  });
+
+  it('falls back for Chinese text when the selected PDF font cannot encode it', () => {
+    const font = { encodeText: vi.fn(() => { throw new Error('WinAnsi cannot encode'); }) };
+
+    expect(safePdfText('销售订单', font)).toBe('????');
+  });
+
   it('exports a RenderDocument PDF byte array', async () => {
     const bytes = await exportRenderDocumentToPDF(makeRenderDocument());
 
@@ -44,6 +56,117 @@ describe('Phase 4 PDF export', () => {
     expect(drawRectangle).not.toHaveBeenCalled();
 
     drawRectangle.mockRestore();
+  });
+
+  it('draws text component borders by enabled side and aligns text like preview', async () => {
+    const document = makeRenderDocument();
+    const text = document.pages[0].items[0].components[0];
+    if (text.type !== 'text') throw new Error('Expected text component');
+    text.x = 30;
+    text.y = 40;
+    text.width = 60;
+    text.height = 12;
+    text.content = 'Centered';
+    text.style = {
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      border: { style: 'solid', width: 0.2, color: '#1677ff', sides: { top: false, right: false, bottom: true, left: false } },
+      padding: { top: 1, right: 2, bottom: 1, left: 2 },
+      textAlign: 'center',
+      verticalAlign: 'middle',
+    };
+    const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+    const drawLine = vi.spyOn(PDFPage.prototype, 'drawLine');
+
+    await exportRenderDocumentToPDF(document);
+
+    const borderLines = drawLine.mock.calls.filter(([options]) => (
+      options.color?.red === 22 / 255
+      && options.color?.green === 119 / 255
+      && options.color?.blue === 255 / 255
+    ));
+    expect(borderLines).toHaveLength(1);
+    expect(borderLines[0]?.[0]).toEqual(expect.objectContaining({
+      start: { x: expect.closeTo(30 * 72 / 25.4, 2), y: expect.closeTo((297 - 40 - 12) * 72 / 25.4, 2) },
+      end: { x: expect.closeTo((30 + 60) * 72 / 25.4, 2), y: expect.closeTo((297 - 40 - 12) * 72 / 25.4, 2) },
+      thickness: expect.closeTo(0.3 * 72 / 25.4, 2),
+    }));
+    expect(drawRectangle.mock.calls.some(([options]) => options.borderColor?.red === 22 / 255)).toBe(false);
+
+    const textCall = drawText.mock.calls.find(([value]) => value === 'Centered');
+    const textOptions = textCall?.[1];
+    const mmToPt = 72 / 25.4;
+    const maxWidth = (60 - 4) * mmToPt;
+    const expectedTextX = 30 * mmToPt + 2 * mmToPt + Math.max(0, maxWidth - textOptions!.font.widthOfTextAtSize('Centered', 10)) / 2;
+    const expectedTextY = (297 - 40 - 12) * mmToPt + (12 * mmToPt - 10) / 2;
+    expect(textOptions?.x).toBeCloseTo(expectedTextX, 1);
+    expect(textOptions?.y).toBeCloseTo(expectedTextY, 1);
+    expect(textOptions?.maxWidth).toBeCloseTo(maxWidth, 1);
+
+    drawRectangle.mockRestore();
+    drawText.mockRestore();
+    drawLine.mockRestore();
+  });
+
+  it('centers rasterized Chinese text by its measured visual width when exporting PDF', async () => {
+    const restoreCanvas = mockCanvasTextMeasurement((text) => text.length * 13 * 3);
+    const document = makeRenderDocument();
+    const text = document.pages[0].items[0].components[0];
+    if (text.type !== 'text') throw new Error('Expected text component');
+    text.x = 151;
+    text.y = 1;
+    text.width = 28;
+    text.height = 8;
+    text.content = '已审核';
+    text.style = {
+      font: { family: 'Microsoft YaHei', size: 13, bold: true, italic: false, underline: false, strikethrough: false, color: '#ff0000' },
+      textAlign: 'center',
+      verticalAlign: 'middle',
+    };
+    const drawImage = vi.spyOn(PDFPage.prototype, 'drawImage');
+
+    try {
+      await exportRenderDocumentToPDF(document);
+
+      const imageOptions = drawImage.mock.calls[0]?.[1];
+      const mmToPt = 72 / 25.4;
+      const expectedTextWidth = 39;
+      expect(imageOptions?.x).toBeCloseTo(151 * mmToPt + (28 * mmToPt - expectedTextWidth) / 2, 1);
+      expect(imageOptions?.width).toBeCloseTo(expectedTextWidth, 1);
+    } finally {
+      drawImage.mockRestore();
+      restoreCanvas();
+    }
+  });
+
+  it('wraps rasterized Chinese text to multiple PDF lines like the preview text box', async () => {
+    const restoreCanvas = mockCanvasTextMeasurement((text) => text.length * 10 * 3);
+    const document = makeRenderDocument();
+    const text = document.pages[0].items[0].components[0];
+    if (text.type !== 'text') throw new Error('Expected text component');
+    text.x = 166;
+    text.y = 23;
+    text.width = 28;
+    text.height = 10;
+    text.content = '江苏省南京市雨花台区';
+    text.style = {
+      font: { family: 'Microsoft YaHei', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'left',
+      verticalAlign: 'top',
+    };
+    const drawImage = vi.spyOn(PDFPage.prototype, 'drawImage');
+
+    try {
+      await exportRenderDocumentToPDF(document);
+
+      const textImages = drawImage.mock.calls.map(([, options]) => options);
+      expect(textImages).toHaveLength(2);
+      expect(textImages[0]?.width).toBeLessThanOrEqual(28 * 72 / 25.4);
+      expect(textImages[1]?.y).toBeLessThan(textImages[0]?.y ?? 0);
+    } finally {
+      drawImage.mockRestore();
+      restoreCanvas();
+    }
   });
 
   it('falls back from invalid page appearance PDF colors without NaN channels', async () => {
@@ -367,7 +490,13 @@ describe('Phase 4 PDF export', () => {
     const totalBorderWidth = 0.9 * 72 / 25.4;
     const topLines = drawLine.mock.calls
       .map(([options]) => options)
-      .filter((options) => Math.abs(options.start.y - options.end.y) < 0.01 && options.start.y > pageHeight / 2)
+      .filter((options) => (
+        Math.abs(options.start.y - options.end.y) < 0.01
+        && options.start.y > pageHeight / 2
+        && options.color?.red === 22 / 255
+        && options.color?.green === 119 / 255
+        && options.color?.blue === 255 / 255
+      ))
       .sort((a, b) => b.start.y - a.start.y);
     expect(topLines).toHaveLength(2);
     expect(topLines[0].thickness).toBeCloseTo(totalBorderWidth / 3, 2);
@@ -611,7 +740,7 @@ describe('Phase 4 PDF export', () => {
     drawText.mockRestore();
   });
 
-  it('draws a dashed PDF table outline when table borders are disabled', async () => {
+  it('does not draw fallback PDF table lines from showBorder', async () => {
     const document = makeRenderDocument();
     document.pages[0].items[0].components.push({
       id: 'table-disabled-border',
@@ -625,9 +754,10 @@ describe('Phase 4 PDF export', () => {
         [{ row: 0, column: 0, content: 'No border', rowSpan: 1, colSpan: 1, height: 8 }],
       ],
       showBorder: false,
-      style: {},
+      style: { border: { style: 'solid', width: 0.2, color: '#8c8c8c', sides: { top: true, right: true, bottom: true, left: true } } },
     });
     const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+    const drawLine = vi.spyOn(PDFPage.prototype, 'drawLine');
 
     await exportRenderDocumentToPDF(document);
 
@@ -636,9 +766,21 @@ describe('Phase 4 PDF export', () => {
       && options.borderColor?.green === 217 / 255
       && options.borderColor?.blue === 217 / 255
       && JSON.stringify(options.borderDashArray) === '[6,4]'
-    ))).toBe(true);
+    ))).toBe(false);
+    expect(drawRectangle.mock.calls.some(([options]) => (
+      options.borderColor?.red === 140 / 255
+      && options.borderColor?.green === 140 / 255
+      && options.borderColor?.blue === 140 / 255
+    ))).toBe(false);
+    expect(drawLine.mock.calls.some(([options]) => (
+      options.color?.red === 217 / 255
+      && options.color?.green === 217 / 255
+      && options.color?.blue === 217 / 255
+      && JSON.stringify(options.dashArray) === '[6,4]'
+    ))).toBe(false);
 
     drawRectangle.mockRestore();
+    drawLine.mockRestore();
   });
 
   it('draws PDF shape variants with matching fill and border styles', async () => {
@@ -693,3 +835,34 @@ describe('Phase 4 PDF export', () => {
     drawRectangle.mockRestore();
   });
 });
+
+function mockCanvasTextMeasurement(measure: (text: string) => number): () => void {
+  const originalCreateElement = document.createElement.bind(document);
+  const context = {
+    font: '',
+    fillStyle: '',
+    strokeStyle: '',
+    lineWidth: 1,
+    textBaseline: 'alphabetic',
+    beginPath: vi.fn(),
+    clearRect: vi.fn(),
+    fillText: vi.fn(),
+    lineTo: vi.fn(),
+    measureText: vi.fn((text: string) => ({ width: measure(text) })),
+    moveTo: vi.fn(),
+    scale: vi.fn(),
+    stroke: vi.fn(),
+  };
+  const canvas = {
+    width: 0,
+    height: 0,
+    getContext: vi.fn(() => context),
+    toDataURL: vi.fn(() => 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lxwQ2wAAAABJRU5ErkJggg=='),
+  };
+  const createElement = vi.spyOn(document, 'createElement').mockImplementation(((tagName: string, options?: ElementCreationOptions) => {
+    if (tagName.toLowerCase() === 'canvas') return canvas as unknown as HTMLCanvasElement;
+    return originalCreateElement(tagName, options);
+  }) as typeof document.createElement);
+
+  return () => createElement.mockRestore();
+}

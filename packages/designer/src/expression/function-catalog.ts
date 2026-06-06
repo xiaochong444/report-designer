@@ -42,6 +42,12 @@ export const EXPRESSION_FUNCTION_CATEGORIES: Array<{ key: ExpressionFunctionCate
   { key: 'format', labelKey: 'expressionEditor.category.format' },
 ];
 
+export const FUNCTION_FOLDER_LABELS: Partial<Record<ExpressionFunctionCategory, string>> = {
+  aggregate: 'expressionEditor.tree.aggregateFunctions',
+  logic: 'expressionEditor.tree.logicFunctions',
+  money: 'expressionEditor.tree.moneyFunctions',
+};
+
 function fn(
   name: string,
   category: ExpressionFunctionCategory,
@@ -121,9 +127,6 @@ export const EXPRESSION_FUNCTIONS: ExpressionFunctionMeta[] = [
   fn('ROWINDEX', 'report', '返回当前数据行的从零开始索引', 'Returns the zero-based index of the current data row.', 'ROWINDEX()', 'ROWINDEX()', ['ROWINDEX()']),
 
   fn('RMBUPPER', 'money', '将金额转换为人民币中文大写', 'Converts an amount to uppercase Chinese RMB text.', 'RMBUPPER(value)', 'RMBUPPER(${1:value})', ['RMBUPPER({Orders.Amount})']),
-  fn('MONEYUPPER', 'money', '将金额转换为中文大写金额文本', 'Converts an amount to uppercase Chinese money text.', 'MONEYUPPER(value)', 'MONEYUPPER(${1:value})', ['MONEYUPPER({Orders.Amount})']),
-  fn('CNYUPPER', 'money', '将金额转换为人民币中文大写文本', 'Converts an amount to uppercase Chinese CNY text.', 'CNYUPPER(value)', 'CNYUPPER(${1:value})', ['CNYUPPER({Orders.Amount})']),
-  fn('CHINESEMONEY', 'money', '人民币中文大写金额函数别名', 'Alias for uppercase Chinese money formatting.', 'CHINESEMONEY(value)', 'CHINESEMONEY(${1:value})', ['CHINESEMONEY({Orders.Amount})']),
 
   fn('FORMAT', 'format', '按指定格式化模式输出值', 'Formats a value with the specified format pattern.', 'FORMAT(pattern, value)', 'FORMAT("${1:N2}", ${2:value})', ['FORMAT("C", {Orders.Amount})']),
 ];

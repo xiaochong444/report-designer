@@ -99,7 +99,7 @@ describe('template-model', () => {
       expect(result.valid).toBe(false);
     });
 
-    it('should fail for table detail binding that references a missing data source', () => {
+    it('should fail for data band without a data source when data sources exist', () => {
       const template = createDefaultTemplate();
       template.dataSources = [{ id: 'orders', name: 'Orders', type: 'json', fields: [] }];
       const table: TableComponent = {
@@ -109,15 +109,12 @@ describe('template-model', () => {
         y: 0,
         width: 80,
         height: 30,
-        dataSource: '',
-        binding: { mode: 'detail', dataSourceId: 'orders.items', arrayPath: 'items' },
-        columns: [{ id: 'c1', header: 'Name', field: 'name', width: 80, cellType: 'text' }],
-        rowCount: 2,
+        rows: [{
+          id: 'row-1',
+          height: 8,
+          cells: [{ id: 'cell-1', text: '{orders.name}' }],
+        }],
         columnCount: 1,
-        headerRowsCount: 1,
-        footerRowsCount: 0,
-        headerHeight: 8,
-        rowHeight: 8,
         showBorder: true,
       };
       template.pages[0].bands[2].components.push(table);
@@ -126,16 +123,14 @@ describe('template-model', () => {
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(expect.objectContaining({
-        path: 'pages[0].bands[2].components[0].binding.dataSourceId',
+        path: 'pages[0].bands[2].dataBand.dataSourceId',
       }));
     });
 
-    it('should fail for child table detail binding without the relative array path', () => {
+    it('should fail for data band that references a missing data source', () => {
       const template = createDefaultTemplate();
-      template.dataSources = [
-        { id: 'orders', name: 'Orders', type: 'json', path: 'orders', fields: [] },
-        { id: 'orders.items', name: 'Items', type: 'json', path: 'orders.items', parentSourceId: 'orders', parentPath: 'orders.items', fields: [] },
-      ];
+      template.dataSources = [{ id: 'orders', name: 'Orders', type: 'json', fields: [] }];
+      template.pages[0].bands[2].dataBand = { dataSourceId: 'orders.items' };
       const table: TableComponent = {
         id: 'table-1',
         type: 'table',
@@ -143,15 +138,12 @@ describe('template-model', () => {
         y: 0,
         width: 80,
         height: 30,
-        dataSource: '',
-        binding: { mode: 'detail', dataSourceId: 'orders.items' },
-        columns: [{ id: 'c1', header: 'Name', field: 'name', width: 80, cellType: 'text' }],
-        rowCount: 2,
+        rows: [{
+          id: 'row-1',
+          height: 8,
+          cells: [{ id: 'cell-1', text: '{orders.items.name}' }],
+        }],
         columnCount: 1,
-        headerRowsCount: 1,
-        footerRowsCount: 0,
-        headerHeight: 8,
-        rowHeight: 8,
         showBorder: true,
       };
       template.pages[0].bands[2].components.push(table);
@@ -160,7 +152,7 @@ describe('template-model', () => {
 
       expect(result.valid).toBe(false);
       expect(result.errors).toContainEqual(expect.objectContaining({
-        path: 'pages[0].bands[2].components[0].binding.arrayPath',
+        path: 'pages[0].bands[2].dataBand.dataSourceId',
       }));
     });
   });

@@ -1,5 +1,5 @@
 import { DEFAULT_REPORT_FONTS } from '../fonts';
-import type { Band, ReportStyle, ReportTemplate, Page, PageBorder, PageWatermark } from './types';
+import { isRepeatOnEveryPageBandType, type Band, type ReportStyle, type ReportTemplate, type Page, type PageBorder, type PageWatermark } from './types';
 
 let idCounter = 0;
 function uid(): string {
@@ -164,7 +164,7 @@ function createBandBehavior(type: Band['type']): Band['behavior'] {
     enabled: true,
     printOn: 'allPages',
     printIfEmpty: true,
-    printOnAllPages: type === 'pageHeader' || type === 'pageFooter' || type === 'groupHeader',
+    printOnAllPages: isRepeatOnEveryPageBandType(type),
     keepTogether: false,
     canBreak: type === 'data' || type === 'child',
     printAtBottom: type === 'pageFooter',

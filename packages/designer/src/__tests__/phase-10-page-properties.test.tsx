@@ -31,6 +31,13 @@ Object.defineProperty(window, 'ResizeObserver', {
   value: ResizeObserverMock,
 });
 
+function expandReportRoot() {
+  const root = screen.getByTestId('report-tree-root');
+  const switcher = root.closest('.ant-tree-treenode')?.querySelector<HTMLElement>('.ant-tree-switcher');
+  expect(switcher).toBeTruthy();
+  fireEvent.click(switcher!);
+}
+
 describe('Phase 10 page properties', () => {
   it('shows page settings when no component or band is selected', () => {
     render(<Designer template={createDefaultTemplate('Page Properties')} locale="en-US" />);
@@ -96,6 +103,7 @@ describe('Phase 10 page properties', () => {
     const nameInput = within(pageProperties).getByLabelText('页面名称');
     fireEvent.change(nameInput, { target: { value: '封面页' } });
 
+    expandReportRoot();
     expect(within(screen.getByTestId('designer-left-panel')).getByText('封面页')).toBeInTheDocument();
   });
 
@@ -130,6 +138,7 @@ describe('Phase 10 page properties', () => {
     fireEvent.change(within(dialog).getByLabelText('背景色'), { target: { value: '#fff7e6' } });
     fireEvent.click(within(dialog).getByRole('button', { name: /应\s*用/ }));
 
+    expandReportRoot();
     expect(within(screen.getByTestId('designer-left-panel')).getByText('明细页')).toBeInTheDocument();
     expect(screen.getByTestId('designer-page-sheet')).toHaveStyle({ backgroundColor: '#fff7e6' });
   });

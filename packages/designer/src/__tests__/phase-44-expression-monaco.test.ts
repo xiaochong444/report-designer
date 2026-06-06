@@ -72,7 +72,7 @@ describe('phase 44 expression monaco helpers', () => {
           insertTextRules: monaco.languages.CompletionItemInsertTextRule.InsertAsSnippet,
         }),
         expect.objectContaining({
-          label: '{Orders.Amount}',
+          label: 'Orders.Amount',
           detail: 'Order Amount',
           kind: monaco.languages.CompletionItemKind.Field,
           insertText: '{Orders.Amount}',

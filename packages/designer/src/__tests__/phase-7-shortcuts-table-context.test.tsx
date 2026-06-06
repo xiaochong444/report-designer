@@ -8,6 +8,7 @@ import { createDefaultTemplate } from '@report-designer/core';
 import { Canvas } from '../components/Canvas';
 import { PropertyEditor } from '../components/PropertyEditor';
 import { useDesignerStore } from '../store/designer-store';
+import { normalizeTable } from '../table/table-structure';
 
 function loadWith(component: ReportComponent) {
   const template = createDefaultTemplate('Shortcut Contract');
@@ -27,6 +28,10 @@ function loadWith(component: ReportComponent) {
 
 function selectedComponent() {
   return useDesignerStore.getState().template.pages[0].bands.flatMap(band => band.components)[0] as any;
+}
+
+function selectedCell(row: number, column: number) {
+  return normalizeTable(selectedComponent() as TableComponent).rows?.[row]?.cells[column];
 }
 
 function clickCell(row: number, column: number) {
@@ -98,7 +103,7 @@ describe('Phase 7 designer shortcuts and table context menu', () => {
 
     const table = selectedComponent();
     expect(table.columnCount).toBe(2);
-    expect(table.columns).toHaveLength(2);
+    expect(table.rows?.[0]?.cells).toHaveLength(2);
   });
 
   it('clears the selected table cell on Delete without deleting the table', () => {
@@ -128,13 +133,12 @@ describe('Phase 7 designer shortcuts and table context menu', () => {
 
     let table = selectedComponent() as TableComponent;
     expect(table.type).toBe('table');
-    expect(table.cells?.find(cell => cell.row === 1 && cell.column === 0)?.text).toBeUndefined();
+    expect(selectedCell(1, 0)?.text).toBeUndefined();
 
     act(() => {
       useDesignerStore.getState().undo();
     });
-    table = selectedComponent() as TableComponent;
-    expect(table.cells?.find(cell => cell.row === 1 && cell.column === 0)?.text).toBe('Employee Name');
+    expect(selectedCell(1, 0)?.text).toBe('Employee Name');
   });
 
   it('edits table column count from the property panel', () => {
@@ -162,10 +166,10 @@ describe('Phase 7 designer shortcuts and table context menu', () => {
 
     const table = selectedComponent();
     expect(table.columnCount).toBe(3);
-    expect(table.columns).toHaveLength(3);
+    expect(table.rows?.[0]?.cells).toHaveLength(3);
   });
 
-  it('edits table row heights and column definitions from the property panel', () => {
+  it('edits table structure from the property panel without old column definition controls', () => {
     loadWith({
       id: 'table-3',
       type: 'table',
@@ -186,21 +190,16 @@ describe('Phase 7 designer shortcuts and table context menu', () => {
     } as ReportComponent);
 
     render(<PropertyEditor />);
-    fireEvent.change(screen.getByLabelText('表头高度'), { target: { value: '12' } });
-    fireEvent.change(screen.getByLabelText('明细行高'), { target: { value: '9' } });
+    fireEvent.change(screen.getByLabelText('行数'), { target: { value: '4' } });
+    fireEvent.change(screen.getByLabelText('列数'), { target: { value: '3' } });
     expect(screen.queryByLabelText('交替行样式')).not.toBeInTheDocument();
-    fireEvent.change(screen.getByLabelText('第 1 列标题'), { target: { value: 'Employee' } });
-    fireEvent.change(screen.getByLabelText('第 1 列字段'), { target: { value: 'salary' } });
-    fireEvent.change(screen.getByLabelText('第 1 列宽度'), { target: { value: '55' } });
+    expect(screen.queryByLabelText('表头高度')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('第 1 列标题')).not.toBeInTheDocument();
 
     const table = selectedComponent();
-    expect(table.headerHeight).toBe(12);
-    expect(table.rowHeight).toBe(9);
-    expect(table.columns[0]).toMatchObject({
-      header: 'Employee',
-      field: 'salary',
-      width: 55,
-      cellType: 'text',
-    });
+    expect(table.rowCount).toBe(4);
+    expect(table.columnCount).toBe(3);
+    expect(table.rows).toHaveLength(4);
+    expect(table.rows[0].cells).toHaveLength(3);
   });
 });

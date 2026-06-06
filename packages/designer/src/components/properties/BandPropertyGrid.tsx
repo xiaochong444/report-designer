@@ -2,6 +2,7 @@ import React from 'react';
 import { Button, Collapse, ColorPicker, Form, Input, InputNumber, Modal, Select, Space, Switch, Typography } from 'antd';
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
 import type { BandPrintOn, DataBandOptions, DataField, GroupBandOptions } from '@report-designer/core';
+import { isRepeatOnEveryPageBandType } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../../page-settings';
 import { useDesignerI18n, type DesignerMessageKey } from '../../i18n';
@@ -61,7 +62,7 @@ export const BandPropertyGrid: React.FC<{ expressionExtensions?: ExpressionCatal
     enabled: true,
     printOn: 'allPages' as const,
     printIfEmpty: true,
-    printOnAllPages: band.type === 'pageHeader' || band.type === 'pageFooter' || band.type === 'groupHeader',
+    printOnAllPages: isRepeatOnEveryPageBandType(band.type),
     printAtBottom: band.type === 'pageFooter',
     autoGrow: true,
     autoShrink: false,

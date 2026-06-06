@@ -156,42 +156,8 @@ export const DesignerRibbon: React.FC = () => {
     state.selectComponents([component.id]);
   };
 
-  const createId = (prefix: string) => `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
-
-  const createTableComponent = (): ReportComponent => {
-    const state = useDesignerStore.getState();
-    const dataSource = state.template.dataSources[0];
-    const sourceFields = dataSource?.schema ?? dataSource?.fields ?? [];
-    const columns = (sourceFields.length ? sourceFields.slice(0, 3) : [
-      { name: 'field1', type: 'string' as const, label: t('ribbon.defaultField', { index: 1 }) },
-      { name: 'field2', type: 'string' as const, label: t('ribbon.defaultField', { index: 2 }) },
-      { name: 'field3', type: 'string' as const, label: t('ribbon.defaultField', { index: 3 }) },
-    ]).map((field, index) => ({
-      id: createId(`col_${index + 1}`),
-      header: field.label || field.name || t('ribbon.defaultField', { index: index + 1 }),
-      field: field.name,
-      width: 30,
-      cellType: 'text' as const,
-    }));
-
-    return {
-      ...createDefaultComponent('table', 10, 8),
-      width: Math.max(60, columns.length * 30),
-      height: 36,
-      dataSource: dataSource?.id || '',
-      columns,
-      rowCount: 3,
-      columnCount: columns.length,
-      headerRowsCount: 1,
-      footerRowsCount: 0,
-      headerHeight: 8,
-      rowHeight: 8,
-      showBorder: true,
-    } as ReportComponent;
-  };
-
   const createRibbonComponent = (type: ComponentType): ReportComponent => (
-    type === 'table' ? createTableComponent() : createDefaultComponent(type, 10, 8)
+    createDefaultComponent(type, 10, 8)
   );
 
   const addComponentType = (type: ComponentType) => addComponentToCurrentBand(createRibbonComponent(type));

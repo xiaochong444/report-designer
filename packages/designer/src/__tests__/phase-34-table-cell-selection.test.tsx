@@ -41,6 +41,16 @@ function loadWith(component: ReportComponent) {
   useDesignerStore.getState().loadTemplate(template);
 }
 
+function tableById(id = 'table-1') {
+  return useDesignerStore.getState().template.pages[0].bands
+    .flatMap(band => band.components)
+    .find(component => component.id === id) as TableComponent;
+}
+
+function tableCell(row: number, column: number, id = 'table-1') {
+  return tableById(id).rows?.[row]?.cells[column];
+}
+
 function clickCell(row: number, column: number, shiftKey = false) {
   const cell = screen.getByTestId(`designer-table-cell-${row}-${column}`);
   Object.defineProperty(document, 'elementFromPoint', {
@@ -102,10 +112,7 @@ describe('phase 34 table cell selection', () => {
     clickCell(1, 1);
     fireEvent.change(screen.getByLabelText('文本内容'), { target: { value: 'Total' } });
 
-    const table = useDesignerStore.getState().template.pages[0].bands
-      .flatMap(band => band.components)
-      .find(component => component.id === 'table-1') as TableComponent;
-    expect(table.cells).toContainEqual({ row: 1, column: 1, text: 'Total' });
+    expect(tableCell(1, 1)?.text).toBe('Total');
   });
 
   it('updates selected table cell appearance from the property panel', () => {
@@ -121,12 +128,68 @@ describe('phase 34 table cell selection', () => {
     fireEvent.change(screen.getByLabelText('边框宽度'), { target: { value: '0.4' } });
     fireEvent.change(screen.getByLabelText('上'), { target: { value: '2' } });
 
-    const table = useDesignerStore.getState().template.pages[0].bands
-      .flatMap(band => band.components)
-      .find(component => component.id === 'table-1') as TableComponent;
-    expect(table.cells?.find(cell => cell.row === 1 && cell.column === 1)).toMatchObject({
+    expect(tableCell(1, 1)).toMatchObject({
       border: { width: 0.4 },
       padding: { top: 2 },
+    });
+  });
+
+  it('shows unset table cell border and padding as blank editor defaults without writing inherited values', () => {
+    loadWith(tableComponent());
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 1);
+
+    expect((screen.getByLabelText('边框宽度') as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('上') as HTMLInputElement).value).toBe('');
+    expect(screen.getByLabelText('边框上边')).not.toBeChecked();
+    expect(screen.getByLabelText('边框右边')).not.toBeChecked();
+    expect(screen.getByLabelText('边框下边')).not.toBeChecked();
+    expect(screen.getByLabelText('边框左边')).not.toBeChecked();
+    expect(screen.getByText('应用边')).toBeInTheDocument();
+    expect(screen.queryByText('边框边')).not.toBeInTheDocument();
+    expect(screen.getByTestId('border-editor-sides')).toHaveStyle({ flexWrap: 'nowrap' });
+    expect(tableCell(1, 1)?.border).toBeUndefined();
+    expect(tableCell(1, 1)?.padding).toBeUndefined();
+  });
+
+  it('updates selected table cell border sides independently', () => {
+    loadWith(tableComponent());
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 1);
+    fireEvent.click(screen.getByLabelText('边框左边'));
+
+    expect(tableCell(1, 1)?.border?.sides).toMatchObject({
+      top: false,
+      right: false,
+      bottom: false,
+      left: true,
+    });
+  });
+
+  it('updates selected table row border sides independently', () => {
+    loadWith(tableComponent());
+    useDesignerStore.getState().selectTableRow({ tableId: 'table-1', bandId: useDesignerStore.getState().template.pages[0].bands.find(band => band.type === 'data')!.id, row: 1 });
+    render(<DesignerPropertyPanel />);
+
+    fireEvent.click(screen.getByLabelText('边框上边'));
+
+    expect(tableById().rows?.[1].border?.sides).toMatchObject({
+      top: true,
+      right: false,
+      bottom: false,
+      left: false,
     });
   });
 
@@ -150,8 +213,16 @@ describe('phase 34 table cell selection', () => {
       backgroundColor: '#fffbe6',
       textAlign: 'right',
       alignItems: 'center',
+    });
+    expect(screen.getByTestId('designer-table-border-line-1-1-right')).toHaveStyle({
+      borderLeftStyle: 'dashed',
+      borderLeftColor: '#faad14',
+      zIndex: '3',
+    });
+    expect(screen.getByTestId('designer-table-border-line-1-1-bottom')).toHaveStyle({
       borderTopStyle: 'dashed',
       borderTopColor: '#faad14',
+      zIndex: '3',
     });
   });
 
@@ -168,10 +239,12 @@ describe('phase 34 table cell selection', () => {
     clickCell(2, 2, true);
     fireEvent.change(screen.getByLabelText('边框宽度'), { target: { value: '0.5' } });
 
-    const table = useDesignerStore.getState().template.pages[0].bands
-      .flatMap(band => band.components)
-      .find(component => component.id === 'table-1') as TableComponent;
-    expect(table.cells?.filter(cell => cell.border?.width === 0.5).map(cell => `${cell.row}-${cell.column}`).sort()).toEqual([
+    const updatedCells = tableById().rows
+      ?.flatMap((row, rowIndex) => row.cells.map((cell, columnIndex) => ({ cell, key: `${rowIndex}-${columnIndex}` })))
+      .filter(item => item.cell.border?.width === 0.5)
+      .map(item => item.key)
+      .sort();
+    expect(updatedCells).toEqual([
       '1-0',
       '1-1',
       '1-2',
@@ -198,10 +271,7 @@ describe('phase 34 table cell selection', () => {
     fireEvent.click(screen.getByRole('button', { name: '下划线' }));
     fireEvent.click(screen.getByRole('button', { name: '删除线' }));
 
-    const table = useDesignerStore.getState().template.pages[0].bands
-      .flatMap(band => band.components)
-      .find(component => component.id === 'table-1') as TableComponent;
-    expect(table.cells?.find(cell => cell.row === 1 && cell.column === 1)?.font).toMatchObject({
+    expect(tableCell(1, 1)?.font).toMatchObject({
       size: 14,
       color: '#112233',
       bold: true,

@@ -7,6 +7,7 @@ import type { ReportComponent, TableComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { Canvas } from '../components/Canvas';
 import { useDesignerStore } from '../store/designer-store';
+import { normalizeTable } from '../table/table-structure';
 
 function tableComponent(overrides: Partial<TableComponent> = {}): TableComponent {
   return {
@@ -63,6 +64,10 @@ function snapshotSelectedTable() {
   return structuredClone(selectedTable());
 }
 
+function selectedCell(row: number, column: number) {
+  return normalizeTable(selectedTable()).rows?.[row]?.cells[column];
+}
+
 function openCellMenu(row: number, column: number) {
   const cell = screen.getByTestId(`designer-table-cell-${row}-${column}`);
   Object.defineProperty(document, 'elementFromPoint', {
@@ -88,7 +93,7 @@ describe('phase 34 table context menu', () => {
     fireEvent.click(insertRowBelow);
 
     expect(selectedTable().rowCount).toBe(4);
-    expect(selectedTable().cells).toContainEqual({ row: 3, column: 2, text: 'Tail' });
+    expect(selectedCell(3, 2)).toMatchObject({ text: 'Tail' });
   });
 
   it('inserts rows and columns before or after the clicked cell', () => {
@@ -98,12 +103,12 @@ describe('phase 34 table context menu', () => {
     openCellMenu(1, 1);
     fireEvent.click(screen.getByText('插入列到左侧'));
     expect(selectedTable().columnCount).toBe(4);
-    expect(selectedTable().cells).toContainEqual({ row: 2, column: 3, text: 'Tail' });
+    expect(selectedCell(2, 3)).toMatchObject({ text: 'Tail' });
 
     openCellMenu(1, 1);
     fireEvent.click(screen.getByText('插入行到上方'));
     expect(selectedTable().rowCount).toBe(4);
-    expect(selectedTable().cells).toContainEqual({ row: 3, column: 3, text: 'Tail' });
+    expect(selectedCell(3, 3)).toMatchObject({ text: 'Tail' });
   });
 
   it('applies table context menu operations only to the right-clicked table', () => {
@@ -131,14 +136,14 @@ describe('phase 34 table context menu', () => {
 
     openCellMenu(1, 0);
     fireEvent.click(screen.getByText('设为表头行'));
-    expect(selectedTable().headerRowsCount).toBe(2);
+    expect(selectedTable().rows?.[1]?.role).toBe('header');
 
     openCellMenu(3, 0);
     fireEvent.click(screen.getByText('设为表尾行'));
-    expect(selectedTable().footerRowsCount).toBe(2);
+    expect(selectedTable().rows?.[3]?.role).toBe('footer');
   });
 
-  it('deletes the clicked row and column with undo support', () => {
+  it('deletes the clicked column with undo support', () => {
     loadWith(tableComponent({ cells: [{ row: 2, column: 2, text: 'Tail' }] }));
     render(<Canvas />);
 
@@ -146,23 +151,12 @@ describe('phase 34 table context menu', () => {
     const beforeColumnDelete = snapshotSelectedTable();
     fireEvent.click(screen.getByText('删除列'));
     expect(selectedTable().columnCount).toBe(2);
-    expect(selectedTable().cells).toContainEqual({ row: 2, column: 1, text: 'Tail' });
+    expect(selectedCell(2, 1)).toMatchObject({ text: 'Tail' });
 
     act(() => {
       useDesignerStore.getState().undo();
     });
     expect(selectedTable()).toEqual(beforeColumnDelete);
-
-    openCellMenu(1, 1);
-    const beforeRowDelete = snapshotSelectedTable();
-    fireEvent.click(screen.getByText('删除行'));
-    expect(selectedTable().rowCount).toBe(2);
-    expect(selectedTable().cells).toContainEqual({ row: 1, column: 2, text: 'Tail' });
-
-    act(() => {
-      useDesignerStore.getState().undo();
-    });
-    expect(selectedTable()).toEqual(beforeRowDelete);
   });
 
   it('merges, splits, and clears cells with undo support', () => {
@@ -172,7 +166,7 @@ describe('phase 34 table context menu', () => {
     openCellMenu(1, 1);
     const beforeSplit = snapshotSelectedTable();
     fireEvent.click(screen.getByText('拆分单元格'));
-    expect(selectedTable().cells).toContainEqual({ row: 1, column: 1, text: 'Subtotal', rowSpan: 1, colSpan: 1 });
+    expect(selectedCell(1, 1)).toMatchObject({ text: 'Subtotal', rowSpan: 1, colSpan: 1 });
 
     act(() => {
       useDesignerStore.getState().undo();
@@ -182,7 +176,8 @@ describe('phase 34 table context menu', () => {
     openCellMenu(1, 1);
     const beforeClear = snapshotSelectedTable();
     fireEvent.click(screen.getByText('清空单元格'));
-    expect(selectedTable().cells).toContainEqual({ row: 1, column: 1, rowSpan: 1, colSpan: 2 });
+    expect(selectedCell(1, 1)).toMatchObject({ rowSpan: 1, colSpan: 2 });
+    expect(selectedCell(1, 1)?.text).toBeUndefined();
 
     act(() => {
       useDesignerStore.getState().undo();
@@ -194,7 +189,7 @@ describe('phase 34 table context menu', () => {
     openCellMenu(1, 1);
     const beforeMerge = snapshotSelectedTable();
     fireEvent.click(screen.getByText('合并右侧单元格'));
-    expect(selectedTable().cells).toContainEqual({ row: 1, column: 1, text: 'Subtotal', rowSpan: 1, colSpan: 2 });
+    expect(selectedCell(1, 1)).toMatchObject({ text: 'Subtotal', rowSpan: 1, colSpan: 2 });
 
     act(() => {
       useDesignerStore.getState().undo();

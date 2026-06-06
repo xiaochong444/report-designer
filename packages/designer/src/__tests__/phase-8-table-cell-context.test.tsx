@@ -47,6 +47,10 @@ function selectedTable() {
   return useDesignerStore.getState().template.pages[0].bands.flatMap(band => band.components)[0] as TableComponent;
 }
 
+function selectedCell(row: number, column: number) {
+  return selectedTable().rows?.[row]?.cells[column];
+}
+
 function openCellMenu(row: number, column: number) {
   const cell = screen.getByTestId(`designer-table-cell-${row}-${column}`);
   Object.defineProperty(document, 'elementFromPoint', {
@@ -63,15 +67,16 @@ describe('Phase 8 table cell context menu', () => {
 
     openCellMenu(1, 1);
     fireEvent.click(screen.getByText('合并右侧单元格'));
-    expect(selectedTable().cells).toContainEqual({ row: 1, column: 1, text: 'Subtotal', rowSpan: 1, colSpan: 2 });
+    expect(selectedCell(1, 1)).toMatchObject({ text: 'Subtotal', rowSpan: 1, colSpan: 2 });
 
     openCellMenu(1, 1);
     fireEvent.click(screen.getByText('拆分单元格'));
-    expect(selectedTable().cells).toContainEqual({ row: 1, column: 1, text: 'Subtotal', rowSpan: 1, colSpan: 1 });
+    expect(selectedCell(1, 1)).toMatchObject({ text: 'Subtotal', rowSpan: 1, colSpan: 1 });
 
     openCellMenu(1, 1);
     fireEvent.click(screen.getByText('清空单元格'));
-    expect(selectedTable().cells).toContainEqual({ row: 1, column: 1, rowSpan: 1, colSpan: 1 });
+    expect(selectedCell(1, 1)).toMatchObject({ rowSpan: 1, colSpan: 1 });
+    expect(selectedCell(1, 1)?.text).toBeUndefined();
   });
 
   it('equalizes table columns and rows from the table context menu', () => {
@@ -80,11 +85,11 @@ describe('Phase 8 table cell context menu', () => {
 
     openCellMenu(1, 1);
     fireEvent.click(screen.getByText('均分列宽'));
-    expect(selectedTable().columns.map(column => column.width)).toEqual([30, 30, 30]);
+    expect(selectedTable().rows?.[0]?.cells.map(cell => cell.width)).toEqual([undefined, undefined, undefined]);
 
     openCellMenu(1, 1);
     fireEvent.click(screen.getByText('均分行高'));
-    expect(selectedTable().rowHeight).toBe(10);
+    expect(selectedTable().rows?.map(row => row.height)).toEqual([10, 10, 10]);
   });
 
   it('copies, pastes, and clears table cell style from the context menu', () => {
@@ -106,18 +111,17 @@ describe('Phase 8 table cell context menu', () => {
 
     openCellMenu(2, 0);
     fireEvent.click(screen.getByText('粘贴单元格样式'));
-    expect(selectedTable().cells).toContainEqual(expect.objectContaining({
-      row: 2,
-      column: 0,
+    expect(selectedCell(2, 0)).toMatchObject({
       backgroundColor: '#ffeecc',
       font: expect.objectContaining({ bold: true, color: '#224466' }),
       textAlign: 'center',
       padding: { top: 1, right: 2, bottom: 3, left: 4 },
-    }));
+    });
 
     openCellMenu(1, 1);
     fireEvent.click(screen.getByText('清空单元格样式'));
-    expect(selectedTable().cells).toContainEqual({ row: 1, column: 1, text: 'Subtotal' });
+    expect(selectedCell(1, 1)).toEqual(expect.objectContaining({ text: 'Subtotal' }));
+    expect(selectedCell(1, 1)?.backgroundColor).toBeUndefined();
   });
 
   it('keeps the selected cell range on right-click and merges it from the context menu', () => {
@@ -141,7 +145,7 @@ describe('Phase 8 table cell context menu', () => {
 
     fireEvent.click(screen.getByText('合并选中单元格'));
 
-    expect(selectedTable().cells).toContainEqual({ row: 1, column: 0, rowSpan: 2, colSpan: 3 });
+    expect(selectedCell(1, 0)).toMatchObject({ rowSpan: 2, colSpan: 3 });
     expect(screen.queryByTestId('designer-table-cell-1-1')).not.toBeInTheDocument();
   });
 
@@ -151,13 +155,13 @@ describe('Phase 8 table cell context menu', () => {
 
     openCellMenu(1, 1);
     fireEvent.click(screen.getByText('插入列到右侧'));
-    expect(selectedTable().columnCount).toBe(4);
-    expect(selectedTable().cells).toContainEqual({ row: 2, column: 3, text: 'Tail' });
+    expect(selectedTable().rows?.[0]?.cells).toHaveLength(4);
+    expect(selectedCell(2, 3)?.text).toBe('Tail');
 
     openCellMenu(1, 1);
     fireEvent.click(screen.getByText('插入行到下方'));
-    expect(selectedTable().rowCount).toBe(4);
-    expect(selectedTable().cells).toContainEqual({ row: 3, column: 3, text: 'Tail' });
+    expect(selectedTable().rows).toHaveLength(4);
+    expect(selectedCell(3, 3)?.text).toBe('Tail');
   });
 
   it('renders merged table cells as grid spans in the designer preview', () => {
@@ -165,7 +169,7 @@ describe('Phase 8 table cell context menu', () => {
     render(<Canvas />);
 
     const merged = screen.getByTestId('designer-table-cell-1-0');
-    expect(merged.style.gridColumn).toBe('span 2');
+    expect(merged).toHaveStyle({ width: '113px' });
     expect(screen.queryByTestId('designer-table-cell-1-1')).not.toBeInTheDocument();
   });
 
@@ -187,8 +191,9 @@ describe('Phase 8 table cell context menu', () => {
     render(<Canvas />);
 
     const grid = screen.getByTestId('designer-table-grid');
-    expect(grid.style.gridTemplateColumns).toBe('38px 76px 227px');
-    expect(grid.style.gridTemplateRows).toBe('23px 38px 38px');
+    expect(grid).toHaveStyle({ position: 'relative' });
+    expect(screen.getByTestId('designer-table-cell-0-0')).toHaveStyle({ width: '38px', height: '23px' });
+    expect(screen.getByTestId('designer-table-cell-1-1')).toHaveStyle({ width: '76px', height: '38px' });
   });
 
   it('localizes table context menu actions to English', () => {

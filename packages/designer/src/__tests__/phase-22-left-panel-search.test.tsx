@@ -128,4 +128,112 @@ describe('Phase 22 left panel search consistency', () => {
     expect(screen.queryByText('department')).not.toBeInTheDocument();
     expect(search.closest('.rd-panel-search')).toBeTruthy();
   });
+
+  it('keeps the dictionary tree collapsed by default and expands search results', async () => {
+    render(<Designer template={makeTemplate()} locale="en-US" />);
+
+    fireEvent.click(screen.getByRole('tab', { name: /Dictionary/ }));
+    const dictionary = await screen.findByTestId('dictionary-tree');
+    const search = await screen.findByPlaceholderText('Search data sources and fields');
+
+    expect(within(dictionary).getByText('Data sources')).toBeInTheDocument();
+    expect(within(dictionary).getByText('System variables')).toBeInTheDocument();
+    expect(within(dictionary).queryByText('Staff Records [employees]')).not.toBeInTheDocument();
+    expect(within(dictionary).queryByText('Annual Pay')).not.toBeInTheDocument();
+    expect(within(dictionary).queryByText('{Now}')).not.toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'Annual Pay' } });
+
+    expect(within(dictionary).getByText('Annual Pay')).toBeInTheDocument();
+  });
+
+  it('renders inferred object fields as nested dictionary folders without showing root as a data source', async () => {
+    const template = createDefaultTemplate('Nested Dictionary');
+    template.dataSources = [
+      {
+        id: 'root',
+        name: 'root',
+        type: 'json',
+        fields: [
+          { name: 'orderNo', type: 'string' },
+          { name: 'customer.name', type: 'string' },
+        ],
+      },
+      {
+        id: 'items',
+        name: 'items',
+        type: 'json',
+        fields: [
+          { name: 'product.name', type: 'string' },
+          { name: 'product.code', type: 'string' },
+          { name: 'qty', type: 'number' },
+        ],
+      },
+    ] as any;
+
+    render(<Designer template={template} locale="en-US" />);
+
+    fireEvent.click(screen.getByRole('tab', { name: /Dictionary/ }));
+    const dictionary = await screen.findByTestId('dictionary-tree');
+    const search = await screen.findByPlaceholderText('Search data sources and fields');
+
+    expect(within(dictionary).queryByText('root [root]')).not.toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'items' } });
+    expect(within(dictionary).getByText('items [items]')).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'customer' } });
+    expect(within(dictionary).getByText('customer')).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'product' } });
+    expect(within(dictionary).getByText('product')).toBeInTheDocument();
+    expect(within(dictionary).queryByText('product.name')).not.toBeInTheDocument();
+  });
+
+  it('uses the same expression catalog as the expression editor', async () => {
+    render(
+      <Designer
+        template={makeTemplate()}
+        locale="en-US"
+        expressionExtensions={{
+          functions: [
+            {
+              name: 'DISCOUNT',
+              category: 'money',
+              description: {
+                'zh-CN': '按折扣率计算金额',
+                'en-US': 'Calculates discounted amount.',
+              },
+              signature: 'DISCOUNT(price, rate)',
+              detail: 'DISCOUNT(price, rate)',
+              insertText: 'DISCOUNT(${1:price}, ${2:rate})',
+              examples: ['DISCOUNT({items.salesAmount}, 0.9)'],
+              evaluate: ([price, rate]) => Number(price) * Number(rate),
+            },
+          ],
+        }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole('tab', { name: /Dictionary/ }));
+    const dictionary = await screen.findByTestId('dictionary-tree');
+    const search = await screen.findByPlaceholderText('Search data sources and fields');
+
+    fireEvent.change(search, { target: { value: 'Now' } });
+    expect(within(dictionary).getByText('{Now}')).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'ReportName' } });
+    expect(within(dictionary).getByText('{ReportName}')).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'DATEADD' } });
+    expect(within(dictionary).getByText('Date')).toBeInTheDocument();
+    expect(within(dictionary).getByText('DATEADD')).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'DISCOUNT' } });
+    expect(within(dictionary).getByText('Money uppercase')).toBeInTheDocument();
+    expect(within(dictionary).getByText('DISCOUNT')).toBeInTheDocument();
+
+    fireEvent.change(search, { target: { value: 'N2' } });
+    expect(within(dictionary).getByText('FORMAT("N2", value)')).toBeInTheDocument();
+  });
 });

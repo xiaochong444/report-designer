@@ -61,6 +61,12 @@ describe('phase 33 component property matrix', () => {
     expect(screen.getByLabelText('文本内容')).toBeInTheDocument();
     expectVisible('字体', '边框', '外观', '行为');
     expectHidden('表格', '线条属性', '形状属性', '页码属性', '日期时间属性');
+    expect((screen.getByLabelText('边框宽度') as HTMLInputElement).value).toBe('');
+    expect((screen.getByLabelText('内边距上') as HTMLInputElement).value).toBe('');
+    expect(screen.getByLabelText('上')).not.toBeChecked();
+    expect(screen.getByLabelText('右')).not.toBeChecked();
+    expect(screen.getByLabelText('下')).not.toBeChecked();
+    expect(screen.getByLabelText('左')).not.toBeChecked();
   });
 
   it('shows image content controls with appearance styling but without font or table groups', () => {
@@ -188,17 +194,18 @@ describe('phase 33 component property matrix', () => {
       y: 0,
       width: 100,
       height: 40,
-      dataSource: '',
-      columns: [],
-      headerHeight: 8,
-      rowHeight: 8,
+      rowCount: 1,
+      columnCount: 3,
+      rows: [{ id: 'row-1', height: 8, cells: [{ id: 'cell-1' }, { id: 'cell-2' }, { id: 'cell-3' }] }],
       showBorder: true,
     } as ReportComponent);
 
     render(<PropertyEditor />);
 
     expectVisible('表格');
-    expect(screen.getByLabelText('绑定数组属性')).toBeInTheDocument();
+    expect(screen.getByLabelText('列数')).toBeInTheDocument();
+    expect(screen.getByLabelText('行数')).toBeInTheDocument();
+    expect(screen.queryByLabelText('绑定数组属性')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('表格数据源')).not.toBeInTheDocument();
     expectHidden('字体', '线条属性', '形状属性', '页码属性', '日期时间属性');
   });

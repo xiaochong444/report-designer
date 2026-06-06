@@ -338,6 +338,7 @@ export type DesignerMessageKey =
   | 'selection.component'
   | 'selection.components'
   | 'selection.band'
+  | 'selection.tableRow'
   | 'selection.tableCell'
   | 'contextMenu.section.edit'
   | 'contextMenu.section.arrange'
@@ -399,6 +400,13 @@ export type DesignerMessageKey =
   | 'bandProperties.breakIfLessThan'
   | 'bandProperties.autoGrow'
   | 'bandProperties.autoShrink'
+  | 'tableRow.properties'
+  | 'tableRow.index'
+  | 'tableRow.height'
+  | 'tableRow.role'
+  | 'tableRow.roleNormal'
+  | 'tableRow.roleHeader'
+  | 'tableRow.roleFooter'
   | 'tableCell.properties'
   | 'tableCell.range'
   | 'tableCell.text'
@@ -419,6 +427,11 @@ export type DesignerMessageKey =
   | 'tableCell.borderStyle'
   | 'tableCell.borderColor'
   | 'tableCell.borderWidth'
+  | 'tableCell.borderSides'
+  | 'tableCell.borderSideTop'
+  | 'tableCell.borderSideRight'
+  | 'tableCell.borderSideBottom'
+  | 'tableCell.borderSideLeft'
   | 'tableCell.padding'
   | 'tableCell.paddingTop'
   | 'tableCell.paddingRight'
@@ -987,6 +1000,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'selection.component': '组件',
     'selection.components': '{count} 个组件',
     'selection.band': '带区',
+    'selection.tableRow': '表格行',
     'selection.tableCell': '表格单元格',
     'contextMenu.section.edit': '编辑',
     'contextMenu.section.arrange': '排列',
@@ -1048,6 +1062,13 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'bandProperties.breakIfLessThan': '不足高度换页',
     'bandProperties.autoGrow': '自动伸展',
     'bandProperties.autoShrink': '自动收缩',
+    'tableRow.properties': '行属性',
+    'tableRow.index': '行号',
+    'tableRow.height': '行高',
+    'tableRow.role': '行类型',
+    'tableRow.roleNormal': '普通行',
+    'tableRow.roleHeader': '表头行',
+    'tableRow.roleFooter': '表尾行',
     'tableCell.properties': '单元格属性',
     'tableCell.range': '范围',
     'tableCell.text': '文本内容',
@@ -1068,6 +1089,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableCell.borderStyle': '边框样式',
     'tableCell.borderColor': '边框颜色',
     'tableCell.borderWidth': '边框宽度',
+    'tableCell.borderSides': '边框边',
+    'tableCell.borderSideTop': '边框上边',
+    'tableCell.borderSideRight': '边框右边',
+    'tableCell.borderSideBottom': '边框下边',
+    'tableCell.borderSideLeft': '边框左边',
     'tableCell.padding': '内边距',
     'tableCell.paddingTop': '上',
     'tableCell.paddingRight': '右',
@@ -1633,6 +1659,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'selection.component': 'Component',
     'selection.components': '{count} components',
     'selection.band': 'Band',
+    'selection.tableRow': 'Table Row',
     'selection.tableCell': 'Table Cell',
     'contextMenu.section.edit': 'Edit',
     'contextMenu.section.arrange': 'Arrange',
@@ -1694,6 +1721,13 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'bandProperties.breakIfLessThan': 'Break if Less Than',
     'bandProperties.autoGrow': 'Auto Grow',
     'bandProperties.autoShrink': 'Auto Shrink',
+    'tableRow.properties': 'Row Properties',
+    'tableRow.index': 'Row',
+    'tableRow.height': 'Height',
+    'tableRow.role': 'Role',
+    'tableRow.roleNormal': 'Normal',
+    'tableRow.roleHeader': 'Header',
+    'tableRow.roleFooter': 'Footer',
     'tableCell.properties': 'Cell Properties',
     'tableCell.range': 'Range',
     'tableCell.text': 'Text Content',
@@ -1714,6 +1748,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableCell.borderStyle': 'Border Style',
     'tableCell.borderColor': 'Border Color',
     'tableCell.borderWidth': 'Border Width',
+    'tableCell.borderSides': 'Border Sides',
+    'tableCell.borderSideTop': 'Border top',
+    'tableCell.borderSideRight': 'Border right',
+    'tableCell.borderSideBottom': 'Border bottom',
+    'tableCell.borderSideLeft': 'Border left',
     'tableCell.padding': 'Padding',
     'tableCell.paddingTop': 'Top',
     'tableCell.paddingRight': 'Right',

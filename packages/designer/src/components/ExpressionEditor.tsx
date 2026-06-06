@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Alert, Button, Input, Modal, Space, Tree, Typography } from 'antd';
 import type { DataNode } from 'antd/es/tree';
 import { useDesignerI18n, type DesignerMessageKey } from '../i18n';
-import { EXPRESSION_FUNCTION_CATEGORIES, formatExpressionFunctionDocumentation } from '../expression/function-catalog';
+import { EXPRESSION_FUNCTION_CATEGORIES, FUNCTION_FOLDER_LABELS, formatExpressionFunctionDocumentation } from '../expression/function-catalog';
 import type { DesignerLocale } from '../i18n/messages';
 import { previewReportExpression, type ExpressionPreviewResult } from '../expression/expression-preview';
 import { validateReportExpression, type ExpressionDiagnostic } from '../expression/expression-validation';
@@ -12,6 +12,7 @@ import {
 } from '../expression/expression-catalog';
 import { useDesignerStore } from '../store/designer-store';
 import { ExpressionMonacoEditor } from './expression/ExpressionMonacoEditor';
+import { buildFieldPathTree, formatDataFieldExpression, type FieldPathTreeNode } from '../data-source-fields';
 
 type ExpressionCategory = 'expression' | 'data' | 'system';
 
@@ -43,12 +44,6 @@ const CATEGORY_ITEMS: Array<{ key: ExpressionCategory; labelKey: DesignerMessage
   { key: 'data', labelKey: 'expressionEditor.category.data', subtitleKey: 'expressionEditor.category.dataSubtitle' },
   { key: 'system', labelKey: 'expressionEditor.category.system', subtitleKey: 'expressionEditor.category.systemSubtitle' },
 ];
-
-const FUNCTION_FOLDER_LABELS: Partial<Record<string, DesignerMessageKey>> = {
-  aggregate: 'expressionEditor.tree.aggregateFunctions',
-  logic: 'expressionEditor.tree.logicFunctions',
-  money: 'expressionEditor.tree.moneyFunctions',
-};
 
 function makeTreeNode(
   key: string,
@@ -114,6 +109,22 @@ function collectExpandableTreeKeys(nodes: TreeNodeMeta[]): React.Key[] {
   });
 }
 
+function buildExpressionFieldNodes(dataSourceId: string, nodes: FieldPathTreeNode[]): TreeNodeMeta[] {
+  return nodes.map((node) => {
+    if (!node.field) {
+      return makeTreeNode(`${dataSourceId}.${node.path}`, node.label, 'folder', {
+        searchText: node.searchText,
+        children: buildExpressionFieldNodes(dataSourceId, node.children ?? []),
+      });
+    }
+
+    return makeTreeNode(`${dataSourceId}.${node.field.name}`, node.label, getExpressionFieldGlyphKind(node.field.type), {
+      insertValue: formatDataFieldExpression(dataSourceId, node.field.name),
+      searchText: node.searchText,
+    });
+  });
+}
+
 function snippetToPlainText(insertText: string) {
   return insertText.replace(/\$\{\d+:([^}]+)\}/g, '$1');
 }
@@ -157,18 +168,20 @@ export const ExpressionEditor: React.FC<{
   };
 
   const dataSourceNodes = useMemo<TreeNodeMeta[]>(
-    () =>
-      template.dataSources.map((dataSource) =>
-        makeTreeNode(`ds.${dataSource.id}`, dataSource.name, 'folder', {
+    () => {
+      const rootSource = template.dataSources.find(dataSource => dataSource.id === 'root');
+      const rootFieldNodes = rootSource
+        ? buildExpressionFieldNodes(rootSource.id, buildFieldPathTree(rootSource))
+        : [];
+      const sourceNodes = template.dataSources
+        .filter(dataSource => dataSource.id !== 'root')
+        .map((dataSource) =>
+          makeTreeNode(`ds.${dataSource.id}`, dataSource.name, 'folder', {
           searchText: `${dataSource.name} ${dataSource.id}`.toLowerCase(),
-          children: (dataSource.schema ?? dataSource.fields ?? []).map((field) =>
-            makeTreeNode(`${dataSource.id}.${field.name}`, field.name, getExpressionFieldGlyphKind(field.type), {
-              insertValue: `{${dataSource.id}.${field.name}}`,
-              searchText: `${dataSource.id}.${field.name} ${field.name} ${field.label ?? ''}`.toLowerCase(),
-            }),
-          ),
-        }),
-      ),
+          children: buildExpressionFieldNodes(dataSource.id, buildFieldPathTree(dataSource)),
+        }));
+      return [...rootFieldNodes, ...sourceNodes];
+    },
     [template.dataSources],
   );
 
@@ -250,7 +263,7 @@ export const ExpressionEditor: React.FC<{
   );
   const normalizedSearchTerm = searchTerm.trim();
   const visibleExpandedTreeKeys = useMemo(
-    () => (normalizedSearchTerm ? collectExpandableTreeKeys(filteredTree) : expandedTreeKeys),
+    () => (normalizedSearchTerm || expandedTreeKeys.length === 0 ? collectExpandableTreeKeys(filteredTree) : expandedTreeKeys),
     [expandedTreeKeys, filteredTree, normalizedSearchTerm],
   );
 

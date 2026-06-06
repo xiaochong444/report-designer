@@ -24,7 +24,7 @@ export function previewReportExpression(
     });
     const value = evalExpression(
       expression,
-      (source, field) => sampleRows[source]?.[field],
+      (source, field) => resolveSampleField(sampleRows, source, field),
       0,
       variables,
       undefined,
@@ -56,6 +56,20 @@ function buildSampleRows(template: ReportTemplate): Record<string, Record<string
   }
 
   return rows;
+}
+
+function resolveSampleField(sampleRows: Record<string, Record<string, unknown>>, source: string, field: string): unknown {
+  if (source) {
+    return sampleRows[source]?.[field];
+  }
+
+  for (const row of Object.values(sampleRows)) {
+    if (field in row) {
+      return row[field];
+    }
+  }
+
+  return undefined;
 }
 
 function defaultFieldValue(type: JsonFieldType | undefined): unknown {

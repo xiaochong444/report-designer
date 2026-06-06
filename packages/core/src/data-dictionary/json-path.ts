@@ -26,3 +26,19 @@ export function parseJsonFieldExpression(expression: string): ParsedJsonFieldExp
     path,
   };
 }
+
+export function getJsonValueByPath(value: unknown, path: string): unknown {
+  return path.split('.').reduce<unknown>((cursor, segment) => {
+    if (Array.isArray(cursor)) {
+      return cursor.flatMap(row => getJsonValueByPath(row, segment) ?? []);
+    }
+    if (isPlainObject(cursor)) {
+      return cursor[segment];
+    }
+    return undefined;
+  }, value);
+}
+
+function isPlainObject(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value) && !(value instanceof Date);
+}

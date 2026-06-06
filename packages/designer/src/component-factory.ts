@@ -1,5 +1,6 @@
-import type { ReportComponent } from '@report-designer/core';
+import type { ReportComponent, TableComponent } from '@report-designer/core';
 import { nanoid } from 'nanoid';
+import { formatDataFieldExpression } from './data-source-fields';
 
 const DEFAULT_FONT = {
   family: 'Arial',
@@ -88,7 +89,26 @@ export function createDefaultComponent(type: string, xMm: number, yMm: number): 
     case 'barcode':
       return { id, type: 'barcode', x, y, width: 30, height: 30, value: '', format: 'CODE128', showText: true } as ReportComponent;
     case 'table':
-      return { id, type: 'table', x, y, width: 100, height: 50, dataSource: '', columns: [], headerHeight: 20, rowHeight: 20, showBorder: true } as ReportComponent;
+      return {
+        id,
+        type: 'table',
+        x,
+        y,
+        width: 90,
+        height: 8,
+        showBorder: true,
+        border: { style: 'solid', width: 0.2, color: '#8c8c8c', sides: { top: true, right: true, bottom: true, left: true } },
+        rows: [{
+          id: 'row_1',
+          height: 8,
+          role: 'normal',
+          cells: [
+            { id: 'cell_1_1' },
+            { id: 'cell_1_2' },
+            { id: 'cell_1_3' },
+          ],
+        }],
+      } as TableComponent;
     case 'checkbox':
       return { id, type: 'checkbox', x, y, width: 15, height: 15, checked: '', label: '' } as ReportComponent;
     case 'richtext':
@@ -118,12 +138,12 @@ export function createFieldExpressionComponent(
   if (field.fieldType === 'boolean') {
     return {
       ...createDefaultComponent('checkbox', xMm, yMm),
-      checked: `{${field.dataSourceId}.${field.fieldName}}`,
+      checked: formatDataFieldExpression(field.dataSourceId, field.fieldName),
     } as ReportComponent;
   }
 
   const component = createDefaultComponent('text', xMm, yMm) as any;
-  component.text = `{${field.dataSourceId}.${field.fieldName}}`;
+  component.text = formatDataFieldExpression(field.dataSourceId, field.fieldName);
   if (field.fieldType === 'number') {
     component.textAlign = 'right';
     component.format = { type: 'number', decimalDigits: 2, useGroupSeparator: true };

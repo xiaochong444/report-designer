@@ -1,5 +1,11 @@
-import { buildReportFontCss, sanitizeRichHtml, type PageBorder, type PageWatermark, type RenderBarcode, type RenderChart, type RenderCheckbox, type RenderComponentBox, type RenderDocument, type RenderLine } from '@report-designer/core';
+import React from 'react';
+import { flushSync } from 'react-dom';
+import { createRoot, type Root } from 'react-dom/client';
+import { buildReportFontCss, sanitizeRichHtml, type PageBorder, type PageWatermark, type RenderBarcode, type RenderChart, type RenderCheckbox, type RenderComponentBox, type RenderDocument, type RenderLine, type RenderTableCell } from '@report-designer/core';
 import { resolveChartSnapshots } from '../renderers/chart/chart-snapshot';
+import { printableBorderWidthMm } from '../renderers/border-width';
+import { RenderDocumentView } from '../renderers/dom/RenderDocumentView';
+import { tableCellBackgroundColor, tablePrintBorderDeclarations } from '../renderers/table-style';
 
 type RenderTextStyle = NonNullable<Extract<RenderComponentBox, { type: 'text' }>['style']> & {
   padding?: { top: number; right: number; bottom: number; left: number };
@@ -70,7 +76,7 @@ function renderPageWatermarkHtml(watermark?: PageWatermark): string {
 
 function renderPageBorderHtml(pageBorder?: PageBorder): string {
   const borderStyle = safeCssEnum(pageBorder?.style, ['none', 'solid', 'dashed', 'dotted', 'double'], 'solid');
-  const borderWidth = safeCssNumber(pageBorder?.width, 0.2, { min: 0 });
+  const borderWidth = printableBorderWidthMm(safeCssNumber(pageBorder?.width, 0.2, { min: 0 }));
   const borderOffset = safeCssNumber(pageBorder?.offset, 0, { min: 0 });
   if (!pageBorder?.enabled || borderStyle === 'none' || borderWidth <= 0) return '';
   const borderColor = safeCssColor(pageBorder.color, '#000000');
@@ -88,12 +94,15 @@ function renderPageBorderHtml(pageBorder?: PageBorder): string {
 
 export async function printRenderDocument(document: RenderDocument): Promise<void> {
   const resolved = await resolveChartSnapshots(document);
+  const firstPage = resolved.pages[0];
+  const iframeWidth = firstPage ? `${firstPage.width * 3.7795275591}px` : '794px';
+  const iframeHeight = firstPage ? `${firstPage.height * 3.7795275591}px` : '1123px';
   const iframe = window.document.createElement('iframe');
   iframe.style.position = 'fixed';
-  iframe.style.right = '0';
-  iframe.style.bottom = '0';
-  iframe.style.width = '0';
-  iframe.style.height = '0';
+  iframe.style.left = '-10000px';
+  iframe.style.top = '0';
+  iframe.style.width = iframeWidth;
+  iframe.style.height = iframeHeight;
   iframe.style.border = '0';
   window.document.body.appendChild(iframe);
 
@@ -104,12 +113,76 @@ export async function printRenderDocument(document: RenderDocument): Promise<voi
   }
 
   doc.open();
-  doc.write(buildPrintHtml(resolved));
+  doc.write(buildPrintShellHtml(resolved));
   doc.close();
-  await new Promise((resolve) => window.setTimeout(resolve, 0));
+  const mount = doc.getElementById('rd-print-root');
+  let root: Root | undefined;
+  if (mount) {
+    root = createRoot(mount);
+    flushSync(() => {
+      root?.render(React.createElement(RenderDocumentView, { document: resolved, zoom: 100 }));
+    });
+  }
+  await waitForPrintDom(doc);
   iframe.contentWindow.focus();
-  iframe.contentWindow.print();
-  iframe.remove();
+  await invokePrintAndWait(iframe, root);
+}
+
+function buildPrintShellHtml(document: RenderDocument): string {
+  const firstPage = document.pages[0];
+  const pageCss = firstPage ? `${firstPage.width}mm ${firstPage.height}mm` : '210mm 297mm';
+  return `<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <style>
+    @page { size: ${pageCss}; margin: 0; }
+    html, body { margin: 0; padding: 0; background: #fff; }
+    * { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    [data-testid="render-document"] { display: block !important; gap: 0 !important; align-items: flex-start !important; }
+    [data-testid="render-document-page"] { box-shadow: none !important; margin: 0 !important; page-break-after: always; break-after: page; }
+  </style>
+</head>
+<body><div id="rd-print-root"></div></body>
+</html>`;
+}
+
+async function waitForPrintDom(doc: Document): Promise<void> {
+  await new Promise((resolve) => window.setTimeout(resolve, 0));
+  await new Promise((resolve) => window.setTimeout(resolve, 50));
+  const images = Array.from(doc.images);
+  await Promise.all(images.map(image => {
+    if (image.complete) return Promise.resolve();
+    return new Promise<void>((resolve) => {
+      image.addEventListener('load', () => resolve(), { once: true });
+      image.addEventListener('error', () => resolve(), { once: true });
+    });
+  }));
+}
+
+async function invokePrintAndWait(iframe: HTMLIFrameElement, root: Root | undefined): Promise<void> {
+  const contentWindow = iframe.contentWindow;
+  if (!contentWindow) {
+    root?.unmount();
+    iframe.remove();
+    return;
+  }
+
+  await new Promise<void>((resolve) => {
+    let cleaned = false;
+    const cleanup = () => {
+      if (cleaned) return;
+      cleaned = true;
+      contentWindow.removeEventListener('afterprint', cleanup);
+      window.clearTimeout(fallbackTimer);
+      root?.unmount();
+      iframe.remove();
+      resolve();
+    };
+    const fallbackTimer = window.setTimeout(cleanup, 1000);
+    contentWindow.addEventListener('afterprint', cleanup, { once: true });
+    contentWindow.print();
+  });
 }
 
 function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY: number): string {
@@ -159,7 +232,8 @@ function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY
   }
   if (component.type === 'line') {
     const line = component as RenderLine;
-    return `<svg class="rd-print-component rd-print-line" ${dataAttribute} style="${style}" viewBox="0 0 ${Math.max(1, line.width)} ${Math.max(1, line.height)}" preserveAspectRatio="none"><line x1="${line.startX ?? 0}" y1="${line.startY ?? line.height / 2}" x2="${line.endX ?? line.width}" y2="${line.endY ?? line.height / 2}" stroke="${escapeAttribute(line.lineColor ?? '#000000')}" stroke-width="${Math.max(0.2, line.lineWidth ?? 0.2)}" stroke-dasharray="${lineDashArray(line.lineStyle)}" /></svg>`;
+    const strokeWidth = printableBorderWidthMm(line.lineWidth ?? 0.2);
+    return `<svg class="rd-print-component rd-print-line" ${dataAttribute} style="${style}" viewBox="0 0 ${Math.max(1, line.width)} ${Math.max(1, line.height)}" preserveAspectRatio="none"><line x1="${line.startX ?? 0}" y1="${line.startY ?? line.height / 2}" x2="${line.endX ?? line.width}" y2="${line.endY ?? line.height / 2}" stroke="${escapeAttribute(line.lineColor ?? '#000000')}" stroke-width="${roundCss(strokeWidth)}" stroke-dasharray="${lineDashArray(line.lineStyle)}" /></svg>`;
   }
   if (component.type === 'shape') {
     return `<svg class="rd-print-component rd-print-shape" ${dataAttribute} style="${style}" viewBox="0 0 ${Math.max(1, component.width)} ${Math.max(1, component.height)}" preserveAspectRatio="none">${shapeSvg(component)}</svg>`;
@@ -171,22 +245,20 @@ function renderTableHtml(component: RenderComponentBox, dataAttribute: string, s
   if (!('rows' in component) || !('columns' in component)) return '';
   const columns = component.columns as Array<{ width: number }>;
   const rows = component.rows as Array<Array<{ row: number; column: number; content: string; rowSpan: number; colSpan: number; height: number; isHeader?: boolean; isFooter?: boolean; style?: RenderComponentBox['style'] }>>;
-  const border = 'showBorder' in component && component.showBorder ? '0.2mm solid #8c8c8c' : '0.2mm dashed #d9d9d9';
   const gridStyle = [
     style,
     'display:grid',
-    `grid-template-columns:${columns.map(column => `${roundCss(column.width)}mm`).join(' ')}`,
+    `grid-template-columns:${columns.map(column => `${roundCss(column.width ?? 0)}mm`).join(' ')}`,
     `grid-template-rows:${rows.map(row => `${roundCss(row[0]?.height ?? 8)}mm`).join(' ')}`,
-    `border:${border}`,
-    'background-color:#fff',
+    component.style?.backgroundColor ? undefined : 'background-color:#fff',
     'overflow:hidden',
-  ].join(';');
+  ].filter(Boolean).join(';');
   const cells = rows.flatMap(row => row.map(cell => {
     const declarations = [
       cell.colSpan > 1 ? `grid-column:span ${cell.colSpan}` : undefined,
       cell.rowSpan > 1 ? `grid-row:span ${cell.rowSpan}` : undefined,
-      tableCellBorderCss(cell, columns.length, rows.length, border),
-      cell.style?.backgroundColor ? `background-color:${cell.style.backgroundColor}` : cell.isHeader ? 'background-color:#f0f5ff' : cell.isFooter ? 'background-color:#fff7e6' : undefined,
+      ...tablePrintBorderDeclarations(cell.style?.border),
+      tableCellBackgroundColor(cell as RenderTableCell) ? `background-color:${tableCellBackgroundColor(cell as RenderTableCell)}` : undefined,
       'box-sizing:border-box',
       'overflow:hidden',
       'white-space:nowrap',
@@ -202,23 +274,9 @@ function renderTableHtml(component: RenderComponentBox, dataAttribute: string, s
   return `<div class="rd-print-component rd-print-table" ${dataAttribute} style="${gridStyle};">${cells}</div>`;
 }
 
-function tableCellBorderCss(
-  cell: { row: number; column: number; rowSpan: number; colSpan: number; style?: RenderComponentBox['style'] },
-  columnCount: number,
-  rowCount: number,
-  fallbackBorder: string,
-): string {
-  const border = cell.style?.border;
-  const declarations = [];
-  declarations.push(border?.sides.top ? `border-top:${border.width}mm ${border.style} ${border.color}` : undefined);
-  declarations.push(border?.sides.right ? `border-right:${border.width}mm ${border.style} ${border.color}` : cell.column + cell.colSpan >= columnCount ? undefined : `border-right:${fallbackBorder}`);
-  declarations.push(border?.sides.bottom ? `border-bottom:${border.width}mm ${border.style} ${border.color}` : cell.row + cell.rowSpan >= rowCount ? undefined : `border-bottom:${fallbackBorder}`);
-  declarations.push(border?.sides.left ? `border-left:${border.width}mm ${border.style} ${border.color}` : undefined);
-  return declarations.filter(Boolean).join(';');
-}
-
 function buildComponentStyle(component: RenderComponentBox, bandX: number, bandY: number): string {
-  const border = component.style?.border;
+  const border = component.type === 'table' ? undefined : component.style?.border;
+  const padding = component.type === 'table' ? undefined : component.style?.padding;
   const declarations = [
     `left:${roundCss(component.x - bandX)}mm`,
     `top:${roundCss(component.y - bandY)}mm`,
@@ -229,11 +287,12 @@ function buildComponentStyle(component: RenderComponentBox, bandX: number, bandY
   ];
 
   if (component.style?.backgroundColor) declarations.push(`background-color:${component.style.backgroundColor}`);
-  if (border?.sides.top) declarations.push(`border-top:${border.width}mm ${border.style} ${border.color}`);
-  if (border?.sides.right) declarations.push(`border-right:${border.width}mm ${border.style} ${border.color}`);
-  if (border?.sides.bottom) declarations.push(`border-bottom:${border.width}mm ${border.style} ${border.color}`);
-  if (border?.sides.left) declarations.push(`border-left:${border.width}mm ${border.style} ${border.color}`);
-  if (component.style?.padding) declarations.push(`padding:${paddingCssValue(component.style.padding)}`);
+  const borderWidth = border ? printableBorderWidthMm(border.width) : 0;
+  if (border?.sides.top) declarations.push(`border-top:${roundCss(borderWidth)}mm ${border.style} ${border.color}`);
+  if (border?.sides.right) declarations.push(`border-right:${roundCss(borderWidth)}mm ${border.style} ${border.color}`);
+  if (border?.sides.bottom) declarations.push(`border-bottom:${roundCss(borderWidth)}mm ${border.style} ${border.color}`);
+  if (border?.sides.left) declarations.push(`border-left:${roundCss(borderWidth)}mm ${border.style} ${border.color}`);
+  if (padding) declarations.push(`padding:${paddingCssValue(padding)}`);
 
   if (component.type === 'text') {
     const textStyle = component.style as RenderTextStyle | undefined;
@@ -368,7 +427,7 @@ function lineDashArray(style?: string): string {
 }
 
 function shapeSvg(component: RenderComponentBox): string {
-  const strokeWidth = Math.max(0.2, 'borderWidth' in component && typeof component.borderWidth === 'number' ? component.borderWidth : 0.2);
+  const strokeWidth = printableBorderWidthMm('borderWidth' in component && typeof component.borderWidth === 'number' ? component.borderWidth : 0.2);
   const half = strokeWidth / 2;
   const stroke = escapeAttribute('borderColor' in component && typeof component.borderColor === 'string' ? component.borderColor : '#000000');
   const fill = escapeAttribute('fillColor' in component && typeof component.fillColor === 'string' ? component.fillColor : 'transparent');

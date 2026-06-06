@@ -40,8 +40,8 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subrepo
       <QuickAccess template={template} undo={undo} redo={redo} canUndo={canUndo()} canRedo={canRedo()} />
       <DesignerRibbon />
       <div className="rd-designer-body">
-        <DesignerLeftPanel />
-        <DesignerCanvasFrame subreports={subreports} />
+        <DesignerLeftPanel expressionExtensions={expressionExtensions} />
+        <DesignerCanvasFrame subreports={subreports} expressionExtensions={expressionExtensions} />
         <DesignerPropertyPanel expressionExtensions={expressionExtensions} />
       </div>
       <DesignerStatusBar />

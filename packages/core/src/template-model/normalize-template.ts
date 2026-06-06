@@ -1,6 +1,6 @@
 import type { Band, ChartAppearance, ChartBinding, ChartComponent, ChartVariant, DataField, DataSource, Page, PageBorder, PageWatermark, PanelComponent, ReportComponent, ReportTemplate, TableComponent } from './types';
 import { normalizeReportFonts } from '../fonts';
-import { mapDataField } from './types';
+import { isRepeatOnEveryPageBandType, mapDataField } from './types';
 import { createDefaultPageBorder, createDefaultPageWatermark } from './template';
 
 export function normalizeTemplate(template: ReportTemplate): ReportTemplate {
@@ -91,7 +91,7 @@ function normalizeBand(band: Band): Band {
       visibleExpression: band.visible,
       printOn: 'allPages',
       printIfEmpty: true,
-      printOnAllPages: band.type === 'pageHeader' || band.type === 'pageFooter' || band.type === 'groupHeader',
+      printOnAllPages: isRepeatOnEveryPageBandType(band.type),
       keepTogether: false,
       canBreak: band.type === 'data' || band.type === 'child',
       printAtBottom: band.type === 'pageFooter',
@@ -117,11 +117,8 @@ function normalizeComponent(component: ReportComponent): ReportComponent {
     const table = component as TableComponent;
     return {
       ...table,
-      binding: {
-        mode: table.binding?.mode ?? 'fixed',
-        dataSourceId: table.binding?.dataSourceId,
-        arrayPath: table.binding?.arrayPath,
-      },
+      binding: undefined,
+      dataSource: undefined,
     } as TableComponent;
   }
 

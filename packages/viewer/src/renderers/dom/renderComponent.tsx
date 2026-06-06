@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import JsBarcode from 'jsbarcode';
 import { sanitizeRichHtml, type RenderBarcode, type RenderChart, type RenderCheckbox, type RenderComponentBox, type RenderImage, type RenderLine, type RenderRichText, type RenderShape, type RenderTable, type RenderText } from '@report-designer/core';
+import { tableBorderStyle, tableCellBackgroundColor } from '../table-style';
 import { buildVChartSpec } from '../chart/chart-spec';
+import { printableBorderWidthPx } from '../border-width';
 
 export const MM_TO_PX = 96 / 25.4;
 type RenderTextStyle = NonNullable<RenderText['style']> & {
@@ -136,7 +138,8 @@ function imageFitMode(component: RenderImage): React.CSSProperties['objectFit'] 
 }
 
 export function toAbsoluteStyle(component: RenderComponentBox, scale: number, parentOriginX = 0, parentOriginY = 0): React.CSSProperties {
-  const border = component.style?.border;
+  const border = component.type === 'table' ? undefined : component.style?.border;
+  const padding = component.type === 'table' ? undefined : component.style?.padding;
   return {
     position: 'absolute',
     left: (component.x - parentOriginX) * MM_TO_PX * scale,
@@ -146,14 +149,14 @@ export function toAbsoluteStyle(component: RenderComponentBox, scale: number, pa
     boxSizing: 'border-box',
     overflow: component.overflow ? 'hidden' : 'visible',
     backgroundColor: component.style?.backgroundColor,
-    borderTop: border?.sides.top ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
-    borderRight: border?.sides.right ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
-    borderBottom: border?.sides.bottom ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
-    borderLeft: border?.sides.left ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
-    paddingTop: toPaddingPx(component.style?.padding?.top, scale),
-    paddingRight: toPaddingPx(component.style?.padding?.right, scale),
-    paddingBottom: toPaddingPx(component.style?.padding?.bottom, scale),
-    paddingLeft: toPaddingPx(component.style?.padding?.left, scale),
+    borderTop: border?.sides.top ? `${printableBorderWidthPx(border.width, scale)}px ${border.style} ${border.color}` : undefined,
+    borderRight: border?.sides.right ? `${printableBorderWidthPx(border.width, scale)}px ${border.style} ${border.color}` : undefined,
+    borderBottom: border?.sides.bottom ? `${printableBorderWidthPx(border.width, scale)}px ${border.style} ${border.color}` : undefined,
+    borderLeft: border?.sides.left ? `${printableBorderWidthPx(border.width, scale)}px ${border.style} ${border.color}` : undefined,
+    paddingTop: toPaddingPx(padding?.top, scale),
+    paddingRight: toPaddingPx(padding?.right, scale),
+    paddingBottom: toPaddingPx(padding?.bottom, scale),
+    paddingLeft: toPaddingPx(padding?.left, scale),
   };
 }
 
@@ -208,14 +211,14 @@ const LineComponent: React.FC<{ component: RenderLine; style: React.CSSPropertie
       x2={component.endX ?? component.width}
       y2={component.endY ?? component.height / 2}
       stroke="currentColor"
-      strokeWidth={Math.max(1, (component.lineWidth ?? 0.2) * MM_TO_PX)}
+      strokeWidth={printableBorderWidthPx(component.lineWidth ?? 0.2, 1)}
       strokeDasharray={lineDashArray(component.lineStyle)}
     />
   </svg>
 );
 
 const ShapeComponent: React.FC<{ component: RenderShape; style: React.CSSProperties; dataProps: Record<string, string> }> = ({ component, style, dataProps }) => {
-  const strokeWidth = Math.max(1, (component.borderWidth ?? 0.2) * MM_TO_PX);
+  const strokeWidth = printableBorderWidthPx(component.borderWidth ?? 0.2, 1);
   const stroke = component.borderColor ?? '#000000';
   const fill = component.fillColor ?? 'transparent';
   const dash = lineDashArray(component.borderStyle);
@@ -285,7 +288,6 @@ function fontStyle(
 }
 
 const TableComponent: React.FC<{ component: RenderTable; style: React.CSSProperties; scale: number; dataProps: Record<string, string> }> = ({ component, style, scale, dataProps }) => {
-  const border = component.showBorder ? `${Math.max(1, 0.2 * MM_TO_PX * scale)}px solid #8c8c8c` : '1px dashed #d9d9d9';
   const rows = component.rows ?? [];
   return (
     <div
@@ -294,17 +296,16 @@ const TableComponent: React.FC<{ component: RenderTable; style: React.CSSPropert
       style={{
         ...style,
         display: 'grid',
-        gridTemplateColumns: component.columns.map(column => `${column.width * MM_TO_PX * scale}px`).join(' '),
+        gridTemplateColumns: component.columns.map(column => `${(column.width ?? 0) * MM_TO_PX * scale}px`).join(' '),
         gridTemplateRows: rows.map(row => `${(row[0]?.height ?? 8) * MM_TO_PX * scale}px`).join(' '),
         overflow: 'hidden',
-        border,
-        backgroundColor: '#fff',
+        backgroundColor: style.backgroundColor ?? '#fff',
       }}
     >
       {rows.flatMap(row => row.map(cell => (
         <div
           key={`${cell.row}-${cell.column}`}
-          style={tableCellStyle(cell, rows.length, component.columns.length, border, scale)}
+          style={tableCellStyle(cell, scale)}
         >
           {cell.content}
         </div>
@@ -313,17 +314,14 @@ const TableComponent: React.FC<{ component: RenderTable; style: React.CSSPropert
   );
 };
 
-function tableCellStyle(cell: StyledRenderTableCell, rowCount: number, columnCount: number, gridBorder: string, scale: number): React.CSSProperties {
+function tableCellStyle(cell: StyledRenderTableCell, scale: number): React.CSSProperties {
   const border = cell.style?.border;
   const font = cell.style?.font;
   return {
     gridColumn: cell.colSpan > 1 ? `span ${cell.colSpan}` : undefined,
     gridRow: cell.rowSpan > 1 ? `span ${cell.rowSpan}` : undefined,
-    borderRight: border?.sides.right ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : cell.column + cell.colSpan >= columnCount ? undefined : gridBorder,
-    borderBottom: border?.sides.bottom ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : cell.row + cell.rowSpan >= rowCount ? undefined : gridBorder,
-    borderTop: border?.sides.top ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
-    borderLeft: border?.sides.left ? `${Math.max(1, border.width * MM_TO_PX * scale)}px ${border.style} ${border.color}` : undefined,
-    backgroundColor: cell.style?.backgroundColor ?? (cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined),
+    ...tableBorderStyle(border, scale),
+    backgroundColor: tableCellBackgroundColor(cell),
     color: font?.color ?? '#111',
     fontFamily: font?.family,
     fontSize: (font?.size ?? 10) * 1.333 * scale,

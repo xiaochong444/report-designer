@@ -18,7 +18,7 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('font-size:14.663px');
     expect(html).toContain('color:#000000');
     expect(html).toContain('background-color:#f5f5f5');
-    expect(html).toContain('border-top:0.2mm solid #000000');
+    expect(html).toContain('border-top:0.3mm solid #000000');
     expect(html).toContain('text-align:left');
     expect(html).toContain('white-space:pre-wrap');
     expect(html).toContain('padding:0mm 0mm 0mm 0mm');
@@ -193,7 +193,7 @@ describe('Phase 4 print frame', () => {
     expect(html).toContain('text-align:center');
     expect(html).toContain('transform:rotate(-35deg)');
     expect(html).toContain('inset:0mm');
-    expect(html).toContain('border-top:0.2mm solid #000000');
+    expect(html).toContain('border-top:0.3mm solid #000000');
   });
 
   it('renders component coordinates relative to their containing band', () => {

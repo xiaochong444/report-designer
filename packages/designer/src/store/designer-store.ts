@@ -17,7 +17,7 @@ import type {
   TableComponent,
   TextComponent,
 } from '@report-designer/core';
-import { createDefaultTemplate, getDefaultTextStyle, normalizeTemplate } from '@report-designer/core';
+import { createDefaultTemplate, getDefaultTextStyle, isRepeatOnEveryPageBandType, normalizeTemplate } from '@report-designer/core';
 import { CommandDispatcher, registerCommand } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
 import { ensureTemplateBandNames, ensureTemplateComponentNames, getNextBandName, getNextComponentName, prepareBandForInsert, prepareComponentForInsert } from '../report-structure';
@@ -42,10 +42,13 @@ import {
   mergeTableCellRange,
   mergeTableCellRight,
   pasteTableCellStyle,
+  setTableCellWidth,
   setTableStructure,
   splitTableCell,
   normalizeTable,
+  updateTableRow,
   type TableCellStyleClipboard,
+  type TableRowUpdate,
 } from '../table/table-structure';
 
 export interface TableCellSelection {
@@ -55,6 +58,12 @@ export interface TableCellSelection {
   startColumn: number;
   endRow: number;
   endColumn: number;
+}
+
+export interface TableRowSelection {
+  tableId: string;
+  bandId: string;
+  row: number;
 }
 
 export interface DesignerEventNavigationTarget {
@@ -79,6 +88,7 @@ export interface DesignerState {
   selectedComponentIds: string[];
   selectedBandId: string | null;
   pendingBandInsertType: BandType | null;
+  selectedTableRow: TableRowSelection | null;
   selectedTableCell: TableCellSelection | null;
   tableCellStyleClipboard: TableCellStyleClipboard | null;
   pendingEventEditorTarget: PendingEventEditorTarget | null;
@@ -112,6 +122,7 @@ export interface DesignerState {
   insertBandAfter: (pageId: string, afterBandId: string, bandType?: BandType) => void;
   duplicateBandAfter: (pageId: string, bandId: string) => void;
   moveBand: (pageId: string, bandId: string, targetIndex: number) => void;
+  selectTableRow: (selection: TableRowSelection | null) => void;
   selectTableCell: (selection: TableCellSelection | null) => void;
   openEventEditorTarget: (target: DesignerEventNavigationTarget) => void;
   consumeEventEditorTarget: (requestId: number) => void;
@@ -153,7 +164,9 @@ export interface DesignerState {
   resizeSelectedBy: (dw: number, dh: number) => void;
   toggleSelectedFontStyle: (style: 'bold' | 'italic' | 'underline' | 'strikethrough') => void;
   updateSelectedTable: (updates: Parameters<typeof setTableStructure>[1]) => void;
+  updateSelectedTableRow: (updates: TableRowUpdate) => void;
   updateSelectedTableCell: (updates: Partial<TableCell>) => void;
+  setSelectedTableCellWidth: (row: number, column: number, width: number | undefined) => void;
   applySelectedStyle: (styleId: string | undefined) => void;
   createTextStyle: (style?: Partial<ReportStyle> & { name?: string }) => string;
   duplicateTextStyle: (styleId: string) => string | undefined;
@@ -307,11 +320,11 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
         };
         updates.push({
           ...target,
-          updates: nextTable,
+          updates: tableHistorySnapshot(nextTable),
         });
         previous.push({
           ...target,
-          updates: component,
+          updates: tableHistorySnapshot(component as TableComponent),
         });
       }
     }
@@ -349,8 +362,8 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
         pageId: currentPageId,
         bandId: normalizedSelection.bandId,
         componentId: normalizedSelection.tableId,
-        updates: nextTable,
-        previous: component,
+        updates: tableHistorySnapshot(nextTable),
+        previous: tableHistorySnapshot(component as TableComponent),
       },
       execute: () => template,
       undo: () => template,
@@ -363,11 +376,12 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     currentPageId: '',
     mode: 'design',
     textStyleLibraryOpen: false,
-    conditionalFormatLibraryOpen: false,
-    selectedComponentIds: [],
-    selectedBandId: null,
-    pendingBandInsertType: null,
-    selectedTableCell: null,
+  conditionalFormatLibraryOpen: false,
+  selectedComponentIds: [],
+  selectedBandId: null,
+  pendingBandInsertType: null,
+  selectedTableRow: null,
+  selectedTableCell: null,
     tableCellStyleClipboard: null,
     pendingEventEditorTarget: null,
     dataSources: {},
@@ -387,6 +401,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       selectedComponentIds: [],
       selectedBandId: null,
       pendingBandInsertType: null,
+      selectedTableRow: null,
       selectedTableCell: null,
       tableCellStyleClipboard: null,
       pendingEventEditorTarget: null,
@@ -477,14 +492,15 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
 
   closeConditionalFormatLibrary: () => set({ conditionalFormatLibraryOpen: false }),
 
-  selectComponents: (componentIds) => set({ selectedComponentIds: componentIds, selectedTableCell: null }),
+  selectComponents: (componentIds) => set({ selectedComponentIds: componentIds, selectedTableRow: null, selectedTableCell: null }),
 
-  selectBand: (bandId) => set({ selectedBandId: bandId, selectedTableCell: null }),
+  selectBand: (bandId) => set({ selectedBandId: bandId, selectedTableRow: null, selectedTableCell: null }),
 
   beginBandInsert: (bandType) => set({
     pendingBandInsertType: bandType,
     selectedComponentIds: [],
     selectedBandId: null,
+    selectedTableRow: null,
     selectedTableCell: null,
   }),
 
@@ -507,6 +523,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       template: newTemplate,
       selectedComponentIds: [],
       selectedBandId: band.id,
+      selectedTableRow: null,
       selectedTableCell: null,
       pendingBandInsertType: null,
     });
@@ -544,6 +561,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       set({
         selectedBandId: bandId,
         selectedComponentIds: [],
+        selectedTableRow: null,
         selectedTableCell: null,
       });
       return;
@@ -559,13 +577,22 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       template: newTemplate,
       selectedBandId: bandId,
       selectedComponentIds: [],
+      selectedTableRow: null,
       selectedTableCell: null,
       pendingBandInsertType: null,
     });
   },
 
+  selectTableRow: (selection) => set({
+    selectedTableRow: selection,
+    selectedTableCell: null,
+    selectedComponentIds: selection ? [selection.tableId] : get().selectedComponentIds,
+    selectedBandId: selection ? null : get().selectedBandId,
+  }),
+
   selectTableCell: (selection) => set({
     selectedTableCell: selection ? normalizeTableCellSelection(selection) : null,
+    selectedTableRow: null,
     selectedComponentIds: selection ? [selection.tableId] : get().selectedComponentIds,
     selectedBandId: selection ? null : get().selectedBandId,
   }),
@@ -1039,6 +1066,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
         template: newTemplate,
         selectedBandId: null,
         selectedComponentIds: [],
+        selectedTableRow: null,
         selectedTableCell: null,
       });
       return;
@@ -1184,8 +1212,18 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     updateSelectedTableComponents(table => setTableStructure(table, updates));
   },
 
+  updateSelectedTableRow: (updates) => {
+    const { selectedTableRow } = get();
+    if (!selectedTableRow) return;
+    updateSelectedTableComponents(table => updateTableRow(table, selectedTableRow.row, updates));
+  },
+
   updateSelectedTableCell: (updates) => {
     updateSelectedTableCellComponent(updates);
+  },
+
+  setSelectedTableCellWidth: (row, column, width) => {
+    updateSelectedTableComponents(table => setTableCellWidth(table, row, column, width));
   },
 
   applySelectedStyle: (styleId) => {
@@ -1436,6 +1474,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       template: newTemplate,
       selectedBandId: get().selectedBandId === bandId ? null : get().selectedBandId,
       selectedComponentIds: [],
+      selectedTableRow: null,
       selectedTableCell: null,
     });
   },
@@ -1709,7 +1748,7 @@ function createBandBehavior(type: BandType): NonNullable<Band['behavior']> {
     enabled: true,
     printOn: 'allPages',
     printIfEmpty: true,
-    printOnAllPages: type === 'pageHeader' || type === 'pageFooter' || type === 'groupHeader',
+    printOnAllPages: isRepeatOnEveryPageBandType(type),
     keepTogether: false,
     canBreak: type === 'data' || type === 'hierarchicalData' || type === 'child',
     breakIfLessThan: undefined,
@@ -2013,21 +2052,32 @@ function updateTableCell(
 ): TableComponent {
   const normalized = normalizeTable(table);
   const normalizedSelection = normalizeTableCellSelection(selection);
-  const selectedKeys = new Set<string>();
-  const nextCells: TableCell[] = [];
-  for (let row = normalizedSelection.startRow; row <= normalizedSelection.endRow; row += 1) {
-    for (let column = normalizedSelection.startColumn; column <= normalizedSelection.endColumn; column += 1) {
-      selectedKeys.add(`${row}-${column}`);
-      const existing = normalized.cells?.find(cell => cell.row === row && cell.column === column) ?? { row, column };
-      const nextCell = clampTableCellSpan({ ...existing, ...updates }, existing, updates, normalized);
-      nextCells.push(nextCell);
-      markCoveredTableCells(nextCell, selectedKeys);
-    }
-  }
-  const cells = (normalized.cells ?? []).filter(cell => !selectedKeys.has(`${cell.row}-${cell.column}`));
+  const rows = (normalized.rows ?? []).map((row, rowIndex) => ({
+    ...row,
+    cells: row.cells.map((cell, columnIndex) => {
+      const selected = rowIndex >= normalizedSelection.startRow
+        && rowIndex <= normalizedSelection.endRow
+        && columnIndex >= normalizedSelection.startColumn
+        && columnIndex <= normalizedSelection.endColumn;
+      if (!selected) return cell;
+      return clampTableCellSpan({ ...cell, ...updates }, cell, updates, normalized, rowIndex, columnIndex);
+    }),
+  }));
+  return normalizeTable({ ...normalized, rows });
+}
+
+function tableHistorySnapshot(table: TableComponent): TableComponent {
   return {
-    ...normalized,
-    cells: [...cells, ...nextCells].sort((a, b) => a.row - b.row || a.column - b.column),
+    ...table,
+    rows: table.rows,
+    cells: table.cells,
+    columns: table.columns,
+    binding: table.binding,
+    dataSource: table.dataSource,
+    headerRowsCount: table.headerRowsCount,
+    footerRowsCount: table.footerRowsCount,
+    headerHeight: table.headerHeight,
+    rowHeight: table.rowHeight,
   };
 }
 
@@ -2036,24 +2086,16 @@ function clampTableCellSpan(
   existing: TableCell,
   updates: Partial<TableCell>,
   table: TableComponent,
+  rowIndex: number,
+  columnIndex: number,
 ): TableCell {
-  const rowCount = table.rowCount ?? 1;
-  const columnCount = table.columnCount ?? table.columns.length;
+  const rowCount = table.rows?.length ?? table.rowCount ?? 1;
+  const columnCount = table.rows?.[rowIndex]?.cells.length ?? table.columnCount ?? 1;
   const shouldWriteRowSpan = existing.rowSpan !== undefined || updates.rowSpan !== undefined;
   const shouldWriteColSpan = existing.colSpan !== undefined || updates.colSpan !== undefined;
   return {
     ...cell,
-    ...(shouldWriteRowSpan ? { rowSpan: Math.max(1, Math.min(cell.rowSpan ?? 1, rowCount - cell.row)) } : {}),
-    ...(shouldWriteColSpan ? { colSpan: Math.max(1, Math.min(cell.colSpan ?? 1, columnCount - cell.column)) } : {}),
+    ...(shouldWriteRowSpan ? { rowSpan: Math.max(1, Math.min(cell.rowSpan ?? 1, rowCount - rowIndex)) } : {}),
+    ...(shouldWriteColSpan ? { colSpan: Math.max(1, Math.min(cell.colSpan ?? 1, columnCount - columnIndex)) } : {}),
   };
-}
-
-function markCoveredTableCells(cell: TableCell, selectedKeys: Set<string>): void {
-  const rowSpan = cell.rowSpan ?? 1;
-  const colSpan = cell.colSpan ?? 1;
-  for (let row = cell.row; row < cell.row + rowSpan; row += 1) {
-    for (let column = cell.column; column < cell.column + colSpan; column += 1) {
-      selectedKeys.add(`${row}-${column}`);
-    }
-  }
 }

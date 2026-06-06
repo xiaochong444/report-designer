@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import { createDefaultTemplate } from '@report-designer/core';
@@ -23,6 +23,8 @@ describe('Phase 9 expression editor total shortcuts', () => {
 
     render(<ExpressionEditor open value="" onChange={() => {}} onClose={() => {}} />);
 
+    fireEvent.change(screen.getByPlaceholderText('搜索'), { target: { value: 'SUM' } });
+
     expect(await screen.findByText('聚合函数')).toBeInTheDocument();
     expect(screen.queryByText('页/报表合计')).not.toBeInTheDocument();
 
@@ -34,14 +36,17 @@ describe('Phase 9 expression editor total shortcuts', () => {
     expect(functionLabels.some(text => text.startsWith('TOTALS.REPORTSUM'))).toBe(false);
   });
 
-  it('lists money uppercase helpers in the expression browser', async () => {
+  it('lists only the RMB uppercase helper in the expression browser', async () => {
     useDesignerStore.getState().loadTemplate(createDefaultTemplate('Expression Money'));
 
     render(<ExpressionEditor open value="" onChange={() => {}} onClose={() => {}} />);
 
+    fireEvent.change(screen.getByPlaceholderText('搜索'), { target: { value: 'RMBUPPER' } });
+
     expect(await screen.findByText('金额大写')).toBeInTheDocument();
     expect(screen.getByText('RMBUPPER')).toBeInTheDocument();
-    expect(screen.getByText('MONEYUPPER')).toBeInTheDocument();
-    expect(screen.getByText('CNYUPPER')).toBeInTheDocument();
+    expect(screen.queryByText('MONEYUPPER')).not.toBeInTheDocument();
+    expect(screen.queryByText('CNYUPPER')).not.toBeInTheDocument();
+    expect(screen.queryByText('CHINESEMONEY')).not.toBeInTheDocument();
   });
 });

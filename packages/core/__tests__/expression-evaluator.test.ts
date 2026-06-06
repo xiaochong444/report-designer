@@ -190,9 +190,13 @@ describe('Evaluator - Functions', () => {
 
   it('should convert currency amounts to Chinese uppercase RMB text', () => {
     expect(evalExpr('RMBUPPER(1234.56)')).toBe('壹仟贰佰叁拾肆元伍角陆分');
-    expect(evalExpr('MONEYUPPER(100100000.01)')).toBe('壹亿零壹拾万元零壹分');
-    expect(evalExpr('CNYUPPER(0)')).toBe('零元整');
     expect(evalExpr('RMBUPPER(-12.3)')).toBe('负壹拾贰元叁角');
+  });
+
+  it('should not keep duplicate Chinese money aliases', () => {
+    expect(() => evalExpr('MONEYUPPER(1234.56)')).toThrow('Unknown function: MONEYUPPER');
+    expect(() => evalExpr('CNYUPPER(1234.56)')).toThrow('Unknown function: CNYUPPER');
+    expect(() => evalExpr('CHINESEMONEY(1234.56)')).toThrow('Unknown function: CHINESEMONEY');
   });
 
   it('should evaluate TOSTRING/TONUMBER', () => {
@@ -226,5 +230,27 @@ describe('Evaluator - Complex Expressions', () => {
 describe('Evaluator - Function Registry', () => {
   it('should have at least 25 built-in functions', () => {
     expect(Object.keys(builtinFunctions).length).toBeGreaterThanOrEqual(25);
+  });
+
+  it('evaluates custom functions with arithmetic field arguments', () => {
+    const result = evalExpression(
+      'DISCOUNT({salesPrice} * {qty}, 1 - {salesDiscount})',
+      (source, field) => {
+        const data: Record<string, unknown> = {
+          salesPrice: 5000,
+          qty: 2,
+          salesDiscount: 0.9,
+        };
+        return data[source ? `${source}.${field}` : field] ?? null;
+      },
+      undefined,
+      undefined,
+      undefined,
+      {
+        DISCOUNT: ([price, rate]) => Number(price) * Number(rate),
+      },
+    );
+
+    expect(result).toBeCloseTo(1000);
   });
 });

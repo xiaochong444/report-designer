@@ -66,6 +66,19 @@ describe('Phase 1 template model', () => {
     expect(migrated.pages[0].bands.find((band) => band.type === 'data')?.dataBand?.dataSourceId).toBe('employees');
   });
 
+  it('normalizes header and column header bands to repeat on every page by default', () => {
+    const template = createDefaultTemplate('Section Headers');
+    template.pages[0].bands.splice(2, 0,
+      { id: 'section-header', type: 'header', height: 8, components: [] },
+      { id: 'column-header', type: 'columnHeader', height: 8, components: [] },
+    );
+
+    const migrated = normalizeTemplate(template);
+
+    expect(migrated.pages[0].bands.find((band) => band.type === 'header')?.behavior?.printOnAllPages).toBe(true);
+    expect(migrated.pages[0].bands.find((band) => band.type === 'columnHeader')?.behavior?.printOnAllPages).toBe(true);
+  });
+
   it('validates duplicate ids', () => {
     const template = normalizeTemplate(createDefaultTemplate());
     template.pages[0].bands[1].id = template.pages[0].bands[0].id;
