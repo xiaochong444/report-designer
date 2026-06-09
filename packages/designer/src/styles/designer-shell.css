@@ -342,10 +342,189 @@
 }
 
 .rd-designer-body {
+  position: relative;
   min-height: 0;
   display: grid;
-  grid-template-columns: 270px minmax(360px, 1fr) 310px;
   overflow: hidden;
+}
+
+.rd-dock-panel {
+  position: relative;
+  min-width: 0;
+  min-height: 0;
+  overflow: visible;
+}
+
+.rd-dock-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+}
+
+.rd-dock-content > .rd-left-panel,
+.rd-dock-content > .rd-property-grid {
+  width: 100%;
+  height: 100%;
+}
+
+.rd-dock-panel-auto {
+  z-index: 30000;
+}
+
+.rd-dock-panel-auto .rd-dock-content {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 30002;
+  width: var(--rd-dock-width);
+}
+
+.rd-dock-panel-left.rd-dock-panel-auto .rd-dock-content {
+  left: 0;
+}
+
+.rd-dock-panel-right.rd-dock-panel-auto .rd-dock-content {
+  right: 0;
+}
+
+.rd-dock-panel.rd-dock-panel-open .rd-dock-content {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateX(0) !important;
+}
+
+.rd-dock-panel-auto:hover .rd-dock-content,
+.rd-dock-panel-auto:focus-within .rd-dock-content {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+  transform: translateX(0) !important;
+}
+
+.rd-dock-panel-auto .rd-dock-content > .rd-left-panel,
+.rd-dock-panel-auto .rd-dock-content > .rd-property-grid {
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.2);
+}
+
+.rd-dock-strip {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 30003;
+  width: 30px;
+  display: none;
+  flex-direction: column;
+  background: #fff;
+  border-color: var(--rd-border-strong);
+}
+
+.rd-dock-panel-auto .rd-dock-strip {
+  display: flex;
+}
+
+.rd-dock-panel-left .rd-dock-strip {
+  left: 0;
+  border-right: 1px solid var(--rd-border-strong);
+}
+
+.rd-dock-panel-right .rd-dock-strip {
+  right: 0;
+  border-left: 1px solid var(--rd-border-strong);
+}
+
+.rd-dock-strip-tab {
+  position: relative;
+  width: 30px;
+  min-height: 88px;
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 0;
+  border: 0;
+  border-bottom: 1px solid #e5e7eb;
+  background: #fff;
+  color: #334155;
+  cursor: pointer;
+  font-size: 12px;
+  line-height: 1;
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+}
+
+.rd-dock-strip-tab::before {
+  content: "";
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  width: 3px;
+  background: transparent;
+}
+
+.rd-dock-panel-left .rd-dock-strip-tab::before {
+  left: 0;
+}
+
+.rd-dock-panel-right .rd-dock-strip-tab::before {
+  right: 0;
+}
+
+.rd-dock-strip-tab:hover,
+.rd-dock-strip-tab-active {
+  background: #f7faff;
+  color: var(--rd-accent);
+}
+
+.rd-dock-strip-tab-active::before {
+  background: #1f5fbf;
+}
+
+.rd-dock-pin-button {
+  position: absolute;
+  top: 2px;
+  right: 4px;
+  z-index: 1040;
+  width: 24px;
+  min-width: 24px;
+  height: 24px;
+  border: 0;
+  color: #334155;
+  background: transparent !important;
+  box-shadow: none !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rd-dock-pin-button .anticon {
+  transform-origin: center;
+  transition: transform 120ms ease, color 120ms ease;
+}
+
+.rd-dock-pin-button-vertical .anticon {
+  transform: rotate(-45deg);
+}
+
+.rd-dock-pin-button-horizontal .anticon {
+  transform: rotate(45deg);
+}
+
+.rd-dock-panel-pinned .rd-dock-pin-button,
+.rd-dock-panel-open .rd-dock-pin-button,
+.rd-dock-panel-auto:hover .rd-dock-pin-button,
+.rd-dock-panel-auto:focus-within .rd-dock-pin-button {
+  opacity: 1 !important;
+  visibility: visible !important;
+  pointer-events: auto !important;
+}
+
+.rd-dock-pin-button:hover,
+.rd-dock-pin-button:focus-visible {
+  color: var(--rd-accent);
+  background: transparent !important;
 }
 
 .rd-left-panel,
@@ -371,7 +550,7 @@
   height: 27px;
   display: flex;
   align-items: center;
-  padding: 0 9px;
+  padding: 0 34px 0 9px;
   border-bottom: 1px solid var(--rd-border);
   background: #f7f9fc;
   color: var(--rd-text);

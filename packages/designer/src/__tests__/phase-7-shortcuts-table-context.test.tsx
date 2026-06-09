@@ -93,17 +93,51 @@ describe('Phase 7 designer shortcuts and table context menu', () => {
     } as ReportComponent);
 
     render(<Canvas />);
-    const grid = screen.getByTestId('designer-table-grid');
+    const cell = screen.getByTestId('designer-table-cell-1-0');
     Object.defineProperty(document, 'elementFromPoint', {
       configurable: true,
-      value: vi.fn(() => grid),
+      value: vi.fn(() => cell),
     });
-    fireEvent.mouseDown(grid, { button: 2, clientX: 20, clientY: 20 });
-    fireEvent.click(screen.getByText('插入列到右侧'));
+    fireEvent.mouseDown(cell, { button: 2, clientX: 20, clientY: 20 });
+    fireEvent.mouseEnter(screen.getByText('插入'));
+    fireEvent.click(screen.getByText('在右侧插入列'));
 
     const table = selectedComponent();
     expect(table.columnCount).toBe(2);
     expect(table.rows?.[0]?.cells).toHaveLength(2);
+  });
+
+  it('does not replace a component context menu with the band context menu', () => {
+    loadWith({
+      id: 'text-1',
+      type: 'text',
+      x: 10,
+      y: 10,
+      width: 40,
+      height: 10,
+      text: 'Name',
+      font: { family: 'Arial', size: 12, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    } as ReportComponent);
+
+    render(<Canvas />);
+    const componentNode = document.querySelector('[data-component-id="text-1"]') as HTMLElement;
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: vi.fn(() => componentNode),
+    });
+
+    fireEvent.mouseDown(componentNode, { button: 2, clientX: 20, clientY: 20 });
+    expect(screen.getByText('复制一份')).toBeInTheDocument();
+
+    fireEvent.contextMenu(componentNode, { clientX: 20, clientY: 20 });
+
+    expect(screen.queryByTestId('designer-band-context-menu')).not.toBeInTheDocument();
+    expect(screen.getByText('复制一份')).toBeInTheDocument();
   });
 
   it('clears the selected table cell on Delete without deleting the table', () => {

@@ -66,7 +66,7 @@ describe('Phase 8 table cell context menu', () => {
     render(<Canvas />);
 
     openCellMenu(1, 1);
-    fireEvent.click(screen.getByText('合并右侧单元格'));
+    fireEvent.click(screen.getByText('合并单元格'));
     expect(selectedCell(1, 1)).toMatchObject({ text: 'Subtotal', rowSpan: 1, colSpan: 2 });
 
     openCellMenu(1, 1);
@@ -74,7 +74,7 @@ describe('Phase 8 table cell context menu', () => {
     expect(selectedCell(1, 1)).toMatchObject({ text: 'Subtotal', rowSpan: 1, colSpan: 1 });
 
     openCellMenu(1, 1);
-    fireEvent.click(screen.getByText('清空单元格'));
+    fireEvent.click(screen.getByText('清除内容'));
     expect(selectedCell(1, 1)).toMatchObject({ rowSpan: 1, colSpan: 1 });
     expect(selectedCell(1, 1)?.text).toBeUndefined();
   });
@@ -84,11 +84,11 @@ describe('Phase 8 table cell context menu', () => {
     render(<Canvas />);
 
     openCellMenu(1, 1);
-    fireEvent.click(screen.getByText('均分列宽'));
+    fireEvent.click(screen.getByText('平均分布列宽'));
     expect(selectedTable().rows?.[0]?.cells.map(cell => cell.width)).toEqual([undefined, undefined, undefined]);
 
     openCellMenu(1, 1);
-    fireEvent.click(screen.getByText('均分行高'));
+    fireEvent.click(screen.getByText('平均分布行高'));
     expect(selectedTable().rows?.map(row => row.height)).toEqual([10, 10, 10]);
   });
 
@@ -107,10 +107,12 @@ describe('Phase 8 table cell context menu', () => {
     render(<Canvas />);
 
     openCellMenu(1, 1);
-    fireEvent.click(screen.getByText('复制单元格样式'));
+    fireEvent.mouseEnter(screen.getByText('单元格样式'));
+    fireEvent.click(screen.getByText('复制样式'));
 
     openCellMenu(2, 0);
-    fireEvent.click(screen.getByText('粘贴单元格样式'));
+    fireEvent.mouseEnter(screen.getByText('单元格样式'));
+    fireEvent.click(screen.getByText('粘贴样式'));
     expect(selectedCell(2, 0)).toMatchObject({
       backgroundColor: '#ffeecc',
       font: expect.objectContaining({ bold: true, color: '#224466' }),
@@ -119,7 +121,8 @@ describe('Phase 8 table cell context menu', () => {
     });
 
     openCellMenu(1, 1);
-    fireEvent.click(screen.getByText('清空单元格样式'));
+    fireEvent.mouseEnter(screen.getByText('单元格样式'));
+    fireEvent.click(screen.getByText('清除样式'));
     expect(selectedCell(1, 1)).toEqual(expect.objectContaining({ text: 'Subtotal' }));
     expect(selectedCell(1, 1)?.backgroundColor).toBeUndefined();
   });
@@ -143,7 +146,7 @@ describe('Phase 8 table cell context menu', () => {
     fireEvent.mouseDown(end, { button: 0, clientX: 20, clientY: 20, shiftKey: true });
     fireEvent.mouseDown(end, { button: 2, clientX: 20, clientY: 20 });
 
-    fireEvent.click(screen.getByText('合并选中单元格'));
+    fireEvent.click(screen.getByText('合并单元格'));
 
     expect(selectedCell(1, 0)).toMatchObject({ rowSpan: 2, colSpan: 3 });
     expect(screen.queryByTestId('designer-table-cell-1-1')).not.toBeInTheDocument();
@@ -154,12 +157,14 @@ describe('Phase 8 table cell context menu', () => {
     render(<Canvas />);
 
     openCellMenu(1, 1);
-    fireEvent.click(screen.getByText('插入列到右侧'));
+    fireEvent.mouseEnter(screen.getByText('插入'));
+    fireEvent.click(screen.getByText('在右侧插入列'));
     expect(selectedTable().rows?.[0]?.cells).toHaveLength(4);
     expect(selectedCell(2, 3)?.text).toBe('Tail');
 
     openCellMenu(1, 1);
-    fireEvent.click(screen.getByText('插入行到下方'));
+    fireEvent.mouseEnter(screen.getByText('插入'));
+    fireEvent.click(screen.getByText('在下方插入行'));
     expect(selectedTable().rows).toHaveLength(4);
     expect(selectedCell(3, 3)?.text).toBe('Tail');
   });
@@ -206,11 +211,9 @@ describe('Phase 8 table cell context menu', () => {
 
     openCellMenu(1, 1);
 
-    expect(screen.getByText('Insert Column Right')).toBeInTheDocument();
-    expect(screen.getByText('Merge Cell Right')).toBeInTheDocument();
-    expect(screen.getByText('Merge Selected Cells')).toBeInTheDocument();
-    expect(screen.getByText('Copy Cell Style')).toBeInTheDocument();
-    expect(screen.getByText('Clear Cell Style')).toBeInTheDocument();
+    expect(screen.getByText('Insert')).toBeInTheDocument();
+    expect(screen.getByText('Merge Cells')).toBeInTheDocument();
+    expect(screen.getByText('Cell Style')).toBeInTheDocument();
     expect(screen.getByText('Distribute Columns')).toBeInTheDocument();
     expect(screen.queryByText('插入列到右侧')).not.toBeInTheDocument();
   });

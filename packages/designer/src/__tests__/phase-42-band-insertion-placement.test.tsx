@@ -79,7 +79,7 @@ describe('Phase 42 band insertion placement', () => {
     fireEvent.contextMenu(screen.getByTestId('designer-band-frame-pageHeader'), { clientX: 120, clientY: 120 });
     expect(screen.getByTestId('designer-band-context-menu')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('Copy'));
+    fireEvent.click(screen.getByText('Copy Band'));
 
     let bands = useDesignerStore.getState().template.pages[0].bands;
     expect(bands.map(band => band.type)).toEqual(['reportTitle', 'pageHeader', 'pageHeader', 'data', 'pageFooter']);
@@ -87,7 +87,7 @@ describe('Phase 42 band insertion placement', () => {
     expect(within(screen.getAllByTestId('designer-band-frame-pageHeader')[1]).getByText('PageHeaderBand2')).toBeInTheDocument();
 
     fireEvent.contextMenu(screen.getAllByTestId('designer-band-frame-pageHeader')[1], { clientX: 120, clientY: 150 });
-    fireEvent.click(screen.getByText('Delete'));
+    fireEvent.click(screen.getByText('Delete Band'));
 
     bands = useDesignerStore.getState().template.pages[0].bands;
     expect(bands.map(band => band.type)).toEqual(['reportTitle', 'pageHeader', 'data', 'pageFooter']);

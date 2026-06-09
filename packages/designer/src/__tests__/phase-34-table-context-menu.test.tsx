@@ -78,18 +78,46 @@ function openCellMenu(row: number, column: number) {
 }
 
 describe('phase 34 table context menu', () => {
-  it('shows grouped table actions and handles a real mouse click on the menu item', () => {
+  it('shows an Excel-like table cell menu and handles a submenu item click', () => {
     loadWith(tableComponent({ cells: [{ row: 2, column: 2, text: 'Tail' }] }));
     render(<Canvas />);
 
     openCellMenu(1, 1);
-    expect(screen.getByText('编辑')).toBeInTheDocument();
-    expect(screen.getByText('结构')).toBeInTheDocument();
-    expect(screen.getByText('单元格')).toBeInTheDocument();
-    expect(screen.getByText('样式')).toBeInTheDocument();
+    expect(screen.getByText('剪切')).toBeInTheDocument();
+    expect(screen.getByText('复制')).toBeInTheDocument();
+    expect(screen.getByText('粘贴')).toBeInTheDocument();
+    expect(screen.getByText('清除内容')).toBeInTheDocument();
+    expect(screen.getByText('插入')).toBeInTheDocument();
+    expect(screen.getByText('删除')).toBeInTheDocument();
+    expect(screen.getByText('合并单元格')).toBeInTheDocument();
+    expect(screen.getByText('拆分单元格')).toBeInTheDocument();
+    expect(screen.getByText('平均分布列宽')).toBeInTheDocument();
+    expect(screen.getByText('平均分布行高')).toBeInTheDocument();
+    expect(screen.getByText('单元格样式')).toBeInTheDocument();
+    expect(screen.getByText('表格')).toBeInTheDocument();
+    expect(screen.queryByText('复制一份')).not.toBeInTheDocument();
+    expect(screen.queryByText('设为表头行')).not.toBeInTheDocument();
+    expect(screen.queryByText('设为表尾行')).not.toBeInTheDocument();
 
-    const insertRowBelow = screen.getByText('插入行到下方');
+    fireEvent.mouseEnter(screen.getByText('插入'));
+    const insertRowBelow = screen.getByText('在下方插入行');
     fireEvent.mouseDown(insertRowBelow);
+    fireEvent.click(insertRowBelow);
+
+    expect(selectedTable().rowCount).toBe(4);
+    expect(selectedCell(3, 2)).toMatchObject({ text: 'Tail' });
+  });
+
+  it('keeps submenu actions available while moving from the parent menu item', () => {
+    loadWith(tableComponent({ cells: [{ row: 2, column: 2, text: 'Tail' }] }));
+    render(<Canvas />);
+
+    openCellMenu(1, 1);
+    const insertMenuItem = screen.getByText('插入');
+    fireEvent.mouseEnter(insertMenuItem);
+    fireEvent.mouseLeave(insertMenuItem);
+    const insertRowBelow = screen.getByText('在下方插入行');
+    fireEvent.mouseEnter(insertRowBelow);
     fireEvent.click(insertRowBelow);
 
     expect(selectedTable().rowCount).toBe(4);
@@ -101,12 +129,14 @@ describe('phase 34 table context menu', () => {
     render(<Canvas />);
 
     openCellMenu(1, 1);
-    fireEvent.click(screen.getByText('插入列到左侧'));
+    fireEvent.mouseEnter(screen.getByText('插入'));
+    fireEvent.click(screen.getByText('在左侧插入列'));
     expect(selectedTable().columnCount).toBe(4);
     expect(selectedCell(2, 3)).toMatchObject({ text: 'Tail' });
 
     openCellMenu(1, 1);
-    fireEvent.click(screen.getByText('插入行到上方'));
+    fireEvent.mouseEnter(screen.getByText('插入'));
+    fireEvent.click(screen.getByText('在上方插入行'));
     expect(selectedTable().rowCount).toBe(4);
     expect(selectedCell(3, 3)).toMatchObject({ text: 'Tail' });
   });
@@ -124,21 +154,26 @@ describe('phase 34 table context menu', () => {
       value: vi.fn(() => table2Cell),
     });
     fireEvent.mouseDown(table2Cell, { button: 2, clientX: 20, clientY: 20 });
-    fireEvent.click(screen.getByText('插入列到右侧'));
+    fireEvent.mouseEnter(screen.getByText('插入'));
+    fireEvent.click(screen.getByText('在右侧插入列'));
 
     expect(tableById('table-1').columnCount).toBe(3);
     expect(tableById('table-2').columnCount).toBe(4);
   });
 
-  it('sets header and footer rows from the clicked row', () => {
+  it('keeps header and footer row actions in table row settings', () => {
     loadWith(tableComponent({ rowCount: 5, headerRowsCount: 1, footerRowsCount: 0 }));
     render(<Canvas />);
 
     openCellMenu(1, 0);
+    fireEvent.mouseEnter(screen.getByText('表格'));
+    fireEvent.mouseEnter(screen.getByText('行设置'));
     fireEvent.click(screen.getByText('设为表头行'));
     expect(selectedTable().rows?.[1]?.role).toBe('header');
 
     openCellMenu(3, 0);
+    fireEvent.mouseEnter(screen.getByText('表格'));
+    fireEvent.mouseEnter(screen.getByText('行设置'));
     fireEvent.click(screen.getByText('设为表尾行'));
     expect(selectedTable().rows?.[3]?.role).toBe('footer');
   });
@@ -149,7 +184,8 @@ describe('phase 34 table context menu', () => {
 
     openCellMenu(1, 1);
     const beforeColumnDelete = snapshotSelectedTable();
-    fireEvent.click(screen.getByText('删除列'));
+    fireEvent.mouseEnter(screen.getByText('删除'));
+    fireEvent.click(screen.getByText('删除当前列'));
     expect(selectedTable().columnCount).toBe(2);
     expect(selectedCell(2, 1)).toMatchObject({ text: 'Tail' });
 
@@ -175,7 +211,7 @@ describe('phase 34 table context menu', () => {
 
     openCellMenu(1, 1);
     const beforeClear = snapshotSelectedTable();
-    fireEvent.click(screen.getByText('清空单元格'));
+    fireEvent.click(screen.getByText('清除内容'));
     expect(selectedCell(1, 1)).toMatchObject({ rowSpan: 1, colSpan: 2 });
     expect(selectedCell(1, 1)?.text).toBeUndefined();
 
@@ -188,7 +224,7 @@ describe('phase 34 table context menu', () => {
     fireEvent.click(screen.getByText('拆分单元格'));
     openCellMenu(1, 1);
     const beforeMerge = snapshotSelectedTable();
-    fireEvent.click(screen.getByText('合并右侧单元格'));
+    fireEvent.click(screen.getByText('合并单元格'));
     expect(selectedCell(1, 1)).toMatchObject({ text: 'Subtotal', rowSpan: 1, colSpan: 2 });
 
     act(() => {

@@ -1,4 +1,7 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
+import { flushSync } from 'react-dom';
+import { Dropdown } from 'antd';
+import type { MenuProps } from 'antd';
 import { sanitizeRichHtml, type ReportComponent, type Band, type BandType, type BorderConfig, type ChartComponent, type ChartDataPoint, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type RichTextDocument, type TableCell, type TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import type { TableCellSelection } from '../store/designer-store';
@@ -1209,6 +1212,15 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
               }
               setContextMenu(null);
             }}
+            onSetNormalRow={() => {
+              const tableTarget = flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]));
+              if (contextMenu.tableCell && tableTarget?.comp.type === 'table') {
+                const state = useDesignerStore.getState();
+                state.selectTableRow({ tableId: tableTarget.comp.id, bandId: tableTarget.bandId, row: contextMenu.tableCell.row });
+                state.updateSelectedTableRow({ role: 'normal' });
+              }
+              setContextMenu(null);
+            }}
             onMergeTableCellRight={() => {
               if (contextMenu.tableCell) {
                 useDesignerStore.getState().mergeSelectedTableCellRight(contextMenu.tableCell.row, contextMenu.tableCell.column);
@@ -1462,10 +1474,68 @@ interface ContextMenuProps {
   onBringToFront: () => void; onSendToBack: () => void;
   onInsertTableColumnLeft: () => void; onInsertTableColumnRight: () => void; onDeleteTableColumn: () => void;
   onInsertTableRowAbove: () => void; onInsertTableRowBelow: () => void; onDeleteTableRow: () => void; onToggleTableBorder: () => void;
-  onSetHeaderRow: () => void; onSetFooterRow: () => void;
+  onSetHeaderRow: () => void; onSetFooterRow: () => void; onSetNormalRow: () => void;
   onMergeTableCellRight: () => void; onMergeSelectedTableCells: () => void; onSplitTableCell: () => void; onClearTableCell: () => void;
   onClearTableCellStyle: () => void; onCopyTableCellStyle: () => void; onPasteTableCellStyle: () => void;
   onEqualizeTableColumns: () => void; onEqualizeTableRows: () => void;
+}
+
+type ContextMenuAction =
+  | 'cut'
+  | 'copy'
+  | 'paste'
+  | 'duplicate'
+  | 'delete'
+  | 'bringToFront'
+  | 'sendToBack'
+  | 'insertColumnLeft'
+  | 'insertColumnRight'
+  | 'deleteColumn'
+  | 'insertRowAbove'
+  | 'insertRowBelow'
+  | 'deleteRow'
+  | 'toggleBorder'
+  | 'setHeaderRow'
+  | 'setFooterRow'
+  | 'setNormalRow'
+  | 'mergeCells'
+  | 'splitCell'
+  | 'clearCell'
+  | 'clearCellStyle'
+  | 'copyCellStyle'
+  | 'pasteCellStyle'
+  | 'equalizeColumns'
+  | 'equalizeRows';
+
+type ContextMenuItem = NonNullable<MenuProps['items']>[number];
+
+function divider(key: string): ContextMenuItem {
+  return { type: 'divider', key };
+}
+
+function menuLabel(label: string, shortcut?: string, visible = true): React.ReactNode {
+  if (!visible) return <span aria-hidden />;
+  if (!shortcut) return label;
+  return (
+    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, minWidth: 150 }}>
+      <span>{label}</span>
+      <span style={{ color: '#999', fontSize: 11 }}>{shortcut}</span>
+    </span>
+  );
+}
+
+function menuItem(
+  key: ContextMenuAction,
+  label: string,
+  options: { shortcut?: string; disabled?: boolean; danger?: boolean; children?: ContextMenuItem[]; visible?: boolean } = {},
+): ContextMenuItem {
+  return {
+    key,
+    label: menuLabel(label, options.shortcut, options.visible),
+    disabled: options.disabled,
+    danger: options.danger,
+    children: options.children,
+  };
 }
 
 const ContextMenu: React.FC<ContextMenuProps> = ({
@@ -1491,6 +1561,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onToggleTableBorder,
   onSetHeaderRow,
   onSetFooterRow,
+  onSetNormalRow,
   onMergeTableCellRight,
   onMergeSelectedTableCells,
   onSplitTableCell,
@@ -1502,62 +1573,166 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onEqualizeTableRows,
 }) => {
   const { t } = useDesignerI18n();
+  const [openKeys, setOpenKeys] = useState<string[]>([]);
+  const isTableCellMenu = selectedType === 'table' && !!tableCell;
+  const openSubmenu = useCallback((keys: string[]) => {
+    flushSync(() => {
+      setOpenKeys(keys);
+    });
+  }, []);
+  const isSubmenuOpen = useCallback((key: string) => openKeys.includes(key), [openKeys]);
+  const menuSubmenu = useCallback((
+    key: string,
+    label: string,
+    children: ContextMenuItem[],
+    disabled?: boolean,
+    visible = true,
+    openPath: string[] = [key],
+  ): ContextMenuItem => ({
+    key,
+    label: (
+      <span
+        style={{ display: 'block' }}
+        onMouseEnter={() => openSubmenu(openPath)}
+        onMouseOver={() => openSubmenu(openPath)}
+      >
+        {visible ? label : null}
+      </span>
+    ),
+    children,
+    disabled,
+  }), [openSubmenu]);
+  const actionMap: Record<ContextMenuAction, () => void> = {
+    cut: onCut,
+    copy: onCopy,
+    paste: onPaste,
+    duplicate: onDuplicate,
+    delete: onDelete,
+    bringToFront: onBringToFront,
+    sendToBack: onSendToBack,
+    insertColumnLeft: onInsertTableColumnLeft,
+    insertColumnRight: onInsertTableColumnRight,
+    deleteColumn: onDeleteTableColumn,
+    insertRowAbove: onInsertTableRowAbove,
+    insertRowBelow: onInsertTableRowBelow,
+    deleteRow: onDeleteTableRow,
+    toggleBorder: onToggleTableBorder,
+    setHeaderRow: onSetHeaderRow,
+    setFooterRow: onSetFooterRow,
+    setNormalRow: onSetNormalRow,
+    mergeCells: () => {
+      const selected = useDesignerStore.getState().selectedTableCell;
+      if (selected && (selected.startRow !== selected.endRow || selected.startColumn !== selected.endColumn)) {
+        onMergeSelectedTableCells();
+        return;
+      }
+      onMergeTableCellRight();
+    },
+    splitCell: onSplitTableCell,
+    clearCell: onClearTableCell,
+    clearCellStyle: onClearTableCellStyle,
+    copyCellStyle: onCopyTableCellStyle,
+    pasteCellStyle: onPasteTableCellStyle,
+    equalizeColumns: onEqualizeTableColumns,
+    equalizeRows: onEqualizeTableRows,
+  };
+
+  const commonEditItems: ContextMenuItem[] = [
+    menuItem('cut', t('contextMenu.cut'), { shortcut: 'Ctrl+X', disabled: !hasSelection }),
+    menuItem('copy', t('contextMenu.copy'), { shortcut: 'Ctrl+C', disabled: !hasSelection }),
+    menuItem('paste', t('contextMenu.paste'), { shortcut: 'Ctrl+V', disabled: !hasClipboard }),
+  ];
+
+  const componentItems: ContextMenuItem[] = [
+    ...commonEditItems,
+    menuItem('duplicate', t('contextMenu.duplicate'), { shortcut: 'Ctrl+D', disabled: !hasSelection }),
+    divider('edit-divider'),
+    menuSubmenu('arrange', t('contextMenu.table.arrange'), [
+      menuItem('bringToFront', t('contextMenu.bringToFront'), { shortcut: 'Ctrl+Alt+↑', disabled: !hasSelection }),
+      menuItem('sendToBack', t('contextMenu.sendToBack'), { shortcut: 'Ctrl+Alt+↓', disabled: !hasSelection }),
+    ], !hasSelection),
+    divider('delete-divider'),
+    menuItem('delete', t('contextMenu.delete'), { shortcut: 'Del', disabled: !hasSelection, danger: true }),
+  ];
+
+  const tableItems: ContextMenuItem[] = [
+    ...commonEditItems,
+    divider('clear-divider'),
+    menuItem('clearCell', t('contextMenu.table.clearContent'), { disabled: !tableCell }),
+    divider('structure-divider'),
+    menuSubmenu('insert', t('contextMenu.table.insert'), [
+      menuItem('insertRowAbove', t('contextMenu.table.insertRowAboveExcel'), { visible: isSubmenuOpen('insert') }),
+      menuItem('insertRowBelow', t('contextMenu.table.insertRowBelowExcel'), { visible: isSubmenuOpen('insert') }),
+      menuItem('insertColumnLeft', t('contextMenu.table.insertColumnLeftExcel'), { visible: isSubmenuOpen('insert') }),
+      menuItem('insertColumnRight', t('contextMenu.table.insertColumnRightExcel'), { visible: isSubmenuOpen('insert') }),
+    ], !tableCell),
+    menuSubmenu('deleteTablePart', t('contextMenu.table.delete'), [
+      menuItem('deleteRow', t('contextMenu.table.deleteCurrentRow'), { visible: isSubmenuOpen('deleteTablePart') }),
+      menuItem('deleteColumn', t('contextMenu.table.deleteCurrentColumn'), { visible: isSubmenuOpen('deleteTablePart') }),
+    ], !tableCell),
+    divider('cell-divider'),
+    menuItem('mergeCells', t('contextMenu.table.mergeCells'), { disabled: !tableCell }),
+    menuItem('splitCell', t('contextMenu.table.splitCell'), { disabled: !tableCell }),
+    divider('distribution-divider'),
+    menuItem('equalizeColumns', t('contextMenu.table.distributeColumns')),
+    menuItem('equalizeRows', t('contextMenu.table.distributeRows')),
+    divider('style-divider'),
+    menuSubmenu('cellStyle', t('contextMenu.table.cellStyle'), [
+      menuItem('copyCellStyle', t('contextMenu.table.copyStyle'), { visible: isSubmenuOpen('cellStyle') }),
+      menuItem('pasteCellStyle', t('contextMenu.table.pasteStyle'), { visible: isSubmenuOpen('cellStyle') }),
+      menuItem('clearCellStyle', t('contextMenu.table.clearStyle'), { visible: isSubmenuOpen('cellStyle') }),
+    ], !tableCell),
+    divider('table-divider'),
+    menuSubmenu('table', t('contextMenu.table.table'), [
+      menuItem('toggleBorder', t('contextMenu.table.toggleBorder'), { visible: isSubmenuOpen('table') }),
+      menuSubmenu('tableArrange', t('contextMenu.table.arrange'), [
+      menuItem('bringToFront', t('contextMenu.bringToFront'), { shortcut: 'Ctrl+Alt+↑', disabled: !hasSelection, visible: isSubmenuOpen('tableArrange') }),
+      menuItem('sendToBack', t('contextMenu.sendToBack'), { shortcut: 'Ctrl+Alt+↓', disabled: !hasSelection, visible: isSubmenuOpen('tableArrange') }),
+      ], !hasSelection, isSubmenuOpen('table'), ['table', 'tableArrange']),
+      menuSubmenu('rowSettings', t('contextMenu.table.rowSettings'), [
+        menuItem('setHeaderRow', t('contextMenu.table.setHeaderRow'), { visible: isSubmenuOpen('rowSettings') }),
+        menuItem('setFooterRow', t('contextMenu.table.setFooterRow'), { visible: isSubmenuOpen('rowSettings') }),
+        menuItem('setNormalRow', t('contextMenu.table.setNormalRow'), { visible: isSubmenuOpen('rowSettings') }),
+      ], !tableCell, isSubmenuOpen('table'), ['table', 'rowSettings']),
+      menuItem('delete', t('contextMenu.table.deleteTable'), { disabled: !hasSelection, danger: true, visible: isSubmenuOpen('table') }),
+    ]),
+  ];
+
+  const items = isTableCellMenu ? tableItems : componentItems;
+
   return (
-    <div style={{
-      position: 'absolute', left: x, top: y,
-      backgroundColor: '#fff', border: '1px solid #ddd', borderRadius: 4,
-      boxShadow: '0 4px 12px rgba(0,0,0,0.15)', zIndex: 10000,
-      minWidth: 210, padding: '4px 0',
-    }}
-      onMouseDown={stopEvent}
-      onContextMenu={stopEvent}
-      onClick={stopEvent}
-    >
-      <ContextMenuSection title={t('contextMenu.section.edit')}>
-        <ContextMenuItem label={t('contextMenu.copy')} shortcut="Ctrl+C" disabled={!hasSelection} onClick={onCopy} />
-        <ContextMenuItem label={t('contextMenu.cut')} shortcut="Ctrl+X" disabled={!hasSelection} onClick={onCut} />
-        <ContextMenuItem label={t('contextMenu.paste')} shortcut="Ctrl+V" disabled={!hasClipboard} onClick={onPaste} />
-        <ContextMenuItem label={t('contextMenu.duplicate')} shortcut="Ctrl+D" disabled={!hasSelection} onClick={onDuplicate} />
-      </ContextMenuSection>
-      <ContextMenuDivider />
-      <ContextMenuSection title={t('contextMenu.section.arrange')}>
-        <ContextMenuItem label={t('contextMenu.bringToFront')} shortcut="Ctrl+Alt+↑" disabled={!hasSelection} onClick={onBringToFront} />
-        <ContextMenuItem label={t('contextMenu.sendToBack')} shortcut="Ctrl+Alt+↓" disabled={!hasSelection} onClick={onSendToBack} />
-      </ContextMenuSection>
-      {selectedType === 'table' && (
-        <>
-          <ContextMenuDivider />
-          <ContextMenuSection title={t('contextMenu.section.tableStructure')}>
-            <ContextMenuItem label={t('contextMenu.table.insertColumnLeft')} onClick={onInsertTableColumnLeft} />
-            <ContextMenuItem label={t('contextMenu.table.insertColumnRight')} onClick={onInsertTableColumnRight} />
-            <ContextMenuItem label={t('contextMenu.table.deleteColumn')} onClick={onDeleteTableColumn} />
-            <ContextMenuItem label={t('contextMenu.table.insertRowAbove')} onClick={onInsertTableRowAbove} />
-            <ContextMenuItem label={t('contextMenu.table.insertRowBelow')} onClick={onInsertTableRowBelow} />
-            <ContextMenuItem label={t('contextMenu.table.deleteRow')} onClick={onDeleteTableRow} />
-            <ContextMenuItem label={t('contextMenu.table.setHeaderRow')} disabled={!tableCell} onClick={onSetHeaderRow} />
-            <ContextMenuItem label={t('contextMenu.table.setFooterRow')} disabled={!tableCell} onClick={onSetFooterRow} />
-          </ContextMenuSection>
-          <ContextMenuDivider />
-          <ContextMenuSection title={t('contextMenu.section.tableCell')}>
-            <ContextMenuItem label={t('contextMenu.table.mergeRight')} disabled={!tableCell} onClick={onMergeTableCellRight} />
-            <ContextMenuItem label={t('contextMenu.table.mergeSelected')} disabled={!tableCell} onClick={onMergeSelectedTableCells} />
-            <ContextMenuItem label={t('contextMenu.table.splitCell')} disabled={!tableCell} onClick={onSplitTableCell} />
-            <ContextMenuItem label={t('contextMenu.table.clearCell')} disabled={!tableCell} onClick={onClearTableCell} />
-            <ContextMenuItem label={t('contextMenu.table.copyCellStyle')} disabled={!tableCell} onClick={onCopyTableCellStyle} />
-            <ContextMenuItem label={t('contextMenu.table.pasteCellStyle')} disabled={!tableCell} onClick={onPasteTableCellStyle} />
-            <ContextMenuItem label={t('contextMenu.table.clearCellStyle')} disabled={!tableCell} onClick={onClearTableCellStyle} />
-          </ContextMenuSection>
-          <ContextMenuDivider />
-          <ContextMenuSection title={t('contextMenu.section.tableStyle')}>
-            <ContextMenuItem label={t('contextMenu.table.equalizeColumns')} onClick={onEqualizeTableColumns} />
-            <ContextMenuItem label={t('contextMenu.table.equalizeRows')} onClick={onEqualizeTableRows} />
-            <ContextMenuItem label={t('contextMenu.table.toggleBorder')} onClick={onToggleTableBorder} />
-          </ContextMenuSection>
-        </>
+    <Dropdown
+      open
+      trigger={[]}
+      placement="bottomLeft"
+      popupRender={(originNode) => (
+        <div
+          onMouseDown={(event) => event.stopPropagation()}
+          onContextMenu={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {originNode}
+        </div>
       )}
-      <ContextMenuDivider />
-      <ContextMenuItem label={t('contextMenu.delete')} shortcut="Del" disabled={!hasSelection} onClick={onDelete} danger />
-    </div>
+      menu={{
+        items,
+        openKeys,
+        forceSubMenuRender: true,
+        subMenuOpenDelay: 0,
+        subMenuCloseDelay: 0,
+        onClick: ({ key }) => {
+          actionMap[key as ContextMenuAction]?.();
+        },
+      }}
+    >
+      <span
+        aria-hidden
+        style={{ position: 'absolute', left: x, top: y, width: 1, height: 1, pointerEvents: 'none' }}
+        onMouseDown={(event) => event.stopPropagation()}
+        onContextMenu={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      />
+    </Dropdown>
   );
 };
 
@@ -1570,73 +1745,42 @@ const BandContextMenu: React.FC<{
   const { t } = useDesignerI18n();
 
   return (
-    <div
-      data-testid="designer-band-context-menu"
-      style={{
-        position: 'absolute',
-        left: x,
-        top: y,
-        backgroundColor: '#fff',
-        border: '1px solid #ddd',
-        borderRadius: 4,
-        boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
-        zIndex: 10000,
-        minWidth: 160,
-        padding: '4px 0',
+    <Dropdown
+      open
+      trigger={[]}
+      placement="bottomLeft"
+      popupRender={(originNode) => (
+        <div
+          onMouseDown={(event) => event.stopPropagation()}
+          onContextMenu={(event) => event.stopPropagation()}
+          onClick={(event) => event.stopPropagation()}
+        >
+          {originNode}
+        </div>
+      )}
+      menu={{
+        items: [
+          menuItem('copy', t('contextMenu.band.copy')),
+          divider('band-divider'),
+          menuItem('delete', t('contextMenu.band.delete'), { danger: true }),
+        ],
+        onClick: ({ key }) => {
+          if (key === 'copy') onCopy();
+          if (key === 'delete') onDelete();
+        },
       }}
-      onMouseDown={stopEvent}
-      onContextMenu={stopEvent}
-      onClick={stopEvent}
     >
-      <ContextMenuSection title={t('selection.band')}>
-        <ContextMenuItem label={t('contextMenu.copy')} shortcut="Ctrl+C" onClick={onCopy} />
-      </ContextMenuSection>
-      <ContextMenuDivider />
-      <ContextMenuItem label={t('contextMenu.delete')} shortcut="Del" onClick={onDelete} danger />
-    </div>
+      <span
+        data-testid="designer-band-context-menu"
+        aria-hidden
+        style={{ position: 'absolute', left: x, top: y, width: 1, height: 1, pointerEvents: 'none' }}
+        onMouseDown={(event) => event.stopPropagation()}
+        onContextMenu={(event) => event.stopPropagation()}
+        onClick={(event) => event.stopPropagation()}
+      />
+    </Dropdown>
   );
 };
-
-const ContextMenuItem: React.FC<{
-  label: string; shortcut?: string; disabled?: boolean; danger?: boolean;
-  onClick: () => void;
-}> = ({ label, shortcut, disabled, danger, onClick }) => (
-  <div
-    onMouseDown={stopEvent}
-    onClick={(event) => {
-      event.stopPropagation();
-      if (!disabled) onClick();
-    }}
-    style={{
-      padding: '4px 16px', cursor: disabled ? 'default' : 'pointer',
-      color: disabled ? '#ccc' : danger ? '#ff4d4f' : '#333',
-      fontSize: 13, display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-      backgroundColor: disabled ? 'transparent' : 'transparent',
-    }}
-    onMouseEnter={(e) => { if (!disabled) (e.currentTarget as HTMLElement).style.backgroundColor = '#f0f0f0'; }}
-    onMouseLeave={(e) => { (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent'; }}
-  >
-    <span>{label}</span>
-    {shortcut && <span style={{ color: '#999', fontSize: 11 }}>{shortcut}</span>}
-  </div>
-);
-
-const ContextMenuSection: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => (
-  <div>
-    <div style={{ padding: '4px 16px 2px', fontSize: 11, color: '#8c8c8c', textTransform: 'uppercase', letterSpacing: 0 }}>
-      {title}
-    </div>
-    {children}
-  </div>
-);
-
-const ContextMenuDivider: React.FC = () => (
-  <div style={{ height: 1, backgroundColor: '#eee', margin: '4px 0' }} />
-);
-
-function stopEvent(event: React.SyntheticEvent) {
-  event.stopPropagation();
-}
 
 // ---- Band View ----
 
@@ -1941,6 +2085,10 @@ const ComponentView: React.FC<{
           e.stopPropagation();
           if (component.type === 'text') onStartTextEdit();
           if (component.type === 'richtext') onStartRichTextEdit();
+        }}
+        onContextMenu={(e) => {
+          e.preventDefault();
+          e.stopPropagation();
         }}
         style={{
           position: 'absolute', inset: 0,

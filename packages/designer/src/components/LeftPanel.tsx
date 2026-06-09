@@ -22,14 +22,31 @@ import {
 import { EXPRESSION_FUNCTION_CATEGORIES, FUNCTION_FOLDER_LABELS } from '../expression/function-catalog';
 import { normalizeTable } from '../table/table-structure';
 
-export const LeftPanel: React.FC<{ expressionExtensions?: ExpressionCatalogExtensions }> = ({ expressionExtensions }) => {
+export type LeftPanelTabKey = 'palette' | 'data' | 'tree';
+
+interface LeftPanelProps {
+  activeTab?: LeftPanelTabKey;
+  expressionExtensions?: ExpressionCatalogExtensions;
+  onActiveTabChange?: (key: LeftPanelTabKey) => void;
+}
+
+export const LeftPanel: React.FC<LeftPanelProps> = ({ activeTab, expressionExtensions, onActiveTabChange }) => {
   const { t } = useDesignerI18n();
+  const [internalActiveTab, setInternalActiveTab] = useState<LeftPanelTabKey>('tree');
+  const currentActiveTab = activeTab ?? internalActiveTab;
+
+  const handleTabChange = (key: string) => {
+    const nextKey = key as LeftPanelTabKey;
+    setInternalActiveTab(nextKey);
+    onActiveTabChange?.(nextKey);
+  };
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', padding: '0 6px 6px' }}>
       <Tabs
         size="small"
-        defaultActiveKey="tree"
+        activeKey={currentActiveTab}
+        onChange={handleTabChange}
         items={[
           {
             key: 'palette',

@@ -54,6 +54,13 @@ export type DesignerMessageKey =
   | 'shell.redo'
   | 'shell.untitledReport'
   | 'shell.designerName'
+  | 'shell.pinLeftPanel'
+  | 'shell.unpinLeftPanel'
+  | 'shell.showLeftPanel'
+  | 'shell.pinPropertyPanel'
+  | 'shell.unpinPropertyPanel'
+  | 'shell.showPropertyPanel'
+  | 'shell.propertyPanel'
   | 'ribbon.home'
   | 'ribbon.insert'
   | 'ribbon.pageLayout'
@@ -372,6 +379,29 @@ export type DesignerMessageKey =
   | 'contextMenu.table.toggleBorder'
   | 'contextMenu.table.setHeaderRow'
   | 'contextMenu.table.setFooterRow'
+  | 'contextMenu.table.insert'
+  | 'contextMenu.table.delete'
+  | 'contextMenu.table.insertRowAboveExcel'
+  | 'contextMenu.table.insertRowBelowExcel'
+  | 'contextMenu.table.insertColumnLeftExcel'
+  | 'contextMenu.table.insertColumnRightExcel'
+  | 'contextMenu.table.deleteCurrentRow'
+  | 'contextMenu.table.deleteCurrentColumn'
+  | 'contextMenu.table.mergeCells'
+  | 'contextMenu.table.clearContent'
+  | 'contextMenu.table.distributeColumns'
+  | 'contextMenu.table.distributeRows'
+  | 'contextMenu.table.cellStyle'
+  | 'contextMenu.table.copyStyle'
+  | 'contextMenu.table.pasteStyle'
+  | 'contextMenu.table.clearStyle'
+  | 'contextMenu.table.table'
+  | 'contextMenu.table.arrange'
+  | 'contextMenu.table.rowSettings'
+  | 'contextMenu.table.deleteTable'
+  | 'contextMenu.table.setNormalRow'
+  | 'contextMenu.band.copy'
+  | 'contextMenu.band.delete'
   | 'bandProperties.name'
   | 'bandProperties.id'
   | 'bandProperties.basic'
@@ -719,6 +749,13 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'shell.redo': '重做',
     'shell.untitledReport': '未命名报表',
     'shell.designerName': '报表设计器',
+    'shell.pinLeftPanel': '固定侧边栏',
+    'shell.unpinLeftPanel': '取消固定侧边栏',
+    'shell.showLeftPanel': '显示侧边栏',
+    'shell.pinPropertyPanel': '固定属性栏',
+    'shell.unpinPropertyPanel': '取消固定属性栏',
+    'shell.showPropertyPanel': '显示属性栏',
+    'shell.propertyPanel': '属性',
     'ribbon.home': '主页',
     'ribbon.insert': '插入',
     'ribbon.pageLayout': '页面布局',
@@ -1037,6 +1074,29 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.toggleBorder': '切换表格边框',
     'contextMenu.table.setHeaderRow': '设为表头行',
     'contextMenu.table.setFooterRow': '设为表尾行',
+    'contextMenu.table.insert': '插入',
+    'contextMenu.table.delete': '删除',
+    'contextMenu.table.insertRowAboveExcel': '在上方插入行',
+    'contextMenu.table.insertRowBelowExcel': '在下方插入行',
+    'contextMenu.table.insertColumnLeftExcel': '在左侧插入列',
+    'contextMenu.table.insertColumnRightExcel': '在右侧插入列',
+    'contextMenu.table.deleteCurrentRow': '删除当前行',
+    'contextMenu.table.deleteCurrentColumn': '删除当前列',
+    'contextMenu.table.mergeCells': '合并单元格',
+    'contextMenu.table.clearContent': '清除内容',
+    'contextMenu.table.distributeColumns': '平均分布列宽',
+    'contextMenu.table.distributeRows': '平均分布行高',
+    'contextMenu.table.cellStyle': '单元格样式',
+    'contextMenu.table.copyStyle': '复制样式',
+    'contextMenu.table.pasteStyle': '粘贴样式',
+    'contextMenu.table.clearStyle': '清除样式',
+    'contextMenu.table.table': '表格',
+    'contextMenu.table.arrange': '排列',
+    'contextMenu.table.rowSettings': '行设置',
+    'contextMenu.table.deleteTable': '删除表格',
+    'contextMenu.table.setNormalRow': '设为普通行',
+    'contextMenu.band.copy': '复制带区',
+    'contextMenu.band.delete': '删除带区',
     'bandProperties.name': '名称',
     'bandProperties.id': '标识',
     'bandProperties.basic': '基础',
@@ -1381,6 +1441,13 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'shell.redo': 'Redo',
     'shell.untitledReport': 'Untitled Report',
     'shell.designerName': 'Report Designer',
+    'shell.pinLeftPanel': 'Pin sidebar',
+    'shell.unpinLeftPanel': 'Auto-hide sidebar',
+    'shell.showLeftPanel': 'Show sidebar',
+    'shell.pinPropertyPanel': 'Pin property panel',
+    'shell.unpinPropertyPanel': 'Auto-hide property panel',
+    'shell.showPropertyPanel': 'Show property panel',
+    'shell.propertyPanel': 'Properties',
     'ribbon.home': 'Home',
     'ribbon.insert': 'Insert',
     'ribbon.pageLayout': 'Page Layout',
@@ -1699,6 +1766,29 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.toggleBorder': 'Toggle Table Border',
     'contextMenu.table.setHeaderRow': 'Set Header Row',
     'contextMenu.table.setFooterRow': 'Set Footer Row',
+    'contextMenu.table.insert': 'Insert',
+    'contextMenu.table.delete': 'Delete',
+    'contextMenu.table.insertRowAboveExcel': 'Insert Row Above',
+    'contextMenu.table.insertRowBelowExcel': 'Insert Row Below',
+    'contextMenu.table.insertColumnLeftExcel': 'Insert Column Left',
+    'contextMenu.table.insertColumnRightExcel': 'Insert Column Right',
+    'contextMenu.table.deleteCurrentRow': 'Delete Current Row',
+    'contextMenu.table.deleteCurrentColumn': 'Delete Current Column',
+    'contextMenu.table.mergeCells': 'Merge Cells',
+    'contextMenu.table.clearContent': 'Clear Contents',
+    'contextMenu.table.distributeColumns': 'Distribute Columns',
+    'contextMenu.table.distributeRows': 'Distribute Rows',
+    'contextMenu.table.cellStyle': 'Cell Style',
+    'contextMenu.table.copyStyle': 'Copy Style',
+    'contextMenu.table.pasteStyle': 'Paste Style',
+    'contextMenu.table.clearStyle': 'Clear Style',
+    'contextMenu.table.table': 'Table',
+    'contextMenu.table.arrange': 'Arrange',
+    'contextMenu.table.rowSettings': 'Row Settings',
+    'contextMenu.table.deleteTable': 'Delete Table',
+    'contextMenu.table.setNormalRow': 'Set Normal Row',
+    'contextMenu.band.copy': 'Copy Band',
+    'contextMenu.band.delete': 'Delete Band',
     'bandProperties.name': 'Name',
     'bandProperties.id': 'Id',
     'bandProperties.basic': 'Basic',
