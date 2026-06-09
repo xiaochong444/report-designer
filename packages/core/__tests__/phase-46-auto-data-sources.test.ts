@@ -94,4 +94,43 @@ describe('phase 46 automatic data sources', () => {
     const content = document.pages.flatMap(page => page.items).flatMap(item => item.components).map(component => (component as any).content);
     expect(content).toEqual(expect.arrayContaining(['华东客户', '云服务年包', '实施服务', '1500']));
   });
+
+  it('resolves root object fields from static report title bands', () => {
+    const template = makeTemplate([
+      band('title', 'reportTitle', {
+        components: [
+          {
+            id: 'orderNo',
+            type: 'text',
+            x: 0,
+            y: 0,
+            width: 80,
+            height: 8,
+            text: '{orderNo}',
+            ...textBase,
+          },
+          {
+            id: 'customer',
+            type: 'text',
+            x: 0,
+            y: 8,
+            width: 80,
+            height: 8,
+            text: '{customer.name}',
+            ...textBase,
+          },
+        ],
+      }),
+    ]);
+    template.dataSources = [];
+
+    const document = renderReport(template, {
+      orderNo: 'SO-202606-001',
+      customer: { name: '华东客户' },
+      items: [{ product: { name: '云服务年包' }, salesAmount: 1000 }],
+    } as any);
+
+    const content = document.pages.flatMap(page => page.items).flatMap(item => item.components).map(component => (component as any).content);
+    expect(content).toEqual(expect.arrayContaining(['SO-202606-001', '华东客户']));
+  });
 });

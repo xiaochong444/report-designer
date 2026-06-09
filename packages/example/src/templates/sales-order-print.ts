@@ -235,7 +235,7 @@ const salesFooterTable = salesTable('sop-footer-table', 0, 16, [
 ], fullBorder);
 
 export const salesOrderPrintTemplate = template('sales-order-print', 'Sales Order Print', [
-  band('sop-title', 'data', 56, [
+  band('sop-title', 'reportTitle', 56, [
     text('sop-title-text', '销售订单', 0, 0, 190, 10, { style: 'sales-order-title', textAlign: 'center' }),
     text('sop-approved', '已审核', 151, 1, 28, 8, {
       style: 'sales-order-stamp',
@@ -269,7 +269,7 @@ export const salesOrderPrintTemplate = template('sales-order-print', 'Sales Orde
     }),
     text('sop-remark-label', '备注', 0, 50, 14, 6, { style: commonTextStyleIds.header }),
     text('sop-remark', '{remark}', 16, 50, 174, 6, { style: commonTextStyleIds.dataBottomBorder }),
-  ], { dataBand: { dataSourceId: 'root' } }),
+  ]),
 
   band('sop-detail-header', 'header', 8, [salesHeaderTable]),
 

@@ -135,7 +135,8 @@ describe('example sample paper defaults', () => {
       'sop-detail-table',
       'sop-footer-table',
     ]));
-    expect(bands.find(band => band.id === 'sop-title')?.dataBand?.dataSourceId).toBe('root');
+    expect(bands.find(band => band.id === 'sop-title')?.type).toBe('reportTitle');
+    expect(bands.find(band => band.id === 'sop-title')?.dataBand).toBeUndefined();
     expect(bands.find(band => band.id === 'sop-detail')?.dataBand?.dataSourceId).toBe('items');
     expect(components.find(component => component.id === 'sop-approved')).toMatchObject({
       type: 'text',

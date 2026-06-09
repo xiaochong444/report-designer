@@ -13,9 +13,10 @@ export interface ExecuteBandPlanOptions {
 
 export function executeBandPlan(plan: BandPlan, data: Record<string, Record<string, unknown>[]>, options: ExecuteBandPlanOptions = {}): LogicalBandItem[] {
   const items: LogicalBandItem[] = [];
+  const rootContext = rootDataContext(data, options);
 
   for (const band of plan.reportBands.reportTitle) {
-    items.push(createBandItem(band, runtimeContext(options)));
+    items.push(createBandItem(band, rootContext));
   }
 
   for (const section of plan.dataSections) {
@@ -23,7 +24,7 @@ export function executeBandPlan(plan: BandPlan, data: Record<string, Record<stri
   }
 
   for (const band of plan.reportBands.reportSummary) {
-    items.push(createBandItem(band, runtimeContext(options)));
+    items.push(createBandItem(band, rootContext));
   }
 
   return items;
@@ -281,6 +282,14 @@ function runtimeContext(options: ExecuteBandPlanOptions): Partial<RenderContext>
   return {
     expressionVariables: options.expressionVariables,
     expressionFunctions: options.expressionFunctions,
+  };
+}
+
+function rootDataContext(data: Record<string, Record<string, unknown>[]>, options: ExecuteBandPlanOptions): Partial<RenderContext> {
+  const rootRow = data.root?.[0];
+  return {
+    ...runtimeContext(options),
+    ...(rootRow ? { row: rootRow, rowIndex: 0, dataSourceId: 'root' } : {}),
   };
 }
 

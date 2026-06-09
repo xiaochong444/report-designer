@@ -317,12 +317,11 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
               <Form size="small" labelCol={{ span: 6 }} wrapperCol={{ span: 18 }}>
                 <Form.Item label={t('textContent')}>
                   <Space.Compact style={{ width: '100%' }}>
-                    <Input.TextArea
+                    <Input
                       aria-label={t('textContent')}
                       value={comp.text || ''}
                       onChange={(e) => handleChange('text', e.target.value)}
-                      autoSize={false}
-                      rows={3}
+                      size="small"
                       placeholder={t('textContentPlaceholder')}
                     />
                     <Button

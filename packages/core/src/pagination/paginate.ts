@@ -223,13 +223,13 @@ export function paginate(
     pageRows.set(currentPage, {});
     cursorY = templatePage.margins.top;
     for (const header of pageBands.pageHeader) {
-      placeBand(header, createEmptyContext(options), true);
+      placeBand(header, createEmptyContext(options, rowsByBand), true);
     }
     for (const groupHeader of repeatedGroups) {
-      placeBand(groupHeader, createEmptyContext(options), true);
+      placeBand(groupHeader, createEmptyContext(options, rowsByBand), true);
     }
     for (const sectionBand of activeSectionRepeatBands) {
-      placeBand(sectionBand, createEmptyContext(options), true);
+      placeBand(sectionBand, createEmptyContext(options, rowsByBand), true);
     }
   };
 
@@ -338,7 +338,7 @@ export function paginate(
 
   for (const page of pages) {
     for (const overlay of pageBands.overlay) {
-      const box = renderFixedBand(overlay, createEmptyContext(options), templatePage.margins.top, pageRows.get(page) ?? {}, templatePage, page.pageNumber, printableX, printableWidth, rowsByBand, styles, conditionalFormats, options);
+      const box = renderFixedBand(overlay, createEmptyContext(options, rowsByBand), templatePage.margins.top, pageRows.get(page) ?? {}, templatePage, page.pageNumber, printableX, printableWidth, rowsByBand, styles, conditionalFormats, options);
       if (box) {
         page.items.unshift(box);
       }
@@ -346,7 +346,7 @@ export function paginate(
 
     let footerY = templatePage.height - templatePage.margins.bottom - footerHeight;
     for (const footer of pageBands.pageFooter) {
-      const box = renderFixedBand(footer, createEmptyContext(options), footerY, pageRows.get(page) ?? {}, templatePage, page.pageNumber, printableX, printableWidth, rowsByBand, styles, conditionalFormats, options);
+      const box = renderFixedBand(footer, createEmptyContext(options, rowsByBand), footerY, pageRows.get(page) ?? {}, templatePage, page.pageNumber, printableX, printableWidth, rowsByBand, styles, conditionalFormats, options);
       if (box) {
         page.items.push(box);
         footerY += box.height;
@@ -823,9 +823,15 @@ function collectPageRow(pageRows: Record<string, Record<string, unknown>[]>, ban
   pageRows[context.dataSourceId].push(context.row);
 }
 
-function createEmptyContext(options: Pick<InternalRenderReportOptions, 'parameters' | 'expressionVariables' | 'expressionFunctions'>): RenderContext {
+function createEmptyContext(
+  options: Pick<InternalRenderReportOptions, 'parameters' | 'expressionVariables' | 'expressionFunctions'>,
+  rowsByBand: Record<string, Record<string, unknown>[]> = {},
+): RenderContext {
+  const rootRow = rowsByBand.root?.[0];
   return {
+    row: rootRow,
     rowIndex: 0,
+    dataSourceId: rootRow ? 'root' : undefined,
     groupValues: {},
     parameters: options.parameters,
     expressionVariables: options.expressionVariables,
