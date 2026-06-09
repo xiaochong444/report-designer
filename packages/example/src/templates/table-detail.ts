@@ -89,7 +89,7 @@ const detailTable = table('table-detail-line-table', 0, [
 
 export const tableDetailTemplate = template('table-detail', 'Table Detail', [
   band('table-detail-title', 'reportTitle', 12, [
-    text('table-detail-title-text', 'Order Items Table', 0, 1, 190, 8, { style: commonTextStyleIds.title, textAlign: 'center' }),
+    text('table-detail-title-text', 'Order Items Table', 0, 1, 190, 8, { style: commonTextStyleIds.title }),
   ]),
   band('table-detail-header', 'header', 12, [
     text('table-detail-caption', 'Items are rendered by an orderLines data band with a row/cell table.', 0, 1, 150, 5, { style: commonTextStyleIds.pageHeader }),
@@ -99,6 +99,6 @@ export const tableDetailTemplate = template('table-detail', 'Table Detail', [
     detailTable,
   ], { dataBand: { dataSourceId: 'orderLines', sort: [{ field: 'orderNo', direction: 'asc' }] } }),
   band('table-detail-page-footer', 'pageFooter', 8, [
-    text('table-detail-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footer, textAlign: 'center' }),
+    text('table-detail-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
   ]),
 ], 297);

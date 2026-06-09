@@ -45,7 +45,7 @@ import { useDesignerStore } from '../../store/designer-store';
 import { PageSetupDialog } from '../dialogs/PageSetupDialog';
 import { useDesignerI18n } from '../../i18n';
 import type { DesignerMessageKey } from '../../i18n';
-import { hasTextStyleBinding } from '../../text-style-bindings';
+import { isTextStylePropertyLocked } from '../../text-style-application';
 import { BAND_COLORS, BAND_DESCRIPTION_KEYS, BAND_GLYPH_KEYS, BAND_LABEL_KEYS, SUPPORTED_INSERT_BAND_TYPES } from '../../band-metadata';
 import { createDefaultComponent } from '../../component-factory';
 import { COMPONENT_TYPES } from '../../component-palette-model';
@@ -110,7 +110,7 @@ export const DesignerRibbon: React.FC = () => {
         selectedComponentIds.includes(component.id) && component.type === 'text'
       ))
     : [];
-  const isTextStyleLocked = (pathOrPrefix: string) => selectedTextComponents.some(component => hasTextStyleBinding(component, pathOrPrefix));
+  const isTextStyleLocked = (pathOrPrefix: string) => selectedTextComponents.some(component => isTextStylePropertyLocked(component, pathOrPrefix));
   const fontSizeDisabled = !fontInfo || isTextStyleLocked('font.size');
   const fontBoldDisabled = !fontInfo || isTextStyleLocked('font.bold');
   const textAlignDisabled = textAlign === null || isTextStyleLocked('textAlign');

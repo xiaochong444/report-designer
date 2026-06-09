@@ -14,7 +14,6 @@ function makeStyledTextDocument(): RenderDocument {
   const component = document.pages[0].items[0].components[0] as RenderText & {
     textAlign?: 'left' | 'center' | 'right';
     font?: { family?: string };
-    styleBindings?: string[];
   };
 
   component.content = 'Parity Text';
@@ -45,7 +44,6 @@ function makeStyledTextDocument(): RenderDocument {
 
   component.textAlign = 'center';
   component.font = { family: 'Previous Style' };
-  component.styleBindings = ['textAlign', 'font.family'];
 
   return document;
 }

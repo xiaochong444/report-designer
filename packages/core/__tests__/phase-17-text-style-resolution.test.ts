@@ -4,9 +4,10 @@ import {
   getDefaultTextStyle,
   getTextStyleById,
   renderTemplate,
+  resolveComponentStyle,
   resolveTextStyle,
 } from '../src';
-import type { ReportStyle, ReportTemplate, TextComponent } from '../src';
+import type { ReportStyle, ReportTemplate, TableComponent, TextComponent } from '../src';
 
 const DEFAULT_FONT = {
   family: 'Arial',
@@ -144,7 +145,7 @@ describe('Phase 17 text style resolution', () => {
     expect(getDefaultTextStyle(textStyles)?.name).toBe('Normal');
   });
 
-  it('prefers local component values over referenced style values', () => {
+  it('uses referenced style values as authoritative when a text style is selected', () => {
     const style = makeTextStyle({ id: 'text-style' });
     const resolved = resolveTextStyle(
       {
@@ -160,14 +161,14 @@ describe('Phase 17 text style resolution', () => {
       [style],
     );
 
-    expect(resolved.font.color).toBe('#ff0000');
-    expect(resolved.font.bold).toBe(false);
-    expect(resolved.textAlign).toBe('right');
-    expect(resolved.verticalAlign).toBe('bottom');
-    expect(resolved.padding).toEqual({ top: 9, right: 8, bottom: 7, left: 6 });
-    expect(resolved.format).toEqual({ type: 'currency', pattern: 'C2' });
-    expect(resolved.canGrow).toBe(false);
-    expect(resolved.canShrink).toBe(false);
+    expect(resolved.font.color).toBe('#333333');
+    expect(resolved.font.bold).toBe(true);
+    expect(resolved.textAlign).toBe('center');
+    expect(resolved.verticalAlign).toBe('middle');
+    expect(resolved.padding).toEqual({ top: 1, right: 2, bottom: 3, left: 4 });
+    expect(resolved.format).toEqual({ type: 'number', pattern: '#,##0.00' });
+    expect(resolved.canGrow).toBe(true);
+    expect(resolved.canShrink).toBe(true);
   });
 
   it('prefers style values over built-in defaults', () => {
@@ -206,7 +207,7 @@ describe('Phase 17 text style resolution', () => {
     expect(resolved.canShrink).toBe(true);
   });
 
-  it('falls back to the default text style when the referenced style id is missing', () => {
+  it('falls back to built-in text defaults when the referenced style id is missing', () => {
     const styles = [
       makeTextStyle({ id: 'default-style', name: 'Normal', isDefault: true }),
     ];
@@ -218,12 +219,12 @@ describe('Phase 17 text style resolution', () => {
       styles,
     );
 
-    expect(resolved.font.family).toBe('Helvetica');
-    expect(resolved.textAlign).toBe('center');
-    expect(resolved.canGrow).toBe(true);
+    expect(resolved.font.family).toBe('Arial');
+    expect(resolved.textAlign).toBe('left');
+    expect(resolved.canGrow).toBe(false);
   });
 
-  it('supports partial nested overrides for local text style values', () => {
+  it('uses local component values only when no text style is selected', () => {
     const style = makeTextStyle({
       id: 'partial-style',
       font: {
@@ -246,7 +247,6 @@ describe('Phase 17 text style resolution', () => {
 
     const resolved = resolveTextStyle(
       {
-        style: style.id,
         font: { italic: true },
         border: { sides: { bottom: false, left: false } },
         padding: { left: 12 },
@@ -254,14 +254,14 @@ describe('Phase 17 text style resolution', () => {
       [style],
     );
 
-    expect(resolved.font.family).toBe('Helvetica');
+    expect(resolved.font.family).toBe('Arial');
     expect(resolved.font.italic).toBe(true);
-    expect(resolved.border.style).toBe('solid');
-    expect(resolved.border.sides).toEqual({ top: true, right: true, bottom: false, left: false });
-    expect(resolved.padding).toEqual({ top: 1, right: 2, bottom: 3, left: 12 });
+    expect(resolved.border.style).toBe('none');
+    expect(resolved.border.sides).toEqual({ top: false, right: false, bottom: false, left: false });
+    expect(resolved.padding).toEqual({ top: 0, right: 0, bottom: 0, left: 12 });
   });
 
-  it('renders the text component current final values directly', () => {
+  it('renders referenced text style values instead of stale component values', () => {
     const style = makeTextStyle({
       id: 'render-style',
       font: DEFAULT_FONT,
@@ -303,27 +303,14 @@ describe('Phase 17 text style resolution', () => {
       }, [style]),
     );
 
-    expect(renderedStyle?.font).toEqual({
-      family: 'Times New Roman',
-      size: 16,
-      bold: false,
-      italic: true,
-      underline: false,
-      strikethrough: false,
-      color: '#0055aa',
-    });
-    expect(renderedStyle?.textAlign).toBe('right');
-    expect(renderedStyle?.verticalAlign).toBe('bottom');
-    expect(renderedStyle?.background).toBe('#eef6ff');
-    expect(renderedStyle?.border).toEqual({
-      style: 'solid',
-      width: 0.5,
-      color: '#2266aa',
-      sides: { top: true, right: false, bottom: true, left: false },
-    });
-    expect(renderedStyle?.padding).toEqual({ top: 5, right: 6, bottom: 7, left: 8 });
-    expect(renderedStyle?.format).toEqual({ type: 'currency', pattern: 'C2' });
-    expect(renderedStyle?.canGrow).toBe(false);
+    expect(renderedStyle?.font).toEqual(DEFAULT_FONT);
+    expect(renderedStyle?.textAlign).toBe('center');
+    expect(renderedStyle?.verticalAlign).toBe('middle');
+    expect(renderedStyle?.background).toBe('#f0f0f0');
+    expect(renderedStyle?.border).toEqual(DEFAULT_BORDER);
+    expect(renderedStyle?.padding).toEqual({ top: 1, right: 1, bottom: 1, left: 1 });
+    expect(renderedStyle?.format).toEqual({ type: 'number', pattern: '#,##0.00' });
+    expect(renderedStyle?.canGrow).toBe(true);
     expect(renderedStyle?.canShrink).toBe(true);
   });
 
@@ -340,10 +327,10 @@ describe('Phase 17 text style resolution', () => {
       }, [style]),
     );
 
-    expect(renderedStyle?.padding).toEqual({ top: 9, right: 8, bottom: 7, left: 6 });
+    expect(renderedStyle?.padding).toEqual({ top: 1, right: 1, bottom: 1, left: 1 });
   });
 
-  it('prefers the component current values even when a style reference is present', () => {
+  it('ignores stale component values when a text style is selected', () => {
     const style = makeTextStyle({
       id: 'referenced-style',
       font: {
@@ -366,7 +353,6 @@ describe('Phase 17 text style resolution', () => {
     const renderedStyle = getRenderedTextStyle(
       makeRenderTemplate({
         style: style.id,
-        styleBindings: ['font', 'padding', 'textAlign'],
         font: {
           family: 'Arial',
           size: 11,
@@ -385,24 +371,24 @@ describe('Phase 17 text style resolution', () => {
       }, [style]),
     );
 
-    expect(renderedStyle?.textAlign).toBe('left');
+    expect(renderedStyle?.textAlign).toBe('center');
     expect(renderedStyle?.font).toEqual({
-      family: 'Arial',
-      size: 11,
-      bold: false,
+      family: 'Courier New',
+      size: 20,
+      bold: true,
       italic: false,
       underline: false,
       strikethrough: false,
-      color: '#111111',
+      color: '#990000',
     });
-    expect(renderedStyle?.background).toBe('#ffffff');
-    expect(renderedStyle?.verticalAlign).toBe('top');
-    expect(renderedStyle?.padding).toEqual({ top: 4, right: 3, bottom: 2, left: 1 });
-    expect(renderedStyle?.canGrow).toBe(false);
-    expect(renderedStyle?.canShrink).toBe(false);
+    expect(renderedStyle?.background).toBe('#ddeeff');
+    expect(renderedStyle?.verticalAlign).toBe('middle');
+    expect(renderedStyle?.padding).toEqual({ top: 2, right: 2, bottom: 2, left: 2 });
+    expect(renderedStyle?.canGrow).toBe(true);
+    expect(renderedStyle?.canShrink).toBe(true);
   });
 
-  it('includes the full text style payload from the component for render consumers', () => {
+  it('includes the full referenced text style payload for render consumers', () => {
     const style = makeTextStyle({
       id: 'payload-style',
       font: DEFAULT_FONT,
@@ -446,15 +432,54 @@ describe('Phase 17 text style resolution', () => {
     );
 
     expect(renderedStyle).toMatchObject({
-      font: componentStyle.font,
-      textAlign: 'right',
-      verticalAlign: 'bottom',
-      background: '#fff7e6',
-      border: componentStyle.border,
-      padding: componentStyle.padding,
-      format: { type: 'currency', pattern: 'C2' },
-      canGrow: false,
-      canShrink: true,
+      font: DEFAULT_FONT,
+      textAlign: 'left',
+      verticalAlign: 'top',
+      background: '#ffffff',
+      border: DEFAULT_BORDER,
+      padding: DEFAULT_PADDING,
+      canGrow: true,
+      canShrink: false,
     });
+    expect(renderedStyle?.format).toBeUndefined();
+  });
+
+  it('resolves a referenced component style for top-level table components', () => {
+    const style = makeTextStyle({
+      id: 'table-style',
+      backgroundColor: '#ffeecc',
+      border: {
+        style: 'solid',
+        width: 0.3,
+        color: '#aa5500',
+        sides: { top: true, right: true, bottom: true, left: true },
+      },
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      textAlign: 'center',
+      verticalAlign: 'middle',
+    });
+    const resolved = resolveComponentStyle(
+      {
+        id: 'table-1',
+        type: 'table',
+        x: 0,
+        y: 0,
+        width: 80,
+        height: 24,
+        style: style.id,
+        backgroundColor: '#ffffff',
+        border: DEFAULT_BORDER,
+        padding: { top: 9, right: 9, bottom: 9, left: 9 },
+        textAlign: 'right',
+        verticalAlign: 'bottom',
+      } as TableComponent,
+      [style],
+    );
+
+    expect(resolved.backgroundColor).toBe('#ffeecc');
+    expect(resolved.border).toEqual(style.border);
+    expect(resolved.padding).toEqual({ top: 1, right: 2, bottom: 3, left: 4 });
+    expect(resolved.textAlign).toBe('center');
+    expect(resolved.verticalAlign).toBe('middle');
   });
 });

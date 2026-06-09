@@ -23,12 +23,14 @@ import type { ReportUnit } from '../page-settings';
 import { ensureTemplateBandNames, ensureTemplateComponentNames, getNextBandName, getNextComponentName, prepareBandForInsert, prepareComponentForInsert } from '../report-structure';
 import {
   applyDefaultTextStyle,
-  applyManualTextComponentUpdates,
   applyTextStyleToComponent,
+  canUseTextStyle,
   clearTextStyleReference,
-  normalizeManualTextComponentUpdates,
+  applyLocalTextComponentUpdates,
+  normalizeLocalTextComponentUpdates,
+  unbindTextStyleFromComponent,
   syncTextComponentStyle,
-} from '../text-style-bindings';
+} from '../text-style-application';
 import {
   clearTableCell,
   clearTableCellStyle,
@@ -168,6 +170,7 @@ export interface DesignerState {
   updateSelectedTableCell: (updates: Partial<TableCell>) => void;
   setSelectedTableCellWidth: (row: number, column: number, width: number | undefined) => void;
   applySelectedStyle: (styleId: string | undefined) => void;
+  unbindSelectedStyle: () => void;
   createTextStyle: (style?: Partial<ReportStyle> & { name?: string }) => string;
   duplicateTextStyle: (styleId: string) => string | undefined;
   renameTextStyle: (styleId: string, name: string) => void;
@@ -669,7 +672,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     const band = findBand(template, pageId, bandId);
     const comp = band?.components.find(c => c.id === componentId);
     const normalizedUpdates = comp && isTextComponent(comp)
-      ? normalizeManualTextComponentUpdates(comp, updates)
+      ? normalizeLocalTextComponentUpdates(comp, updates)
       : updates;
     const prevData = previous || (comp ? { ...comp } : undefined);
     const newTemplate = dispatcher.execute(template, {
@@ -1201,7 +1204,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       if (!font) return comp;
       const fontUpdates = { [style]: !font[style] };
       if (isTextComponent(comp)) {
-        return applyManualTextComponentUpdates(comp, { font: fontUpdates });
+        return applyLocalTextComponentUpdates(comp, { font: fontUpdates });
       }
       return { ...comp, font: { ...font, ...fontUpdates } };
     });
@@ -1230,11 +1233,20 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     const { template, currentPageId, selectedComponentIds } = get();
     const style = styleId ? template.styles.find(item => item.id === styleId) : undefined;
     const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
-      if (!isTextComponent(comp)) return comp;
+      if (!canUseTextStyle(comp)) return comp;
       if (!styleId || !style) {
         return clearTextStyleReference(comp);
       }
       return applyTextStyleToComponent(comp, style);
+    });
+    set({ template: newTemplate });
+  },
+
+  unbindSelectedStyle: () => {
+    const { template, currentPageId, selectedComponentIds } = get();
+    const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
+      if (!canUseTextStyle(comp)) return comp;
+      return unbindTextStyleFromComponent(comp, template.styles);
     });
     set({ template: newTemplate });
   },
@@ -1525,7 +1537,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       const font = (comp as any).font;
       if (!font) return comp;
       if (isTextComponent(comp)) {
-        return applyManualTextComponentUpdates(comp, { font: { bold } });
+        return applyLocalTextComponentUpdates(comp, { font: { bold } });
       }
       return { ...comp, font: { ...font, bold } };
     });
@@ -1538,7 +1550,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       const font = (comp as any).font;
       if (!font) return comp;
       if (isTextComponent(comp)) {
-        return applyManualTextComponentUpdates(comp, { font: { size } });
+        return applyLocalTextComponentUpdates(comp, { font: { size } });
       }
       return { ...comp, font: { ...font, size } };
     });
@@ -1550,7 +1562,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     const newTemplate = mapSelectedComponents(template, currentPageId, selectedComponentIds, comp => {
       if ((comp as any).textAlign === undefined) return comp;
       if (isTextComponent(comp)) {
-        return applyManualTextComponentUpdates(comp, { textAlign: align });
+        return applyLocalTextComponentUpdates(comp, { textAlign: align });
       }
       return { ...comp, textAlign: align };
     });
@@ -1568,7 +1580,7 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
         sides: { top: enabled, right: enabled, bottom: enabled, left: enabled },
       };
       if (isTextComponent(comp)) {
-        return applyManualTextComponentUpdates(comp, { border: borderUpdates });
+        return applyLocalTextComponentUpdates(comp, { border: borderUpdates });
       }
       return {
         ...comp,
@@ -1821,8 +1833,6 @@ const FALLBACK_TEXT_STYLE_BORDER = {
   sides: { top: false, right: false, bottom: false, left: false },
 };
 
-const FALLBACK_TEXT_STYLE_PADDING = { top: 0, right: 0, bottom: 0, left: 0 };
-
 function cloneTextStyle(style: ReportStyle, overrides?: Partial<ReportStyle>): ReportStyle {
   const baseFont = style.font ?? FALLBACK_TEXT_STYLE_FONT;
   const baseBorder = style.border ?? FALLBACK_TEXT_STYLE_BORDER;
@@ -1842,7 +1852,7 @@ function cloneTextStyle(style: ReportStyle, overrides?: Partial<ReportStyle>): R
       },
     },
     padding: overrides && 'padding' in overrides
-      ? (overrides.padding ? { ...(style.padding ?? FALLBACK_TEXT_STYLE_PADDING), ...overrides.padding } : undefined)
+      ? (overrides.padding ? { ...overrides.padding } : undefined)
       : (style.padding ? { ...style.padding } : undefined),
     format: overrides && 'format' in overrides
       ? (overrides.format ? { ...(style.format ?? { type: 'none' }), ...overrides.format } : undefined)
@@ -1884,9 +1894,9 @@ function mergeTextStyle(style: ReportStyle, updates: Partial<ReportStyle>): Repo
   return cloneTextStyle(style, updates);
 }
 
-function mapAllTextComponents(
+function mapAllStyleComponents(
   template: ReportTemplate,
-  mapper: (component: TextComponent) => TextComponent,
+  mapper: (component: ReportComponent) => ReportComponent,
 ): ReportTemplate {
   return {
     ...template,
@@ -1895,7 +1905,7 @@ function mapAllTextComponents(
       bands: page.bands.map(band => ({
         ...band,
         components: band.components.map(component => (
-          isTextComponent(component) ? mapper(component) : component
+          canUseTextStyle(component) ? mapper(component) : component
         )),
       })),
     })),
@@ -1905,7 +1915,7 @@ function mapAllTextComponents(
 function syncTextStyleReferencesInTemplate(template: ReportTemplate, styleId?: string): ReportTemplate {
   const stylesById = new Map(template.styles.map(style => [style.id, style]));
 
-  return mapAllTextComponents(template, component => {
+  return mapAllStyleComponents(template, component => {
     if (!component.style) return component;
     if (styleId && component.style !== styleId) return component;
 
@@ -1919,7 +1929,7 @@ function syncTextStyleReferencesInTemplate(template: ReportTemplate, styleId?: s
 }
 
 function clearTextStyleReferencesInTemplate(template: ReportTemplate, styleId: string): ReportTemplate {
-  return mapAllTextComponents(template, component => (
+  return mapAllStyleComponents(template, component => (
     component.style === styleId ? clearTextStyleReference(component) : component
   ));
 }
@@ -1930,7 +1940,7 @@ function countTextStyleUsage(template: ReportTemplate, styleId: string): number 
   for (const page of template.pages) {
     for (const band of page.bands) {
       for (const component of band.components) {
-        if (isTextComponent(component) && component.style === styleId) {
+        if (canUseTextStyle(component) && component.style === styleId) {
           count += 1;
         }
       }

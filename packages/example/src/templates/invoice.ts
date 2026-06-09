@@ -28,23 +28,23 @@ export const invoiceTemplate = template('invoice', 'Invoice', [
   band('inv-header', 'header', 10, [
     text('inv-h-sku', 'SKU', 0, 2, 24, 5, { style: commonTextStyleIds.header }),
     text('inv-h-name', 'Item', 28, 2, 68, 5, { style: commonTextStyleIds.header }),
-    text('inv-h-qty', 'Qty', 102, 2, 16, 5, { style: commonTextStyleIds.header, textAlign: 'right' }),
-    text('inv-h-unit', 'Unit', 124, 2, 24, 5, { style: commonTextStyleIds.header, textAlign: 'right' }),
-    text('inv-h-total', 'Total', 154, 2, 28, 5, { style: commonTextStyleIds.header, textAlign: 'right' }),
+    text('inv-h-qty', 'Qty', 102, 2, 16, 5, { style: commonTextStyleIds.headerRight }),
+    text('inv-h-unit', 'Unit', 124, 2, 24, 5, { style: commonTextStyleIds.headerRight }),
+    text('inv-h-total', 'Total', 154, 2, 28, 5, { style: commonTextStyleIds.headerRight }),
   ]),
   band('inv-data', 'data', 9, [
     text('inv-sku', '{invoiceLines.sku}', 0, 1, 24, 5, { style: commonTextStyleIds.data }),
     text('inv-name', '{invoiceLines.name}', 28, 1, 68, 5, { style: commonTextStyleIds.data }),
-    text('inv-qty', '{invoiceLines.qty}', 102, 1, 16, 5, { style: commonTextStyleIds.data, textAlign: 'right' }),
-    text('inv-unit', moneyExpression('invoiceLines', 'unitPrice'), 124, 1, 24, 5, { style: commonTextStyleIds.data, textAlign: 'right' }),
-    text('inv-total', moneyExpression('invoiceLines', 'lineTotal'), 154, 1, 28, 5, { style: commonTextStyleIds.data, textAlign: 'right' }),
+    text('inv-qty', '{invoiceLines.qty}', 102, 1, 16, 5, { style: commonTextStyleIds.dataRight }),
+    text('inv-unit', moneyExpression('invoiceLines', 'unitPrice'), 124, 1, 24, 5, { style: commonTextStyleIds.dataRight }),
+    text('inv-total', moneyExpression('invoiceLines', 'lineTotal'), 154, 1, 28, 5, { style: commonTextStyleIds.dataRight }),
   ], { dataBand: { dataSourceId: 'invoiceLines' } }),
   band('inv-footer', 'footer', 20, [
-    text('inv-subtotal', 'SUM({invoiceLines.lineTotal})', 100, 1, 82, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
-    text('inv-tax', 'SUM({invoiceLines.lineTotal}) * 0.1', 100, 7, 82, 5, { style: commonTextStyleIds.footer, textAlign: 'right' }),
+    text('inv-subtotal', 'SUM({invoiceLines.lineTotal})', 100, 1, 82, 5, { style: commonTextStyleIds.footerRight }),
+    text('inv-tax', 'SUM({invoiceLines.lineTotal}) * 0.1', 100, 7, 82, 5, { style: commonTextStyleIds.footerRight }),
     text('inv-grand', 'SUM({invoiceLines.lineTotal}) * 1.1', 100, 13, 82, 5, { style: 'invoice-total-emphasis', textAlign: 'right' }),
   ]),
   band('inv-page-footer', 'pageFooter', 8, [
-    text('inv-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footer, textAlign: 'center' }),
+    text('inv-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
   ]),
 ], 297, invoiceStyles);

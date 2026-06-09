@@ -17,6 +17,7 @@ import type {
   PageNumberComponent,
   PanelComponent,
   BorderConfig,
+  FontConfig,
   ReportComponent,
   ReportTemplate,
   ReportStyle,
@@ -33,6 +34,7 @@ import type {
 } from '../template-model/types';
 import { isRepeatOnEveryPageBandType } from '../template-model/types';
 import { formatValue } from '../text-format';
+import { resolveComponentStyle, resolveTextStyle } from '../text-style';
 import { measureTextBox } from './measure';
 
 export interface LayoutBandOptions {
@@ -218,7 +220,7 @@ function layoutComponent(
     if (style.enabled === false) {
       return undefined;
     }
-    const text = resolveText(textComponent, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}, execution);
+    const text = resolveText(effective, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}, execution);
     const measured = measureTextBox({ ...effective, ...style, backgroundColor: style.background }, text);
     return {
       id: component.id,
@@ -236,6 +238,9 @@ function layoutComponent(
         textAlign: style.textAlign ?? effective.textAlign,
         verticalAlign: style.verticalAlign ?? effective.verticalAlign,
         padding: style.padding ?? effective.padding,
+        format: style.format ?? effective.format,
+        canGrow: style.canGrow ?? effective.canGrow,
+        canShrink: style.canShrink ?? effective.canShrink,
       },
     };
   }
@@ -454,26 +459,41 @@ function layoutComponent(
 }
 
 function layoutTable(component: TableComponent, options: LayoutBandOptions): RenderComponentBox {
-  const tableRows = normalizeRenderableTableRows(component);
-  const columns = renderColumnsFromRows(component.width, tableRows);
-  const rows = buildSimpleTableRows(component, tableRows, {
+  const effective = resolveTableComponentStyle(component, options.styles ?? []);
+  const tableRows = normalizeRenderableTableRows(effective);
+  const columns = renderColumnsFromRows(effective.width, tableRows);
+  const rows = buildSimpleTableRows(effective, tableRows, {
     rowsByBand: options.rowsByBand ?? {},
     pageRowsByBand: options.pageRowsByBand ?? {},
     context: options.context,
   });
-  const tableHeight = Math.max(component.height, tableRows.reduce((sum, row) => sum + (row.height ?? 8), 0));
+  const tableHeight = Math.max(effective.height, tableRows.reduce((sum, row) => sum + (row.height ?? 8), 0));
 
   return {
-    id: component.id,
+    id: effective.id,
     type: 'table',
-    x: options.x + component.x,
-    y: options.y + component.y,
-    width: component.width,
+    x: options.x + effective.x,
+    y: options.y + effective.y,
+    width: effective.width,
     height: tableHeight,
     columns,
     rows,
-    showBorder: component.showBorder ?? false,
-    style: buildTableRenderStyle(component),
+    showBorder: effective.showBorder ?? false,
+    style: buildTableRenderStyle(effective),
+  };
+}
+
+function resolveTableComponentStyle(component: TableComponent, styles: ReportStyle[]): TableComponent {
+  const resolved = resolveComponentStyle(component, styles);
+  return {
+    ...component,
+    font: resolved.font,
+    border: resolved.border,
+    backgroundColor: resolved.backgroundColor,
+    padding: resolved.padding,
+    textAlign: resolved.textAlign,
+    verticalAlign: resolved.verticalAlign,
+    format: resolved.format,
   };
 }
 
@@ -619,7 +639,7 @@ function resolvedRenderTableCellStyle(
     ?? component.border;
   const style: TableStyle = {
     backgroundColor: cell.backgroundColor ?? cellStyle.backgroundColor ?? row.backgroundColor ?? rowStyle.backgroundColor ?? component.backgroundColor,
-    font: cell.font ?? cellStyle.font ?? row.font ?? rowStyle.font ?? component.font,
+    font: mergeTableFonts(component.font, rowStyle.font, row.font, cellStyle.font, cell.font),
     border: collapsedRenderBorder(border, rowIndex, columnIndex),
     padding: cell.padding ?? cellStyle.padding ?? row.padding ?? rowStyle.padding ?? component.padding,
     textAlign: cell.textAlign ?? cellStyle.textAlign ?? row.textAlign ?? rowStyle.textAlign ?? component.textAlign,
@@ -627,6 +647,19 @@ function resolvedRenderTableCellStyle(
     format: cell.format ?? cellStyle.format ?? row.format ?? rowStyle.format ?? component.format,
   };
   return Object.values(style).some(value => value !== undefined) ? style : undefined;
+}
+
+function mergeTableFonts(...fonts: Array<Partial<FontConfig> | undefined>): FontConfig | undefined {
+  const merged = fonts.reduce<Partial<FontConfig>>((next, font) => {
+    if (!font) return next;
+    Object.entries(font).forEach(([key, value]) => {
+      if (value !== undefined) {
+        next[key as keyof FontConfig] = value as never;
+      }
+    });
+    return next;
+  }, {});
+  return Object.keys(merged).length > 0 ? merged as FontConfig : undefined;
 }
 
 function collapsedRenderBorder(border: BorderConfig | undefined, rowIndex: number, columnIndex: number): BorderConfig | undefined {
@@ -933,19 +966,6 @@ function resolveTableCellText(
   }
 }
 
-function tableCellStyle(cell?: TableCell) {
-  if (!cell) return undefined;
-  const style = {
-    backgroundColor: cell.backgroundColor,
-    font: cell.font,
-    border: cell.border,
-    padding: cell.padding,
-    textAlign: cell.textAlign,
-    verticalAlign: cell.verticalAlign,
-  };
-  return Object.values(style).some(value => value !== undefined) ? style : undefined;
-}
-
 function resolveTemplateBoolean(
   value: string,
   context: RenderContext,
@@ -1073,24 +1093,18 @@ function resolveTemplateValue(
 }
 
 function resolveTextComponentStyle(component: TextComponent, styles: ReportStyle[]): TextComponent {
-  const style = component.style ? styles.find(item => item.id === component.style) : undefined;
-  if (!style) return component;
-
+  const resolved = resolveTextStyle(component, styles);
   return {
     ...component,
-    font: {
-      ...component.font,
-      ...(style.font ?? {}),
-    },
-    border: {
-      ...component.border,
-      ...(style.border ?? {}),
-      sides: {
-        ...component.border.sides,
-        ...(style.border?.sides ?? {}),
-      },
-    },
-    backgroundColor: style.backgroundColor ?? component.backgroundColor,
+    font: resolved.font,
+    border: resolved.border,
+    backgroundColor: resolved.backgroundColor,
+    textAlign: resolved.textAlign,
+    verticalAlign: resolved.verticalAlign,
+    padding: resolved.padding,
+    format: resolved.format,
+    canGrow: resolved.canGrow,
+    canShrink: resolved.canShrink,
   };
 }
 

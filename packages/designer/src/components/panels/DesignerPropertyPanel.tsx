@@ -81,7 +81,7 @@ const TableCellProperties: React.FC = () => {
   const normalizedTable = table ? normalizeTable(table) : undefined;
   const cell = selectedTableCell ? normalizedTable?.rows?.[selectedTableCell.startRow]?.cells[selectedTableCell.startColumn] : undefined;
   const format = cell?.format ?? DEFAULT_CELL_FORMAT;
-  const font = cell?.font ?? DEFAULT_CELL_FONT;
+  const font = cell?.font;
   const reportFontOptions = getReportFontOptions(template.fonts);
   const selectionText = selectedTableCell
     ? `${selectedTableCell.startRow + 1}:${selectedTableCell.startColumn + 1} - ${selectedTableCell.endRow + 1}:${selectedTableCell.endColumn + 1}`
@@ -93,7 +93,7 @@ const TableCellProperties: React.FC = () => {
     updateSelectedTableCell(updates);
   };
   const updateFont = (updates: Partial<NonNullable<TableCell['font']>>) => {
-    updateCell({ font: { ...font, ...updates } });
+    updateCell({ font: compactFont(font, updates) });
   };
 
   return (
@@ -144,29 +144,30 @@ const TableCellProperties: React.FC = () => {
               <Form.Item label={t('tableCell.fontFamily')}>
                 <Select
                   aria-label={t('tableCell.fontFamily')}
-                  value={font.family}
+                  value={font?.family}
                   options={reportFontOptions}
                   showSearch
+                  allowClear
                   onChange={family => updateFont({ family })}
                 />
               </Form.Item>
               <Form.Item label={t('tableCell.fontSize')}>
                 <InputNumber
                   aria-label={t('tableCell.fontSize')}
-                  value={font.size}
+                  value={font?.size}
                   min={1}
                   max={200}
                   step={1}
                   style={{ width: '100%' }}
-                  onChange={size => updateFont({ size: Number(size ?? font.size) })}
+                  onChange={size => updateFont({ size: size == null ? undefined : Number(size) })}
                 />
               </Form.Item>
               <Form.Item label={t('tableCell.textColor')}>
                 <Space.Compact style={{ width: '100%' }}>
-                  <ColorPicker value={font.color} onChange={color => updateFont({ color: color.toHexString() })} />
+                  <ColorPicker value={font?.color} allowClear onChange={color => updateFont({ color: color.toHexString() })} onClear={() => updateFont({ color: undefined })} />
                   <Input
                     aria-label={t('tableCell.textColor')}
-                    value={font.color}
+                    value={font?.color ?? ''}
                     onChange={event => updateFont({ color: event.target.value })}
                   />
                 </Space.Compact>
@@ -177,29 +178,29 @@ const TableCellProperties: React.FC = () => {
                     aria-label={t('tableCell.bold')}
                     title={t('tableCell.bold')}
                     icon={<BoldOutlined />}
-                    type={font.bold ? 'primary' : 'default'}
-                    onClick={() => updateFont({ bold: !font.bold })}
+                    type={font?.bold ? 'primary' : 'default'}
+                    onClick={() => updateFont({ bold: font?.bold ? undefined : true })}
                   />
                   <Button
                     aria-label={t('tableCell.italic')}
                     title={t('tableCell.italic')}
                     icon={<ItalicOutlined />}
-                    type={font.italic ? 'primary' : 'default'}
-                    onClick={() => updateFont({ italic: !font.italic })}
+                    type={font?.italic ? 'primary' : 'default'}
+                    onClick={() => updateFont({ italic: font?.italic ? undefined : true })}
                   />
                   <Button
                     aria-label={t('tableCell.underline')}
                     title={t('tableCell.underline')}
                     icon={<UnderlineOutlined />}
-                    type={font.underline ? 'primary' : 'default'}
-                    onClick={() => updateFont({ underline: !font.underline })}
+                    type={font?.underline ? 'primary' : 'default'}
+                    onClick={() => updateFont({ underline: font?.underline ? undefined : true })}
                   />
                   <Button
                     aria-label={t('tableCell.strikethrough')}
                     title={t('tableCell.strikethrough')}
                     icon={<StrikethroughOutlined />}
-                    type={font.strikethrough ? 'primary' : 'default'}
-                    onClick={() => updateFont({ strikethrough: !font.strikethrough })}
+                    type={font?.strikethrough ? 'primary' : 'default'}
+                    onClick={() => updateFont({ strikethrough: font?.strikethrough ? undefined : true })}
                   />
                 </Space>
               </Form.Item>
@@ -213,16 +214,17 @@ const TableCellProperties: React.FC = () => {
               <Form.Item label={t('tableCell.backgroundColor')}>
                 <ColorPicker
                   aria-label={t('tableCell.backgroundColor')}
-                  value={cell?.backgroundColor ?? '#ffffff'}
+                  value={cell?.backgroundColor}
                   allowClear
                   onChange={color => updateCell({ backgroundColor: color.toHexString() })}
+                  onClear={() => updateCell({ backgroundColor: undefined })}
                 />
               </Form.Item>
               <Form.Item label={t('tableCell.textAlign')}>
                 <Segmented
                   aria-label={t('tableCell.textAlign')}
                   block
-                  value={cell?.textAlign ?? 'left'}
+                  value={(cell?.textAlign ?? null) as never}
                   options={[
                     { value: 'left', icon: <AlignLeftOutlined />, label: '' },
                     { value: 'center', icon: <AlignCenterOutlined />, label: '' },
@@ -235,7 +237,7 @@ const TableCellProperties: React.FC = () => {
                 <Segmented
                   aria-label={t('tableCell.verticalAlign')}
                   block
-                  value={cell?.verticalAlign ?? 'top'}
+                  value={(cell?.verticalAlign ?? null) as never}
                   options={[
                     { value: 'top', icon: <VerticalAlignTopOutlined />, label: '' },
                     { value: 'middle', icon: <VerticalAlignMiddleOutlined />, label: '' },
@@ -276,7 +278,7 @@ const TableRowProperties: React.FC = () => {
   const normalizedTable = table ? normalizeTable(table) : undefined;
   const row = selectedTableRow ? normalizedTable?.rows?.[selectedTableRow.row] : undefined;
   const format = row?.format ?? DEFAULT_CELL_FORMAT;
-  const font = row?.font ?? DEFAULT_CELL_FONT;
+  const font = row?.font;
   const reportFontOptions = getReportFontOptions(template.fonts);
 
   if (!selectedTableRow || !table || !row) return null;
@@ -285,7 +287,7 @@ const TableRowProperties: React.FC = () => {
     updateSelectedTableRow(updates);
   };
   const updateFont = (updates: Partial<NonNullable<TableRow['font']>>) => {
-    updateRow({ font: { ...font, ...updates } });
+    updateRow({ font: compactFont(font, updates) });
   };
 
   return (
@@ -333,39 +335,40 @@ const TableRowProperties: React.FC = () => {
               <Form.Item label={t('tableCell.fontFamily')}>
                 <Select
                   aria-label={t('tableCell.fontFamily')}
-                  value={font.family}
+                  value={font?.family}
                   options={reportFontOptions}
                   showSearch
+                  allowClear
                   onChange={family => updateFont({ family })}
                 />
               </Form.Item>
               <Form.Item label={t('tableCell.fontSize')}>
                 <InputNumber
                   aria-label={t('tableCell.fontSize')}
-                  value={font.size}
+                  value={font?.size}
                   min={1}
                   max={200}
                   step={1}
                   style={{ width: '100%' }}
-                  onChange={size => updateFont({ size: Number(size ?? font.size) })}
+                  onChange={size => updateFont({ size: size == null ? undefined : Number(size) })}
                 />
               </Form.Item>
               <Form.Item label={t('tableCell.textColor')}>
                 <Space.Compact style={{ width: '100%' }}>
-                  <ColorPicker value={font.color} onChange={color => updateFont({ color: color.toHexString() })} />
+                  <ColorPicker value={font?.color} allowClear onChange={color => updateFont({ color: color.toHexString() })} onClear={() => updateFont({ color: undefined })} />
                   <Input
                     aria-label={t('tableCell.textColor')}
-                    value={font.color}
+                    value={font?.color ?? ''}
                     onChange={event => updateFont({ color: event.target.value })}
                   />
                 </Space.Compact>
               </Form.Item>
               <Form.Item label="">
                 <Space size={4} wrap>
-                  <Button aria-label={t('tableCell.bold')} title={t('tableCell.bold')} icon={<BoldOutlined />} type={font.bold ? 'primary' : 'default'} onClick={() => updateFont({ bold: !font.bold })} />
-                  <Button aria-label={t('tableCell.italic')} title={t('tableCell.italic')} icon={<ItalicOutlined />} type={font.italic ? 'primary' : 'default'} onClick={() => updateFont({ italic: !font.italic })} />
-                  <Button aria-label={t('tableCell.underline')} title={t('tableCell.underline')} icon={<UnderlineOutlined />} type={font.underline ? 'primary' : 'default'} onClick={() => updateFont({ underline: !font.underline })} />
-                  <Button aria-label={t('tableCell.strikethrough')} title={t('tableCell.strikethrough')} icon={<StrikethroughOutlined />} type={font.strikethrough ? 'primary' : 'default'} onClick={() => updateFont({ strikethrough: !font.strikethrough })} />
+                  <Button aria-label={t('tableCell.bold')} title={t('tableCell.bold')} icon={<BoldOutlined />} type={font?.bold ? 'primary' : 'default'} onClick={() => updateFont({ bold: font?.bold ? undefined : true })} />
+                  <Button aria-label={t('tableCell.italic')} title={t('tableCell.italic')} icon={<ItalicOutlined />} type={font?.italic ? 'primary' : 'default'} onClick={() => updateFont({ italic: font?.italic ? undefined : true })} />
+                  <Button aria-label={t('tableCell.underline')} title={t('tableCell.underline')} icon={<UnderlineOutlined />} type={font?.underline ? 'primary' : 'default'} onClick={() => updateFont({ underline: font?.underline ? undefined : true })} />
+                  <Button aria-label={t('tableCell.strikethrough')} title={t('tableCell.strikethrough')} icon={<StrikethroughOutlined />} type={font?.strikethrough ? 'primary' : 'default'} onClick={() => updateFont({ strikethrough: font?.strikethrough ? undefined : true })} />
                 </Space>
               </Form.Item>
             </Form>
@@ -378,16 +381,17 @@ const TableRowProperties: React.FC = () => {
               <Form.Item label={t('tableCell.backgroundColor')}>
                 <ColorPicker
                   aria-label={t('tableCell.backgroundColor')}
-                  value={row.backgroundColor ?? '#ffffff'}
+                  value={row.backgroundColor}
                   allowClear
                   onChange={color => updateRow({ backgroundColor: color.toHexString() })}
+                  onClear={() => updateRow({ backgroundColor: undefined })}
                 />
               </Form.Item>
               <Form.Item label={t('tableCell.textAlign')}>
                 <Segmented
                   aria-label={t('tableCell.textAlign')}
                   block
-                  value={row.textAlign ?? 'left'}
+                  value={(row.textAlign ?? null) as never}
                   options={[
                     { value: 'left', icon: <AlignLeftOutlined />, label: '' },
                     { value: 'center', icon: <AlignCenterOutlined />, label: '' },
@@ -400,7 +404,7 @@ const TableRowProperties: React.FC = () => {
                 <Segmented
                   aria-label={t('tableCell.verticalAlign')}
                   block
-                  value={row.verticalAlign ?? 'top'}
+                  value={(row.verticalAlign ?? null) as never}
                   options={[
                     { value: 'top', icon: <VerticalAlignTopOutlined />, label: '' },
                     { value: 'middle', icon: <VerticalAlignMiddleOutlined />, label: '' },
@@ -428,21 +432,29 @@ const TableRowProperties: React.FC = () => {
   );
 };
 
-const DEFAULT_CELL_FONT = {
-  family: 'Arial',
-  size: 10,
-  bold: false,
-  italic: false,
-  underline: false,
-  strikethrough: false,
-  color: '#111111',
-};
 const DEFAULT_CELL_FORMAT: TextFormatConfig = { type: 'none' };
+
+function compactFont<T extends TableCell['font'] | TableRow['font']>(
+  font: T | undefined,
+  updates: Partial<NonNullable<T>>,
+): T | undefined {
+  const next = { ...(font ?? {}) } as Record<string, unknown>;
+  Object.entries(updates).forEach(([key, value]) => {
+    if (value === undefined || value === null || value === '' || value === false) {
+      delete next[key];
+    } else {
+      next[key] = value;
+    }
+  });
+
+  return Object.keys(next).length > 0 ? next as T : undefined;
+}
 
 function tableBorderLabels(t: ReturnType<typeof useDesignerI18n>['t']) {
   return {
     style: t('tableCell.borderStyle'),
-    none: t('common.default'),
+    inherit: t('tableCell.borderInherited'),
+    none: t('styleLibrary.borderNone'),
     solid: t('pageSettings.borderSolid'),
     dashed: t('pageSettings.borderDashed'),
     dotted: t('pageSettings.borderDotted'),

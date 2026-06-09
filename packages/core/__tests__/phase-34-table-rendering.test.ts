@@ -3,6 +3,72 @@ import { createDefaultTemplate } from '../src/template-model/template';
 import type { TableComponent } from '../src/template-model/types';
 
 describe('phase 34 table rendering', () => {
+  it('uses selected top-level table style for table and inherited cell rendering', () => {
+    const template = createDefaultTemplate('Styled Table Rendering');
+    template.styles = [{
+      id: 'table-style',
+      name: 'Table Style',
+      backgroundColor: '#ffeecc',
+      border: { style: 'solid', width: 0.3, color: '#aa5500', sides: { top: true, right: true, bottom: true, left: true } },
+      font: { color: '#663300', size: 11 },
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      textAlign: 'center',
+      verticalAlign: 'middle',
+    }];
+    const reportTitleBand = template.pages[0].bands.find(band => band.type === 'reportTitle');
+    if (!reportTitleBand) throw new Error('Missing report title band');
+    reportTitleBand.components = [{
+      id: 'table-1',
+      type: 'table',
+      x: 0,
+      y: 0,
+      width: 90,
+      height: 8,
+      style: 'table-style',
+      backgroundColor: '#ffffff',
+      padding: { top: 9, right: 9, bottom: 9, left: 9 },
+      textAlign: 'right',
+      verticalAlign: 'bottom',
+      rows: [{
+        id: 'row-1',
+        height: 8,
+        cells: [
+          { id: 'cell-1', text: 'Inherited' },
+          { id: 'cell-2', text: 'Override', backgroundColor: '#e6f4ff', textAlign: 'right', font: { size: 14 } as never },
+        ],
+      }],
+    } as TableComponent];
+
+    const document = renderReport(template, {});
+    const table = document.pages[0].items.flatMap(item => item.components).find(component => component.id === 'table-1');
+
+    expect(table).toMatchObject({
+      type: 'table',
+      style: { backgroundColor: '#ffeecc' },
+      rows: [[
+        {
+          content: 'Inherited',
+          style: {
+            backgroundColor: '#ffeecc',
+            padding: { top: 1, right: 2, bottom: 3, left: 4 },
+            textAlign: 'center',
+            verticalAlign: 'middle',
+            border: { color: '#aa5500' },
+          },
+        },
+        {
+          content: 'Override',
+          style: {
+            backgroundColor: '#e6f4ff',
+            font: { color: '#663300', size: 14 },
+            textAlign: 'right',
+            verticalAlign: 'middle',
+          },
+        },
+      ]],
+    });
+  });
+
   it('renders row-cell tables with inherited styles and current band fields', () => {
     const template = createDefaultTemplate('Row Cell Table Rendering');
     template.dataSources = [{
@@ -59,6 +125,45 @@ describe('phase 34 table rendering', () => {
       ]],
     });
     expect(table?.type === 'table' ? table.style?.border : undefined).toBeUndefined();
+  });
+
+  it('lets an explicit cell no-border override an inherited table border', () => {
+    const template = createDefaultTemplate('Table Cell No Border Override');
+    const reportTitleBand = template.pages[0].bands.find(band => band.type === 'reportTitle');
+    if (!reportTitleBand) throw new Error('Missing report title band');
+    reportTitleBand.components = [{
+      id: 'table-1',
+      type: 'table',
+      x: 0,
+      y: 0,
+      width: 80,
+      height: 16,
+      border: { style: 'solid', width: 0.2, color: '#333333', sides: { top: true, right: true, bottom: true, left: true } },
+      rows: [{
+        id: 'row-1',
+        height: 8,
+        cells: [
+          { id: 'cell-1', text: 'Inherited', width: 40 },
+          {
+            id: 'cell-2',
+            text: 'No border',
+            width: 40,
+            border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+          },
+        ],
+      }],
+    } as TableComponent];
+
+    const document = renderReport(template, {});
+    const table = document.pages[0].items.flatMap(item => item.components).find(component => component.id === 'table-1');
+
+    expect(table).toMatchObject({
+      type: 'table',
+      rows: [[
+        { content: 'Inherited', style: { border: { style: 'solid' } } },
+        { content: 'No border', style: undefined },
+      ]],
+    });
   });
 
   it('carries table cell expression, format, and style into the render document', () => {

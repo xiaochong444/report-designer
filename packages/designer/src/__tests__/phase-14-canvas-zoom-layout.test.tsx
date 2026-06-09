@@ -39,12 +39,19 @@ describe('Phase 14 canvas zoom layout', () => {
 
     const zoomBar = screen.getByTestId('designer-zoom-bar');
     const pageStack = screen.getByTestId('designer-canvas-page-stack');
+    const canvasViewport = pageStack.parentElement;
     const page = screen.getByTestId('designer-page-sheet');
     const contentArea = screen.getByTestId('designer-page-content-area');
     const horizontalRuler = screen.getByTestId('designer-ruler-horizontal');
     const verticalRuler = screen.getByTestId('designer-ruler-vertical');
 
-    expect(zoomBar.getAttribute('style')).not.toContain('position: fixed');
+    expect(canvasViewport).toHaveStyle({ overflowX: 'auto' });
+    expect(zoomBar.parentElement).toBe(canvasViewport?.parentElement);
+    expect(zoomBar).toHaveStyle({
+      position: 'absolute',
+      right: '16px',
+      bottom: '16px',
+    });
     expect(pageStack.getAttribute('style')).toContain('width: 1612px');
     expect(page.getAttribute('style')).toContain('width: 794px');
     expect(page.getAttribute('style')).toContain('height: 1123px');

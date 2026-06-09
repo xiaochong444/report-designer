@@ -242,8 +242,10 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
 
   const font = mergeFont(selectedStyle?.font);
   const border = mergeBorder(selectedStyle?.border);
-  const padding = mergePadding(selectedStyle?.padding);
+  const padding = selectedStyle?.padding;
+  const previewPadding = mergePadding(padding);
   const format = selectedStyle?.format ?? EMPTY_FORMAT;
+  const hasBackgroundColor = Boolean(selectedStyle?.backgroundColor && selectedStyle.backgroundColor !== 'transparent');
 
   const setFontFlag = (field: 'bold' | 'italic' | 'underline' | 'strikethrough', nextValue: boolean) => {
     updateSelectedStyle({ font: { ...font, [field]: nextValue } });
@@ -385,7 +387,12 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
             style={{
               borderRadius: 10,
               border: `${Math.max(border.width ?? 0, 0.2)}px ${border.style === 'none' ? 'solid' : border.style} ${border.color}`,
-              background: selectedStyle?.backgroundColor === 'transparent' ? '#ffffff' : selectedStyle?.backgroundColor,
+              backgroundColor: hasBackgroundColor ? selectedStyle?.backgroundColor : '#ffffff',
+              backgroundImage: hasBackgroundColor
+                ? undefined
+                : 'linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0), linear-gradient(45deg, #f0f0f0 25%, transparent 25%, transparent 75%, #f0f0f0 75%, #f0f0f0)',
+              backgroundSize: hasBackgroundColor ? undefined : '12px 12px, 12px 12px',
+              backgroundPosition: hasBackgroundColor ? undefined : '0 0, 6px 6px',
               color: font.color,
               fontFamily: font.family,
               fontSize: font.size,
@@ -396,7 +403,7 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                 font.strikethrough ? 'line-through' : '',
               ].filter(Boolean).join(' ') || 'none',
               textAlign: selectedStyle?.textAlign ?? 'left',
-              padding: `${padding.top}px ${padding.right}px ${padding.bottom}px ${padding.left}px`,
+              padding: `${previewPadding.top}px ${previewPadding.right}px ${previewPadding.bottom}px ${previewPadding.left}px`,
               minHeight: 180,
               display: 'flex',
               alignItems: selectedStyle?.verticalAlign === 'bottom' ? 'flex-end' : selectedStyle?.verticalAlign === 'middle' ? 'center' : 'flex-start',
@@ -520,8 +527,10 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                       </Tooltip>
                       <ColorPicker
                         aria-label={t('styleLibrary.aria.background')}
-                        value={selectedStyle.backgroundColor}
+                        value={hasBackgroundColor ? selectedStyle.backgroundColor : undefined}
+                        allowClear
                         onChange={(value) => updateSelectedStyle({ backgroundColor: value.toHexString() })}
+                        onClear={() => updateSelectedStyle({ backgroundColor: undefined })}
                         style={{ width: '100%', justifyContent: 'space-between' }}
                       />
                     </Space.Compact>
@@ -790,7 +799,7 @@ const BorderEditor: React.FC<{
             justifySelf: 'center',
             width: 60,
             height: 40,
-            background: '#ffffff',
+            backgroundColor: '#ffffff',
             borderTop: previewBorder(border.sides.top),
             borderRight: previewBorder(border.sides.right),
             borderBottom: previewBorder(border.sides.bottom),
@@ -803,28 +812,34 @@ const BorderEditor: React.FC<{
 };
 
 const PaddingEditor: React.FC<{
-  padding: { top: number; right: number; bottom: number; left: number };
-  onChange: (padding: { top: number; right: number; bottom: number; left: number }) => void;
+  padding?: Partial<{ top: number; right: number; bottom: number; left: number }>;
+  onChange: (padding: Partial<{ top: number; right: number; bottom: number; left: number }> | undefined) => void;
 }> = ({ padding, onChange }) => {
   const { t } = useDesignerI18n();
-  const updateField = (field: 'top' | 'right' | 'bottom' | 'left', value: number | null) => {
-    onChange({ ...padding, [field]: Number(value ?? padding[field]) });
+  const updateField = (field: 'top' | 'right' | 'bottom' | 'left', value: number | string | null | undefined) => {
+    const nextPadding = { ...(padding ?? {}) };
+    if (value === null || value === undefined || value === '') {
+      delete nextPadding[field];
+    } else {
+      nextPadding[field] = Number(value);
+    }
+    onChange(Object.keys(nextPadding).length ? nextPadding : undefined);
   };
 
   return (
     <div style={{ display: 'grid', gap: 8 }}>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 8 }}>
         <PaddingField label={t('styleLibrary.sideTop')}>
-          <InputNumber aria-label={t('styleLibrary.aria.paddingTop')} value={padding.top} min={0} style={{ width: '100%' }} onChange={(value) => updateField('top', value)} />
+          <InputNumber aria-label={t('styleLibrary.aria.paddingTop')} value={padding?.top} min={0} style={{ width: '100%' }} onChange={(value) => updateField('top', value)} />
         </PaddingField>
         <PaddingField label={t('styleLibrary.sideRight')}>
-          <InputNumber aria-label={t('styleLibrary.aria.paddingRight')} value={padding.right} min={0} style={{ width: '100%' }} onChange={(value) => updateField('right', value)} />
+          <InputNumber aria-label={t('styleLibrary.aria.paddingRight')} value={padding?.right} min={0} style={{ width: '100%' }} onChange={(value) => updateField('right', value)} />
         </PaddingField>
         <PaddingField label={t('styleLibrary.sideBottom')}>
-          <InputNumber aria-label={t('styleLibrary.aria.paddingBottom')} value={padding.bottom} min={0} style={{ width: '100%' }} onChange={(value) => updateField('bottom', value)} />
+          <InputNumber aria-label={t('styleLibrary.aria.paddingBottom')} value={padding?.bottom} min={0} style={{ width: '100%' }} onChange={(value) => updateField('bottom', value)} />
         </PaddingField>
         <PaddingField label={t('styleLibrary.sideLeft')}>
-          <InputNumber aria-label={t('styleLibrary.aria.paddingLeft')} value={padding.left} min={0} style={{ width: '100%' }} onChange={(value) => updateField('left', value)} />
+          <InputNumber aria-label={t('styleLibrary.aria.paddingLeft')} value={padding?.left} min={0} style={{ width: '100%' }} onChange={(value) => updateField('left', value)} />
         </PaddingField>
       </div>
     </div>

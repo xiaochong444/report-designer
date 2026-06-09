@@ -15,13 +15,6 @@ const detailBorder: BorderConfig = {
   sides: { top: false, right: true, bottom: true, left: true },
 };
 
-const bottomBorder: BorderConfig = {
-  style: 'solid',
-  width: 0.2,
-  color: '#9ca3af',
-  sides: { top: false, right: false, bottom: true, left: false },
-};
-
 const cellPadding: Padding = { top: 1, right: 1.2, bottom: 1, left: 1.2 };
 const tableWidths = [22, 38, 28, 15, 22, 18, 22, 25];
 
@@ -251,31 +244,31 @@ export const salesOrderPrintTemplate = template('sales-order-print', 'Sales Orde
       visible: '{status} = "已审核"',
     }),
     text('sop-no-label', '销售单号', 0, 14, 20, 6, { style: commonTextStyleIds.header }),
-    text('sop-no', '{orderNo}', 22, 14, 42, 6, { style: commonTextStyleIds.data, border: bottomBorder }),
+    text('sop-no', '{orderNo}', 22, 14, 42, 6, { style: commonTextStyleIds.dataBottomBorder }),
     text('sop-date-label', '销售日期', 68, 14, 20, 6, { style: commonTextStyleIds.header }),
-    text('sop-date', 'FORMAT("CN_DATE", {orderDate})', 90, 14, 34, 6, { style: commonTextStyleIds.data, border: bottomBorder }),
+    text('sop-date', 'FORMAT("CN_DATE", {orderDate})', 90, 14, 34, 6, { style: commonTextStyleIds.dataBottomBorder }),
     text('sop-type-label', '销售类型', 128, 14, 20, 6, { style: commonTextStyleIds.header }),
-    text('sop-type', '{orderType}', 150, 14, 30, 6, { style: commonTextStyleIds.data, border: bottomBorder }),
+    text('sop-type', '{orderType}', 150, 14, 30, 6, { style: commonTextStyleIds.dataBottomBorder }),
 
     text('sop-customer-label', '客户', 0, 23, 14, 6, { style: commonTextStyleIds.header }),
-    text('sop-customer', '{customer.name}', 16, 23, 70, 6, { style: commonTextStyleIds.data, border: bottomBorder }),
+    text('sop-customer', '{customer.name}', 16, 23, 70, 6, { style: commonTextStyleIds.dataBottomBorder }),
     text('sop-phone-label', '电话', 90, 23, 14, 6, { style: commonTextStyleIds.header }),
-    text('sop-phone', 'MASKPHONE({customer.phone})', 106, 23, 36, 6, { style: commonTextStyleIds.data, border: bottomBorder }),
+    text('sop-phone', 'MASKPHONE({customer.phone})', 106, 23, 36, 6, { style: commonTextStyleIds.dataBottomBorder }),
     text('sop-region-label', '省市区', 146, 23, 18, 6, { style: commonTextStyleIds.header }),
-    text('sop-region', 'CONCAT({customer.province}, {customer.city}, {customer.district})', 166, 23, 28, 6, { style: commonTextStyleIds.data, border: bottomBorder }),
+    text('sop-region', 'CONCAT({customer.province}, {customer.city}, {customer.district})', 166, 23, 28, 6, { style: commonTextStyleIds.dataBottomBorder }),
 
     text('sop-address-label', '地址', 0, 32, 14, 6, { style: commonTextStyleIds.header }),
-    text('sop-address', '{customer.address}', 16, 32, 88, 6, { style: commonTextStyleIds.data, border: bottomBorder }),
+    text('sop-address', '{customer.address}', 16, 32, 88, 6, { style: commonTextStyleIds.dataBottomBorder }),
     text('sop-contact-label', '联系人', 108, 32, 18, 6, { style: commonTextStyleIds.header }),
-    text('sop-contact', '{customer.contact}', 128, 32, 26, 6, { style: commonTextStyleIds.data, border: bottomBorder }),
+    text('sop-contact', '{customer.contact}', 128, 32, 26, 6, { style: commonTextStyleIds.dataBottomBorder }),
     text('sop-tax-label', '税号', 158, 32, 14, 6, { style: commonTextStyleIds.header }),
-    text('sop-tax', '{customer.taxNo}', 174, 32, 20, 6, { style: commonTextStyleIds.data, border: bottomBorder }),
+    text('sop-tax', '{customer.taxNo}', 174, 32, 20, 6, { style: commonTextStyleIds.dataBottomBorder }),
 
     text('sop-audit', '创建：{createdBy} {createdAt}    修改：{updatedBy} {updatedAt}    审核：{approvedBy} {approvedAt}', 0, 43, 190, 6, {
       style: commonTextStyleIds.pageHeader,
     }),
     text('sop-remark-label', '备注', 0, 50, 14, 6, { style: commonTextStyleIds.header }),
-    text('sop-remark', '{remark}', 16, 50, 174, 6, { style: commonTextStyleIds.data, border: bottomBorder }),
+    text('sop-remark', '{remark}', 16, 50, 174, 6, { style: commonTextStyleIds.dataBottomBorder }),
   ], { dataBand: { dataSourceId: 'root' } }),
 
   band('sop-detail-header', 'header', 8, [salesHeaderTable]),
@@ -285,7 +278,7 @@ export const salesOrderPrintTemplate = template('sales-order-print', 'Sales Orde
   band('sop-detail-footer', 'footer', 24, [salesFooterTable]),
 
   band('sop-page-footer', 'pageFooter', 8, [
-    text('sop-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footer, textAlign: 'center' }),
+    text('sop-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
   ]),
 ], 297, salesOrderStyles);
 

@@ -1,4 +1,4 @@
-import { isRepeatOnEveryPageBandType, type BorderConfig, type FontConfig, type Band, type ReportComponent, type ReportStyle, type ReportTemplate, type TextComponent } from '@report-designer/core';
+import { isRepeatOnEveryPageBandType, resolveTextStyle, type BorderConfig, type FontConfig, type Band, type ReportComponent, type ReportStyle, type ReportTemplate, type TextComponent } from '@report-designer/core';
 
 type TextOptions = Omit<Partial<TextComponent>, 'font' | 'border'> & {
   font?: Partial<FontConfig>;
@@ -36,8 +36,14 @@ export const commonTextStyleIds = {
   title: 'text-title',
   pageHeader: 'text-page-header',
   header: 'text-header',
+  headerRight: 'text-header-right',
   data: 'text-data',
+  dataGrow: 'text-data-grow',
+  dataBottomBorder: 'text-data-bottom-border',
+  dataRight: 'text-data-right',
   footer: 'text-footer',
+  footerCenter: 'text-footer-center',
+  footerRight: 'text-footer-right',
   group: 'text-group',
 } as const;
 
@@ -48,6 +54,7 @@ export const commonTextStyles: ReportStyle[] = [
     category: 'text',
     font: { size: 15, bold: true },
     backgroundColor: 'transparent',
+    textAlign: 'center',
     verticalAlign: 'middle',
   },
   {
@@ -67,6 +74,15 @@ export const commonTextStyles: ReportStyle[] = [
     verticalAlign: 'middle',
   },
   {
+    id: commonTextStyleIds.headerRight,
+    name: 'Header Right',
+    category: 'text',
+    font: { bold: true },
+    backgroundColor: 'transparent',
+    textAlign: 'right',
+    verticalAlign: 'middle',
+  },
+  {
     id: commonTextStyleIds.data,
     name: 'Data',
     category: 'text',
@@ -76,11 +92,61 @@ export const commonTextStyles: ReportStyle[] = [
     isDefault: true,
   },
   {
+    id: commonTextStyleIds.dataRight,
+    name: 'Data Right',
+    category: 'text',
+    font: { size: 9, color: '#1f2937' },
+    backgroundColor: 'transparent',
+    textAlign: 'right',
+    verticalAlign: 'middle',
+  },
+  {
+    id: commonTextStyleIds.dataGrow,
+    name: 'Data Grow',
+    category: 'text',
+    font: { size: 9, color: '#1f2937' },
+    backgroundColor: 'transparent',
+    verticalAlign: 'middle',
+    canGrow: true,
+  },
+  {
+    id: commonTextStyleIds.dataBottomBorder,
+    name: 'Data Bottom Border',
+    category: 'text',
+    font: { size: 9, color: '#1f2937' },
+    backgroundColor: 'transparent',
+    verticalAlign: 'middle',
+    border: {
+      style: 'solid',
+      width: 0.2,
+      color: '#9ca3af',
+      sides: { top: false, right: false, bottom: true, left: false },
+    },
+  },
+  {
     id: commonTextStyleIds.footer,
     name: 'Footer',
     category: 'text',
     font: { size: 9, color: '#1f2937' },
     backgroundColor: 'transparent',
+    verticalAlign: 'middle',
+  },
+  {
+    id: commonTextStyleIds.footerCenter,
+    name: 'Footer Center',
+    category: 'text',
+    font: { size: 9, color: '#1f2937' },
+    backgroundColor: 'transparent',
+    textAlign: 'center',
+    verticalAlign: 'middle',
+  },
+  {
+    id: commonTextStyleIds.footerRight,
+    name: 'Footer Right',
+    category: 'text',
+    font: { size: 9, color: '#1f2937' },
+    backgroundColor: 'transparent',
+    textAlign: 'right',
     verticalAlign: 'middle',
   },
   {
@@ -224,160 +290,17 @@ function applyTextStyleSnapshot(component: TextComponent, styles: ReportStyle[])
     return component;
   }
 
-  const next: TextComponent = {
+  const resolved = resolveTextStyle(component, styles);
+  return {
     ...component,
-    font: { ...component.font },
-    border: {
-      ...component.border,
-      sides: { ...component.border.sides },
-    },
-    padding: component.padding ? { ...component.padding } : undefined,
-    format: component.format ? { ...component.format } : undefined,
+    font: resolved.font,
+    border: resolved.border,
+    backgroundColor: resolved.backgroundColor,
+    textAlign: resolved.textAlign,
+    verticalAlign: resolved.verticalAlign,
+    padding: resolved.padding,
+    format: resolved.format,
+    canGrow: resolved.canGrow,
+    canShrink: resolved.canShrink,
   };
-  const bindings: string[] = [];
-
-  if (style.font) {
-    if (style.font.family !== undefined) {
-      next.font.family = style.font.family;
-      bindings.push('font.family');
-    }
-    if (style.font.size !== undefined) {
-      next.font.size = style.font.size;
-      bindings.push('font.size');
-    }
-    if (style.font.bold !== undefined) {
-      next.font.bold = style.font.bold;
-      bindings.push('font.bold');
-    }
-    if (style.font.italic !== undefined) {
-      next.font.italic = style.font.italic;
-      bindings.push('font.italic');
-    }
-    if (style.font.underline !== undefined) {
-      next.font.underline = style.font.underline;
-      bindings.push('font.underline');
-    }
-    if (style.font.strikethrough !== undefined) {
-      next.font.strikethrough = style.font.strikethrough;
-      bindings.push('font.strikethrough');
-    }
-    if (style.font.color !== undefined) {
-      next.font.color = style.font.color;
-      bindings.push('font.color');
-    }
-  }
-
-  if (style.backgroundColor !== undefined) {
-    next.backgroundColor = style.backgroundColor;
-    bindings.push('backgroundColor');
-  }
-
-  if (style.textAlign !== undefined) {
-    next.textAlign = style.textAlign;
-    bindings.push('textAlign');
-  }
-
-  if (style.verticalAlign !== undefined) {
-    next.verticalAlign = style.verticalAlign;
-    bindings.push('verticalAlign');
-  }
-
-  if (style.border) {
-    if (style.border.style !== undefined) {
-      next.border.style = style.border.style;
-      bindings.push('border.style');
-    }
-    if (style.border.width !== undefined) {
-      next.border.width = style.border.width;
-      bindings.push('border.width');
-    }
-    if (style.border.color !== undefined) {
-      next.border.color = style.border.color;
-      bindings.push('border.color');
-    }
-    if (style.border.sides?.top !== undefined) {
-      next.border.sides.top = style.border.sides.top;
-      bindings.push('border.sides.top');
-    }
-    if (style.border.sides?.right !== undefined) {
-      next.border.sides.right = style.border.sides.right;
-      bindings.push('border.sides.right');
-    }
-    if (style.border.sides?.bottom !== undefined) {
-      next.border.sides.bottom = style.border.sides.bottom;
-      bindings.push('border.sides.bottom');
-    }
-    if (style.border.sides?.left !== undefined) {
-      next.border.sides.left = style.border.sides.left;
-      bindings.push('border.sides.left');
-    }
-  }
-
-  if (style.padding) {
-    const padding = next.padding ?? { top: 0, right: 0, bottom: 0, left: 0 };
-
-    if (style.padding.top !== undefined) {
-      padding.top = style.padding.top;
-      bindings.push('padding.top');
-    }
-    if (style.padding.right !== undefined) {
-      padding.right = style.padding.right;
-      bindings.push('padding.right');
-    }
-    if (style.padding.bottom !== undefined) {
-      padding.bottom = style.padding.bottom;
-      bindings.push('padding.bottom');
-    }
-    if (style.padding.left !== undefined) {
-      padding.left = style.padding.left;
-      bindings.push('padding.left');
-    }
-
-    next.padding = padding;
-  }
-
-  if (style.format) {
-    const format = next.format ?? { type: 'none' as const };
-
-    if (style.format.type !== undefined) {
-      format.type = style.format.type;
-      bindings.push('format.type');
-    }
-    if (style.format.pattern !== undefined) {
-      format.pattern = style.format.pattern;
-      bindings.push('format.pattern');
-    }
-    if (style.format.nullValue !== undefined) {
-      format.nullValue = style.format.nullValue;
-      bindings.push('format.nullValue');
-    }
-    if (style.format.trueText !== undefined) {
-      format.trueText = style.format.trueText;
-      bindings.push('format.trueText');
-    }
-    if (style.format.falseText !== undefined) {
-      format.falseText = style.format.falseText;
-      bindings.push('format.falseText');
-    }
-
-    next.format = format;
-  }
-
-  if (style.canGrow !== undefined) {
-    next.canGrow = style.canGrow;
-    bindings.push('canGrow');
-  }
-
-  if (style.canShrink !== undefined) {
-    next.canShrink = style.canShrink;
-    bindings.push('canShrink');
-  }
-
-  if (bindings.length > 0) {
-    next.styleBindings = bindings;
-  } else {
-    delete next.styleBindings;
-  }
-
-  return next;
 }

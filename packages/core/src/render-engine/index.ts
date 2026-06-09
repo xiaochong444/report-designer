@@ -6,6 +6,7 @@ import type {
 import { evalExpression } from '../expression-engine';
 import type { BuiltinFunction, EvalContext } from '../expression-engine/evaluator';
 import { applyConditionalFormatsToStyle } from '../conditional-format';
+import { resolveComponentStyle, resolveTextStyle } from '../text-style';
 
 /** A fully resolved/rendered component */
 export interface RenderedComponent {
@@ -86,59 +87,37 @@ export function resolveValue(
   return value;
 }
 
-/** Look up a style by ID from the template's style list */
-function getStyleById(comp: ReportComponent, styles: ReportStyle[]): ReportStyle | undefined {
-  if (!comp.style) return undefined;
-  return styles.find(s => s.id === comp.style);
-}
-
 /** Convert template component to rendered style */
 function componentStyleToRendered(comp: ReportComponent, templateStyles: ReportStyle[]): RenderedStyle {
   if (comp.type === 'text') {
     const tc = comp as TextComponent;
+    const resolved = resolveTextStyle(tc, templateStyles);
 
     return {
-      font: tc.font,
-      background: tc.backgroundColor,
-      border: tc.border,
-      padding: tc.padding,
-      textAlign: tc.textAlign,
-      verticalAlign: tc.verticalAlign,
-      format: tc.format,
-      canGrow: tc.canGrow,
-      canShrink: tc.canShrink,
+      font: resolved.font,
+      background: resolved.backgroundColor,
+      border: resolved.border,
+      padding: resolved.padding,
+      textAlign: resolved.textAlign,
+      verticalAlign: resolved.verticalAlign,
+      format: resolved.format,
+      canGrow: resolved.canGrow,
+      canShrink: resolved.canShrink,
     };
   }
 
-  const refStyle = getStyleById(comp, templateStyles);
-  if (!refStyle) {
-    return {};
-  }
+  const resolved = resolveComponentStyle(comp, templateStyles);
 
   return {
-    font: refStyle.font ? {
-      family: 'Arial',
-      size: 10,
-      bold: false,
-      italic: false,
-      underline: false,
-      strikethrough: false,
-      color: '#000000',
-      ...refStyle.font,
-    } : undefined,
-    background: refStyle.backgroundColor,
-    border: refStyle.border ? {
-      style: refStyle.border.style ?? 'none',
-      width: refStyle.border.width ?? 0,
-      color: refStyle.border.color ?? '#000000',
-      sides: {
-        top: false,
-        right: false,
-        bottom: false,
-        left: false,
-        ...(refStyle.border.sides ?? {}),
-      },
-    } : undefined,
+    font: resolved.font,
+    background: resolved.backgroundColor,
+    border: resolved.border,
+    padding: resolved.padding,
+    textAlign: resolved.textAlign,
+    verticalAlign: resolved.verticalAlign,
+    format: resolved.format,
+    canGrow: resolved.canGrow,
+    canShrink: resolved.canShrink,
   };
 }
 

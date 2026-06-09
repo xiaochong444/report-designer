@@ -73,4 +73,20 @@ describe('Phase 11 page margin ruler and band chrome', () => {
     expect(bodyStyle).toContain('top: 26px');
     expect(bodyStyle).toContain('height: 76px');
   });
+
+  it('keeps the canvas flush against the sidebar and ribbon edges', () => {
+    render(<Designer template={createDefaultTemplate('Flush Canvas Chrome')} />);
+
+    const canvasViewport = screen.getByTestId('designer-canvas-page-stack').parentElement;
+
+    expect(canvasViewport).toHaveStyle({
+      paddingLeft: '0px',
+      paddingTop: '0px',
+      paddingRight: '24px',
+      paddingBottom: '24px',
+      display: 'flex',
+      alignItems: 'flex-start',
+      justifyContent: 'flex-start',
+    });
+  });
 });

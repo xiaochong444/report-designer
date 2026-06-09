@@ -60,6 +60,44 @@ function clickCell(row: number, column: number, shiftKey = false) {
   fireEvent.mouseDown(cell, { button: 0, clientX: 20, clientY: 20, shiftKey });
 }
 
+function selectDisplay(label: string) {
+  const target = screen.getByLabelText(label);
+  return target.closest('.ant-select')?.querySelector('.ant-select-selection-item')?.textContent ?? '';
+}
+
+function openSelect(label: string) {
+  const target = screen.getByLabelText(label);
+  const formItem = target.closest('.ant-form-item');
+  const trigger = (
+    target.closest('.ant-select-selector')
+    ?? target.closest('.ant-select')?.querySelector('.ant-select-selector')
+    ?? target.parentElement?.querySelector('.ant-select-selector')
+    ?? formItem?.querySelector('.ant-select-selector')
+    ?? target
+  ) as HTMLElement | null;
+  if (!trigger) throw new Error(`Unable to find select trigger for ${label}`);
+  fireEvent.mouseDown(trigger);
+}
+
+async function chooseSelectOption(label: string, optionText: string) {
+  openSelect(label);
+  fireEvent.click(await screen.findByText(optionText));
+}
+
+function segmentedSelectedCount(label: string) {
+  const target = screen.getByLabelText(label);
+  const root = target.closest('.ant-segmented');
+  return root?.querySelectorAll('.ant-segmented-item-selected').length ?? 0;
+}
+
+function clickSegmentedItem(label: string, index: number) {
+  const target = screen.getByLabelText(label);
+  const root = target.closest('.ant-segmented');
+  const item = root?.querySelectorAll<HTMLElement>('.ant-segmented-item')[index];
+  if (!item) throw new Error(`Unable to find segmented item ${index} for ${label}`);
+  fireEvent.click(item);
+}
+
 describe('phase 34 table cell selection', () => {
   it('selects a table cell and shows cell properties', () => {
     loadWith(tableComponent());
@@ -145,6 +183,7 @@ describe('phase 34 table cell selection', () => {
 
     clickCell(1, 1);
 
+    expect(selectDisplay('边框样式')).toBe('');
     expect((screen.getByLabelText('边框宽度') as HTMLInputElement).value).toBe('');
     expect((screen.getByLabelText('上') as HTMLInputElement).value).toBe('');
     expect(screen.getByLabelText('边框上边')).not.toBeChecked();
@@ -155,6 +194,100 @@ describe('phase 34 table cell selection', () => {
     expect(screen.queryByText('边框边')).not.toBeInTheDocument();
     expect(screen.getByTestId('border-editor-sides')).toHaveStyle({ flexWrap: 'nowrap' });
     expect(tableCell(1, 1)?.border).toBeUndefined();
+    expect(tableCell(1, 1)?.padding).toBeUndefined();
+  });
+
+  it('shows inherited table cell typography and alignment as unset until edited locally', () => {
+    loadWith({
+      ...tableComponent(),
+      font: { family: 'Arial', size: 12, color: '#334455' },
+      textAlign: 'right',
+      verticalAlign: 'bottom',
+    } as TableComponent);
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 1);
+
+    expect(selectDisplay('字体系列')).toBe('');
+    expect((screen.getByLabelText('字号') as HTMLInputElement).value).toBe('');
+    expect(screen.getByLabelText('字体颜色')).toHaveValue('');
+    expect(screen.getByRole('button', { name: '加粗' })).not.toHaveClass('ant-btn-primary');
+    expect(segmentedSelectedCount('水平对齐')).toBe(0);
+    expect(segmentedSelectedCount('垂直对齐')).toBe(0);
+    expect(tableCell(1, 1)?.font).toBeUndefined();
+    expect(tableCell(1, 1)?.textAlign).toBeUndefined();
+    expect(tableCell(1, 1)?.verticalAlign).toBeUndefined();
+
+    fireEvent.change(screen.getByLabelText('字号'), { target: { value: '14' } });
+    clickSegmentedItem('水平对齐', 1);
+    clickSegmentedItem('垂直对齐', 1);
+
+    expect(tableCell(1, 1)?.font).toEqual({ size: 14 });
+    expect(tableCell(1, 1)?.textAlign).toBe('center');
+    expect(tableCell(1, 1)?.verticalAlign).toBe('middle');
+  });
+
+  it('clears selected table cell font fields back to unset after editing', () => {
+    loadWith(tableComponent());
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 1);
+    fireEvent.change(screen.getByLabelText('字号'), { target: { value: '14' } });
+    fireEvent.change(screen.getByLabelText('字体颜色'), { target: { value: '#112233' } });
+    fireEvent.click(screen.getByRole('button', { name: '加粗' }));
+    expect(tableCell(1, 1)?.font).toMatchObject({ size: 14, color: '#112233', bold: true });
+
+    fireEvent.change(screen.getByLabelText('字号'), { target: { value: '' } });
+    fireEvent.change(screen.getByLabelText('字体颜色'), { target: { value: '' } });
+    fireEvent.click(screen.getByRole('button', { name: '加粗' }));
+
+    expect(tableCell(1, 1)?.font).toBeUndefined();
+  });
+
+  it('keeps inherited table row typography and alignment visually unset', () => {
+    loadWith({
+      ...tableComponent(),
+      font: { family: 'Arial', size: 12, color: '#334455' },
+      textAlign: 'right',
+      verticalAlign: 'bottom',
+    } as TableComponent);
+    useDesignerStore.getState().selectTableRow({ tableId: 'table-1', bandId: useDesignerStore.getState().template.pages[0].bands.find(band => band.type === 'data')!.id, row: 1 });
+    render(<DesignerPropertyPanel />);
+
+    expect(selectDisplay('字体系列')).toBe('');
+    expect((screen.getByLabelText('字号') as HTMLInputElement).value).toBe('');
+    expect(screen.getByLabelText('字体颜色')).toHaveValue('');
+    expect(segmentedSelectedCount('水平对齐')).toBe(0);
+    expect(segmentedSelectedCount('垂直对齐')).toBe(0);
+    expect(tableById().rows?.[1].font).toBeUndefined();
+    expect(tableById().rows?.[1].textAlign).toBeUndefined();
+    expect(tableById().rows?.[1].verticalAlign).toBeUndefined();
+  });
+
+  it('clears selected table cell padding back to unset after editing', () => {
+    loadWith(tableComponent());
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 1);
+    fireEvent.change(screen.getByLabelText('上'), { target: { value: '2' } });
+    expect(tableCell(1, 1)?.padding).toMatchObject({ top: 2 });
+
+    fireEvent.change(screen.getByLabelText('上'), { target: { value: '' } });
     expect(tableCell(1, 1)?.padding).toBeUndefined();
   });
 
@@ -175,6 +308,31 @@ describe('phase 34 table cell selection', () => {
       right: false,
       bottom: false,
       left: true,
+    });
+  });
+
+  it('distinguishes inherited border from explicit no-border on selected table cells', async () => {
+    loadWith({
+      ...tableComponent(),
+      border: { style: 'solid', width: 0.2, color: '#333333', sides: { top: true, right: true, bottom: true, left: true } },
+    } as TableComponent);
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 1);
+    expect(selectDisplay('边框样式')).toBe('');
+    expect(tableCell(1, 1)?.border).toBeUndefined();
+
+    await chooseSelectOption('边框样式', '无');
+
+    expect(tableCell(1, 1)?.border).toMatchObject({
+      style: 'none',
+      width: 0,
+      sides: { top: false, right: false, bottom: false, left: false },
     });
   });
 

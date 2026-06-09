@@ -202,12 +202,12 @@ describe('phase 33 component property matrix', () => {
 
     render(<PropertyEditor />);
 
-    expectVisible('表格');
+    expectVisible('字体', '边框', '外观', '表格');
     expect(screen.getByLabelText('列数')).toBeInTheDocument();
     expect(screen.getByLabelText('行数')).toBeInTheDocument();
     expect(screen.queryByLabelText('绑定数组属性')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('表格数据源')).not.toBeInTheDocument();
-    expectHidden('字体', '线条属性', '形状属性', '页码属性', '日期时间属性');
+    expectHidden('线条属性', '形状属性', '页码属性', '日期时间属性');
   });
 
   it('shows font and format groups for page number and date time components', () => {

@@ -15,6 +15,7 @@ export interface BoxSideLabels {
 
 export interface BorderEditorLabels {
   style: string;
+  inherit?: string;
   none: string;
   solid: string;
   dashed: string;
@@ -63,7 +64,7 @@ export function mergePaddingValue(value?: Padding): Padding {
 export const BorderEditor: React.FC<{
   value?: BorderConfig;
   labels: BorderEditorLabels;
-  onChange: (value: BorderConfig) => void;
+  onChange: (value: BorderConfig | undefined) => void;
   disabled?: (path: string) => boolean;
   formatWidth?: (value: number) => number | string;
   parseWidth?: (value: number | string | null | undefined, fallback: number) => number;
@@ -83,6 +84,7 @@ export const BorderEditor: React.FC<{
 }) => {
   const border = mergeBorderValue(value);
   const selectedSides = SIDE_ORDER.filter(side => value?.sides?.[side]);
+  const inheritOptionValue = '__inherit__';
   const updateBorder = (updates: Partial<BorderConfig>) => {
     onChange({
       ...border,
@@ -97,11 +99,18 @@ export const BorderEditor: React.FC<{
         <Select
           aria-label={labels.style}
           value={value?.style}
-          onChange={style => updateBorder({ style })}
+          onChange={(style: string) => {
+            if (style === inheritOptionValue) {
+              onChange(undefined);
+              return;
+            }
+            updateBorder({ style: style as BorderConfig['style'] });
+          }}
           size="small"
           disabled={disabled?.('border.style')}
           style={{ width: '100%' }}
           options={[
+            { value: inheritOptionValue, label: labels.inherit ?? '' },
             { value: 'none', label: labels.none },
             { value: 'solid', label: labels.solid },
             { value: 'dashed', label: labels.dashed },
@@ -174,7 +183,7 @@ export const BorderEditor: React.FC<{
 export const PaddingEditor: React.FC<{
   value?: Padding;
   labels: PaddingEditorLabels;
-  onChange: (value: Padding) => void;
+  onChange: (value: Padding | undefined) => void;
   disabled?: (path: string) => boolean;
   formatValue?: (value: number) => number | string;
   parseValue?: (value: number | string | null | undefined, fallback: number) => number;
@@ -190,9 +199,15 @@ export const PaddingEditor: React.FC<{
   min = 0,
   step = 0.1,
 }) => {
-  const padding = mergePaddingValue(value);
   const updateField = (field: keyof Padding, next: number | string | null | undefined) => {
-    onChange({ ...padding, [field]: parseValue(next, padding[field]) });
+    const padding = { ...(value ?? {}) } as Partial<Padding>;
+    if (next === null || next === undefined || next === '') {
+      delete padding[field];
+    } else {
+      padding[field] = parseValue(next, value?.[field] ?? 0);
+    }
+
+    onChange(Object.keys(padding).length > 0 ? padding as Padding : undefined);
   };
 
   return (

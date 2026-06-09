@@ -139,7 +139,7 @@ export const commonComponentsTemplate = template('common-components', 'Common Co
     dataBand: { dataSourceId: 'orderLines' },
   }),
   band('cc-footer', 'pageFooter', 8, [
-    text('cc-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footer, textAlign: 'center' }),
+    text('cc-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
   ]),
 ]);
 

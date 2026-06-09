@@ -107,7 +107,6 @@ describe('example sample designer toggle', () => {
         size: 15,
         bold: true,
       }),
-      styleBindings: expect.arrayContaining(['font.size', 'font.bold', 'backgroundColor', 'verticalAlign']),
     });
     expect(findTextComponent('ge-page-header-text')).toMatchObject({
       style: commonTextStyleIds.pageHeader,
@@ -115,7 +114,6 @@ describe('example sample designer toggle', () => {
         size: 8,
         color: '#4b5563',
       }),
-      styleBindings: expect.arrayContaining(['font.size', 'font.color', 'backgroundColor', 'verticalAlign']),
     });
   });
 

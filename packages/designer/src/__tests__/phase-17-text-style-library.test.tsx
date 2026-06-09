@@ -3,7 +3,7 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import type { ReportStyle, TextComponent } from '@report-designer/core';
+import type { ReportStyle, TableComponent, TextComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { Designer } from '../components/Designer';
 import { PropertyEditor } from '../components/PropertyEditor';
@@ -12,7 +12,6 @@ import { DesignerI18nProvider } from '../i18n';
 import type { DesignerLocale } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
 import { Modal } from 'antd';
-import { TEXT_STYLE_BINDING_PATHS } from '../text-style-bindings';
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -81,6 +80,12 @@ function selectedText(id = 'text-1') {
   return page.bands.flatMap(band => band.components).find(component => component.id === id) as TextComponent | undefined;
 }
 
+function selectedComponent<T = TextComponent>(id: string): T | undefined {
+  const state = useDesignerStore.getState();
+  const page = state.template.pages[0];
+  return page.bands.flatMap(band => band.components).find(component => component.id === id) as T | undefined;
+}
+
 async function renderDesignerWithSelection(template: ReturnType<typeof createDefaultTemplate>, componentId?: string, locale: DesignerLocale = 'en-US') {
   render(<Designer template={template} locale={locale} />);
   await waitFor(() => expect(useDesignerStore.getState().template.id).toBe(template.id));
@@ -114,17 +119,16 @@ async function findTextStyleLibraryDialog() {
 }
 
 async function openTextStyleLibraryFromManage() {
-  const styleSelect = await screen.findByLabelText(/Text style|文本样式/);
-  const compact = styleSelect.closest('.ant-space-compact') as HTMLElement | null;
-  if (!compact) {
-    throw new Error('Unable to locate text style property editor controls');
-  }
-  fireEvent.click(within(compact).getByRole('button', { name: /Manage|管\s*理/ }));
-  return await findTextStyleLibraryDialog();
+  return await openTextStyleLibraryFromRibbon();
 }
 
 async function openTextStyleLibraryFromRibbon() {
-  fireEvent.click(await screen.findByText('Style Designer'));
+  const label = await screen.findByText(/^(Style Designer|样式设计器)$/);
+  const button = label.closest('button');
+  if (!button) {
+    throw new Error('Unable to locate text style library ribbon button');
+  }
+  fireEvent.click(button);
   return await findTextStyleLibraryDialog();
 }
 
@@ -161,7 +165,7 @@ describe('Phase 17 text style library store behavior', () => {
     vi.restoreAllMocks();
   });
 
-  it('copies selected style values into text components and records style bindings', () => {
+  it('copies selected style values into text components', () => {
     const style: ReportStyle = {
       id: 'style-a',
       name: 'Style A',
@@ -193,46 +197,6 @@ describe('Phase 17 text style library store behavior', () => {
       border: { style: 'solid', width: 0.4, color: '#112233', sides: { top: true, right: true, bottom: false, left: false } },
       padding: { top: 1, right: 2, bottom: 3, left: 4 },
     });
-    expect(selectedText()?.styleBindings).toEqual(expect.arrayContaining([
-      'font.family',
-      'font.size',
-      'font.bold',
-      'font.italic',
-      'font.underline',
-      'font.strikethrough',
-      'font.color',
-      'backgroundColor',
-      'textAlign',
-      'verticalAlign',
-      'border.style',
-      'border.width',
-      'border.color',
-      'border.sides.top',
-      'border.sides.right',
-      'padding.top',
-      'padding.right',
-      'padding.bottom',
-      'padding.left',
-      'format.type',
-      'format.pattern',
-      'format.decimalDigits',
-      'format.decimalSeparator',
-      'format.useGroupSeparator',
-      'format.groupSeparator',
-      'format.useAbbreviation',
-      'format.positivePattern',
-      'format.currencySymbol',
-      'format.currencySymbolPosition',
-      'format.percentSymbol',
-      'format.trueValues',
-      'format.dateFormat',
-      'format.textTransform',
-      'format.nullValue',
-      'format.trueText',
-      'format.falseText',
-      'canGrow',
-      'canShrink',
-    ]));
   });
 
   it('shows structured format controls in the property panel and only exposes pattern for custom formats', async () => {
@@ -330,7 +294,6 @@ describe('Phase 17 text style library store behavior', () => {
     };
     const component = createText('text-1', {
       style: 'style-a',
-      styleBindings: ['font.size', 'font.bold', 'backgroundColor'],
       font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#00aa00' },
       backgroundColor: '#ffffff',
     });
@@ -348,27 +311,6 @@ describe('Phase 17 text style library store behavior', () => {
       backgroundColor: '#eeeeee',
       textAlign: 'right',
     });
-    expect(selectedText()?.styleBindings).toEqual(expect.arrayContaining([
-      'font.family',
-      'font.size',
-      'font.bold',
-      'font.italic',
-      'font.underline',
-      'font.strikethrough',
-      'font.color',
-      'backgroundColor',
-      'textAlign',
-      'verticalAlign',
-      'border.style',
-      'border.width',
-      'border.color',
-      'border.sides.top',
-      'border.sides.right',
-      'border.sides.bottom',
-      'border.sides.left',
-      'canGrow',
-      'canShrink',
-    ]));
   });
 
   it('keeps style-bound component properties locked against manual updates', () => {
@@ -386,7 +328,6 @@ describe('Phase 17 text style library store behavior', () => {
     };
     loadTemplate([style], [createText('text-1', {
       style: 'style-a',
-      styleBindings: ['font.size', 'textAlign', 'border.style', 'border.width', 'border.sides.top', 'border.sides.right', 'border.sides.bottom', 'border.sides.left'],
       font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
       textAlign: 'center',
       border: { style: 'solid', width: 0.2, color: '#111111', sides: { top: true, right: true, bottom: true, left: true } },
@@ -404,17 +345,6 @@ describe('Phase 17 text style library store behavior', () => {
       width: 0.2,
       sides: { top: true, right: true, bottom: true, left: true },
     });
-    expect(selectedText()?.styleBindings).toEqual(expect.arrayContaining([
-      'font.size',
-      'textAlign',
-      'border.style',
-      'border.width',
-      'border.sides.top',
-      'border.sides.right',
-      'border.sides.bottom',
-      'border.sides.left',
-    ]));
-
     useDesignerStore.getState().updateTextStyle('style-a', {
       ...style,
       font: { ...style.font, size: 9 },
@@ -440,7 +370,6 @@ describe('Phase 17 text style library store behavior', () => {
     } as ReportStyle;
     loadTemplate([historicalStyle], [createText('text-1', {
       style: 'historical-style',
-      styleBindings: ['font.size'],
       font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
     })]);
 
@@ -487,7 +416,6 @@ describe('Phase 17 text style library store behavior', () => {
 
     useDesignerStore.getState().applySelectedStyle('minimal-style');
 
-    expect(selectedText()?.styleBindings).toEqual(TEXT_STYLE_BINDING_PATHS);
     expect(selectedText()).toMatchObject({
       style: 'minimal-style',
       textAlign: 'center',
@@ -497,8 +425,8 @@ describe('Phase 17 text style library store behavior', () => {
       canShrink: false,
       border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
       padding: { top: 0, right: 0, bottom: 0, left: 0 },
-      format: { type: 'none', pattern: '', nullValue: '', trueText: '', falseText: '' },
     });
+    expect(selectedText()?.format).toBeUndefined();
 
     useDesignerStore.getState().updateComponent(
       useDesignerStore.getState().template.pages[0].id,
@@ -518,8 +446,8 @@ describe('Phase 17 text style library store behavior', () => {
       verticalAlign: 'top',
       padding: { top: 0, right: 0, bottom: 0, left: 0 },
       border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
-      format: { type: 'none', pattern: '', nullValue: '', trueText: '', falseText: '' },
     });
+    expect(selectedText()?.format).toBeUndefined();
   });
 
   it('manages text style CRUD, default style selection, usage counts, and delete cleanup', () => {
@@ -535,7 +463,7 @@ describe('Phase 17 text style library store behavior', () => {
       canGrow: false,
       canShrink: false,
     };
-    loadTemplate([baseStyle], [createText('text-1', { style: 'style-base', styleBindings: ['font.family'] })]);
+    loadTemplate([baseStyle], [createText('text-1', { style: 'style-base' })]);
 
     const store = useDesignerStore.getState();
     const createdId = store.createTextStyle({ name: 'Created' });
@@ -555,7 +483,6 @@ describe('Phase 17 text style library store behavior', () => {
 
     expect(useDesignerStore.getState().template.styles.some(style => style.id === 'style-base')).toBe(false);
     expect(selectedText()?.style).toBeUndefined();
-    expect(selectedText()?.styleBindings).toBeUndefined();
   });
 
   it('applies the default text style when adding a new text component', () => {
@@ -593,16 +520,6 @@ describe('Phase 17 text style library store behavior', () => {
       canGrow: true,
       canShrink: false,
     });
-    expect(selectedText('text-new')?.styleBindings).toEqual(expect.arrayContaining([
-      'font.family',
-      'backgroundColor',
-      'textAlign',
-      'verticalAlign',
-      'border.sides.left',
-      'padding.left',
-      'canGrow',
-      'canShrink',
-    ]));
   });
 
   it('opens the Style Designer dialog from the ribbon Home tab', async () => {
@@ -652,31 +569,52 @@ describe('Phase 17 text style library store behavior', () => {
     expect(within(dialog).queryByText('文本样式库')).not.toBeInTheDocument();
   });
 
-  it('opens the same Style Designer dialog from the property panel Manage button', async () => {
+  it('unbinds a selected text style from the property panel and copies the resolved style values into the component', async () => {
     const style: ReportStyle = {
       id: 'style-a',
       name: 'Style A',
       category: 'text',
-      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
-      backgroundColor: '#ffffff',
-      textAlign: 'left',
-      verticalAlign: 'top',
-      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
-      canGrow: false,
-      canShrink: false,
+      font: { family: 'Georgia', size: 18, bold: true, italic: true, underline: false, strikethrough: false, color: '#123456' },
+      backgroundColor: '#ffeecc',
+      textAlign: 'right',
+      verticalAlign: 'bottom',
+      border: { style: 'solid', width: 0.4, color: '#334455', sides: { top: true, right: false, bottom: true, left: true } },
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      format: { type: 'number', pattern: '#,##0.00' },
+      canGrow: true,
+      canShrink: true,
     };
     const template = createDefaultTemplate('Style Designer Property');
     template.styles = [style];
-    template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', { style: 'style-a' })];
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
+      style: 'style-a',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: 'transparent',
+      textAlign: 'left',
+      verticalAlign: 'top',
+    })];
 
     await renderDesignerWithSelection(template, 'text-1');
 
-    const dialog = await openTextStyleLibraryFromManage();
+    const unbindButton = await screen.findByRole('button', { name: 'Unbind style' });
+    expect(unbindButton).toBeEnabled();
+    fireEvent.click(unbindButton);
 
-    expect(dialog).toBeInTheDocument();
+    expect(selectedText()?.style).toBeUndefined();
+    expect(selectedText()).toMatchObject({
+      font: style.font,
+      backgroundColor: '#ffeecc',
+      textAlign: 'right',
+      verticalAlign: 'bottom',
+      border: style.border,
+      padding: style.padding,
+      format: style.format,
+      canGrow: true,
+      canShrink: true,
+    });
   });
 
-  it('disables only the property fields that are controlled by style bindings', async () => {
+  it('disables every style-owned property whenever a text style is selected', async () => {
     const style: ReportStyle = {
       id: 'style-a',
       name: 'Style A',
@@ -696,40 +634,30 @@ describe('Phase 17 text style library store behavior', () => {
     template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
       style: 'style-a',
       format: style.format,
-      styleBindings: [
-        'format.type',
-        'textAlign',
-        'canGrow',
-        'font.size',
-        'border.width',
-        'border.sides.top',
-        'backgroundColor',
-        'padding.top',
-      ],
     })];
 
     await renderDesignerWithSelection(template, 'text-1');
 
     expectAntdControlDisabled(await screen.findByLabelText('Format Type'));
     expect(screen.queryByLabelText('Pattern')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Decimal digits')).toBeEnabled();
+    expectAntdControlDisabled(screen.getByLabelText('Decimal digits'));
     expect(screen.getByRole('button', { name: 'Align left' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Center horizontally' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Align right' })).toBeDisabled();
-    expect(screen.getByRole('button', { name: 'Align top' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Center vertically' })).toBeEnabled();
-    expect(screen.getByRole('button', { name: 'Align bottom' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Align top' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Center vertically' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Align bottom' })).toBeDisabled();
     expect(screen.getByRole('switch', { name: 'Can grow' })).toBeDisabled();
-    expect(screen.getByRole('switch', { name: 'Can shrink' })).toBeEnabled();
-    expect(screen.getByLabelText('Font family')).not.toHaveAttribute('aria-disabled', 'true');
+    expect(screen.getByRole('switch', { name: 'Can shrink' })).toBeDisabled();
+    expectAntdControlDisabled(screen.getByLabelText('Font family'));
     expectAntdControlDisabled(screen.getByLabelText('Font size'));
-    expect(screen.getByLabelText('Border style')).not.toHaveAttribute('aria-disabled', 'true');
+    expectAntdControlDisabled(screen.getByLabelText('Border style'));
     expectAntdControlDisabled(screen.getByLabelText('Border width'));
     expectAntdControlDisabled(screen.getByLabelText('Background color'));
     expectAntdControlDisabled(screen.getByLabelText('Padding top'));
-    expect(screen.getByLabelText('Padding right')).toBeEnabled();
+    expectAntdControlDisabled(screen.getByLabelText('Padding right'));
     expect(screen.getByRole('checkbox', { name: 'Top' })).toBeDisabled();
-    expect(screen.getByRole('checkbox', { name: 'Right' })).toBeEnabled();
+    expect(screen.getByRole('checkbox', { name: 'Right' })).toBeDisabled();
   });
 
   it('disables every style-managed property control in the component property panel after selecting a style', async () => {
@@ -749,7 +677,7 @@ describe('Phase 17 text style library store behavior', () => {
     fireEvent.mouseDown(await screen.findByLabelText('Text style'));
     fireEvent.click(await screen.findByText('Style A'));
 
-    await waitFor(() => expect(selectedText()?.styleBindings).toEqual(TEXT_STYLE_BINDING_PATHS));
+    await waitFor(() => expect(selectedText()?.style).toBe('style-a'));
 
     expect(screen.getByRole('button', { name: 'Align left' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Center horizontally' })).toBeDisabled();
@@ -779,6 +707,174 @@ describe('Phase 17 text style library store behavior', () => {
     expect(screen.getByRole('button', { name: 'Strike' })).toBeDisabled();
     expectAntdControlDisabled(screen.getByLabelText('Font color'));
     expectAntdControlDisabled(screen.getByLabelText('Background color'));
+  });
+
+  it('keeps style and conditional format selects constrained when names are long', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Sales Order Approved With A Very Long Name That Must Not Resize The Property Pane',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'center',
+    } as ReportStyle;
+    const template = createDefaultTemplate('Constrained Selects');
+    template.styles = [style];
+    template.conditionalFormats = [{
+      id: 'format-a',
+      name: 'Conditional Format With A Very Long Name That Must Not Resize The Property Pane',
+      rules: [],
+      applyTo: [],
+    }];
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
+      style: 'style-a',
+      conditionalFormat: 'format-a',
+    })];
+
+    await renderDesignerWithSelection(template, 'text-1');
+
+    expect(await screen.findByTestId('text-style-select-row')).toHaveStyle({ minWidth: '0' });
+    expect(screen.getByTestId('text-style-select')).toHaveStyle({ minWidth: '0' });
+    expect(screen.getByTestId('conditional-format-select-row')).toHaveStyle({ minWidth: '0' });
+    expect(screen.getByTestId('conditional-format-select')).toHaveStyle({ minWidth: '0' });
+  });
+
+  it('uses the background color picker clear affordance for unset style backgrounds', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffeecc',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    };
+    const template = createDefaultTemplate('Style Background Clear');
+    template.styles = [style];
+
+    await renderDesignerWithSelection(template);
+
+    const dialog = await openTextStyleLibraryFromRibbon();
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    expect(within(dialog).queryByRole('button', { name: 'No background' })).not.toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Style background color')).toHaveAttribute('aria-label', 'Style background color');
+
+    fireEvent.click(within(dialog).getByLabelText('Style background color'));
+    await waitFor(() => expect(document.querySelector('.ant-color-picker-clear')).toBeInTheDocument());
+    fireEvent.click(document.querySelector('.ant-color-picker-clear') as HTMLElement);
+
+    const updatedStyle = useDesignerStore.getState().template.styles.find(item => item.id === 'style-a');
+    expect(updatedStyle?.backgroundColor).toBeUndefined();
+  });
+
+  it('shows unset style padding as blank inputs and clears padding back to unset', async () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Style A',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      backgroundColor: '#ffffff',
+      textAlign: 'left',
+      verticalAlign: 'top',
+      border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+      canGrow: false,
+      canShrink: false,
+    } as ReportStyle;
+    const template = createDefaultTemplate('Style Padding Blank');
+    template.styles = [style];
+
+    await renderDesignerWithSelection(template);
+
+    const dialog = await openTextStyleLibraryFromRibbon();
+    expect(within(dialog).getByLabelText('Top padding')).toHaveValue('');
+
+    fireEvent.change(within(dialog).getByLabelText('Top padding'), { target: { value: '3' } });
+    expect(useDesignerStore.getState().template.styles.find(item => item.id === 'style-a')?.padding).toEqual({ top: 3 });
+
+    fireEvent.change(within(dialog).getByLabelText('Top padding'), { target: { value: '' } });
+    expect(useDesignerStore.getState().template.styles.find(item => item.id === 'style-a')?.padding).toBeUndefined();
+  });
+
+  it('applies shared styles to selected top-level table components', () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Table Style',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#663300' },
+      backgroundColor: '#ffeecc',
+      textAlign: 'center',
+      verticalAlign: 'middle',
+      border: { style: 'solid', width: 0.3, color: '#aa5500', sides: { top: true, right: true, bottom: true, left: true } },
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      canGrow: false,
+      canShrink: false,
+    };
+    const { template } = loadTemplate([style], []);
+    const dataBand = template.pages[0].bands.find(band => band.type === 'data');
+    if (!dataBand) throw new Error('Missing data band');
+    dataBand.components = [{
+      id: 'table-1',
+      type: 'table',
+      x: 0,
+      y: 0,
+      width: 80,
+      height: 16,
+      backgroundColor: '#ffffff',
+      padding: { top: 9, right: 9, bottom: 9, left: 9 },
+      textAlign: 'right',
+      verticalAlign: 'bottom',
+      rows: [{ id: 'row-1', height: 8, cells: [{ id: 'cell-1', text: 'A' }] }],
+    } as TableComponent];
+    useDesignerStore.getState().loadTemplate(template);
+    useDesignerStore.getState().selectComponents(['table-1']);
+
+    useDesignerStore.getState().applySelectedStyle('style-a');
+
+    expect(selectedComponent<TableComponent>('table-1')).toMatchObject({
+      style: 'style-a',
+      backgroundColor: '#ffeecc',
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      textAlign: 'center',
+      verticalAlign: 'middle',
+    });
+  });
+
+  it('shows the shared style selector for selected top-level table components', () => {
+    const style: ReportStyle = {
+      id: 'style-a',
+      name: 'Table Style',
+      category: 'text',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#663300' },
+      backgroundColor: '#ffeecc',
+      textAlign: 'center',
+      verticalAlign: 'middle',
+      border: { style: 'solid', width: 0.3, color: '#aa5500', sides: { top: true, right: true, bottom: true, left: true } },
+      padding: { top: 1, right: 2, bottom: 3, left: 4 },
+      canGrow: false,
+      canShrink: false,
+    };
+    const { template } = loadTemplate([style], []);
+    const dataBand = template.pages[0].bands.find(band => band.type === 'data');
+    if (!dataBand) throw new Error('Missing data band');
+    dataBand.components = [{
+      id: 'table-1',
+      type: 'table',
+      x: 0,
+      y: 0,
+      width: 80,
+      height: 16,
+      rows: [{ id: 'row-1', height: 8, cells: [{ id: 'cell-1', text: 'A' }] }],
+    } as TableComponent];
+    useDesignerStore.getState().loadTemplate(template);
+    useDesignerStore.getState().selectComponents(['table-1']);
+
+    render(<PropertyEditor />);
+
+    expect(screen.getByTestId('text-style-select-row')).toHaveStyle({ minWidth: '0' });
+    expect(screen.getByTestId('text-style-select')).toBeInTheDocument();
   });
 
   it('disables style-managed property controls in the standalone property panel', () => {
@@ -855,7 +951,6 @@ describe('Phase 17 text style library store behavior', () => {
     template.styles = [style];
     template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
       style: 'style-a',
-      styleBindings: ['font.size'],
       font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
     })];
 
@@ -1012,7 +1107,6 @@ describe('Phase 17 text style library store behavior', () => {
     template.styles = [style];
     template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
       style: 'style-a',
-      styleBindings: ['font.family'],
     })];
 
     let capturedConfig: Parameters<typeof Modal.confirm>[0] | undefined;
@@ -1134,7 +1228,6 @@ describe('Phase 17 text style library store behavior', () => {
     template.styles = [style];
     template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
       style: 'style-a',
-      styleBindings: ['format.nullValue', 'border.sides.right'],
       format: { type: style.format!.type, ...style.format },
       border: {
         style: style.border.style ?? 'none',
@@ -1146,7 +1239,7 @@ describe('Phase 17 text style library store behavior', () => {
 
     await renderDesignerWithSelection(template, 'text-1');
 
-    const dialog = await openTextStyleLibraryFromManage();
+    const dialog = await openTextStyleLibraryFromRibbon();
 
     fireEvent.change(within(dialog).getByLabelText('Null text'), { target: { value: '(empty)' } });
     fireEvent.change(within(dialog).getByLabelText('Decimal digits'), { target: { value: '3' } });

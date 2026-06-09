@@ -1043,9 +1043,13 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
 
   return (
     <div ref={containerRef} className={className}
-      style={{ overflowX: 'hidden', overflowY: 'auto', backgroundColor: '#e8e8e8', height: '100%', padding: 24, userSelect: isBusy ? 'none' : 'auto', position: 'relative' }}
+      style={{ overflow: 'hidden', backgroundColor: '#e8e8e8', height: '100%', userSelect: isBusy ? 'none' : 'auto', position: 'relative' }}
     >
-      <div data-testid="designer-canvas-page-stack" style={{ position: 'relative', width: safeCssNumber(scaledPageWidthPx + RULER_SIZE), height: safeCssNumber(scaledPageHeightPx + RULER_SIZE), margin: 0 }}>
+      <div
+        data-testid="designer-canvas-viewport"
+        style={{ overflowX: 'auto', overflowY: 'auto', height: '100%', padding: '0 24px 24px 0', display: 'flex', alignItems: 'flex-start', justifyContent: 'flex-start', position: 'relative' }}
+      >
+        <div data-testid="designer-canvas-page-stack" style={{ position: 'relative', width: safeCssNumber(scaledPageWidthPx + RULER_SIZE), height: safeCssNumber(scaledPageHeightPx + RULER_SIZE), margin: 0 }}>
         {/* 顶部标尺 */}
         <Ruler
           direction="horizontal"
@@ -1274,6 +1278,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         )}
         </div>
       </div>
+      </div>
 
       {/* 缩放控制条 */}
       <ZoomBar zoom={zoom} onZoomIn={() => setZoom(Math.min(4, Math.round((zoom + 0.1) * 100) / 100))} onZoomOut={() => setZoom(Math.max(0.25, Math.round((zoom - 0.1) * 100) / 100))} onReset={() => setZoom(1)} onSetZoom={(z) => setZoom(z)} />
@@ -1418,7 +1423,7 @@ const ZoomBar: React.FC<{
 
   return (
     <div data-testid="designer-zoom-bar" style={{
-      position: 'absolute', left: 32, bottom: 16,
+      position: 'absolute', right: 16, bottom: 16,
       backgroundColor: '#fff', border: '1px solid #d9d9d9', borderRadius: 4,
       boxShadow: '0 2px 8px rgba(0,0,0,0.12)', zIndex: 10000,
       display: 'flex', alignItems: 'center', padding: '2px 4px', gap: 2,

@@ -47,7 +47,7 @@ export const eventLogicTemplate: ReportTemplate = {
     ]),
     band('event-header', 'header', 10, [
       text('event-h-customer', 'Customer', 0, 1, 52, 7, { style: commonTextStyleIds.header }),
-      text('event-h-amount', 'Amount', 58, 1, 36, 7, { style: commonTextStyleIds.header, textAlign: 'right' }),
+      text('event-h-amount', 'Amount', 58, 1, 36, 7, { style: commonTextStyleIds.headerRight }),
       text('event-h-description', 'Description', 100, 1, 62, 7, { style: commonTextStyleIds.header }),
     ]),
     band('event-data', 'data', 10, [
@@ -64,7 +64,7 @@ export const eventLogicTemplate: ReportTemplate = {
       },
     }),
     band('event-footer', 'pageFooter', 8, [
-      text('event-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footer, textAlign: 'center' }),
+      text('event-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
     ]),
   ]),
   events: {

@@ -106,7 +106,7 @@ export const chartsTemplate = template('charts', 'Charts', [
     }),
   ]),
   band('charts-footer', 'pageFooter', 8, [
-    text('charts-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footer, textAlign: 'center' }),
+    text('charts-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
   ]),
 ]);
 

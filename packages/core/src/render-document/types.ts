@@ -39,6 +39,9 @@ export interface RenderStyle {
   textAlign?: 'left' | 'center' | 'right';
   verticalAlign?: 'top' | 'middle' | 'bottom';
   padding?: Padding;
+  format?: TextFormatConfig;
+  canGrow?: boolean;
+  canShrink?: boolean;
 }
 
 export interface RenderComponentBase {

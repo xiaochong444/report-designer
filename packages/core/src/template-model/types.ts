@@ -271,7 +271,6 @@ export interface TextComponent extends ReportComponent {
   border: BorderConfig;
   canGrow: boolean;
   canShrink: boolean;
-  styleBindings?: string[];
 }
 
 export interface ImageComponent extends ReportComponent {

@@ -179,6 +179,7 @@ export type DesignerMessageKey =
   | 'styleLibrary.name'
   | 'styleLibrary.textColor'
   | 'styleLibrary.background'
+  | 'styleLibrary.noBackground'
   | 'styleLibrary.style'
   | 'styleLibrary.align'
   | 'styleLibrary.vertical'
@@ -220,6 +221,7 @@ export type DesignerMessageKey =
   | 'styleLibrary.deleteTitle'
   | 'styleLibrary.deleteInUse'
   | 'styleLibrary.deleteUnused'
+  | 'styleLibrary.unbindStyle'
   | 'styleLibrary.newStyleName'
   | 'styleLibrary.fontFamily'
   | 'styleLibrary.fontSize'
@@ -425,6 +427,7 @@ export type DesignerMessageKey =
   | 'tableCell.textAlign'
   | 'tableCell.verticalAlign'
   | 'tableCell.borderStyle'
+  | 'tableCell.borderInherited'
   | 'tableCell.borderColor'
   | 'tableCell.borderWidth'
   | 'tableCell.borderSides'
@@ -841,6 +844,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.name': '名称',
     'styleLibrary.textColor': '文本颜色',
     'styleLibrary.background': '背景色',
+    'styleLibrary.noBackground': '无背景',
     'styleLibrary.style': '样式',
     'styleLibrary.align': '水平',
     'styleLibrary.vertical': '垂直',
@@ -882,6 +886,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.deleteTitle': '删除“{name}”？',
     'styleLibrary.deleteInUse': '该样式当前被 {count} 个文本组件引用。删除后会清除引用组件的样式关联。',
     'styleLibrary.deleteUnused': '删除后无法恢复。',
+    'styleLibrary.unbindStyle': '解除绑定',
     'styleLibrary.newStyleName': '新建样式',
     'styleLibrary.fontFamily': '字体系列',
     'styleLibrary.fontSize': '字号',
@@ -1087,6 +1092,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableCell.textAlign': '水平对齐',
     'tableCell.verticalAlign': '垂直对齐',
     'tableCell.borderStyle': '边框样式',
+    'tableCell.borderInherited': '继承',
     'tableCell.borderColor': '边框颜色',
     'tableCell.borderWidth': '边框宽度',
     'tableCell.borderSides': '边框边',
@@ -1500,6 +1506,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.name': 'Name',
     'styleLibrary.textColor': 'Text Color',
     'styleLibrary.background': 'Background',
+    'styleLibrary.noBackground': 'No background',
     'styleLibrary.style': 'Style',
     'styleLibrary.align': 'Align',
     'styleLibrary.vertical': 'Vertical',
@@ -1541,6 +1548,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'styleLibrary.deleteTitle': 'Delete "{name}"?',
     'styleLibrary.deleteInUse': 'This style is used by {count} text component(s). Deleting it clears the style reference from those components.',
     'styleLibrary.deleteUnused': 'This action cannot be undone.',
+    'styleLibrary.unbindStyle': 'Unbind style',
     'styleLibrary.newStyleName': 'New Style',
     'styleLibrary.fontFamily': 'Font family',
     'styleLibrary.fontSize': 'Font size',
@@ -1746,6 +1754,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableCell.textAlign': 'Horizontal Align',
     'tableCell.verticalAlign': 'Vertical Align',
     'tableCell.borderStyle': 'Border Style',
+    'tableCell.borderInherited': 'Inherit',
     'tableCell.borderColor': 'Border Color',
     'tableCell.borderWidth': 'Border Width',
     'tableCell.borderSides': 'Border Sides',

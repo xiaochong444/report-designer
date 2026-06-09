@@ -115,39 +115,20 @@ describe('Phase 9 text binding and style UI', () => {
     await waitFor(() => expect(selectedText().style).toBe('total-style'));
     expect(selectedText().font.bold).toBe(true);
     expect(selectedText().backgroundColor).toBe('#fff7e6');
-    expect(selectedText().format).toMatchObject({ type: 'none', pattern: '', nullValue: '', trueText: '', falseText: '' });
+    expect(selectedText().format).toBeUndefined();
     expect(screen.getByLabelText('格式类型')).toHaveAttribute('aria-disabled', 'true');
     expect(screen.queryByLabelText('格式模式')).not.toBeInTheDocument();
-    expect(selectedText().styleBindings).toEqual(expect.arrayContaining([
-      'font.family',
-      'font.size',
-      'font.bold',
-      'font.color',
-      'backgroundColor',
-      'border.style',
-      'border.width',
-      'border.color',
-      'border.sides.top',
-      'border.sides.bottom',
-      'padding.top',
-      'padding.right',
-      'format.type',
-      'format.pattern',
-      'format.decimalDigits',
-    ]));
   });
 
-  it('clears style reference metadata when the selected text style is removed', async () => {
+  it('keeps the resolved style values when unbinding a selected text style', async () => {
     loadText();
     useDesignerStore.getState().applySelectedStyle('total-style');
 
     expect(selectedText().style).toBe('total-style');
-    expect(selectedText().styleBindings).toContain('backgroundColor');
 
-    useDesignerStore.getState().applySelectedStyle(undefined);
+    useDesignerStore.getState().unbindSelectedStyle();
 
     expect(selectedText().style).toBeUndefined();
-    expect(selectedText().styleBindings).toBeUndefined();
     expect(selectedText().font.bold).toBe(true);
     expect(selectedText().backgroundColor).toBe('#fff7e6');
   });
@@ -204,23 +185,10 @@ describe('Phase 9 text binding and style UI', () => {
     expect(hireDateText.text).toBe('{employees.HireDate}');
     expect(salaryText.style).toBe('default-style');
     expect(salaryText.textAlign).toBe('center');
-    expect(salaryText.format).toMatchObject({ type: 'currency', pattern: 'C2', nullValue: 'n/a', trueText: '', falseText: '' });
-    expect(salaryText.styleBindings).toEqual(expect.arrayContaining([
-      'textAlign',
-      'format.type',
-      'format.pattern',
-      'format.decimalDigits',
-      'format.nullValue',
-    ]));
+    expect(salaryText.format).toMatchObject({ type: 'currency', pattern: 'C2', nullValue: 'n/a' });
 
     expect(hireDateText.style).toBe('default-style');
-    expect(hireDateText.format).toMatchObject({ type: 'currency', pattern: 'C2', nullValue: 'n/a', trueText: '', falseText: '' });
-    expect(hireDateText.styleBindings).toEqual(expect.arrayContaining([
-      'format.type',
-      'format.pattern',
-      'format.decimalDigits',
-      'format.nullValue',
-    ]));
+    expect(hireDateText.format).toMatchObject({ type: 'currency', pattern: 'C2', nullValue: 'n/a' });
 
     await act(async () => {
       useDesignerStore.getState().updateTextStyle('default-style', {
@@ -231,8 +199,8 @@ describe('Phase 9 text binding and style UI', () => {
     });
 
     expect(textComponents()[0].textAlign).toBe('left');
-    expect(textComponents()[0].format).toMatchObject({ type: 'percent', pattern: 'P2', nullValue: '--', trueText: '', falseText: '' });
-    expect(textComponents()[1].format).toMatchObject({ type: 'percent', pattern: 'P2', nullValue: '--', trueText: '', falseText: '' });
+    expect(textComponents()[0].format).toMatchObject({ type: 'percent', pattern: 'P2', nullValue: '--' });
+    expect(textComponents()[1].format).toMatchObject({ type: 'percent', pattern: 'P2', nullValue: '--' });
 
     cleanupSurface();
   });

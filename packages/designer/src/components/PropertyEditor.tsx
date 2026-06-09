@@ -1,23 +1,24 @@
 import React, { useMemo, useState } from 'react';
-import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Typography, Segmented } from 'antd';
+import { Form, Input, InputNumber, Select, Switch, ColorPicker, Collapse, Space, Button, Divider, Typography, Segmented, Tooltip } from 'antd';
 import {
   AlignCenterOutlined,
   AlignLeftOutlined,
   AlignRightOutlined,
   BoldOutlined,
   EditOutlined,
+  DisconnectOutlined,
   ItalicOutlined,
   StrikethroughOutlined,
   UnderlineOutlined,
   UploadOutlined,
 } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
-import { getReportFontOptions } from '@report-designer/core';
+import { getReportFontOptions, supportsComponentStyle } from '@report-designer/core';
 import type { BorderConfig, ChartAggregateMode, ChartComponent, ChartType, ChartVariant, DataSource, Padding, ReportTemplate, TableComponent, TextFormatConfig } from '@report-designer/core';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { ExpressionEditor } from './ExpressionEditor';
 import { normalizeTable } from '../table/table-structure';
-import { hasTextStyleBinding } from '../text-style-bindings';
+import { isTextStylePropertyLocked } from '../text-style-application';
 import { TextFormatEditor } from './TextFormatEditor';
 import { useDesignerI18n, type DesignerLocale } from '../i18n';
 import { EventEditorDialog, type EventTreeItem } from './events/EventEditorDialog';
@@ -36,9 +37,9 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   const updateComponent = useDesignerStore(s => s.updateComponent);
   const updateSelectedTable = useDesignerStore(s => s.updateSelectedTable);
   const applySelectedStyle = useDesignerStore(s => s.applySelectedStyle);
+  const unbindSelectedStyle = useDesignerStore(s => s.unbindSelectedStyle);
   const applySelectedConditionalFormat = useDesignerStore(s => s.applySelectedConditionalFormat);
   const replaceComponentEvents = useDesignerStore(s => s.replaceComponentEvents);
-  const openTextStyleLibrary = useDesignerStore(s => s.openTextStyleLibrary);
   const openConditionalFormatLibrary = useDesignerStore(s => s.openConditionalFormatLibrary);
   const reportUnit = useDesignerStore(s => s.reportUnit);
   const pendingEventEditorTarget = useDesignerStore(s => s.pendingEventEditorTarget);
@@ -124,13 +125,13 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   // ---- Padding helpers ----
   const padding = normalizeOptionalPadding(comp.padding as Padding | undefined);
 
-  const isTextComponent = component.type === 'text';
-  const supportsFontProperties = ['text', 'barcode', 'checkbox', 'pagenumber', 'datetime'].includes(component.type);
+  const supportsSharedStyle = supportsComponentStyle(component);
+  const supportsFontProperties = ['text', 'barcode', 'checkbox', 'pagenumber', 'datetime', 'table'].includes(component.type);
   const supportsBorderProperties = ['text', 'image', 'chart', 'barcode', 'checkbox', 'panel', 'pagenumber', 'datetime', 'table'].includes(component.type);
-  const supportsAppearanceProperties = ['text', 'image', 'chart', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport', 'pagenumber', 'datetime'].includes(component.type);
+  const supportsAppearanceProperties = ['text', 'image', 'chart', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport', 'pagenumber', 'datetime', 'table'].includes(component.type);
   const supportsForegroundColor = component.type === 'barcode' || component.type === 'checkbox';
   const isTextStyleLocked = (pathOrPrefix: string) => (
-    isTextComponent ? hasTextStyleBinding(component as { styleBindings?: string[] }, pathOrPrefix) : false
+    supportsSharedStyle ? isTextStylePropertyLocked(component as { style?: string }, pathOrPrefix) : false
   );
   const backgroundLocked = isTextStyleLocked('backgroundColor');
   const dictionaryItems = buildDictionaryEventItems(template);
@@ -160,6 +161,35 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
                 <Form.Item label={t('type')}>
                   <Input aria-label={t('type')} value={comp.type} size="small" disabled />
                 </Form.Item>
+                {supportsSharedStyle ? (
+                  <Form.Item label={t('textStyle')}>
+                    <Space.Compact data-testid="text-style-select-row" style={{ width: '100%', minWidth: 0 }}>
+                      <Select
+                        data-testid="text-style-select"
+                        aria-label={t('textStyle')}
+                        value={comp.style}
+                        onChange={(value) => (value ? applySelectedStyle(value) : unbindSelectedStyle())}
+                        onClear={() => unbindSelectedStyle()}
+                        size="small"
+                        style={{ flex: 1, width: '100%', minWidth: 0 }}
+                        allowClear
+                        virtual={false}
+                        placeholder={t('chooseStyle')}
+                        options={template.styles.map(style => ({ value: style.id, label: style.name }))}
+                      />
+                      <Tooltip title={t('unbindStyle')}>
+                        <Button
+                          aria-label={t('unbindStyle')}
+                          icon={<DisconnectOutlined />}
+                          onClick={unbindSelectedStyle}
+                          disabled={!comp.style}
+                          size="small"
+                          style={{ width: 32, flex: '0 0 32px' }}
+                        />
+                      </Tooltip>
+                    </Space.Compact>
+                  </Form.Item>
+                ) : null}
               </Form>
             ),
           },
@@ -304,30 +334,15 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
                     />
                   </Space.Compact>
                 </Form.Item>
-                <Form.Item label={t('textStyle')}>
-                  <Space.Compact style={{ width: '100%' }}>
-                    <Select
-                      aria-label={t('textStyle')}
-                      value={comp.style}
-                      onChange={(value) => applySelectedStyle(value)}
-                      size="small"
-                      style={{ width: '100%' }}
-                      allowClear
-                      virtual={false}
-                      placeholder={t('chooseStyle')}
-                      options={template.styles.map(style => ({ value: style.id, label: style.name }))}
-                    />
-                    <Button onClick={openTextStyleLibrary}>{t('manage')}</Button>
-                  </Space.Compact>
-                </Form.Item>
                 <Form.Item label={t('conditionalFormat')}>
-                  <Space.Compact style={{ width: '100%' }}>
+                  <Space.Compact data-testid="conditional-format-select-row" style={{ width: '100%', minWidth: 0 }}>
                     <Select
+                      data-testid="conditional-format-select"
                       aria-label={t('conditionalFormat')}
                       value={comp.conditionalFormat ?? undefined}
                       onChange={(value) => applySelectedConditionalFormat(value === NO_CONDITIONAL_FORMAT ? undefined : value)}
                       size="small"
-                      style={{ width: '100%' }}
+                      style={{ flex: 1, width: '100%', minWidth: 0 }}
                       virtual={false}
                       placeholder={t('chooseConditionalFormat')}
                       options={[
@@ -335,7 +350,15 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
                         ...template.conditionalFormats.map(format => ({ value: format.id, label: format.name })),
                       ]}
                     />
-                    <Button onClick={openConditionalFormatLibrary}>{t('manage')}</Button>
+                    <Tooltip title={t('manage')}>
+                      <Button
+                        aria-label={t('manage')}
+                        icon={<EditOutlined />}
+                        onClick={openConditionalFormatLibrary}
+                        size="small"
+                        style={{ width: 32, flex: '0 0 32px' }}
+                      />
+                    </Tooltip>
                   </Space.Compact>
                 </Form.Item>
                 <Form.Item wrapperCol={{ span: 24 }} style={{ marginBottom: 8 }}>
@@ -551,6 +574,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
                     size="small"
                     value={comp.backgroundColor || '#ffffff'}
                     onChange={(color) => handleChange('backgroundColor', color.toHexString())}
+                    onClear={() => handleChange('backgroundColor', undefined)}
                     allowClear
                     disabled={backgroundLocked}
                   />
@@ -1554,6 +1578,7 @@ const propertyEditorMessages = {
     expressionLikePlaceholder: '普通值或 {DataSource.Field}',
     textStyle: '文本样式',
     chooseStyle: '选择样式集',
+    unbindStyle: '解除绑定',
     conditionalFormat: '条件格式',
     chooseConditionalFormat: '选择条件格式',
     none: '无',
@@ -1747,6 +1772,7 @@ const propertyEditorMessages = {
     expressionLikePlaceholder: 'Plain value or {DataSource.Field}',
     textStyle: 'Text style',
     chooseStyle: 'Select style',
+    unbindStyle: 'Unbind style',
     conditionalFormat: 'Conditional format',
     chooseConditionalFormat: 'Select conditional format',
     none: 'None',
