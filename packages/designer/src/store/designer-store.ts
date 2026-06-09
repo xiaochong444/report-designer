@@ -139,6 +139,7 @@ export interface DesignerState {
   updateComponent: (pageId: string, bandId: string, componentId: string, updates: Record<string, any>, previous?: Record<string, any>) => void;
   updateComponentSilent: (pageId: string, bandId: string, componentId: string, updates: Record<string, any>) => void;
   moveComponent: (pageId: string, bandId: string, componentId: string, x: number, y: number, prevX?: number, prevY?: number) => void;
+  moveComponentToBand: (pageId: string, fromBandId: string, toBandId: string, componentId: string, x: number, y: number, prevX?: number, prevY?: number) => void;
   moveComponentSilent: (pageId: string, bandId: string, componentId: string, x: number, y: number) => void;
   resizeBand: (pageId: string, bandId: string, newHeight: number, oldHeight?: number) => void;
   resizeBandSilent: (pageId: string, bandId: string, newHeight: number) => void;
@@ -223,6 +224,7 @@ const UPDATE_COMPONENTS_COMMAND = 'update-components';
 const INSERT_BAND_COMMAND = 'insert-band';
 const DELETE_BAND_COMMAND = 'delete-band';
 const MOVE_BAND_COMMAND = 'move-band';
+const MOVE_COMPONENT_TO_BAND_COMMAND = 'move-component-to-band';
 
 const DEFAULT_BAND_HEIGHTS: Record<BandType, number> = {
   reportTitle: 40,
@@ -295,6 +297,29 @@ if (!CommandDispatcher.isAllowed(MOVE_BAND_COMMAND)) {
     MOVE_BAND_COMMAND,
     (state, payload) => moveBandInTemplate(state, payload.pageId, payload.bandId, payload.targetIndex),
     (state, payload) => moveBandInTemplate(state, payload.pageId, payload.bandId, payload.fromIndex),
+  );
+}
+
+if (!CommandDispatcher.isAllowed(MOVE_COMPONENT_TO_BAND_COMMAND)) {
+  registerCommand(
+    MOVE_COMPONENT_TO_BAND_COMMAND,
+    (state, payload) => moveComponentBetweenBandsInTemplate(state, {
+      pageId: payload.pageId,
+      fromBandId: payload.fromBandId,
+      toBandId: payload.toBandId,
+      componentId: payload.componentId,
+      x: payload.x,
+      y: payload.y,
+    }),
+    (state, payload) => moveComponentBetweenBandsInTemplate(state, {
+      pageId: payload.pageId,
+      fromBandId: payload.toBandId,
+      toBandId: payload.fromBandId,
+      componentId: payload.componentId,
+      x: payload.prevX,
+      y: payload.prevY,
+      fallbackComponent: payload.component,
+    }),
   );
 }
 
@@ -693,6 +718,30 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       undo: () => template,
     });
     set({ template: newTemplate });
+  },
+
+  moveComponentToBand: (pageId, fromBandId, toBandId, componentId, x, y, prevX, prevY) => {
+    const { template, dispatcher } = get();
+    if (fromBandId === toBandId) {
+      get().moveComponent(pageId, fromBandId, componentId, x, y, prevX, prevY);
+      return;
+    }
+    const sourceBand = findBand(template, pageId, fromBandId);
+    const component = sourceBand?.components.find(item => item.id === componentId);
+    if (!component) return;
+    const newTemplate = dispatcher.execute(template, {
+      type: MOVE_COMPONENT_TO_BAND_COMMAND,
+      payload: { pageId, fromBandId, toBandId, componentId, component, x, y, prevX, prevY },
+      execute: () => template,
+      undo: () => template,
+    });
+    set({
+      template: newTemplate,
+      selectedComponentIds: [componentId],
+      selectedBandId: null,
+      selectedTableRow: null,
+      selectedTableCell: null,
+    });
   },
 
   updateComponentSilent: (pageId, bandId, componentId, updates) => {
@@ -1681,6 +1730,44 @@ function moveBandInTemplate(template: ReportTemplate, pageId: string, bandId: st
       const [band] = bands.splice(fromIndex, 1);
       bands.splice(normalizedTargetIndex, 0, band);
       return { ...page, bands };
+    }),
+  };
+}
+
+function moveComponentBetweenBandsInTemplate(
+  template: ReportTemplate,
+  payload: {
+    pageId: string;
+    fromBandId: string;
+    toBandId: string;
+    componentId: string;
+    x: number;
+    y: number;
+    fallbackComponent?: ReportComponent;
+  },
+): ReportTemplate {
+  return {
+    ...template,
+    pages: template.pages.map(page => {
+      if (page.id !== payload.pageId) return page;
+
+      const sourceBand = page.bands.find(band => band.id === payload.fromBandId);
+      const targetBand = page.bands.find(band => band.id === payload.toBandId);
+      const sourceComponent = sourceBand?.components.find(component => component.id === payload.componentId);
+      const component = sourceComponent ?? payload.fallbackComponent;
+      if (!targetBand || !component) return page;
+
+      const movedComponent = { ...component, x: payload.x, y: payload.y };
+      return {
+        ...page,
+        bands: page.bands.map(band => {
+          const withoutMoved = band.components.filter(item => item.id !== payload.componentId);
+          if (band.id !== payload.toBandId) {
+            return band.components.length === withoutMoved.length ? band : { ...band, components: withoutMoved };
+          }
+          return { ...band, components: [...withoutMoved, movedComponent] };
+        }),
+      };
     }),
   };
 }

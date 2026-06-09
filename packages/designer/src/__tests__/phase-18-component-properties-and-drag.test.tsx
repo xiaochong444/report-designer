@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import type { ReportComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
+import { Canvas } from '../components/Canvas';
 import { Designer } from '../components/Designer';
 import { PropertyEditor } from '../components/PropertyEditor';
 import { useDesignerStore } from '../store/designer-store';
@@ -90,6 +91,10 @@ function mockCanvasRects() {
   });
 }
 
+function componentBand(type: string) {
+  return useDesignerStore.getState().template.pages[0].bands.find(band => band.type === type)!;
+}
+
 function components() {
   return useDesignerStore.getState().template.pages[0].bands.flatMap(band => band.components) as any[];
 }
@@ -99,7 +104,7 @@ describe('Phase 18 component properties and canvas drag drop', () => {
     const template = createDefaultTemplate('Phase 18 Palette');
     render(<Designer template={template} locale="zh-CN" />);
 
-    fireEvent.click(screen.getByText('组件'));
+    fireEvent.click(screen.getByRole('button', { name: '组件' }));
 
     expect(screen.getByTestId('component-palette')).toBeInTheDocument();
     expect(screen.getByTestId('component-palette-group-common')).toBeInTheDocument();
@@ -192,6 +197,41 @@ describe('Phase 18 component properties and canvas drag drop', () => {
     const inserted = components().find(component => component.type === 'text');
     expect(inserted.text).toBe('{PageNumber}');
     expect(inserted.dataSource).toBeUndefined();
+  });
+
+  it('moves a dragged component to the band under its final position and shows the target band hint', async () => {
+    const component = textComponent({ id: 'text-drag', y: 5 });
+    const template = createDefaultTemplate('Phase 18 Cross Band Move');
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [component];
+    useDesignerStore.getState().loadTemplate(template);
+
+    render(<Canvas />);
+
+    const componentElement = document.querySelector('[data-component-id="text-drag"]') as HTMLElement;
+    expect(componentElement).toBeTruthy();
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: vi.fn(() => componentElement),
+    });
+
+    fireEvent.mouseDown(componentElement, { button: 0, clientX: 40, clientY: 240 });
+    fireEvent.mouseMove(window, { clientX: 40, clientY: 30 });
+
+    expect(screen.getByTestId('designer-component-move-band-target')).toHaveTextContent('报表标题带');
+
+    fireEvent.mouseUp(window, { clientX: 40, clientY: 30 });
+
+    const reportTitleBand = componentBand('reportTitle');
+    const dataBand = componentBand('data');
+    expect(reportTitleBand.components.map(item => item.id)).toContain('text-drag');
+    expect(dataBand.components.map(item => item.id)).not.toContain('text-drag');
+
+    act(() => {
+      useDesignerStore.getState().undo();
+    });
+
+    expect(componentBand('data').components.map(item => item.id)).toContain('text-drag');
+    expect(componentBand('reportTitle').components.map(item => item.id)).not.toContain('text-drag');
   });
 
   it('shows text content as the only binding entry for text components', () => {

@@ -172,6 +172,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const addComponent = useDesignerStore(s => s.addComponent);
   const addComponentToPanel = useDesignerStore(s => s.addComponentToPanel);
   const updateComponentSilent = useDesignerStore(s => s.updateComponentSilent);
+  const moveComponentToBand = useDesignerStore(s => s.moveComponentToBand);
   const setSelectedTableCellWidth = useDesignerStore(s => s.setSelectedTableCellWidth);
   const resizeBand = useDesignerStore(s => s.resizeBand);
   const resizeBandSilent = useDesignerStore(s => s.resizeBandSilent);
@@ -203,6 +204,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   const [bandInsertPointer, setBandInsertPointer] = useState<{ x: number; y: number } | null>(null);
   const [bandReorderTarget, setBandReorderTarget] = useState<{ bandId: string; targetIndex: number } | null>(null);
   const [bandDragPreview, setBandDragPreview] = useState<{ bandId: string; top: number } | null>(null);
+  const [componentMoveTargetBandId, setComponentMoveTargetBandId] = useState<string | null>(null);
 
   const currentPage = useMemo(() => template.pages.find(p => p.id === currentPageId), [template, currentPageId]);
 
@@ -261,6 +263,26 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
     const marginTop = mmToPx(currentPage?.margins?.top ?? 0);
     return (clientY - rect.top) / zoom - marginTop;
   }, [currentPage, zoom]);
+
+  const findBandAtComponentCenter = useCallback((sourceBandId: string, componentY: number, componentHeight: number) => {
+    const sourceLayout = bandsRef.current.find(item => item.band.id === sourceBandId);
+    if (!sourceLayout) return null;
+    const centerY = sourceLayout.visualY + BAND_HEADER_MM + componentY + componentHeight / 2;
+    return bandsRef.current.find(item => {
+      const bodyTop = item.visualY + BAND_HEADER_MM;
+      const bodyBottom = bodyTop + item.band.height;
+      return centerY >= bodyTop && centerY <= bodyBottom;
+    }) ?? null;
+  }, []);
+
+  const convertComponentYToBand = useCallback((sourceBandId: string, targetBandId: string, componentY: number) => {
+    const sourceLayout = bandsRef.current.find(item => item.band.id === sourceBandId);
+    const targetLayout = bandsRef.current.find(item => item.band.id === targetBandId);
+    if (!sourceLayout || !targetLayout) return componentY;
+    const pageTop = sourceLayout.visualY + BAND_HEADER_MM + componentY;
+    const targetBodyTop = targetLayout.visualY + BAND_HEADER_MM;
+    return Math.round((pageTop - targetBodyTop) * 10) / 10;
+  }, []);
 
   // ---- Hit tests ----
 
@@ -541,7 +563,10 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         const firstOrig = m.origPositions[firstId];
         const fc = flatRef.current.find(f => f.comp.id === firstId);
         if (fc && firstOrig) {
-          const g = computeGuides(firstId, firstOrig.x + dxMm, firstOrig.y + dyMm, fc.comp.width, fc.comp.height, othersRef.current);
+          const nextY = firstOrig.y + dyMm;
+          const targetBand = findBandAtComponentCenter(m.bandMap[firstId], nextY, fc.comp.height);
+          setComponentMoveTargetBandId(targetBand && targetBand.band.id !== m.bandMap[firstId] ? targetBand.band.id : null);
+          const g = computeGuides(firstId, firstOrig.x + dxMm, nextY, fc.comp.width, fc.comp.height, othersRef.current);
           setGuides(g);
         }
 
@@ -621,7 +646,13 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
           const comp = band?.components.find(c => c.id === compId);
           const orig = m.origPositions[compId];
           if (comp && orig && (comp.x !== orig.x || comp.y !== orig.y)) {
-            moveComponent(currentPageIdRef.current, m.bandMap[compId], compId, comp.x, comp.y, orig.x, orig.y);
+            const targetBand = findBandAtComponentCenter(m.bandMap[compId], comp.y, comp.height);
+            if (targetBand && targetBand.band.id !== m.bandMap[compId]) {
+              const targetY = convertComponentYToBand(m.bandMap[compId], targetBand.band.id, comp.y);
+              moveComponentToBand(currentPageIdRef.current, m.bandMap[compId], targetBand.band.id, compId, comp.x, targetY, orig.x, orig.y);
+            } else {
+              moveComponent(currentPageIdRef.current, m.bandMap[compId], compId, comp.x, comp.y, orig.x, orig.y);
+            }
           }
         }
       } else if (m.type === 'resize') {
@@ -658,6 +689,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       setGuides([]);
       setBandReorderTarget(null);
       setBandDragPreview(null);
+      setComponentMoveTargetBandId(null);
     };
 
     window.addEventListener('mousemove', handleMouseMove);
@@ -666,7 +698,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('mouseup', handleMouseUp);
     };
-  }, [moveComponent, updateComponent, resizeBand, moveBand, selectComponents, setSelectedTableCellWidth, getPointerContentY, zoom]);
+  }, [moveComponent, moveComponentToBand, updateComponent, resizeBand, moveBand, selectComponents, setSelectedTableCellWidth, getPointerContentY, findBandAtComponentCenter, convertComponentYToBand, zoom]);
 
   // ---- Keyboard shortcuts ----
 
@@ -1126,6 +1158,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
                 selectedTableCell={selectedTableCell}
                 fonts={template.fonts}
                 isDragging={bandDragPreview?.bandId === band.id}
+                isComponentMoveTarget={componentMoveTargetBandId === band.id}
                 onOpenContextMenu={handleBandContextMenu}
                 onStartBandSort={handleStartBandSort}
                 onUpdateComponent={updateComponent} currentPageId={currentPageId} />
@@ -1790,11 +1823,12 @@ const BandView: React.FC<{
   selectedTableCell: TableCellSelection | null;
   fonts?: ReportFont[];
   isDragging?: boolean;
+  isComponentMoveTarget?: boolean;
   onOpenContextMenu: (bandId: string, event: React.MouseEvent<HTMLDivElement>) => void;
   onStartBandSort: (bandId: string, event: React.MouseEvent<HTMLDivElement>) => void;
   onUpdateComponent: (pageId: string, bandId: string, compId: string, updates: Record<string, any>, prev?: Record<string, any>) => void;
   currentPageId: string;
-}> = ({ band, visualY, labelIndex, isSelected, pendingBandInsertType, selectedIds, selectedTableCell, fonts, isDragging, onOpenContextMenu, onStartBandSort, onUpdateComponent, currentPageId }) => {
+}> = ({ band, visualY, labelIndex, isSelected, pendingBandInsertType, selectedIds, selectedTableCell, fonts, isDragging, isComponentMoveTarget, onOpenContextMenu, onStartBandSort, onUpdateComponent, currentPageId }) => {
   const { t } = useDesignerI18n();
   const [editId, setEditId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<'text' | 'richtext' | null>(null);
@@ -1833,9 +1867,9 @@ const BandView: React.FC<{
   return (
     <div data-band-id={band.id} data-testid={`designer-band-frame-${band.type}`} onContextMenu={(event) => onOpenContextMenu(band.id, event)} onMouseDown={handleBandMouseDown} style={{
       position: 'absolute', left: 0, top: safeCssNumber(mmToPx(visualY)), width: '100%', height: safeCssNumber(headerHeight + bodyHeight),
-      border: isSelected ? '1px solid #4d90fe' : '1px solid rgba(0,0,0,0.12)',
+      border: isComponentMoveTarget ? '2px solid #1677ff' : isSelected ? '1px solid #4d90fe' : '1px solid rgba(0,0,0,0.12)',
       boxSizing: 'border-box',
-      backgroundColor: `${baseColor}10`,
+      backgroundColor: isComponentMoveTarget ? 'rgba(22, 119, 255, 0.08)' : `${baseColor}10`,
       cursor: pendingBandInsertType ? 'copy' : 'default',
       opacity: isDragging ? 0.35 : 1,
     }}>
@@ -1858,6 +1892,28 @@ const BandView: React.FC<{
       </div>
 
       <BandResizeHandle bandId={band.id} />
+
+      {isComponentMoveTarget ? (
+        <div
+          data-testid="designer-component-move-band-target"
+          style={{
+            position: 'absolute',
+            right: 8,
+            top: headerHeight + 6,
+            zIndex: 1200,
+            padding: '3px 8px',
+            borderRadius: 4,
+            backgroundColor: '#1677ff',
+            color: '#fff',
+            fontSize: 12,
+            lineHeight: '18px',
+            boxShadow: '0 4px 10px rgba(0,0,0,0.18)',
+            pointerEvents: 'none',
+          }}
+        >
+          将移动到：{bandLabel}
+        </div>
+      ) : null}
 
       <div data-testid={`designer-band-body-${band.type}`} style={{
         position: 'absolute',
