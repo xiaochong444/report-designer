@@ -101,7 +101,6 @@ export function createDefaultComponent(type: string, xMm: number, yMm: number): 
         rows: [{
           id: 'row_1',
           height: 8,
-          role: 'normal',
           cells: [
             { id: 'cell_1_1' },
             { id: 'cell_1_2' },

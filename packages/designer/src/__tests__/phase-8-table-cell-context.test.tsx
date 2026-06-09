@@ -25,11 +25,8 @@ function tableComponent(overrides: Partial<TableComponent> = {}): TableComponent
     ],
     rowCount: 3,
     columnCount: 3,
-    headerRowsCount: 1,
-    footerRowsCount: 0,
     canBreak: true,
     cells: [{ row: 1, column: 1, text: 'Subtotal' }],
-    headerHeight: 8,
     rowHeight: 8,
     showBorder: true,
     ...overrides,
@@ -189,7 +186,6 @@ describe('Phase 8 table cell context menu', () => {
       ],
       rowCount: 3,
       columnCount: 3,
-      headerHeight: 6,
       rowHeight: 10,
     }));
 
@@ -197,7 +193,7 @@ describe('Phase 8 table cell context menu', () => {
 
     const grid = screen.getByTestId('designer-table-grid');
     expect(grid).toHaveStyle({ position: 'relative' });
-    expect(screen.getByTestId('designer-table-cell-0-0')).toHaveStyle({ width: '38px', height: '23px' });
+    expect(screen.getByTestId('designer-table-cell-0-0')).toHaveStyle({ width: '38px', height: '38px' });
     expect(screen.getByTestId('designer-table-cell-1-1')).toHaveStyle({ width: '76px', height: '38px' });
   });
 

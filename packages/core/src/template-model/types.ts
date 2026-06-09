@@ -338,7 +338,6 @@ export interface TableCell {
 export interface TableRow {
   id: string;
   height?: number;
-  role?: 'normal' | 'header' | 'footer';
   backgroundColor?: string;
   font?: FontConfig;
   border?: BorderConfig;
@@ -364,11 +363,8 @@ export interface TableComponent extends ReportComponent {
   rows?: TableRow[];
   rowCount?: number;
   columnCount?: number;
-  headerRowsCount?: number;
-  footerRowsCount?: number;
   canBreak?: boolean;
   cells?: TableCell[];
-  headerHeight?: number;
   rowHeight?: number;
   showBorder?: boolean;
   font?: FontConfig;

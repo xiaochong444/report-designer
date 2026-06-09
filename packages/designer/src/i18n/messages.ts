@@ -377,8 +377,6 @@ export type DesignerMessageKey =
   | 'contextMenu.table.equalizeColumns'
   | 'contextMenu.table.equalizeRows'
   | 'contextMenu.table.toggleBorder'
-  | 'contextMenu.table.setHeaderRow'
-  | 'contextMenu.table.setFooterRow'
   | 'contextMenu.table.insert'
   | 'contextMenu.table.delete'
   | 'contextMenu.table.insertRowAboveExcel'
@@ -397,9 +395,7 @@ export type DesignerMessageKey =
   | 'contextMenu.table.clearStyle'
   | 'contextMenu.table.table'
   | 'contextMenu.table.arrange'
-  | 'contextMenu.table.rowSettings'
   | 'contextMenu.table.deleteTable'
-  | 'contextMenu.table.setNormalRow'
   | 'contextMenu.band.copy'
   | 'contextMenu.band.delete'
   | 'bandProperties.name'
@@ -435,10 +431,6 @@ export type DesignerMessageKey =
   | 'tableRow.properties'
   | 'tableRow.index'
   | 'tableRow.height'
-  | 'tableRow.role'
-  | 'tableRow.roleNormal'
-  | 'tableRow.roleHeader'
-  | 'tableRow.roleFooter'
   | 'tableCell.properties'
   | 'tableCell.range'
   | 'tableCell.text'
@@ -1072,8 +1064,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.equalizeColumns': '均分列宽',
     'contextMenu.table.equalizeRows': '均分行高',
     'contextMenu.table.toggleBorder': '切换表格边框',
-    'contextMenu.table.setHeaderRow': '设为表头行',
-    'contextMenu.table.setFooterRow': '设为表尾行',
     'contextMenu.table.insert': '插入',
     'contextMenu.table.delete': '删除',
     'contextMenu.table.insertRowAboveExcel': '在上方插入行',
@@ -1092,9 +1082,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.clearStyle': '清除样式',
     'contextMenu.table.table': '表格',
     'contextMenu.table.arrange': '排列',
-    'contextMenu.table.rowSettings': '行设置',
     'contextMenu.table.deleteTable': '删除表格',
-    'contextMenu.table.setNormalRow': '设为普通行',
     'contextMenu.band.copy': '复制带区',
     'contextMenu.band.delete': '删除带区',
     'bandProperties.name': '名称',
@@ -1130,10 +1118,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableRow.properties': '行属性',
     'tableRow.index': '行号',
     'tableRow.height': '行高',
-    'tableRow.role': '行类型',
-    'tableRow.roleNormal': '普通行',
-    'tableRow.roleHeader': '表头行',
-    'tableRow.roleFooter': '表尾行',
     'tableCell.properties': '单元格属性',
     'tableCell.range': '范围',
     'tableCell.text': '文本内容',
@@ -1764,8 +1748,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.equalizeColumns': 'Distribute Columns',
     'contextMenu.table.equalizeRows': 'Distribute Rows',
     'contextMenu.table.toggleBorder': 'Toggle Table Border',
-    'contextMenu.table.setHeaderRow': 'Set Header Row',
-    'contextMenu.table.setFooterRow': 'Set Footer Row',
     'contextMenu.table.insert': 'Insert',
     'contextMenu.table.delete': 'Delete',
     'contextMenu.table.insertRowAboveExcel': 'Insert Row Above',
@@ -1784,9 +1766,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'contextMenu.table.clearStyle': 'Clear Style',
     'contextMenu.table.table': 'Table',
     'contextMenu.table.arrange': 'Arrange',
-    'contextMenu.table.rowSettings': 'Row Settings',
     'contextMenu.table.deleteTable': 'Delete Table',
-    'contextMenu.table.setNormalRow': 'Set Normal Row',
     'contextMenu.band.copy': 'Copy Band',
     'contextMenu.band.delete': 'Delete Band',
     'bandProperties.name': 'Name',
@@ -1822,10 +1802,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableRow.properties': 'Row Properties',
     'tableRow.index': 'Row',
     'tableRow.height': 'Height',
-    'tableRow.role': 'Role',
-    'tableRow.roleNormal': 'Normal',
-    'tableRow.roleHeader': 'Header',
-    'tableRow.roleFooter': 'Footer',
     'tableCell.properties': 'Cell Properties',
     'tableCell.range': 'Range',
     'tableCell.text': 'Text Content',

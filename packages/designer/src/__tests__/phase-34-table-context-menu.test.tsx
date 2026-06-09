@@ -25,11 +25,8 @@ function tableComponent(overrides: Partial<TableComponent> = {}): TableComponent
     ],
     rowCount: 3,
     columnCount: 3,
-    headerRowsCount: 1,
-    footerRowsCount: 0,
     canBreak: true,
     cells: [{ row: 1, column: 1, text: 'Subtotal' }],
-    headerHeight: 8,
     rowHeight: 8,
     showBorder: true,
     ...overrides,
@@ -161,21 +158,15 @@ describe('phase 34 table context menu', () => {
     expect(tableById('table-2').columnCount).toBe(4);
   });
 
-  it('keeps header and footer row actions in table row settings', () => {
-    loadWith(tableComponent({ rowCount: 5, headerRowsCount: 1, footerRowsCount: 0 }));
+  it('does not expose header or footer row actions in the table menu', () => {
+    loadWith(tableComponent({ rowCount: 5 }));
     render(<Canvas />);
 
     openCellMenu(1, 0);
     fireEvent.mouseEnter(screen.getByText('表格'));
-    fireEvent.mouseEnter(screen.getByText('行设置'));
-    fireEvent.click(screen.getByText('设为表头行'));
-    expect(selectedTable().rows?.[1]?.role).toBe('header');
-
-    openCellMenu(3, 0);
-    fireEvent.mouseEnter(screen.getByText('表格'));
-    fireEvent.mouseEnter(screen.getByText('行设置'));
-    fireEvent.click(screen.getByText('设为表尾行'));
-    expect(selectedTable().rows?.[3]?.role).toBe('footer');
+    expect(screen.queryByText('行设置')).not.toBeInTheDocument();
+    expect(screen.queryByText('设为表头行')).not.toBeInTheDocument();
+    expect(screen.queryByText('设为表尾行')).not.toBeInTheDocument();
   });
 
   it('deletes the clicked column with undo support', () => {

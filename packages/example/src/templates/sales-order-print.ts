@@ -182,7 +182,6 @@ const salesHeaderTable = salesTable('sop-header-table', 0, 8, [
     tableCell('折扣额', 6),
     tableCell('金额', 7),
   ], {
-    role: 'header',
     font: { size: 9, bold: true, color: '#111827' },
     backgroundColor: '#f3f4f6',
     textAlign: 'center',
@@ -215,7 +214,6 @@ const salesFooterTable = salesTable('sop-footer-table', 0, 16, [
     tableCell('', 6),
     tableCell('FORMAT("N2", SUM({items.salesAmount}))', 7, { textAlign: 'right' }),
   ], {
-    role: 'footer',
     font: { size: 10, bold: true, color: '#111827' },
     backgroundColor: '#f9fafb',
   }),
@@ -229,7 +227,6 @@ const salesFooterTable = salesTable('sop-footer-table', 0, 16, [
     tableCell('', 6),
     tableCell('', 7),
   ], {
-    role: 'footer',
     font: { size: 9, color: '#111827' },
   }),
 ], fullBorder);

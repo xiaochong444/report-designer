@@ -67,7 +67,6 @@ const headerTable = table('table-detail-header-table', 0, [
     cell('Qty', 4),
     cell('Total', 5),
   ], {
-    role: 'header',
     backgroundColor: '#eef2f7',
     font: { size: 9, bold: true, color: '#172033' },
     textAlign: 'center',

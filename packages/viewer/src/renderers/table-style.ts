@@ -17,8 +17,8 @@ export interface TableBorderStyle {
   borderLeft?: string;
 }
 
-export function tableCellBackgroundColor(cell: Pick<RenderTableCell, 'isHeader' | 'isFooter' | 'style'>): string | undefined {
-  return cell.style?.backgroundColor ?? (cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined);
+export function tableCellBackgroundColor(cell: Pick<RenderTableCell, 'style'>): string | undefined {
+  return cell.style?.backgroundColor;
 }
 
 export function tableBorderStyle(border: BorderConfig | undefined, scale: number): TableBorderStyle {

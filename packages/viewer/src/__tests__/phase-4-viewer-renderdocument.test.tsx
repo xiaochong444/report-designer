@@ -166,8 +166,8 @@ describe('Phase 4 RenderDocument viewer', () => {
       ],
       rows: [
         [
-          { row: 0, column: 0, content: 'Name', isHeader: true, height: 8, rowSpan: 1, colSpan: 1 },
-          { row: 0, column: 1, content: 'Salary', isHeader: true, height: 8, rowSpan: 1, colSpan: 1 },
+          { row: 0, column: 0, content: 'Name', height: 8, rowSpan: 1, colSpan: 1 },
+          { row: 0, column: 1, content: 'Salary', height: 8, rowSpan: 1, colSpan: 1 },
         ],
         [
           { row: 1, column: 0, content: 'Alice', field: 'name', height: 8, rowSpan: 1, colSpan: 1 },

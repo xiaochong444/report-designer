@@ -19,14 +19,11 @@ function tableComponent(): TableComponent {
     ],
     rowCount: 3,
     columnCount: 3,
-    headerRowsCount: 1,
-    footerRowsCount: 0,
     canBreak: true,
     cells: [
       { row: 1, column: 1, text: 'Subtotal' },
       { row: 2, column: 2, text: 'Tail' },
     ],
-    headerHeight: 8,
     rowHeight: 8,
     showBorder: true,
   };
@@ -108,9 +105,6 @@ describe('phase 39 table editing history', () => {
       useDesignerStore.getState().updateSelectedTable({
         rowCount: 4,
         columnCount: 4,
-        headerRowsCount: 2,
-        footerRowsCount: 1,
-        headerHeight: 9,
         rowHeight: 7,
         showBorder: false,
         dataSource: 'invoices',

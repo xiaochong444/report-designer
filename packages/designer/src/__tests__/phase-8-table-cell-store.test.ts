@@ -19,11 +19,8 @@ function tableComponent(): TableComponent {
     ],
     rowCount: 3,
     columnCount: 3,
-    headerRowsCount: 1,
-    footerRowsCount: 0,
     canBreak: true,
     cells: [{ row: 1, column: 1, text: 'Subtotal' }],
-    headerHeight: 8,
     rowHeight: 8,
     showBorder: true,
   };

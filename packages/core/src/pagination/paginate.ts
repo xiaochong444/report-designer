@@ -449,9 +449,7 @@ function splitTableBand(band: Band, box: RenderBandBox, cursorY: number, pageBot
   const table = component as RenderTable;
   const rows = table.rows ?? [];
   const tableTopOffset = Math.max(0, table.y - box.y);
-  const headerRows = rows.filter(row => row.some(cell => cell.isHeader));
-  const bodyRows = rows.filter(row => !row.some(cell => cell.isHeader) && !row.some(cell => cell.isFooter));
-  const footerRows = rows.filter(row => row.some(cell => cell.isFooter));
+  const bodyRows = rows;
   if (bodyRows.length === 0) return undefined;
   const availableFirstPage = pageBottomY - cursorY - tableTopOffset;
   const totalTableHeight = rowsHeight(rows);
@@ -462,12 +460,11 @@ function splitTableBand(band: Band, box: RenderBandBox, cursorY: number, pageBot
   let availableHeight = availableFirstPage;
 
   while (remainingBodyRows.length > 0) {
-    const chunk = takeTableRowsForPage(table, headerRows, remainingBodyRows, [], availableHeight);
+    const chunk = takeTableRowsForPage(table, remainingBodyRows, availableHeight);
     if (chunk.bodyRows.length === 0) {
       chunk.bodyRows = [remainingBodyRows[0]];
     }
-    const isLast = chunk.bodyRows.length >= remainingBodyRows.length;
-    const chunkRows = normalizeTableChunkRows([...headerRows, ...chunk.bodyRows, ...(isLast ? footerRows : [])]);
+    const chunkRows = normalizeTableChunkRows(chunk.bodyRows);
     const tableHeight = rowsHeight(chunkRows);
     chunks.push({
       table: {
@@ -489,26 +486,22 @@ function splitTableBand(band: Band, box: RenderBandBox, cursorY: number, pageBot
 
 function takeTableRowsForPage(
   table: RenderTable,
-  headerRows: RenderTableCell[][],
   bodyRows: RenderTableCell[][],
-  footerRows: RenderTableCell[][],
   availableHeight: number,
 ): { bodyRows: RenderTableCell[][] } {
-  const minimumHeaderHeight = rowsHeight(headerRows);
-  const footerHeight = rowsHeight(footerRows);
-  const bodyBudget = Math.max(0, availableHeight - minimumHeaderHeight - footerHeight);
+  const bodyBudget = Math.max(0, availableHeight);
   const selected: RenderTableCell[][] = [];
   let used = 0;
 
   for (const row of bodyRows) {
     const rowHeight = renderTableRowHeight(row);
     if (selected.length > 0 && used + rowHeight > bodyBudget) break;
-    if (selected.length === 0 && minimumHeaderHeight + rowHeight > Math.max(0, availableHeight)) break;
+    if (selected.length === 0 && rowHeight > Math.max(0, availableHeight)) break;
     selected.push(row);
     used += rowHeight;
   }
 
-  if (selected.length === 0 && bodyRows.length > 0 && rowsHeight(headerRows) + renderTableRowHeight(bodyRows[0]) <= table.height) {
+  if (selected.length === 0 && bodyRows.length > 0 && renderTableRowHeight(bodyRows[0]) <= table.height) {
     selected.push(bodyRows[0]);
   }
   return { bodyRows: selected };

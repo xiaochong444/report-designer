@@ -522,8 +522,7 @@ function normalizeRenderableTableRows(component: TableComponent): TableRow[] {
   return sourceRows.map((row, rowIndex) => ({
     ...row,
     id: row.id || `row_${rowIndex + 1}`,
-    height: Math.max(0.1, row.height ?? component.rowHeight ?? component.headerHeight ?? 8),
-    role: row.role ?? 'normal',
+    height: Math.max(0.1, row.height ?? component.rowHeight ?? 8),
     cells: Array.from({ length: columnCount }, (_, columnIndex) => ({
       id: row.cells[columnIndex]?.id ?? `cell_${rowIndex + 1}_${columnIndex + 1}`,
       ...row.cells[columnIndex],
@@ -534,28 +533,17 @@ function normalizeRenderableTableRows(component: TableComponent): TableRow[] {
 function legacyRenderableTableRows(component: TableComponent): TableRow[] {
   const columnCount = Math.max(1, component.columnCount ?? component.columns?.length ?? 3);
   const rowCount = Math.max(1, component.rowCount ?? 1);
-  const headerRowsCount = Math.max(0, Math.min(rowCount, component.headerRowsCount ?? 0));
-  const footerRowsCount = Math.max(0, Math.min(rowCount - headerRowsCount, component.footerRowsCount ?? 0));
   return Array.from({ length: rowCount }, (_, rowIndex) => {
-    const role: TableRow['role'] = rowIndex < headerRowsCount
-      ? 'header'
-      : rowIndex >= rowCount - footerRowsCount
-        ? 'footer'
-        : 'normal';
-    const height = role === 'header'
-      ? component.headerHeight ?? component.rowHeight ?? 8
-      : component.rowHeight ?? component.headerHeight ?? 8;
     return {
       id: `row_${rowIndex + 1}`,
-      height,
-      role,
+      height: component.rowHeight ?? 8,
       cells: Array.from({ length: columnCount }, (_, columnIndex) => {
         const cell = component.cells?.find(item => (item.row ?? 0) === rowIndex && (item.column ?? 0) === columnIndex);
         const column = component.columns?.[columnIndex];
         return {
           id: `cell_${rowIndex + 1}_${columnIndex + 1}`,
           ...cell,
-          text: cell?.text ?? (role === 'header' ? column?.header : column?.field ? `{${column.field}}` : undefined),
+          text: cell?.text ?? (column?.field ? `{${column.field}}` : undefined),
           width: cell?.width ?? column?.width,
         };
       }),
@@ -605,8 +593,6 @@ function buildSimpleTableRows(
         content: tableCellContent({
           cell,
           column: { id: `col_${columnIndex + 1}`, header: '', field: '', width: 0, cellType: 'text' },
-          isHeader: row.role === 'header',
-          isFooter: row.role === 'footer',
           context: options.context,
           rowsByBand: options.rowsByBand,
           pageRowsByBand: options.pageRowsByBand,
@@ -614,8 +600,6 @@ function buildSimpleTableRows(
         rowSpan,
         colSpan,
         height: row.height ?? 8,
-        isHeader: row.role === 'header',
-        isFooter: row.role === 'footer',
         style: resolvedRenderTableCellStyle(component, row, cell, rowIndex, columnIndex),
       });
     });
@@ -915,8 +899,6 @@ function markCoveredCells(covered: Set<string>, row: number, column: number, row
 function tableCellContent(options: {
   cell?: TableCell;
   column: NonNullable<TableComponent['columns']>[number];
-  isHeader: boolean;
-  isFooter: boolean;
   context: RenderContext;
   rowsByBand: Record<string, Record<string, unknown>[]>;
   pageRowsByBand: Record<string, Record<string, unknown>[]>;
@@ -924,12 +906,6 @@ function tableCellContent(options: {
   if (options.cell?.text) {
     const value = resolveTableCellText(options.cell.text, options.context, options.rowsByBand, options.pageRowsByBand);
     return formatValue(value, options.cell.format);
-  }
-  if (options.isHeader) {
-    return options.column.header;
-  }
-  if (options.isFooter) {
-    return '';
   }
   if (!options.column.field) {
     return '';

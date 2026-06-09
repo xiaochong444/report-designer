@@ -244,7 +244,7 @@ function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY
 function renderTableHtml(component: RenderComponentBox, dataAttribute: string, style: string): string {
   if (!('rows' in component) || !('columns' in component)) return '';
   const columns = component.columns as Array<{ width: number }>;
-  const rows = component.rows as Array<Array<{ row: number; column: number; content: string; rowSpan: number; colSpan: number; height: number; isHeader?: boolean; isFooter?: boolean; style?: RenderComponentBox['style'] }>>;
+  const rows = component.rows as Array<Array<{ row: number; column: number; content: string; rowSpan: number; colSpan: number; height: number; style?: RenderComponentBox['style'] }>>;
   const gridStyle = [
     style,
     'display:grid',

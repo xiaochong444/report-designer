@@ -1227,33 +1227,6 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             onInsertTableRowAbove={() => { useDesignerStore.getState().insertSelectedTableRow((contextMenu.tableCell?.row ?? 0) - 1); setContextMenu(null); }}
             onInsertTableRowBelow={() => { useDesignerStore.getState().insertSelectedTableRow(contextMenu.tableCell?.row); setContextMenu(null); }}
             onDeleteTableRow={() => { useDesignerStore.getState().deleteSelectedTableRow(contextMenu.tableCell?.row); setContextMenu(null); }}
-            onSetHeaderRow={() => {
-              const tableTarget = flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]));
-              if (contextMenu.tableCell && tableTarget?.comp.type === 'table') {
-                const state = useDesignerStore.getState();
-                state.selectTableRow({ tableId: tableTarget.comp.id, bandId: tableTarget.bandId, row: contextMenu.tableCell.row });
-                state.updateSelectedTableRow({ role: 'header' });
-              }
-              setContextMenu(null);
-            }}
-            onSetFooterRow={() => {
-              const tableTarget = flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]));
-              if (contextMenu.tableCell && tableTarget?.comp.type === 'table') {
-                const state = useDesignerStore.getState();
-                state.selectTableRow({ tableId: tableTarget.comp.id, bandId: tableTarget.bandId, row: contextMenu.tableCell.row });
-                state.updateSelectedTableRow({ role: 'footer' });
-              }
-              setContextMenu(null);
-            }}
-            onSetNormalRow={() => {
-              const tableTarget = flat.find(f => f.comp.id === (contextMenu.compId ?? selectedComponentIds[0]));
-              if (contextMenu.tableCell && tableTarget?.comp.type === 'table') {
-                const state = useDesignerStore.getState();
-                state.selectTableRow({ tableId: tableTarget.comp.id, bandId: tableTarget.bandId, row: contextMenu.tableCell.row });
-                state.updateSelectedTableRow({ role: 'normal' });
-              }
-              setContextMenu(null);
-            }}
             onMergeTableCellRight={() => {
               if (contextMenu.tableCell) {
                 useDesignerStore.getState().mergeSelectedTableCellRight(contextMenu.tableCell.row, contextMenu.tableCell.column);
@@ -1507,7 +1480,6 @@ interface ContextMenuProps {
   onBringToFront: () => void; onSendToBack: () => void;
   onInsertTableColumnLeft: () => void; onInsertTableColumnRight: () => void; onDeleteTableColumn: () => void;
   onInsertTableRowAbove: () => void; onInsertTableRowBelow: () => void; onDeleteTableRow: () => void; onToggleTableBorder: () => void;
-  onSetHeaderRow: () => void; onSetFooterRow: () => void; onSetNormalRow: () => void;
   onMergeTableCellRight: () => void; onMergeSelectedTableCells: () => void; onSplitTableCell: () => void; onClearTableCell: () => void;
   onClearTableCellStyle: () => void; onCopyTableCellStyle: () => void; onPasteTableCellStyle: () => void;
   onEqualizeTableColumns: () => void; onEqualizeTableRows: () => void;
@@ -1528,9 +1500,6 @@ type ContextMenuAction =
   | 'insertRowBelow'
   | 'deleteRow'
   | 'toggleBorder'
-  | 'setHeaderRow'
-  | 'setFooterRow'
-  | 'setNormalRow'
   | 'mergeCells'
   | 'splitCell'
   | 'clearCell'
@@ -1592,9 +1561,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   onInsertTableRowBelow,
   onDeleteTableRow,
   onToggleTableBorder,
-  onSetHeaderRow,
-  onSetFooterRow,
-  onSetNormalRow,
   onMergeTableCellRight,
   onMergeSelectedTableCells,
   onSplitTableCell,
@@ -1650,9 +1616,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     insertRowBelow: onInsertTableRowBelow,
     deleteRow: onDeleteTableRow,
     toggleBorder: onToggleTableBorder,
-    setHeaderRow: onSetHeaderRow,
-    setFooterRow: onSetFooterRow,
-    setNormalRow: onSetNormalRow,
     mergeCells: () => {
       const selected = useDesignerStore.getState().selectedTableCell;
       if (selected && (selected.startRow !== selected.endRow || selected.startColumn !== selected.endColumn)) {
@@ -1722,11 +1685,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       menuItem('bringToFront', t('contextMenu.bringToFront'), { shortcut: 'Ctrl+Alt+↑', disabled: !hasSelection, visible: isSubmenuOpen('tableArrange') }),
       menuItem('sendToBack', t('contextMenu.sendToBack'), { shortcut: 'Ctrl+Alt+↓', disabled: !hasSelection, visible: isSubmenuOpen('tableArrange') }),
       ], !hasSelection, isSubmenuOpen('table'), ['table', 'tableArrange']),
-      menuSubmenu('rowSettings', t('contextMenu.table.rowSettings'), [
-        menuItem('setHeaderRow', t('contextMenu.table.setHeaderRow'), { visible: isSubmenuOpen('rowSettings') }),
-        menuItem('setFooterRow', t('contextMenu.table.setFooterRow'), { visible: isSubmenuOpen('rowSettings') }),
-        menuItem('setNormalRow', t('contextMenu.table.setNormalRow'), { visible: isSubmenuOpen('rowSettings') }),
-      ], !tableCell, isSubmenuOpen('table'), ['table', 'rowSettings']),
       menuItem('delete', t('contextMenu.table.deleteTable'), { disabled: !hasSelection, danger: true, visible: isSubmenuOpen('table') }),
     ]),
   ];

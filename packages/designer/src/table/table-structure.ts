@@ -118,7 +118,6 @@ function makeRow(rowIndex: number, columnCount: number, overrides: Partial<Table
   return {
     id: overrides.id ?? rowId(rowIndex),
     height: overrides.height ?? DEFAULT_ROW_HEIGHT,
-    role: overrides.role ?? 'normal',
     ...overrides,
     cells: Array.from({ length: columnCount }, (_, columnIndex) => makeCell(rowIndex, columnIndex, overrides.cells?.[columnIndex] ?? {})),
   };
@@ -137,22 +136,13 @@ function inferRowCount(table: TableComponent): number {
 }
 
 function legacyRows(table: TableComponent, rowCount: number, columnCount: number): TableRow[] {
-  const headerRows = Math.max(0, Math.min(rowCount, table.headerRowsCount ?? 0));
-  const footerRows = Math.max(0, Math.min(rowCount - headerRows, table.footerRowsCount ?? 0));
   const rows = Array.from({ length: rowCount }, (_, rowIndex) => {
-    const role: TableRow['role'] = rowIndex < headerRows
-      ? 'header'
-      : rowIndex >= rowCount - footerRows
-        ? 'footer'
-        : 'normal';
-    const height = role === 'header'
-      ? table.headerHeight ?? table.rowHeight ?? DEFAULT_ROW_HEIGHT
-      : table.rowHeight ?? DEFAULT_ROW_HEIGHT;
+    const height = table.rowHeight ?? DEFAULT_ROW_HEIGHT;
     const cells = Array.from({ length: columnCount }, (_, columnIndex) => {
       const legacyCell = table.cells?.find(cell => (cell.row ?? 0) === rowIndex && (cell.column ?? 0) === columnIndex);
       const column = table.columns?.[columnIndex];
       const text = legacyCell?.text
-        ?? (role === 'header' ? column?.header : role === 'normal' && column?.field ? `{${column.field}}` : undefined);
+        ?? (column?.field ? `{${column.field}}` : undefined);
       return makeCell(rowIndex, columnIndex, {
         ...legacyCell,
         row: undefined,
@@ -161,7 +151,7 @@ function legacyRows(table: TableComponent, rowCount: number, columnCount: number
         width: legacyCell?.width ?? column?.width,
       });
     });
-    return makeRow(rowIndex, columnCount, { height, role, cells });
+    return makeRow(rowIndex, columnCount, { height, cells });
   });
   return rows;
 }
@@ -181,7 +171,6 @@ function normalizeRows(table: TableComponent, rowCount: number, columnCount: num
       ...row,
       id: row.id || rowId(rowIndex),
       height: normalizePositiveMm(row.height, DEFAULT_ROW_HEIGHT),
-      role: row.role ?? 'normal',
       cells,
     };
   });
@@ -194,9 +183,6 @@ function normalizeRows(table: TableComponent, rowCount: number, columnCount: num
 export interface TableStructureUpdate {
   rowCount?: number;
   columnCount?: number;
-  headerRowsCount?: number;
-  footerRowsCount?: number;
-  headerHeight?: number;
   rowHeight?: number;
   canBreak?: boolean;
   showBorder?: boolean;
@@ -245,9 +231,6 @@ export function normalizeTable(table: TableComponent): TableComponent {
     columnCount,
     cells: undefined,
     columns: undefined,
-    headerRowsCount: undefined,
-    footerRowsCount: undefined,
-    headerHeight: undefined,
     rowHeight: undefined,
     dataSource: undefined,
     binding: undefined,
@@ -316,11 +299,10 @@ export function insertTableRow(table: TableComponent, afterRow?: number): TableC
   const columnCount = normalized.rows![0]?.cells.length ?? MIN_TABLE_COLUMNS;
   const index = Math.min(Math.max(afterRow ?? rowCount - 1, -1), rowCount - 1);
   const source = normalized.rows![Math.max(0, index)] ?? makeRow(0, columnCount);
-  const row = makeRow(index + 1, columnCount, {
-    height: source.height,
-    role: source.role,
-    style: clone(source.style),
-    backgroundColor: clone(source.backgroundColor),
+    const row = makeRow(index + 1, columnCount, {
+      height: source.height,
+      style: clone(source.style),
+      backgroundColor: clone(source.backgroundColor),
     font: clone(source.font),
     border: clone(source.border),
     padding: clone(source.padding),

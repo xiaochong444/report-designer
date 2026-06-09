@@ -637,7 +637,7 @@ function tableStructureMatches(component: ReportComponent, query: string): boole
   if (!query || component.type !== 'table') return false;
   const table = normalizeTable(component as TableComponent);
   return (table.rows ?? []).some((row, rowIndex) => {
-    const rowName = `row ${rowIndex + 1} ${row.role ?? ''}`;
+    const rowName = `row ${rowIndex + 1}`;
     if (rowName.toLowerCase().includes(query)) return true;
     return row.cells.some((cell, columnIndex) => {
       const cellName = `cell ${rowIndex + 1}.${columnIndex + 1} ${cell.text ?? ''}`;

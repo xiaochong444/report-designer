@@ -2171,9 +2171,6 @@ function tableHistorySnapshot(table: TableComponent): TableComponent {
     columns: table.columns,
     binding: table.binding,
     dataSource: table.dataSource,
-    headerRowsCount: table.headerRowsCount,
-    footerRowsCount: table.footerRowsCount,
-    headerHeight: table.headerHeight,
     rowHeight: table.rowHeight,
   };
 }

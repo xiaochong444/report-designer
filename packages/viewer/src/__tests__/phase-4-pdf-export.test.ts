@@ -570,8 +570,8 @@ describe('Phase 4 PDF export', () => {
       ],
       rows: [
         [
-          { row: 0, column: 0, content: 'Name', rowSpan: 1, colSpan: 1, height: 8, isHeader: true, style: { backgroundColor: '#f0f5ff', textAlign: 'center', verticalAlign: 'middle' } },
-          { row: 0, column: 1, content: 'Amount', rowSpan: 1, colSpan: 1, height: 8, isHeader: true, style: { backgroundColor: '#f0f5ff', textAlign: 'center', verticalAlign: 'middle' } },
+          { row: 0, column: 0, content: 'Name', rowSpan: 1, colSpan: 1, height: 8, style: { backgroundColor: '#f0f5ff', textAlign: 'center', verticalAlign: 'middle' } },
+          { row: 0, column: 1, content: 'Amount', rowSpan: 1, colSpan: 1, height: 8, style: { backgroundColor: '#f0f5ff', textAlign: 'center', verticalAlign: 'middle' } },
         ],
         [
           {
@@ -601,8 +601,8 @@ describe('Phase 4 PDF export', () => {
           { row: 1, column: 1, content: '$12.30', rowSpan: 1, colSpan: 1, height: 8, style: { textAlign: 'right', verticalAlign: 'bottom' } },
         ],
         [
-          { row: 2, column: 0, content: 'Total', rowSpan: 1, colSpan: 1, height: 8, isFooter: true, style: { backgroundColor: '#fff7e6' } },
-          { row: 2, column: 1, content: '$12.30', rowSpan: 1, colSpan: 1, height: 8, isFooter: true, style: { backgroundColor: '#fff7e6', textAlign: 'right' } },
+          { row: 2, column: 0, content: 'Total', rowSpan: 1, colSpan: 1, height: 8, style: { backgroundColor: '#fff7e6' } },
+          { row: 2, column: 1, content: '$12.30', rowSpan: 1, colSpan: 1, height: 8, style: { backgroundColor: '#fff7e6', textAlign: 'right' } },
         ],
       ],
       showBorder: true,

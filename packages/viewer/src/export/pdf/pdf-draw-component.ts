@@ -371,7 +371,7 @@ function drawTableCellBackground(
   width: number,
   height: number,
 ): void {
-  const backgroundColor = cell.style?.backgroundColor ?? (cell.isHeader ? '#f0f5ff' : cell.isFooter ? '#fff7e6' : undefined);
+  const backgroundColor = cell.style?.backgroundColor;
   if (backgroundColor) {
     page.drawRectangle({ x, y, width, height, color: parsePdfColor(backgroundColor) });
   }

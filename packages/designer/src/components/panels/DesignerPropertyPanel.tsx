@@ -313,18 +313,6 @@ const TableRowProperties: React.FC = () => {
                   onChange={value => updateRow({ height: Number(value ?? row.height ?? 8) })}
                 />
               </Form.Item>
-              <Form.Item label={t('tableRow.role')}>
-                <Select
-                  aria-label={t('tableRow.role')}
-                  value={row.role ?? 'normal'}
-                  options={[
-                    { value: 'normal', label: t('tableRow.roleNormal') },
-                    { value: 'header', label: t('tableRow.roleHeader') },
-                    { value: 'footer', label: t('tableRow.roleFooter') },
-                  ]}
-                  onChange={role => updateRow({ role: role as TableRow['role'] })}
-                />
-              </Form.Item>
             </Form>
           ),
         }, {

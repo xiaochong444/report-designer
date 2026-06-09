@@ -188,9 +188,6 @@ describe('phase 34 table rendering', () => {
       columns: [{ id: 'amount', header: 'Amount', field: 'amount', width: 80, cellType: 'text' }],
       rowCount: 2,
       columnCount: 1,
-      headerRowsCount: 1,
-      footerRowsCount: 0,
-      headerHeight: 8,
       rowHeight: 8,
       showBorder: true,
       cells: [{
@@ -212,7 +209,7 @@ describe('phase 34 table rendering', () => {
     expect(table).toMatchObject({
       type: 'table',
       rows: [
-        [{ content: 'Amount', isHeader: true }],
+        [{ content: '1234.5' }],
         [{
           content: '$1,234.50',
           style: {
@@ -250,9 +247,6 @@ describe('phase 34 table rendering', () => {
       columns: [{ id: 'amount', header: 'Amount', field: 'amount', width: 80, cellType: 'text' }],
       rowCount: 2,
       columnCount: 1,
-      headerRowsCount: 1,
-      footerRowsCount: 0,
-      headerHeight: 8,
       rowHeight: 8,
       showBorder: true,
       cells: [{ row: 1, column: 0, text: '{orders.amount}' }],
@@ -267,7 +261,7 @@ describe('phase 34 table rendering', () => {
     expect(tableContents).toEqual(['10', '20']);
   });
 
-  it('splits tall tables across pages and repeats header rows', () => {
+  it('splits tall tables across pages without repeating internal table rows', () => {
     const template = createDefaultTemplate('Table Header Repeat');
     const page = template.pages[0];
     page.height = 70;
@@ -287,17 +281,17 @@ describe('phase 34 table rendering', () => {
         columns: [{ id: 'name', header: 'Name', field: 'name', width: 80, cellType: 'text' }],
         rowCount: 7,
         columnCount: 1,
-        headerRowsCount: 1,
-        footerRowsCount: 0,
-        headerHeight: 8,
         rowHeight: 10,
         showBorder: true,
         canBreak: true,
-        cells: Array.from({ length: 6 }, (_, index) => ({
-          row: index + 1,
-          column: 0,
-          text: `Row ${index + 1}`,
-        })),
+        cells: [
+          { row: 0, column: 0, text: 'Name' },
+          ...Array.from({ length: 6 }, (_, index) => ({
+            row: index + 1,
+            column: 0,
+            text: `Row ${index + 1}`,
+          })),
+        ],
       } as TableComponent],
     }];
 
@@ -309,26 +303,25 @@ describe('phase 34 table rendering', () => {
     expect(firstPageTable).toMatchObject({
       type: 'table',
       rows: [
-        [{ content: 'Name', isHeader: true }],
+        [{ content: 'Name' }],
         [{ content: 'Row 1' }],
         [{ content: 'Row 2' }],
         [{ content: 'Row 3' }],
         [{ content: 'Row 4' }],
         [{ content: 'Row 5' }],
       ],
-      height: 58,
+      height: 60,
     });
     expect(secondPageTable).toMatchObject({
       type: 'table',
       rows: [
-        [{ content: 'Name', row: 0, isHeader: true }],
-        [{ content: 'Row 6', row: 1 }],
+        [{ content: 'Row 6', row: 0 }],
       ],
-      height: 18,
+      height: 10,
     });
   });
 
-  it('keeps table footer rows only on the final split page', () => {
+  it('splits former footer rows as normal table rows', () => {
     const template = createDefaultTemplate('Table Footer Split');
     const page = template.pages[0];
     page.height = 70;
@@ -348,9 +341,6 @@ describe('phase 34 table rendering', () => {
         columns: [{ id: 'name', header: 'Name', field: 'name', width: 80, cellType: 'text' }],
         rowCount: 8,
         columnCount: 1,
-        headerRowsCount: 1,
-        footerRowsCount: 1,
-        headerHeight: 8,
         rowHeight: 10,
         showBorder: true,
         canBreak: true,
@@ -373,7 +363,7 @@ describe('phase 34 table rendering', () => {
 
     expect(firstPageRows?.flat().map(cell => cell.content)).not.toContain('Grand Total');
     expect(lastPageRows?.flat().map(cell => cell.content)).toContain('Grand Total');
-    expect(lastPageRows?.flat().map(cell => cell.row)).toEqual([0, 1, 2]);
+    expect(lastPageRows?.flat().map(cell => cell.row)).toEqual([0, 1]);
   });
 
   it('places split table chunks after repeated page headers', () => {
@@ -404,9 +394,6 @@ describe('phase 34 table rendering', () => {
           columns: [{ id: 'name', header: 'Name', field: 'name', width: 80, cellType: 'text' }],
           rowCount: 7,
           columnCount: 1,
-          headerRowsCount: 1,
-          footerRowsCount: 0,
-          headerHeight: 8,
           rowHeight: 10,
           showBorder: true,
           canBreak: true,
@@ -447,9 +434,6 @@ describe('phase 34 table rendering', () => {
         columns: [{ id: 'name', header: 'Name', field: 'name', width: 80, cellType: 'text' }],
         rowCount: 7,
         columnCount: 1,
-        headerRowsCount: 1,
-        footerRowsCount: 0,
-        headerHeight: 8,
         rowHeight: 10,
         showBorder: true,
         canBreak: true,
@@ -493,17 +477,17 @@ describe('phase 34 table rendering', () => {
         columns: [{ id: 'name', header: 'Name', field: 'name', width: 80, cellType: 'text' }],
         rowCount: 7,
         columnCount: 1,
-        headerRowsCount: 1,
-        footerRowsCount: 0,
-        headerHeight: 8,
         rowHeight: 10,
         showBorder: true,
         canBreak: false,
-        cells: Array.from({ length: 6 }, (_, index) => ({
-          row: index + 1,
-          column: 0,
-          text: `Row ${index + 1}`,
-        })),
+        cells: [
+          { row: 0, column: 0, text: 'Name' },
+          ...Array.from({ length: 6 }, (_, index) => ({
+            row: index + 1,
+            column: 0,
+            text: `Row ${index + 1}`,
+          })),
+        ],
       } as TableComponent],
     }];
 
@@ -514,7 +498,7 @@ describe('phase 34 table rendering', () => {
     expect(table).toMatchObject({
       type: 'table',
       rows: [
-        [{ content: 'Name', isHeader: true }],
+        [{ content: 'Name' }],
         [{ content: 'Row 1' }],
         [{ content: 'Row 2' }],
         [{ content: 'Row 3' }],
@@ -522,7 +506,7 @@ describe('phase 34 table rendering', () => {
         [{ content: 'Row 5' }],
         [{ content: 'Row 6' }],
       ],
-      height: 68,
+      height: 70,
     });
   });
 });

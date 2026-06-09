@@ -4,7 +4,7 @@ import { band, makeTemplate } from './phase-2-helpers';
 import type { ReportComponent } from '../src';
 
 describe('Phase 29 table render contract', () => {
-  it('renders table headers and data band row values into the render document', () => {
+  it('renders table rows without header or footer row semantics', () => {
     const headerTable: ReportComponent = {
       id: 'table-header',
       type: 'table',
@@ -17,7 +17,6 @@ describe('Phase 29 table render contract', () => {
       rows: [{
         id: 'header-row',
         height: 8,
-        role: 'header',
         cells: [
           { id: 'h-name', text: 'Name', width: 50 },
           { id: 'h-salary', text: 'Salary', width: 30 },
@@ -69,7 +68,9 @@ describe('Phase 29 table render contract', () => {
       [['Alice', '98000']],
       [['Ben', '91000']],
     ]);
-    expect(tables[0].rows[0][0]).toMatchObject({ isHeader: true, height: 8 });
+    expect(tables[0].rows[0][0]).toMatchObject({ height: 8 });
+    expect(tables[0].rows[0][0].isHeader).toBeUndefined();
+    expect(tables[0].rows[0][0].isFooter).toBeUndefined();
     expect(tables[1].rows[0][0]).toMatchObject({ height: 8 });
   });
 });

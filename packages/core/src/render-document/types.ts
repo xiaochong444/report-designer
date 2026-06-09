@@ -143,8 +143,6 @@ export interface RenderTableCell {
   rowSpan: number;
   colSpan: number;
   height: number;
-  isHeader?: boolean;
-  isFooter?: boolean;
   style?: RenderStyle;
 }
 
