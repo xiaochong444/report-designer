@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { renderReport } from '@report-designer/core';
+import {
+  cloneReportTemplate,
+  createEventContext,
+  createEventLogCollector,
+  createEventRuntimeState,
+  renderReport,
+  runEventScript,
+} from '@report-designer/core';
+import type { RenderDocument, RenderTable, ReportTemplate, TableComponent } from '@report-designer/core';
 import { sampleReports } from '../templates';
 import {
   clothingOrderDynamicSizeData,
@@ -8,6 +16,53 @@ import {
 
 function allTemplateComponents() {
   return clothingOrderDynamicSizeTemplate.pages.flatMap(page => page.bands.flatMap(band => band.components));
+}
+
+function templateComponents(report: ReportTemplate) {
+  return report.pages.flatMap(page => page.bands.flatMap(band => band.components));
+}
+
+function runBeforeDataTemplate(): ReportTemplate {
+  const report = cloneReportTemplate(clothingOrderDynamicSizeTemplate as ReportTemplate);
+  const target = { ownerType: 'report' as const, ownerId: report.id, eventName: 'beforeData' as const };
+  const log = createEventLogCollector(target);
+  const runtimeState = createEventRuntimeState();
+  const ctx = createEventContext({
+    report,
+    data: clothingOrderDynamicSizeData as any,
+    log,
+    target,
+    runtime: runtimeState,
+  });
+
+  runEventScript({
+    event: report.events?.beforeData,
+    ctx,
+    target,
+    eventLogs: log,
+    runtimeState,
+  });
+
+  return report;
+}
+
+function findTemplateTable(report: ReportTemplate, name: string): TableComponent {
+  const table = templateComponents(report).find(
+    (component): component is TableComponent => component.type === 'table' && component.name === name,
+  );
+
+  expect(table).toBeDefined();
+  return table!;
+}
+
+function findRenderedTable(document: RenderDocument, id: string): RenderTable {
+  const table = document.pages
+    .flatMap(page => page.items)
+    .flatMap(item => item.components)
+    .find((component): component is RenderTable => component.type === 'table' && component.id === id);
+
+  expect(table).toBeDefined();
+  return table!;
 }
 
 function renderedText(document: any): string[] {
@@ -71,5 +126,63 @@ describe('phase 45 clothing order dynamic size example', () => {
       '特种绣花针织裤',
       '1095',
     ]));
+  });
+
+  it('expands dynamic size header and detail tables with aligned structure', () => {
+    const sizeGroups = clothingOrderDynamicSizeData.clothingOrder.sizeGroups;
+    const fixedBeforeColumnCount = 4;
+    const fixedAfterColumnCount = 3;
+    const sizeColumnCount = Math.max(...sizeGroups.map(group => group.sizes.length));
+    const totalColumnCount = fixedBeforeColumnCount + sizeColumnCount + fixedAfterColumnCount;
+
+    const eventReport = runBeforeDataTemplate();
+    const eventHeaderTable = findTemplateTable(eventReport, 'OrderSizeHeaderTable');
+    const eventDetailTable = findTemplateTable(eventReport, 'OrderSizeDetailTable');
+    const detailCells = eventDetailTable.rows?.[0]?.cells ?? [];
+
+    expect(eventHeaderTable.rows).toHaveLength(sizeGroups.length);
+    expect(eventHeaderTable.columnCount).toBe(totalColumnCount);
+    expect(eventDetailTable.columnCount).toBe(totalColumnCount);
+    expect(detailCells[fixedBeforeColumnCount]?.text).toBe('{S1}');
+    expect(detailCells[fixedBeforeColumnCount + 1]?.text).toBe('{S2}');
+
+    const document = renderReport(clothingOrderDynamicSizeTemplate, clothingOrderDynamicSizeData as any);
+    const renderedHeaderTable = findRenderedTable(document, 'clothing-size-header-table');
+    const renderedDetailTable = findRenderedTable(document, 'clothing-size-detail-table');
+    const headerFirstRow = renderedHeaderTable.rows[0] ?? [];
+    const detailRow = renderedDetailTable.rows[0] ?? [];
+
+    expect(renderedHeaderTable.rows).toHaveLength(sizeGroups.length);
+    expect(headerFirstRow).toHaveLength(detailRow.length);
+    expect(headerFirstRow).toHaveLength(totalColumnCount);
+    expect(renderedHeaderTable.columns).toHaveLength(renderedDetailTable.columns.length);
+    expect(renderedHeaderTable.columns).toHaveLength(totalColumnCount);
+
+    const fixedColumnIndexes = [
+      0,
+      1,
+      2,
+      3,
+      totalColumnCount - 3,
+      totalColumnCount - 2,
+      totalColumnCount - 1,
+    ];
+    expect(fixedColumnIndexes.map(index => headerFirstRow[index]?.rowSpan)).toEqual(
+      Array.from({ length: fixedColumnIndexes.length }, () => sizeGroups.length),
+    );
+    expect(fixedColumnIndexes.map(index => headerFirstRow[index]?.content)).toEqual([
+      '款号',
+      '品名',
+      '吊牌价',
+      '颜色',
+      '总数量',
+      '价格',
+      '金额',
+    ]);
+
+    const headerContents = renderedHeaderTable.rows.flatMap(row => row.map(cell => cell.content));
+    expect(headerContents).toEqual(expect.arrayContaining(['80', '90']));
+    expect(detailRow[fixedBeforeColumnCount]?.content).toBe(String(clothingOrderDynamicSizeData.clothingOrder.items[0].S1));
+    expect(detailRow[fixedBeforeColumnCount + 1]?.content).toBe(String(clothingOrderDynamicSizeData.clothingOrder.items[0].S2));
   });
 });
