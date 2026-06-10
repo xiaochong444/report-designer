@@ -521,6 +521,7 @@ export type DesignerMessageKey =
   | 'richText.bulletList'
   | 'richText.orderedList'
   | 'richText.clearFormat'
+  | 'richText.edit'
   | 'richText.save'
   | 'richText.cancel'
   | 'richText.editor'
@@ -1209,6 +1210,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'richText.bulletList': '项目符号',
     'richText.orderedList': '编号列表',
     'richText.clearFormat': '清除格式',
+    'richText.edit': '编辑富文本',
     'richText.save': '保存富文本',
     'richText.cancel': '取消富文本',
     'richText.editor': '富文本编辑器',
@@ -1894,6 +1896,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'richText.bulletList': 'Bullet list',
     'richText.orderedList': 'Numbered list',
     'richText.clearFormat': 'Clear format',
+    'richText.edit': 'Edit rich text',
     'richText.save': 'Save rich text',
     'richText.cancel': 'Cancel rich text',
     'richText.editor': 'Rich text editor',

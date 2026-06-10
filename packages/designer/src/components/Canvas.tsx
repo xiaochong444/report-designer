@@ -1,8 +1,9 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
 import { flushSync } from 'react-dom';
-import { Dropdown } from 'antd';
+import { Button, Dropdown, Modal, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
-import { sanitizeRichHtml, type ReportComponent, type Band, type BandType, type BorderConfig, type ChartComponent, type ChartDataPoint, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type RichTextDocument, type TableCell, type TableComponent } from '@report-designer/core';
+import { EditOutlined } from '@ant-design/icons';
+import { sanitizeRichHtml, type ReportComponent, type Band, type BandType, type BorderConfig, type ChartComponent, type ChartDataPoint, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type TableCell, type TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import type { TableCellSelection } from '../store/designer-store';
 import { normalizeTable, resolveCollapsedCellBorder, resolveTableCellStyle, resolveTableRowCellWidths } from '../table/table-structure';
@@ -38,6 +39,15 @@ function pxToMm(px: number, zoom = 1): number { return Math.round(px / (MM_TO_PX
 function elementFromPointSafe(clientX: number, clientY: number): Element | null {
   if (typeof document.elementFromPoint !== 'function') return null;
   return document.elementFromPoint(clientX, clientY);
+}
+
+function isEditableKeyboardTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  const tag = target.tagName;
+  if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return true;
+  if (target.isContentEditable || target.closest('[contenteditable="true"]')) return true;
+  if (target.closest('[role="textbox"]')) return true;
+  return Boolean(target.closest('.ant-modal'));
 }
 
 // ---- Interaction Mode (互斥) ----
@@ -706,13 +716,12 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       // 忽略编辑模式
-      const tag = (e.target as HTMLElement).tagName;
-      if (tag === 'INPUT' || tag === 'TEXTAREA') return;
+      if (isEditableKeyboardTarget(e.target)) return;
 
       const isCtrl = e.ctrlKey || e.metaKey;
 
-      // Delete / Backspace: 删除
-      if (e.key === 'Delete' || e.key === 'Backspace') {
+      // Delete: 删除
+      if (e.key === 'Delete') {
         e.preventDefault();
         if (selectedTableCell) {
           clearSelectedTableCell(selectedTableCell.startRow, selectedTableCell.startColumn);
@@ -1792,6 +1801,9 @@ const BandView: React.FC<{
   const [editId, setEditId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<'text' | 'richtext' | null>(null);
   const [editText, setEditText] = useState('');
+  const richTextEditComponent = editKind === 'richtext' && editId
+    ? band.components.find((component) => component.id === editId && component.type === 'richtext')
+    : null;
   const selectBand = useDesignerStore((state) => state.selectBand);
   const selectComponents = useDesignerStore((state) => state.selectComponents);
   const insertBandAfter = useDesignerStore((state) => state.insertBandAfter);
@@ -1890,7 +1902,6 @@ const BandView: React.FC<{
             selectedTableCell={selectedTableCell?.tableId === comp.id ? selectedTableCell : null}
             editingKind={editId === comp.id ? editKind : null}
             editText={editText}
-            fonts={fonts}
             onStartTextEdit={() => { setEditId(comp.id); setEditKind('text'); setEditText((comp as any).text || ''); }}
             onStartRichTextEdit={() => { setEditId(comp.id); setEditKind('richtext'); }}
             onFinishEdit={(text) => {
@@ -1898,21 +1909,39 @@ const BandView: React.FC<{
               setEditId(null);
               setEditKind(null);
             }}
-            onFinishRichText={(value) => {
+            onEditTextChange={setEditText} />
+        ))}
+      </div>
+
+      <Modal
+        open={Boolean(richTextEditComponent)}
+        title={t('richText.edit')}
+        width={820}
+        footer={null}
+        destroyOnHidden
+        onCancel={() => { setEditId(null); setEditKind(null); }}
+        styles={{ body: { paddingTop: 8 } }}
+      >
+        {richTextEditComponent ? (
+          <RichTextInlineEditor
+            html={String((richTextEditComponent as any).html ?? '')}
+            document={(richTextEditComponent as any).document}
+            fonts={fonts}
+            onSave={(value) => {
               onUpdateComponent(
                 currentPageId,
                 band.id,
-                comp.id,
+                richTextEditComponent.id,
                 { html: value.html, document: value.document },
-                { html: (comp as any).html, document: (comp as any).document },
+                { html: (richTextEditComponent as any).html, document: (richTextEditComponent as any).document },
               );
               setEditId(null);
               setEditKind(null);
             }}
-            onCancelEdit={() => { setEditId(null); setEditKind(null); }}
-            onEditTextChange={setEditText} />
-        ))}
-      </div>
+            onCancel={() => { setEditId(null); setEditKind(null); }}
+          />
+        ) : null}
+      </Modal>
     </div>
   );
 };
@@ -2058,11 +2087,8 @@ const ComponentView: React.FC<{
   selected: boolean; editing: boolean; editText: string;
   selectedTableCell: TableCellSelection | null;
   editingKind: 'text' | 'richtext' | null;
-  fonts?: ReportFont[];
   onStartTextEdit: () => void; onStartRichTextEdit: () => void;
   onFinishEdit: (text: string) => void;
-  onFinishRichText: (value: { html: string; document: RichTextDocument }) => void;
-  onCancelEdit: () => void;
   onEditTextChange: (t: string) => void;
 }> = ({
   component,
@@ -2072,12 +2098,9 @@ const ComponentView: React.FC<{
   editText,
   selectedTableCell,
   editingKind,
-  fonts,
   onStartTextEdit,
   onStartRichTextEdit,
   onFinishEdit,
-  onFinishRichText,
-  onCancelEdit,
   onEditTextChange,
 }) => {
   const { t } = useDesignerI18n();
@@ -2121,14 +2144,6 @@ const ComponentView: React.FC<{
             onBlur={() => onFinishEdit(editText)}
             onPointerDown={(e) => e.stopPropagation()}
             style={{ width: '100%', height: '100%', border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: 'inherit', color: 'inherit' }} />
-        ) : editing && editingKind === 'richtext' && component.type === 'richtext' ? (
-          <RichTextInlineEditor
-            html={String((component as any).html ?? '')}
-            document={(component as any).document}
-            fonts={fonts}
-            onSave={onFinishRichText}
-            onCancel={onCancelEdit}
-          />
         ) : getCompContent(component, bandId, selectedTableCell, {
           imagePlaceholder: t('canvas.imagePlaceholder'),
           subreportPlaceholder: t('canvas.subreportPlaceholder'),
@@ -2148,6 +2163,38 @@ const ComponentView: React.FC<{
             zIndex: 200, cursor: getCursorForHandle(handle),
           }} />
       ))}
+
+      {selected && !editing && component.type === 'richtext' ? (
+        <Tooltip title={t('richText.edit')}>
+          <Button
+            aria-label={t('richText.edit')}
+            data-testid="designer-richtext-edit-action"
+            size="small"
+            type="primary"
+            shape="circle"
+            icon={<EditOutlined />}
+            onMouseDown={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+            }}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              onStartRichTextEdit();
+            }}
+            style={{
+              position: 'absolute',
+              right: -12,
+              top: -12,
+              width: 24,
+              height: 24,
+              minWidth: 24,
+              zIndex: 240,
+              boxShadow: '0 2px 8px rgba(0,0,0,0.18)',
+            }}
+          />
+        </Tooltip>
+      ) : null}
     </div>
   );
 };

@@ -72,6 +72,7 @@ export const RichTextInlineEditor: React.FC<RichTextInlineEditorProps> = ({
       attributes: {
         'aria-label': t('richText.editor'),
         class: 'rd-richtext-inline-surface',
+        style: 'outline: none;',
       },
     },
   });
@@ -137,6 +138,7 @@ export const RichTextInlineEditor: React.FC<RichTextInlineEditorProps> = ({
       }}
       onPointerDown={event => event.stopPropagation()}
       onMouseDown={event => event.stopPropagation()}
+      onContextMenu={event => event.stopPropagation()}
     >
       <Space
         size={4}

@@ -17,9 +17,10 @@ const tiptapMock = vi.hoisted(() => ({
 vi.mock('@tiptap/react', async () => {
   const ReactModule = await import('react');
 
-  const createEditor = (options: { content?: string; onUpdate?: (payload: { editor: any }) => void }) => {
+  const createEditor = (options: { content?: string; editorProps?: { attributes?: Record<string, string> }; onUpdate?: (payload: { editor: any }) => void }) => {
     const editor: any = {
       text: typeof options.content === 'string' ? options.content.replace(/<[^>]+>/g, '') : 'Old rich text',
+      attributes: options.editorProps?.attributes ?? {},
       getHTML: vi.fn(() => `<p>${editor.text}</p><script>alert(1)</script>`),
       getJSON: vi.fn(() => ({
         type: 'doc',
@@ -62,12 +63,18 @@ vi.mock('@tiptap/react', async () => {
 
   return {
     useEditor: vi.fn(createEditor),
-    EditorContent: ({ editor }: { editor: any }) => ReactModule.createElement('textarea', {
+    EditorContent: ({ editor }: { editor: any }) => ReactModule.createElement('div', {
       'aria-label': '富文本编辑器',
       'data-testid': 'richtext-editor-content',
-      value: editor?.text ?? '',
-      onChange: (event: React.ChangeEvent<HTMLTextAreaElement>) => editor?.commands.setContent(event.target.value),
-    }),
+      className: editor?.attributes?.class,
+      contentEditable: true,
+      suppressContentEditableWarning: true,
+      style: editor?.attributes?.style ? Object.fromEntries(editor.attributes.style.split(';').filter(Boolean).map((rule: string) => {
+        const [key, value] = rule.split(':');
+        return [key.trim(), value.trim()];
+      })) : undefined,
+      onInput: (event: React.FormEvent<HTMLDivElement>) => editor?.commands.setContent(event.currentTarget.textContent ?? ''),
+    }, editor?.text ?? ''),
   };
 });
 
@@ -171,7 +178,7 @@ describe('phase 26 report font registry and rich text editor shell', () => {
     expect(screen.queryByLabelText('字体名称')).not.toBeInTheDocument();
   });
 
-  it('opens a rich text inline editor with report fonts and saves html plus document', async () => {
+  it('opens rich text editing in a dialog from double click and the selected edit action', async () => {
     const template = createDefaultTemplate('Phase 26 Rich Text');
     template.fonts = [
       ...(template.fonts ?? []),
@@ -191,11 +198,30 @@ describe('phase 26 report font registry and rich text editor shell', () => {
 
     fireEvent.doubleClick(await screen.findByTestId('designer-component-richtext-content'));
 
-    expect(await screen.findByTestId('richtext-inline-editor')).toBeInTheDocument();
+    const dialogEditor = await screen.findByTestId('richtext-inline-editor');
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(await screen.findByText('编辑富文本')).toBeInTheDocument();
+    expect(dialogEditor.closest('[data-component-id]')).toBeNull();
+    fireEvent.contextMenu(screen.getByLabelText('富文本编辑器'));
+    expect(screen.queryByTestId('designer-band-context-menu')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('富文本编辑器')).toHaveStyle({ outline: 'none' });
     openSelect('富文本字体');
     expect(await screen.findByText('Brand Song')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('富文本编辑器'), { target: { value: '新的富文本内容' } });
+    act(() => {
+      useDesignerStore.getState().selectComponents([component.id]);
+    });
+    fireEvent.keyDown(screen.getByLabelText('富文本编辑器'), { key: 'Backspace' });
+    expect(
+      useDesignerStore
+        .getState()
+        .template.pages[0].bands.flatMap(band => band.components)
+        .some(item => item.id === component.id),
+    ).toBe(true);
+
+    const editor = screen.getByLabelText('富文本编辑器');
+    editor.textContent = '新的富文本内容';
+    fireEvent.input(editor);
     fireEvent.click(screen.getByRole('button', { name: '保存富文本' }));
 
     await waitFor(() => {
@@ -207,5 +233,17 @@ describe('phase 26 report font registry and rich text editor shell', () => {
       expect(saved?.html).not.toContain('<script>');
       expect(saved?.document).toMatchObject({ type: 'doc' });
     });
+
+    act(() => {
+      useDesignerStore.getState().selectComponents([component.id]);
+    });
+
+    const editButton = await screen.findByRole('button', { name: '编辑富文本' });
+    expect(editButton.closest('[data-component-id]')).toBeNull();
+    fireEvent.click(editButton);
+
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    expect(await screen.findByText('编辑富文本')).toBeInTheDocument();
+    expect(await screen.findByTestId('richtext-inline-editor')).toBeInTheDocument();
   });
 });

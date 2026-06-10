@@ -104,4 +104,18 @@ describe('phase 38 canvas editing shortcuts', () => {
 
     expect(components().map(item => item.id)).toEqual(['text-a', 'text-b']);
   });
+
+  it('keeps selected components on Backspace and deletes them on Delete', () => {
+    loadCanvasTemplate();
+    useDesignerStore.getState().selectComponents(['text-a']);
+    render(<Canvas />);
+
+    fireEvent.keyDown(window, { key: 'Backspace' });
+
+    expect(components().map(item => item.id)).toEqual(['text-a', 'text-b']);
+
+    fireEvent.keyDown(window, { key: 'Delete' });
+
+    expect(components().map(item => item.id)).toEqual(['text-b']);
+  });
 });
