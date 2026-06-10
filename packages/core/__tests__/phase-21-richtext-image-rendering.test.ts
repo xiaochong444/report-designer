@@ -71,6 +71,7 @@ describe('phase 21 rich text and image rendering', () => {
         dataBand: { dataSourceId: 'orders' },
         components: [
           { id: 'barcode1', type: 'barcode', name: 'barcode1', x: 0, y: 0, width: 40, height: 12, value: '{orders.Code}', format: 'CODE128', showText: true },
+          { id: 'qrcode1', type: 'qrcode', name: 'qrcode1', x: 42, y: 0, width: 14, height: 14, value: '{orders.Url}', format: 'QR_CODE' } as any,
           { id: 'check1', type: 'checkbox', name: 'check1', x: 0, y: 14, width: 40, height: 8, checked: '{orders.Paid}', label: '{orders.Label}' },
           { id: 'line1', type: 'line', name: 'line1', x: 0, y: 24, width: 40, height: 5, startX: 0, startY: 0, endX: 40, endY: 5, lineColor: '#ff0000', lineWidth: 0.3, lineStyle: 'dashed' },
           { id: 'shape1', type: 'shape', name: 'shape1', x: 0, y: 32, width: 20, height: 12, shapeType: 'roundRect', fillColor: '#eeeeee', borderColor: '#333333', borderWidth: 0.4, borderStyle: 'solid' },
@@ -81,12 +82,13 @@ describe('phase 21 rich text and image rendering', () => {
     ];
 
     const document = renderReport(template, {
-      orders: [{ Code: 'ORD-1001', Paid: true, Label: 'Paid' }],
+      orders: [{ Code: 'ORD-1001', Url: 'https://example.test/order/ORD-1001', Paid: true, Label: 'Paid' }],
     });
 
     const components = document.pages[0].items[0].components;
     expect(components).toEqual(expect.arrayContaining([
       expect.objectContaining({ id: 'barcode1', type: 'barcode', value: 'ORD-1001', format: 'CODE128', showText: true }),
+      expect.objectContaining({ id: 'qrcode1', type: 'qrcode', value: 'https://example.test/order/ORD-1001', format: 'QR_CODE' }),
       expect.objectContaining({ id: 'check1', type: 'checkbox', checked: true, label: 'Paid' }),
       expect.objectContaining({ id: 'line1', type: 'line', startX: 0, startY: 0, endX: 40, endY: 5, lineColor: '#ff0000', lineWidth: 0.3, lineStyle: 'dashed' }),
       expect.objectContaining({ id: 'shape1', type: 'shape', shapeType: 'roundRect' }),

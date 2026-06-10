@@ -263,6 +263,17 @@ describe('Phase 4 print frame', () => {
         style: {},
       },
       {
+        id: 'qrcode1',
+        type: 'qrcode',
+        x: 56,
+        y: 10,
+        width: 18,
+        height: 18,
+        value: 'https://example.test/order/ORD-1001',
+        format: 'QR_CODE',
+        style: {},
+      } as any,
+      {
         id: 'check1',
         type: 'checkbox',
         x: 10,
@@ -309,6 +320,10 @@ describe('Phase 4 print frame', () => {
 
     expect(html).toContain('class="rd-print-component rd-print-barcode"');
     expect(html).toContain('ORD-1001');
+    expect(html).toContain('class="rd-print-component rd-print-qrcode"');
+    expect(html).toContain('data-format="QR_CODE"');
+    expect(html).toContain('<svg');
+    expect(html).not.toContain('repeating-linear-gradient');
     expect(html).toContain('class="rd-print-component rd-print-checkbox"');
     expect(html).toContain('Paid');
     expect(html).toContain('class="rd-print-component rd-print-line"');

@@ -1,11 +1,12 @@
 import React from 'react';
 import { flushSync } from 'react-dom';
 import { createRoot, type Root } from 'react-dom/client';
-import { buildReportFontCss, sanitizeRichHtml, type PageBorder, type PageWatermark, type RenderBarcode, type RenderChart, type RenderCheckbox, type RenderComponentBox, type RenderDocument, type RenderLine, type RenderTableCell } from '@report-designer/core';
+import { buildReportFontCss, sanitizeRichHtml, type PageBorder, type PageWatermark, type RenderBarcode, type RenderChart, type RenderCheckbox, type RenderComponentBox, type RenderDocument, type RenderLine, type RenderQRCode, type RenderTableCell } from '@report-designer/core';
 import { resolveChartSnapshots } from '../renderers/chart/chart-snapshot';
 import { printableBorderWidthMm } from '../renderers/border-width';
 import { RenderDocumentView } from '../renderers/dom/RenderDocumentView';
 import { tableCellBackgroundColor, tablePrintBorderDeclarations } from '../renderers/table-style';
+import { renderCodeSymbolSvg } from '../code-symbols';
 
 type RenderTextStyle = NonNullable<Extract<RenderComponentBox, { type: 'text' }>['style']> & {
   padding?: { top: number; right: number; bottom: number; left: number };
@@ -210,7 +211,14 @@ function renderComponentHtml(component: RenderComponentBox, bandX: number, bandY
     const foregroundColor = safeCssColor(barcode.foregroundColor, '#000000');
     const textColor = safeCssColor(barcode.font?.color, foregroundColor);
     const textStyle = fontCssDeclarations(barcode.font, textColor, 10, 'monospace');
-    return `<div class="rd-print-component rd-print-barcode" ${dataAttribute} style="${style}overflow:hidden;${textStyle}display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,${foregroundColor} 0 1px,#fff 1px 3px);" data-format="${escapeAttribute(String(barcode.format ?? 'CODE128'))}" aria-label="${escapeAttribute(barcode.value)}">${barcode.showText ? escapeHtml(barcode.value) : ''}</div>`;
+    const symbol = renderCodeSymbolSvg({ type: 'barcode', value: barcode.value, format: barcode.format ?? 'CODE128', foregroundColor });
+    return `<div class="rd-print-component rd-print-barcode" ${dataAttribute} style="${style}overflow:hidden;display:flex;flex-direction:column;background:#fff;" data-format="${escapeAttribute(String(barcode.format ?? 'CODE128'))}" aria-label="${escapeAttribute(barcode.value)}"><div style="width:100%;height:${barcode.showText ? '75%' : '100%'};min-height:0;">${symbol.svg}</div>${barcode.showText ? `<div style="${textStyle}line-height:1.1;text-align:center;">${escapeHtml(barcode.value)}</div>` : ''}</div>`;
+  }
+  if (component.type === 'qrcode' && 'value' in component) {
+    const qrcode = component as RenderQRCode;
+    const foregroundColor = safeCssColor(qrcode.foregroundColor, '#000000');
+    const symbol = renderCodeSymbolSvg({ type: 'qrcode', value: qrcode.value, format: qrcode.format ?? 'QR_CODE', foregroundColor });
+    return `<div class="rd-print-component rd-print-qrcode" ${dataAttribute} style="${style}overflow:hidden;background:#fff;" data-format="${escapeAttribute(String(qrcode.format ?? 'QR_CODE'))}" aria-label="${escapeAttribute(qrcode.value)}">${symbol.svg}</div>`;
   }
   if (component.type === 'checkbox' && 'checked' in component) {
     const checkbox = component as RenderCheckbox;

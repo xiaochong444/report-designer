@@ -321,6 +321,7 @@ export type DesignerMessageKey =
   | 'leftPanel.componentImage'
   | 'leftPanel.componentChart'
   | 'leftPanel.componentBarcode'
+  | 'leftPanel.componentQRCode'
   | 'leftPanel.componentTable'
   | 'leftPanel.componentCheckbox'
   | 'leftPanel.componentRichText'
@@ -1008,6 +1009,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.componentImage': '图片',
     'leftPanel.componentChart': '图表',
     'leftPanel.componentBarcode': '条码',
+    'leftPanel.componentQRCode': '二维码',
     'leftPanel.componentTable': '表格',
     'leftPanel.componentCheckbox': '复选框',
     'leftPanel.componentRichText': '富文本',
@@ -1692,6 +1694,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.componentImage': 'Image',
     'leftPanel.componentChart': 'Chart',
     'leftPanel.componentBarcode': 'Barcode',
+    'leftPanel.componentQRCode': 'QR Code',
     'leftPanel.componentTable': 'Table',
     'leftPanel.componentCheckbox': 'Checkbox',
     'leftPanel.componentRichText': 'Rich Text',

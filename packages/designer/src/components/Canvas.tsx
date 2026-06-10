@@ -11,6 +11,7 @@ import { formatDataFieldExpression } from '../data-source-fields';
 import { RichTextInlineEditor } from './richtext/RichTextInlineEditor';
 import { useDesignerI18n } from '../i18n';
 import { BAND_COLORS, BAND_LABEL_KEYS } from '../band-metadata';
+import { renderCodeSymbolSvg } from '@report-designer/viewer';
 
 const MM_TO_PX = 3.78;
 const SNAP_THRESHOLD = 5;
@@ -2280,6 +2281,7 @@ function getCompContent(
     case 'barcode': {
       const t = comp as any;
       const value = String(t.value || '');
+      const symbol = renderCodeSymbolSvg({ type: 'barcode', value, format: t.format || 'CODE128', foregroundColor: t.foregroundColor });
       return (
         <div
           data-testid="designer-component-barcode-content"
@@ -2290,7 +2292,6 @@ function getCompContent(
             flexDirection: 'column',
             justifyContent: 'stretch',
             overflow: 'hidden',
-            border: '1px solid rgba(0,0,0,0.2)',
             backgroundColor: '#fff',
           }}
         >
@@ -2299,8 +2300,8 @@ function getCompContent(
             style={{
               flex: 1,
               minHeight: 0,
-              background: 'repeating-linear-gradient(90deg, #111 0 1px, transparent 1px 3px, #111 3px 5px, transparent 5px 8px)',
             }}
+            dangerouslySetInnerHTML={{ __html: symbol.svg }}
           />
           {t.showText ? (
             <div style={{ fontSize: 9, lineHeight: '11px', textAlign: 'center', color: '#111', fontFamily: 'monospace' }}>
@@ -2308,6 +2309,17 @@ function getCompContent(
             </div>
           ) : null}
         </div>
+      );
+    }
+    case 'qrcode': {
+      const t = comp as any;
+      const symbol = renderCodeSymbolSvg({ type: 'qrcode', value: String(t.value || ''), format: t.format || 'QR_CODE', foregroundColor: t.foregroundColor });
+      return (
+        <div
+          data-testid="designer-component-qrcode-content"
+          style={{ width: '100%', height: '100%', overflow: 'hidden', backgroundColor: '#fff' }}
+          dangerouslySetInnerHTML={{ __html: symbol.svg }}
+        />
       );
     }
     case 'checkbox': {

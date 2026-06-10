@@ -5,6 +5,7 @@ const COMPONENT_NAME_PREFIX: Record<ReportComponent['type'], string> = {
   image: 'Image',
   chart: 'Chart',
   barcode: 'BarCode',
+  qrcode: 'QRCode',
   table: 'Table',
   checkbox: 'CheckBox',
   richtext: 'RichText',

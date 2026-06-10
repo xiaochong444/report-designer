@@ -51,7 +51,7 @@ describe('Phase 10 ribbon tabs', () => {
     expect(ribbonContent).not.toHaveTextContent('JSON');
     expect(ribbonContent).not.toHaveTextContent('Band wizard');
     expect(ribbonContent).not.toHaveTextContent('Group wizard');
-    for (const name of ['Insert band', 'Text', 'Rich Text', 'Image', 'Table', 'Chart', 'Barcode', 'Checkbox', 'Page #', 'Date/Time', 'Line', 'Shape', 'Panel', 'Subreport']) {
+    for (const name of ['Insert band', 'Text', 'Rich Text', 'Image', 'Table', 'Chart', 'Barcode', 'QR Code', 'Checkbox', 'Page #', 'Date/Time', 'Line', 'Shape', 'Panel', 'Subreport']) {
       expect(screen.getByRole('button', { name })).toHaveTextContent('');
     }
 
@@ -89,6 +89,7 @@ describe('Phase 10 ribbon tabs', () => {
       { label: 'Table', type: 'table' },
       { label: 'Chart', type: 'chart' },
       { label: 'Barcode', type: 'barcode' },
+      { label: 'QR Code', type: 'qrcode' },
       { label: 'Checkbox', type: 'checkbox' },
       { label: 'Page #', type: 'pagenumber' },
       { label: 'Date/Time', type: 'datetime' },

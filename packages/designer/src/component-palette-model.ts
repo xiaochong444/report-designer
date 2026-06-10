@@ -19,6 +19,7 @@ export const COMPONENT_TYPES: ComponentPaletteItem[] = [
   { type: 'table', labelKey: 'leftPanel.componentTable' },
   { type: 'chart', labelKey: 'leftPanel.componentChart' },
   { type: 'barcode', labelKey: 'leftPanel.componentBarcode' },
+  { type: 'qrcode', labelKey: 'leftPanel.componentQRCode' },
   { type: 'checkbox', labelKey: 'leftPanel.componentCheckbox' },
   { type: 'pagenumber', labelKey: 'leftPanel.componentPageNumber' },
   { type: 'datetime', labelKey: 'leftPanel.componentDateTime' },
@@ -30,7 +31,7 @@ export const COMPONENT_TYPES: ComponentPaletteItem[] = [
 
 export const COMPONENT_GROUPS: ComponentPaletteGroup[] = [
   { key: 'common', labelKey: 'leftPanel.groupCommon', types: ['text', 'richtext', 'image', 'table', 'chart'] },
-  { key: 'data', labelKey: 'leftPanel.groupData', types: ['barcode', 'checkbox', 'pagenumber', 'datetime'] },
+  { key: 'data', labelKey: 'leftPanel.groupData', types: ['barcode', 'qrcode', 'checkbox', 'pagenumber', 'datetime'] },
   { key: 'graphics', labelKey: 'leftPanel.groupGraphics', types: ['line', 'shape', 'panel'] },
   { key: 'advanced', labelKey: 'leftPanel.groupAdvanced', types: ['subreport'] },
 ];

@@ -230,6 +230,7 @@ export type ComponentType =
   | 'chart'
   | 'table'
   | 'barcode'
+  | 'qrcode'
   | 'checkbox'
   | 'richtext'
   | 'subreport'
@@ -373,7 +374,8 @@ export interface TableComponent extends ReportComponent {
   format?: TextFormatConfig;
 }
 
-export type BarcodeFormat = 'QR_CODE' | 'CODE128' | 'EAN13' | 'EAN8' | 'UPC' | 'CODE39' | 'ITF14';
+export type BarcodeFormat = 'CODE128' | 'EAN13' | 'EAN8' | 'UPC' | 'CODE39' | 'ITF14';
+export type QRCodeFormat = 'QR_CODE';
 
 export interface BarcodeComponent extends ReportComponent {
   type: 'barcode';
@@ -382,6 +384,13 @@ export interface BarcodeComponent extends ReportComponent {
   showText: boolean;
   foregroundColor?: string;
   font?: FontConfig;
+}
+
+export interface QRCodeComponent extends ReportComponent {
+  type: 'qrcode';
+  value: Expression;
+  format: QRCodeFormat;
+  foregroundColor?: string;
 }
 
 export interface CheckboxComponent extends ReportComponent {
@@ -453,6 +462,7 @@ export type ReportComponentUnion =
   | ChartComponent
   | TableComponent
   | BarcodeComponent
+  | QRCodeComponent
   | CheckboxComponent
   | RichtextComponent
   | SubreportComponent

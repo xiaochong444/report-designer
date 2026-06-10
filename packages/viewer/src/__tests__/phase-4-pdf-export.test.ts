@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { PDFFont, PDFDocument, PDFPage, StandardFonts } from 'pdf-lib';
 import { vi } from 'vitest';
 import { exportRenderDocumentToPDF } from '../export/pdf/export-render-document';
-import { barcodePattern, dataUrlToUint8Array, safePdfText, stripHtmlToPdfText } from '../export/pdf/pdf-component-rendering';
+import { dataUrlToUint8Array, safePdfText, stripHtmlToPdfText } from '../export/pdf/pdf-component-rendering';
+import { BARCODE_FORMATS, QR_CODE_FORMATS, renderCodeSymbolSvg } from '../code-symbols';
 import { makeRenderDocument } from './phase-4-helpers';
 
 describe('Phase 4 PDF export', () => {
@@ -512,8 +513,89 @@ describe('Phase 4 PDF export', () => {
 
     expect(Array.from(bytes.slice(0, 4))).toEqual([137, 80, 78, 71]);
     expect(stripHtmlToPdfText('<p>Hello <strong>PDF</strong></p><script>alert(1)</script>')).toBe('Hello PDF');
-    expect(barcodePattern('ORD-1001')).toEqual(barcodePattern('ORD-1001'));
-    expect(barcodePattern('ORD-1001')).not.toEqual(barcodePattern('ORD-1002'));
+  });
+
+  it('generates standards-based SVG symbols for one-dimensional barcodes and QR codes', () => {
+    expect(BARCODE_FORMATS).toEqual(['CODE128', 'EAN13', 'EAN8', 'UPC', 'CODE39', 'ITF14']);
+    expect(QR_CODE_FORMATS).toEqual(['QR_CODE']);
+
+    const barcode = renderCodeSymbolSvg({ type: 'barcode', value: 'ORD-1001', format: 'CODE128', foregroundColor: '#111111' });
+    const qrcode = renderCodeSymbolSvg({ type: 'qrcode', value: 'https://example.test/order/ORD-1001', format: 'QR_CODE', foregroundColor: '#111111' });
+
+    expect(barcode.ok).toBe(true);
+    expect(barcode.svg).toContain('<svg');
+    expect(barcode.svg).not.toContain('ORD-1001');
+    expect(qrcode.ok).toBe(true);
+    expect(qrcode.svg).toContain('<svg');
+    expect(qrcode.svg).toContain('viewBox');
+  });
+
+  it('lets the barcode generator quantize one-dimensional symbols for the target PDF size', () => {
+    const narrow = renderCodeSymbolSvg({ type: 'barcode', value: 'ORD-1001', format: 'CODE128', foregroundColor: '#111111', widthMm: 40, heightMm: 10 });
+    const wide = renderCodeSymbolSvg({ type: 'barcode', value: 'ORD-1001', format: 'CODE128', foregroundColor: '#111111', widthMm: 80, heightMm: 10 });
+    const viewBoxWidth = (svg: string) => Number(/\bviewBox="0 0 ([\d.]+)/.exec(svg)?.[1] ?? 0);
+
+    expect(narrow.ok).toBe(true);
+    expect(wide.ok).toBe(true);
+    expect(viewBoxWidth(wide.svg)).toBeGreaterThan(viewBoxWidth(narrow.svg));
+  });
+
+  it('centers barcode human-readable text when exporting PDF', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components = [{
+      id: 'barcode-centered',
+      type: 'barcode',
+      x: 30,
+      y: 40,
+      width: 50,
+      height: 16,
+      value: 'ORD-1001',
+      format: 'CODE128',
+      showText: true,
+      style: {},
+    }];
+    const drawText = vi.spyOn(PDFPage.prototype, 'drawText');
+
+    await exportRenderDocumentToPDF(document);
+
+    const textCall = drawText.mock.calls.find(([text]) => text === 'ORD-1001');
+    expect(textCall).toBeDefined();
+    const [, options] = textCall!;
+    const componentLeft = 30 * (72 / 25.4);
+    const componentWidth = 50 * (72 / 25.4);
+    const textWidth = options?.font?.widthOfTextAtSize('ORD-1001', Number(options?.size)) ?? 0;
+    expect(Number(options?.x)).toBeCloseTo(componentLeft + (componentWidth - textWidth) / 2, 1);
+
+    drawText.mockRestore();
+  });
+
+  it('exports one-dimensional barcode bars with generator-provided module widths', async () => {
+    const document = makeRenderDocument();
+    document.pages[0].items[0].components = [{
+      id: 'barcode-bars',
+      type: 'barcode',
+      x: 30,
+      y: 40,
+      width: 60,
+      height: 16,
+      value: 'ORD-1001',
+      format: 'CODE128',
+      showText: false,
+      style: {},
+    }];
+    const drawRectangle = vi.spyOn(PDFPage.prototype, 'drawRectangle');
+
+    await exportRenderDocumentToPDF(document);
+
+    const componentWidth = 60 * (72 / 25.4);
+    const barWidths = drawRectangle.mock.calls
+      .map(([options]) => Number(options?.width))
+      .filter(width => Number.isFinite(width) && width > 0 && width < componentWidth / 8);
+    const uniqueWidths = new Set(barWidths.map(width => width.toFixed(3)));
+    expect(uniqueWidths.size).toBeGreaterThan(1);
+    expect(Math.min(...barWidths)).toBeGreaterThan(0);
+
+    drawRectangle.mockRestore();
   });
 
   it('exports containers and common components from the render document', async () => {
@@ -530,6 +612,7 @@ describe('Phase 4 PDF export', () => {
         { id: 'image-1', type: 'image', x: 35, y: 35, width: 20, height: 20, src: 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lxwQ2wAAAABJRU5ErkJggg==', style: {} },
         { id: 'rich-1', type: 'richtext', x: 60, y: 35, width: 40, height: 10, html: '<strong>Rich</strong> PDF', style: {} },
         { id: 'barcode-1', type: 'barcode', x: 35, y: 60, width: 40, height: 15, value: 'ORD-1001', showText: true, style: {} },
+        { id: 'qrcode-1', type: 'qrcode', x: 35, y: 78, width: 15, height: 15, value: 'https://example.test/order/ORD-1001', format: 'QR_CODE', style: {} } as any,
         { id: 'checkbox-1', type: 'checkbox', x: 80, y: 60, width: 30, height: 8, checked: true, label: 'Paid', style: {} },
         { id: 'line-1', type: 'line', x: 35, y: 82, width: 40, height: 5, lineColor: '#ff0000', lineWidth: 0.3, lineStyle: 'dashed', style: {} },
         { id: 'shape-1', type: 'shape', x: 80, y: 80, width: 20, height: 12, shapeType: 'ellipse', fillColor: '#eeeeee', borderColor: '#333333', borderWidth: 0.4, style: {} },

@@ -16,6 +16,7 @@ import type {
   Page,
   PageNumberComponent,
   PanelComponent,
+  QRCodeComponent,
   BorderConfig,
   FontConfig,
   ReportComponent,
@@ -292,6 +293,22 @@ function layoutComponent(
       showText: barcodeComponent.showText,
       foregroundColor: barcodeComponent.foregroundColor,
       font: barcodeComponent.font,
+      style: buildBaseRenderStyle(component),
+    };
+  }
+
+  if (component.type === 'qrcode') {
+    const qrcodeComponent = component as QRCodeComponent;
+    return {
+      id: component.id,
+      type: 'qrcode',
+      x: options.x + component.x,
+      y: options.y + component.y,
+      width: component.width,
+      height: component.height,
+      value: resolveTemplateValue(qrcodeComponent.value, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
+      format: qrcodeComponent.format,
+      foregroundColor: qrcodeComponent.foregroundColor,
       style: buildBaseRenderStyle(component),
     };
   }

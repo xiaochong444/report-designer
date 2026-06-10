@@ -1,9 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import JsBarcode from 'jsbarcode';
-import { sanitizeRichHtml, type RenderBarcode, type RenderChart, type RenderCheckbox, type RenderComponentBox, type RenderImage, type RenderLine, type RenderRichText, type RenderShape, type RenderTable, type RenderText } from '@report-designer/core';
+import { sanitizeRichHtml, type RenderBarcode, type RenderChart, type RenderCheckbox, type RenderComponentBox, type RenderImage, type RenderLine, type RenderQRCode, type RenderRichText, type RenderShape, type RenderTable, type RenderText } from '@report-designer/core';
 import { tableBorderStyle, tableCellBackgroundColor } from '../table-style';
 import { buildVChartSpec } from '../chart/chart-spec';
 import { printableBorderWidthPx } from '../border-width';
+import { renderCodeSymbolSvg } from '../../code-symbols';
 
 export const MM_TO_PX = 96 / 25.4;
 type RenderTextStyle = NonNullable<RenderText['style']> & {
@@ -64,6 +64,8 @@ export const RenderComponent: React.FC<RenderComponentProps> = ({ component, zoo
       return <CheckboxComponent component={component as RenderCheckbox} style={style} scale={scale} dataProps={dataProps} />;
     case 'barcode':
       return <BarcodeComponent component={component as RenderBarcode} style={style} scale={scale} dataProps={dataProps} />;
+    case 'qrcode':
+      return <QRCodeComponent component={component as RenderQRCode} style={style} dataProps={dataProps} />;
     case 'table':
       return <TableComponent component={component as RenderTable} style={style} scale={scale} dataProps={dataProps} />;
     default:
@@ -250,24 +252,22 @@ const CheckboxComponent: React.FC<{ component: RenderCheckbox; style: React.CSSP
 };
 
 const BarcodeComponent: React.FC<{ component: RenderBarcode; style: React.CSSProperties; scale: number; dataProps: Record<string, string> }> = ({ component, style, scale, dataProps }) => {
-  const ref = useRef<SVGSVGElement | null>(null);
   const foregroundColor = component.foregroundColor ?? '#000000';
   const textColor = component.font?.color ?? foregroundColor;
-  useEffect(() => {
-    if (ref.current) {
-      try {
-        JsBarcode(ref.current, component.value, { format: component.format ?? 'CODE128', displayValue: false, margin: 0, lineColor: foregroundColor });
-      } catch {
-        // Keep an empty SVG if the value cannot be encoded by the selected format.
-      }
-    }
-  }, [component.format, component.value, foregroundColor]);
+  const symbol = renderCodeSymbolSvg({ type: 'barcode', value: component.value, format: component.format ?? 'CODE128', foregroundColor });
 
   return (
     <div data-testid="render-component-barcode" {...dataProps} style={{ ...style, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-      <svg ref={ref} style={{ width: '100%', height: component.showText ? '75%' : '100%' }} />
+      <div style={{ width: '100%', height: component.showText ? '75%' : '100%', minHeight: 0 }} dangerouslySetInnerHTML={{ __html: symbol.svg }} />
       {component.showText ? <div style={{ ...fontStyle(component.font, textColor, scale, 10), lineHeight: '1.1', textAlign: 'center' }}>{component.value}</div> : null}
     </div>
+  );
+};
+
+const QRCodeComponent: React.FC<{ component: RenderQRCode; style: React.CSSProperties; dataProps: Record<string, string> }> = ({ component, style, dataProps }) => {
+  const symbol = renderCodeSymbolSvg({ type: 'qrcode', value: component.value, format: component.format ?? 'QR_CODE', foregroundColor: component.foregroundColor });
+  return (
+    <div data-testid="render-component-qrcode" {...dataProps} style={{ ...style, overflow: 'hidden' }} dangerouslySetInnerHTML={{ __html: symbol.svg }} />
   );
 };
 

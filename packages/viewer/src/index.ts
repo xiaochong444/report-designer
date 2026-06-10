@@ -7,6 +7,7 @@ export { RenderDocumentView } from './renderers/dom/RenderDocumentView';
 export { RenderComponent } from './renderers/dom/renderComponent';
 export { exportRenderDocumentToPDF } from './export/pdf/export-render-document';
 export { buildPrintHtml, printRenderDocument } from './print/print-frame';
+export { BARCODE_FORMATS, QR_CODE_FORMATS, renderCodeSymbolSvg } from './code-symbols';
 export { getViewerMessages, viewerMessages } from './i18n';
 export type { PdfExportOptions } from './export/pdf/export-render-document';
 export type { ChromeExtensionPrintOptions, ChromePrintBackend, ChromePrintRequest, ChromePrintResponse, ChromePrintTransport } from './print/chrome-extension-print';

@@ -1370,6 +1370,18 @@
   );
 }
 
+.rd-report-tree-glyph-qrcode {
+  border: 1px solid #7f8ea3;
+  border-radius: 1px;
+  background:
+    linear-gradient(#2a3442 0 0) 2px 2px / 4px 4px no-repeat,
+    linear-gradient(#2a3442 0 0) 9px 2px / 4px 4px no-repeat,
+    linear-gradient(#2a3442 0 0) 2px 9px / 4px 4px no-repeat,
+    linear-gradient(#2a3442 0 0) 8px 8px / 2px 2px no-repeat,
+    linear-gradient(#2a3442 0 0) 12px 10px / 2px 4px no-repeat,
+    #ffffff;
+}
+
 .rd-report-tree-glyph-panel,
 .rd-report-tree-glyph-shape {
   border: 1px solid #7f8ea3;

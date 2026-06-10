@@ -182,7 +182,10 @@ describe('phase 33 component properties viewer', () => {
     expect(html).toContain('background-color:#e6f4ff');
     expect(html).toContain('padding:1mm 2mm 1mm 2mm');
     expect(html).toContain('border-top:0.3mm solid #1677ff');
-    expect(html).toContain('repeating-linear-gradient(90deg,#0088cc 0 1px,#fff 1px 3px)');
+    expect(html).toContain('class="rd-print-component rd-print-barcode"');
+    expect(html).toContain('<svg width="100%" height="100%" preserveAspectRatio="none"');
+    expect(html).toContain('stroke="#0088cc"');
+    expect(html).not.toContain('repeating-linear-gradient');
     expect(html).toContain('color:#123456');
     expect(html).toContain('font-family:Consolas');
     expect(html).toContain('font-size:11.997px');

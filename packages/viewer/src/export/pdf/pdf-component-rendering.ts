@@ -52,11 +52,6 @@ export function parsePdfColor(color?: string): ReturnType<typeof rgb> {
   return rgb(parseInt(match[1], 16) / 255, parseInt(match[2], 16) / 255, parseInt(match[3], 16) / 255);
 }
 
-export function barcodePattern(value: string): boolean[] {
-  const seed = value.split('').reduce((hash, char) => ((hash << 5) - hash + char.charCodeAt(0)) >>> 0, 2166136261);
-  return Array.from({ length: 48 }, (_, index) => ((seed >>> (index % 24)) + index + value.length) % 3 !== 0);
-}
-
 function decodeBasicEntities(value: string): string {
   return value
     .replace(/&nbsp;/gi, ' ')

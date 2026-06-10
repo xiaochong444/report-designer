@@ -1,7 +1,8 @@
 import { type PDFDocument, type PDFPage, type PDFFont } from 'pdf-lib';
-import type { BorderConfig, Padding, RenderBarcode, RenderChart, RenderCheckbox, RenderComponentBox, RenderImage, RenderLine, RenderRichText, RenderShape, RenderTable, RenderTableCell, RenderText } from '@report-designer/core';
-import { barcodePattern, dataUrlMimeType, dataUrlToUint8Array, MM_TO_PT, parsePdfColor, safePdfText, stripHtmlToPdfText } from './pdf-component-rendering';
+import type { BorderConfig, Padding, RenderBarcode, RenderChart, RenderCheckbox, RenderComponentBox, RenderImage, RenderLine, RenderQRCode, RenderRichText, RenderShape, RenderTable, RenderTableCell, RenderText } from '@report-designer/core';
+import { dataUrlMimeType, dataUrlToUint8Array, MM_TO_PT, parsePdfColor, safePdfText, stripHtmlToPdfText } from './pdf-component-rendering';
 import { printableBorderWidthPt } from '../../renderers/border-width';
+import { flipSvgPathY, parseCodeSymbolGeometry, renderCodeSymbolSvg, type CodeSymbolType } from '../../code-symbols';
 
 export interface PdfFontSet {
   regular: PDFFont;
@@ -143,6 +144,11 @@ export async function drawRenderComponent(
 
   if (component.type === 'barcode' && 'value' in component) {
     await drawBarcode(pdfDoc, page, component as RenderBarcode, x, y, width, height, fonts);
+    return;
+  }
+
+  if (component.type === 'qrcode' && 'value' in component) {
+    drawCodeSymbol(page, component as RenderQRCode, 'qrcode', x, y, width, height);
     return;
   }
 
@@ -307,18 +313,99 @@ async function drawBarcode(pdfDoc: PDFDocument, page: PDFPage, barcode: RenderBa
   const fontSize = barcode.font?.size ?? 8;
   const textHeight = barcode.showText ? fontSize + 2 : 0;
   const barHeight = Math.max(1, height - textHeight);
-  const pattern = barcodePattern(barcode.value);
-  const barWidth = width / pattern.length;
   const foregroundColor = barcode.foregroundColor ?? '#000000';
   const textColor = barcode.font?.color ?? foregroundColor;
-  pattern.forEach((filled, index) => {
-    if (filled) {
-      page.drawRectangle({ x: x + index * barWidth, y: y + textHeight, width: Math.max(0.5, barWidth), height: barHeight, color: parsePdfColor(foregroundColor) });
-    }
-  });
+  drawCodeSymbol(page, barcode, 'barcode', x, y + textHeight, width, barHeight);
   if (barcode.showText) {
     const pdfFont = selectPdfFont(fonts, barcode.font);
-    await drawPdfText(pdfDoc, page, barcode.value, { x, y: y + 1, size: fontSize, font: pdfFont, maxWidth: width, color: parsePdfColor(textColor), colorCss: textColor, family: barcode.font?.family, bold: barcode.font?.bold, italic: barcode.font?.italic });
+    await drawPdfTextBox(pdfDoc, page, barcode.value, {
+      x,
+      y,
+      width,
+      height: textHeight,
+      padding: { top: 0, right: 0, bottom: 0, left: 0 },
+      size: fontSize,
+      font: pdfFont,
+      color: parsePdfColor(textColor),
+      colorCss: textColor,
+      family: barcode.font?.family,
+      bold: barcode.font?.bold,
+      italic: barcode.font?.italic,
+      textAlign: 'center',
+      verticalAlign: 'middle',
+      wrap: false,
+    });
+  }
+}
+
+function drawCodeSymbol(page: PDFPage, component: RenderBarcode | RenderQRCode, type: CodeSymbolType, x: number, y: number, width: number, height: number): void {
+  const foregroundColor = component.foregroundColor ?? '#000000';
+  const symbol = renderCodeSymbolSvg({
+    type,
+    value: component.value,
+    format: component.format,
+    foregroundColor,
+    widthMm: width / MM_TO_PT,
+    heightMm: height / MM_TO_PT,
+  });
+  const geometry = parseCodeSymbolGeometry(symbol.svg);
+  if (!symbol.ok || !geometry) return;
+
+  page.drawRectangle({ x, y, width, height, color: parsePdfColor('#ffffff') });
+  if (type === 'qrcode') {
+    const size = Math.max(1, Math.min(width, height));
+    const scale = size / Math.max(geometry.viewBox.width, geometry.viewBox.height);
+    const offsetX = x + (width - geometry.viewBox.width * scale) / 2 - geometry.viewBox.minX * scale;
+    const offsetY = y + (height - geometry.viewBox.height * scale) / 2 - geometry.viewBox.minY * scale;
+    for (const path of geometry.paths) {
+      if (path.stroke) continue;
+      page.drawSvgPath(flipSvgPathY(path.d, geometry.viewBox.height), { x: offsetX, y: offsetY, scale, color: parsePdfColor(path.fill ?? foregroundColor) });
+    }
+    return;
+  }
+
+  const scaleX = width / geometry.viewBox.width;
+  const scaleY = height / geometry.viewBox.height;
+  for (const path of geometry.paths) {
+    if (!path.stroke || !path.strokeWidth) continue;
+    drawVerticalStrokePath(page, path.d, {
+      x,
+      y,
+      scaleX,
+      scaleY,
+      viewBoxMinX: geometry.viewBox.minX,
+      viewBoxHeight: geometry.viewBox.height,
+      strokeWidth: path.strokeWidth,
+      color: path.stroke,
+    });
+  }
+}
+
+function drawVerticalStrokePath(
+  page: PDFPage,
+  path: string,
+  options: { x: number; y: number; scaleX: number; scaleY: number; viewBoxMinX: number; viewBoxHeight: number; strokeWidth: number; color: string },
+): void {
+  const segmentPattern = /M\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)L\s*(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)/gi;
+  let match: RegExpExecArray | null;
+  while ((match = segmentPattern.exec(path)) !== null) {
+    const x1 = Number(match[1]);
+    const y1 = Number(match[2]);
+    const x2 = Number(match[3]);
+    const y2 = Number(match[4]);
+    if (![x1, y1, x2, y2].every(Number.isFinite) || Math.abs(x1 - x2) > 0.001) continue;
+    const top = Math.max(y1, y2);
+    const bottom = Math.min(y1, y2);
+    const rectWidth = options.strokeWidth * options.scaleX;
+    const rectHeight = (top - bottom) * options.scaleY;
+    if (rectWidth <= 0 || rectHeight <= 0) continue;
+    page.drawRectangle({
+      x: options.x + ((x1 - options.viewBoxMinX) * options.scaleX) - rectWidth / 2,
+      y: options.y + (options.viewBoxHeight - top) * options.scaleY,
+      width: rectWidth,
+      height: rectHeight,
+      color: parsePdfColor(options.color),
+    });
   }
 }
 

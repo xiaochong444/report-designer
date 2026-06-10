@@ -25,6 +25,7 @@ import { EventEditorDialog, type EventTreeItem } from './events/EventEditorDialo
 import { buildEventEditorDataContext } from './events/event-editor-utils';
 import type { ExpressionCatalogExtensions } from '../expression/expression-catalog';
 import { BorderEditor, PaddingEditor } from './properties/BoxStyleEditors';
+import { BARCODE_FORMATS, QR_CODE_FORMATS } from '@report-designer/viewer';
 
 const NO_CONDITIONAL_FORMAT = '__none__';
 
@@ -127,9 +128,9 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
 
   const supportsSharedStyle = supportsComponentStyle(component);
   const supportsFontProperties = ['text', 'barcode', 'checkbox', 'pagenumber', 'datetime', 'table'].includes(component.type);
-  const supportsBorderProperties = ['text', 'image', 'chart', 'barcode', 'checkbox', 'panel', 'pagenumber', 'datetime', 'table'].includes(component.type);
-  const supportsAppearanceProperties = ['text', 'image', 'chart', 'barcode', 'checkbox', 'richtext', 'panel', 'subreport', 'pagenumber', 'datetime', 'table'].includes(component.type);
-  const supportsForegroundColor = component.type === 'barcode' || component.type === 'checkbox';
+  const supportsBorderProperties = ['text', 'image', 'chart', 'barcode', 'qrcode', 'checkbox', 'panel', 'pagenumber', 'datetime', 'table'].includes(component.type);
+  const supportsAppearanceProperties = ['text', 'image', 'chart', 'barcode', 'qrcode', 'checkbox', 'richtext', 'panel', 'subreport', 'pagenumber', 'datetime', 'table'].includes(component.type);
+  const supportsForegroundColor = component.type === 'barcode' || component.type === 'qrcode' || component.type === 'checkbox';
   const isTextStyleLocked = (pathOrPrefix: string) => (
     supportsSharedStyle ? isTextStylePropertyLocked(component as { style?: string }, pathOrPrefix) : false
   );
@@ -972,7 +973,7 @@ const ComponentContentProperties: React.FC<{
               onChange={(value) => onChange('format', value)}
               size="small"
               virtual={false}
-              options={['QR_CODE', 'CODE128', 'EAN13', 'EAN8', 'UPC', 'CODE39', 'ITF14'].map(value => ({ value, label: value }))}
+              options={BARCODE_FORMATS.map(value => ({ value, label: value }))}
             />
           </Form.Item>
           <Form.Item label={t('showText')}>
@@ -981,6 +982,37 @@ const ComponentContentProperties: React.FC<{
               size="small"
               checked={comp.showText ?? true}
               onChange={(checked) => onChange('showText', checked)}
+            />
+          </Form.Item>
+        </Form>
+      );
+    case 'qrcode':
+      return (
+        <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+          <Form.Item label={t('qrcodeContent')}>
+            <Space.Compact style={{ width: '100%' }}>
+              <Input
+                aria-label={t('qrcodeContent')}
+                value={comp.value || ''}
+                onChange={(event) => onChange('value', event.target.value)}
+                size="small"
+                placeholder={t('expressionLikePlaceholder')}
+              />
+              <ExpressionFieldButton
+                label={t('qrcodeContent')}
+                t={t}
+                onClick={() => onOpenExpressionEditor('value', t('qrcodeContent'))}
+              />
+            </Space.Compact>
+          </Form.Item>
+          <Form.Item label={t('qrcodeFormat')}>
+            <Select
+              aria-label={t('qrcodeFormat')}
+              value={comp.format || 'QR_CODE'}
+              onChange={(value) => onChange('format', value)}
+              size="small"
+              virtual={false}
+              options={QR_CODE_FORMATS.map(value => ({ value, label: value }))}
             />
           </Form.Item>
         </Form>
@@ -1599,6 +1631,8 @@ const propertyEditorMessages = {
     fitStretch: '拉伸',
     barcodeContent: '条码内容',
     barcodeFormat: '条码类型',
+    qrcodeContent: '二维码内容',
+    qrcodeFormat: '二维码类型',
     showText: '显示文本',
     checkedExpression: '选中表达式',
     labelText: '标签文本',
@@ -1790,6 +1824,8 @@ const propertyEditorMessages = {
     fitStretch: 'Stretch',
     barcodeContent: 'Barcode content',
     barcodeFormat: 'Barcode type',
+    qrcodeContent: 'QR code content',
+    qrcodeFormat: 'QR code type',
     showText: 'Show text',
     checkedExpression: 'Checked expression',
     labelText: 'Label text',

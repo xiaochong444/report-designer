@@ -438,6 +438,8 @@ function renderComponentIcon(type: ComponentType) {
       return <BarChartOutlined aria-hidden />;
     case 'barcode':
       return <BarcodeOutlined aria-hidden />;
+    case 'qrcode':
+      return <AppstoreOutlined aria-hidden />;
     case 'checkbox':
       return <CheckSquareOutlined aria-hidden />;
     case 'pagenumber':

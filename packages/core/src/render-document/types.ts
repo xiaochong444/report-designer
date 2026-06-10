@@ -135,6 +135,13 @@ export interface RenderBarcode extends RenderComponentBase {
   font?: FontConfig;
 }
 
+export interface RenderQRCode extends RenderComponentBase {
+  type: 'qrcode';
+  value: string;
+  format?: string;
+  foregroundColor?: string;
+}
+
 export interface RenderTableCell {
   row: number;
   column: number;
@@ -172,6 +179,7 @@ export type RenderComponentBox =
   | RenderShape
   | RenderCheckbox
   | RenderBarcode
+  | RenderQRCode
   | RenderTable
   | RenderPanel
   | RenderSubreport

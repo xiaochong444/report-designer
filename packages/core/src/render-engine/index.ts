@@ -1,6 +1,6 @@
 import type {
   ReportTemplate, Band, ReportComponent,
-  TextComponent, ImageComponent, BarcodeComponent, Padding,
+  TextComponent, ImageComponent, BarcodeComponent, QRCodeComponent, Padding,
   ConditionalFormat, ReportStyle, FontConfig, BorderConfig, TextFormatConfig,
 } from '../template-model/types';
 import { evalExpression } from '../expression-engine';
@@ -11,7 +11,7 @@ import { resolveComponentStyle, resolveTextStyle } from '../text-style';
 /** A fully resolved/rendered component */
 export interface RenderedComponent {
   id: string;
-  type: 'text' | 'image' | 'barcode';
+  type: 'text' | 'image' | 'barcode' | 'qrcode';
   x: number;
   y: number;
   width: number;
@@ -133,7 +133,7 @@ function renderComponent(
 
   const rendered: RenderedComponent = {
     id: comp.id,
-    type: comp.type as 'text' | 'image' | 'barcode',
+    type: comp.type as 'text' | 'image' | 'barcode' | 'qrcode',
     x: comp.x,
     y: comp.y,
     width: comp.width,
@@ -156,6 +156,12 @@ function renderComponent(
   if (comp.type === 'barcode') {
     const bcComp = comp as BarcodeComponent;
     const resolved = resolveValue(bcComp.value, ctx);
+    rendered.barcodeValue = resolved ? String(resolved) : '';
+  }
+
+  if (comp.type === 'qrcode') {
+    const qrComp = comp as QRCodeComponent;
+    const resolved = resolveValue(qrComp.value, ctx);
     rendered.barcodeValue = resolved ? String(resolved) : '';
   }
 

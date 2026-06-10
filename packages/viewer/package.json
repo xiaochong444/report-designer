@@ -22,7 +22,7 @@
     "@report-designer/core": "workspace:*",
     "@visactor/vchart": "^2.0.22",
     "antd": "^6.0.0",
-    "jsbarcode": "^3.11.6",
+    "bwip-js": "^4.11.1",
     "lodash-es": "^4.17.21",
     "pdf-lib": "^1.17.1",
     "react": "^19.1.0",

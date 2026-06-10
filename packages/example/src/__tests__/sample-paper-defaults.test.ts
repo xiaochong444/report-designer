@@ -64,6 +64,7 @@ describe('example sample paper defaults', () => {
       'shape',
       'checkbox',
       'barcode',
+      'qrcode',
       'richtext',
       'subreport',
     ]));

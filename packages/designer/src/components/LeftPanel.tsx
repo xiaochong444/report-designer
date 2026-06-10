@@ -498,6 +498,8 @@ function renderComponentTreeIcon(type: ReportComponent['type']) {
       return <span {...props} />;
     case 'barcode':
       return <span {...props} />;
+    case 'qrcode':
+      return <span {...props} />;
     case 'table':
       return <span {...props} />;
     case 'checkbox':

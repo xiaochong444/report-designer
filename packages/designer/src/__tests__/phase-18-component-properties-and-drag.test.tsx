@@ -308,6 +308,7 @@ describe('Phase 18 component properties and canvas drag drop', () => {
     const template = createDefaultTemplate('Phase 18 Common Component Canvas');
     template.pages[0].bands.find(band => band.type === 'data')!.components = [
       { id: 'barcode-1', type: 'barcode', name: 'Barcode1', x: 0, y: 0, width: 40, height: 16, value: 'ORD-1001', format: 'CODE128', showText: true },
+      { id: 'qrcode-1', type: 'qrcode', name: 'QRCode1', x: 48, y: 0, width: 18, height: 18, value: 'https://example.test/order/ORD-1001', format: 'QR_CODE' } as any,
       { id: 'checkbox-1', type: 'checkbox', name: 'Check1', x: 0, y: 18, width: 40, height: 8, checked: 'true', label: 'Paid' },
       { id: 'page-1', type: 'pagenumber', name: 'PageNumber1', x: 0, y: 28, width: 30, height: 8, format: 'Page 1 of N', font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' }, textAlign: 'center' },
       { id: 'date-1', type: 'datetime', name: 'DateTime1', x: 0, y: 38, width: 40, height: 8, format: 'yyyy-MM-dd', font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' }, textAlign: 'left' },
@@ -316,6 +317,7 @@ describe('Phase 18 component properties and canvas drag drop', () => {
     render(<Designer template={template} locale="zh-CN" />);
 
     await waitFor(() => expect(screen.getByTestId('designer-component-barcode-content')).toHaveTextContent('ORD-1001'));
+    expect(screen.getByTestId('designer-component-qrcode-content')).toBeInTheDocument();
     expect(screen.getByTestId('designer-component-checkbox-content')).toHaveTextContent('✓');
     expect(screen.getByTestId('designer-component-checkbox-content')).toHaveTextContent('Paid');
     expect(screen.getByTestId('designer-component-pagenumber-content')).toHaveTextContent('Page 1 of 1');
@@ -326,6 +328,7 @@ describe('Phase 18 component properties and canvas drag drop', () => {
     const cases: Array<{ component: ReportComponent; expectedLabels: string[] }> = [
       { component: { id: 'image-1', type: 'image', name: 'Image1', x: 0, y: 0, width: 30, height: 30, src: '{Products.Photo}', fitMode: 'contain' } as ReportComponent, expectedLabels: ['图片地址/Base64', '适应方式'] },
       { component: { id: 'barcode-1', type: 'barcode', name: 'Barcode1', x: 0, y: 0, width: 30, height: 20, value: '{Order.No}', format: 'CODE128', showText: true } as ReportComponent, expectedLabels: ['条码内容', '条码类型', '显示文本'] },
+      { component: { id: 'qrcode-1', type: 'qrcode', name: 'QRCode1', x: 0, y: 0, width: 24, height: 24, value: '{Order.Url}', format: 'QR_CODE' } as ReportComponent, expectedLabels: ['二维码内容', '二维码类型'] },
       { component: { id: 'checkbox-1', type: 'checkbox', name: 'Check1', x: 0, y: 0, width: 15, height: 15, checked: '{Paid}', label: 'Paid' } as ReportComponent, expectedLabels: ['选中表达式', '标签文本'] },
       { component: { id: 'rich-1', type: 'richtext', name: 'Rich1', x: 0, y: 0, width: 60, height: 20, html: '<b>{Note}</b>' } as ReportComponent, expectedLabels: ['富文本内容'] },
       { component: { id: 'line-1', type: 'line', name: 'Line1', x: 0, y: 0, width: 40, height: 10, startX: 0, startY: 0, endX: 40, endY: 0, lineColor: '#000000', lineWidth: 0.2, lineStyle: 'solid' } as ReportComponent, expectedLabels: ['颜色', '起点 X', '终点 Y'] },

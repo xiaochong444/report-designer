@@ -107,6 +107,7 @@ const DEFAULT_TEXT_STYLE: ResolvedTextStyle = {
 const COMPONENT_STYLE_FIELDS: Partial<Record<ReportComponent['type'], StyleField[]>> = {
   text: ['font', 'border', 'backgroundColor', 'textAlign', 'verticalAlign', 'padding', 'format', 'canGrow', 'canShrink'],
   barcode: ['font', 'border', 'backgroundColor', 'padding'],
+  qrcode: ['border', 'backgroundColor', 'padding'],
   checkbox: ['font', 'border', 'backgroundColor', 'padding'],
   pagenumber: ['font', 'border', 'backgroundColor', 'textAlign', 'verticalAlign', 'padding', 'format'],
   datetime: ['font', 'border', 'backgroundColor', 'textAlign', 'verticalAlign', 'padding', 'format'],

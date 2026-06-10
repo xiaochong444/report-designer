@@ -87,7 +87,9 @@ export function createDefaultComponent(type: string, xMm: number, yMm: number): 
         },
       } as ReportComponent;
     case 'barcode':
-      return { id, type: 'barcode', x, y, width: 30, height: 30, value: '', format: 'CODE128', showText: true } as ReportComponent;
+      return { id, type: 'barcode', x, y, width: 50, height: 16, value: '', format: 'CODE128', showText: true } as ReportComponent;
+    case 'qrcode':
+      return { id, type: 'qrcode', x, y, width: 24, height: 24, value: '', format: 'QR_CODE' } as ReportComponent;
     case 'table':
       return {
         id,
