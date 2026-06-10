@@ -20,9 +20,7 @@ export interface DataSectionPlan {
   groupPairs: Array<{ header: Band; footer?: Band }>;
   columnHeaders: Band[];
   columnFooters: Band[];
-  childBands: Band[];
   footers: Band[];
-  emptyDataBands: Band[];
 }
 
 export interface RenderContext {

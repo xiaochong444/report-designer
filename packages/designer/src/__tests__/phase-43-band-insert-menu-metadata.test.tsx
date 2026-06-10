@@ -39,8 +39,6 @@ const SUPPORTED_INSERT_BANDS: Array<{ type: BandType; label: string; color: stri
   { type: 'groupHeader', label: 'GroupHeaderBand', color: '#00838f', glyph: 'group-header' },
   { type: 'data', label: 'DataBand', color: '#6a1b9a', glyph: 'data' },
   { type: 'hierarchicalData', label: 'HierarchicalDataBand', color: '#4f46e5', glyph: 'hierarchical-data' },
-  { type: 'child', label: 'ChildBand', color: '#ad1457', glyph: 'child' },
-  { type: 'emptyData', label: 'EmptyDataBand', color: '#558b2f', glyph: 'empty-data' },
   { type: 'groupFooter', label: 'GroupFooterBand', color: '#4527a0', glyph: 'group-footer' },
   { type: 'columnFooter', label: 'ColumnFooterBand', color: '#b45309', glyph: 'column-footer' },
   { type: 'footer', label: 'FooterBand', color: '#2563eb', glyph: 'footer' },

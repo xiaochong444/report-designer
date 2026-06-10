@@ -23,8 +23,6 @@ describe('Phase 1 template model', () => {
       'columnFooter',
       'data',
       'hierarchicalData',
-      'child',
-      'emptyData',
       'overlay',
     ]);
   });

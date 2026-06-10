@@ -40,7 +40,6 @@ function executeDataSection(
   const rows = prepareRows(dataSourceId ? data[dataSourceId] ?? [] : [], section, dataSourceId, options);
 
   if (rows.length === 0) {
-    section.emptyDataBands.forEach((band) => items.push(createBandItem(band, { ...runtimeContext(options), dataSourceId })));
     return;
   }
 
@@ -53,7 +52,6 @@ function executeDataSection(
   } else {
     rows.forEach((row, rowIndex) => {
       items.push(createSectionBandItem(section.dataBand, { ...runtimeContext(options), row, rowIndex, dataSourceId }, repeatOnPageBreakBefore));
-      section.childBands.forEach((band) => items.push(createSectionBandItem(band, { ...runtimeContext(options), row, rowIndex, dataSourceId }, repeatOnPageBreakBefore)));
     });
   }
 
@@ -87,7 +85,6 @@ function executeGroupDepth(
   if (!pair) {
     rows.forEach(({ row, rowIndex }) => {
       items.push(createSectionBandItem(section.dataBand, { ...runtimeContext(options), row, rowIndex, dataSourceId, groupValues: parentGroupValues }, repeatOnPageBreakBefore));
-      section.childBands.forEach((band) => items.push(createSectionBandItem(band, { ...runtimeContext(options), row, rowIndex, dataSourceId, groupValues: parentGroupValues }, repeatOnPageBreakBefore)));
     });
     return;
   }
@@ -165,14 +162,16 @@ function prepareRows(
   dataSourceId: string | undefined,
   options: ExecuteBandPlanOptions,
 ): Record<string, unknown>[] {
-  let result = [...rows];
+  let result = section.dataBand.type === 'hierarchicalData'
+    ? flattenHierarchicalRows(rows, section, dataSourceId, options)
+    : [...rows];
   const filterExpression = section.dataBand.dataBand?.filterExpression;
   if (filterExpression) {
     result = result.filter((row, rowIndex) => Boolean(evaluateRowExpression(filterExpression, row, dataSourceId, rowIndex, options)));
   }
 
   const sort = section.dataBand.dataBand?.sort ?? [];
-  if (sort.length > 0) {
+  if (sort.length > 0 && section.dataBand.type !== 'hierarchicalData') {
     result = result
       .map((row, originalIndex) => ({ row, originalIndex }))
       .sort((a, b) => {
@@ -191,6 +190,65 @@ function prepareRows(
   }
 
   return result;
+}
+
+function flattenHierarchicalRows(
+  rows: Record<string, unknown>[],
+  section: DataSectionPlan,
+  dataSourceId: string | undefined,
+  options: ExecuteBandPlanOptions,
+): Record<string, unknown>[] {
+  const hierarchical = section.dataBand.dataBand?.hierarchical;
+  const childrenField = hierarchical?.childrenField?.trim() || 'children';
+  const indentChars = Math.max(0, Math.floor(hierarchical?.indentChars ?? 2));
+  const result: Record<string, unknown>[] = [];
+
+  const visit = (siblings: Record<string, unknown>[], level: number) => {
+    sortRows(siblings, section, dataSourceId, options).forEach((row) => {
+      const children = row[childrenField];
+      const nextRow = { ...row };
+      delete nextRow[childrenField];
+      nextRow.HierarchyLevel = level;
+      nextRow.HierarchyIndent = ' '.repeat(level * indentChars);
+      result.push(nextRow);
+
+      if (Array.isArray(children)) {
+        visit(children.filter(isRecord), level + 1);
+      }
+    });
+  };
+
+  visit(rows, 0);
+  return result;
+}
+
+function sortRows(
+  rows: Record<string, unknown>[],
+  section: DataSectionPlan,
+  dataSourceId: string | undefined,
+  options: ExecuteBandPlanOptions,
+): Record<string, unknown>[] {
+  const sort = section.dataBand.dataBand?.sort ?? [];
+  if (sort.length === 0) {
+    return [...rows];
+  }
+
+  return [...rows].sort((left, right) => {
+    for (const sortRule of sort) {
+      const leftValue = evaluateField(sortRule.field, left, dataSourceId, 0, options);
+      const rightValue = evaluateField(sortRule.field, right, dataSourceId, 0, options);
+      const direction = sortRule.direction === 'desc' ? -1 : 1;
+      const compared = compareValues(leftValue, rightValue) * direction;
+      if (compared !== 0) {
+        return compared;
+      }
+    }
+    return 0;
+  });
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 function evaluateRowExpression(
@@ -326,7 +384,7 @@ function getBandBehavior(band: Band): NonNullable<Band['behavior']> {
     printIfEmpty: true,
     printOnAllPages: isRepeatOnEveryPageBandType(band.type),
     keepTogether: false,
-    canBreak: band.type === 'data' || band.type === 'child',
+    canBreak: band.type === 'data',
     printAtBottom: band.type === 'pageFooter',
     autoGrow: true,
     autoShrink: false,

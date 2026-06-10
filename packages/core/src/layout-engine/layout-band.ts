@@ -4,7 +4,7 @@ import type { RenderContext } from '../band-planner/band-plan';
 import { createEventContext, runEventScript } from '../event-engine';
 import type { EventLogCollector, EventMode, EventRuntimeState, EventExecutionState } from '../event-engine';
 import { applyConditionalFormatsToStyle } from '../conditional-format';
-import type { RenderBandBox, RenderComponentBox, RenderTable } from '../render-document/types';
+import type { RenderBandBox, RenderComponentBox, RenderTable, RenderText } from '../render-document/types';
 import type {
   Band,
   BarcodeComponent,
@@ -84,13 +84,20 @@ export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBo
     printIfEmpty: true,
     printOnAllPages: isRepeatOnEveryPageBandType(band.type),
     keepTogether: false,
-    canBreak: band.type === 'data' || band.type === 'child',
+    canBreak: band.type === 'data',
     printAtBottom: band.type === 'pageFooter',
     autoGrow: true,
     autoShrink: false,
   };
+  const hierarchyIndentComponentId = findHierarchyIndentComponentId(band);
+  const hierarchyIndent = typeof options.context.row?.HierarchyIndent === 'string'
+    ? options.context.row.HierarchyIndent
+    : '';
   const components = band.components
-    .map((component) => layoutComponentWithEvents(component, band, options))
+    .map((component) => {
+      const rendered = layoutComponentWithEvents(component, band, options);
+      return applyHierarchyIndent(rendered, component, hierarchyIndentComponentId, hierarchyIndent);
+    })
     .filter((component): component is RenderComponentBox => Boolean(component));
   const contentHeight = components.reduce((height, component) => Math.max(height, component.y - options.y + component.height), 0);
   const fixedHeight = Math.max(0, band.height);
@@ -113,8 +120,40 @@ export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBo
   };
 }
 
+function findHierarchyIndentComponentId(band: Band): string | undefined {
+  if (band.type !== 'hierarchicalData') {
+    return undefined;
+  }
+  return band.components
+    .filter((component): component is TextComponent => component.type === 'text')
+    .sort((a, b) => a.x - b.x || a.y - b.y)[0]?.id;
+}
+
+function applyHierarchyIndent(
+  rendered: RenderComponentBox | undefined,
+  source: ReportComponent,
+  indentComponentId: string | undefined,
+  indent: string,
+): RenderComponentBox | undefined {
+  if (!rendered || !indent || source.id !== indentComponentId || !isRenderText(rendered)) {
+    return rendered;
+  }
+  const sourceText = source.type === 'text' ? (source as TextComponent).text : '';
+  if (sourceText.includes('HierarchyIndent')) {
+    return rendered;
+  }
+  return {
+    ...rendered,
+    content: `${indent}${rendered.content ?? ''}`,
+  };
+}
+
+function isRenderText(component: RenderComponentBox): component is RenderText {
+  return component.type === 'text' && 'content' in component;
+}
+
 function resolveDataBandRowBackground(band: Band, rowIndex: number, hasRow: boolean): string | undefined {
-  if (!hasRow || (band.type !== 'data' && band.type !== 'hierarchicalData' && band.type !== 'child')) {
+  if (!hasRow || (band.type !== 'data' && band.type !== 'hierarchicalData')) {
     return undefined;
   }
   return rowIndex % 2 === 0

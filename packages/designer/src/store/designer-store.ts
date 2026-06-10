@@ -239,8 +239,6 @@ const DEFAULT_BAND_HEIGHTS: Record<BandType, number> = {
   groupFooter: 25,
   data: 20,
   hierarchicalData: 20,
-  child: 15,
-  emptyData: 20,
   overlay: 20,
 };
 
@@ -1849,7 +1847,7 @@ function createBandBehavior(type: BandType): NonNullable<Band['behavior']> {
     printIfEmpty: true,
     printOnAllPages: isRepeatOnEveryPageBandType(type),
     keepTogether: false,
-    canBreak: type === 'data' || type === 'hierarchicalData' || type === 'child',
+    canBreak: type === 'data' || type === 'hierarchicalData',
     breakIfLessThan: undefined,
     printAtBottom: type === 'pageFooter',
     autoGrow: true,

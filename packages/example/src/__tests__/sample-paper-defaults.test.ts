@@ -124,6 +124,26 @@ describe('example sample paper defaults', () => {
     ]));
   });
 
+  it('bundles a hierarchical data band sample with tree-shaped rows', () => {
+    const sample = sampleReports.find(report => report.key === 'hierarchicalOrg');
+    const bands = sample?.template.pages[0].bands ?? [];
+    const data = sample?.data as { orgUnits?: Array<{ children?: unknown[] }> };
+
+    expect(sample?.label).toBe('Hierarchical Organization');
+    expect(bands.find(band => band.id === 'ho-data')?.type).toBe('hierarchicalData');
+    expect(bands.find(band => band.id === 'ho-data')?.dataBand?.dataSourceId).toBe('orgUnits');
+    expect(bands.find(band => band.id === 'ho-data')?.dataBand?.hierarchical).toEqual({ childrenField: 'children', indentChars: 3 });
+    expect(data.orgUnits?.some(item => Array.isArray(item.children) && item.children.length > 0)).toBe(true);
+
+    const document = renderReport(sample!.template, sample!.data);
+
+    expect(renderedContent(document)).toEqual(expect.arrayContaining([
+      'Acme Group',
+      '   Sales Division',
+      '      East Region',
+    ]));
+  });
+
   it('bundles a sales order print sample driven by inferred object data sources and data bands', () => {
     const sample = sampleReports.find(report => report.key === 'salesOrderPrint');
     const bands = sample?.template.pages[0].bands ?? [];

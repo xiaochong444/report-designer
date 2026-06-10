@@ -93,7 +93,7 @@ function normalizeBand(band: Band): Band {
       printIfEmpty: true,
       printOnAllPages: isRepeatOnEveryPageBandType(band.type),
       keepTogether: false,
-      canBreak: band.type === 'data' || band.type === 'child',
+      canBreak: band.type === 'data',
       printAtBottom: band.type === 'pageFooter',
       autoGrow: true,
       autoShrink: false,

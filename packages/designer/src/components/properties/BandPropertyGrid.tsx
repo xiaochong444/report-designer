@@ -51,9 +51,12 @@ export const BandPropertyGrid: React.FC<{ expressionExtensions?: ExpressionCatal
   const bandMax = formatUnitValue(200, reportUnit);
   const dataSourceId = band.dataBand?.dataSourceId ?? band.dataSource;
   const currentDataSource = template.dataSources.find(source => source.id === dataSourceId);
-  const sortFields = getSortFields(currentDataSource?.schema?.length ? currentDataSource.schema : currentDataSource?.fields);
+  const dataFields = currentDataSource?.schema?.length ? currentDataSource.schema : currentDataSource?.fields;
+  const sortFields = getSortFields(dataFields);
   const sortRules = band.dataBand?.sort ?? [];
   const isDataBand = band.type === 'data' || band.type === 'hierarchicalData';
+  const isHierarchicalDataBand = band.type === 'hierarchicalData';
+  const hierarchyChildFieldOptions = getHierarchyChildFieldOptions(dataFields);
   const isGroupHeader = band.type === 'groupHeader';
   const supportsPrintOnAllPages = band.type === 'header' || band.type === 'columnHeader' || band.type === 'groupHeader';
   const supportsPrintAtBottom = band.type !== 'pageHeader' && band.type !== 'pageFooter' && band.type !== 'overlay';
@@ -266,6 +269,44 @@ export const BandPropertyGrid: React.FC<{ expressionExtensions?: ExpressionCatal
                     }))}
                   />
                 </Form.Item>
+                {isHierarchicalDataBand && (
+                  <>
+                    <Form.Item label={t('dataBand.hierarchy.childrenField')}>
+                      <Select
+                        aria-label={t('dataBand.hierarchy.childrenField')}
+                        value={band.dataBand?.hierarchical?.childrenField ?? 'children'}
+                        size="small"
+                        style={{ width: '100%' }}
+                        options={hierarchyChildFieldOptions}
+                        onChange={childrenField => updateBandDataBand(dataBand => ({
+                          ...dataBand,
+                          hierarchical: {
+                            ...dataBand.hierarchical,
+                            childrenField,
+                          },
+                        }))}
+                      />
+                    </Form.Item>
+                    <Form.Item label={t('dataBand.hierarchy.indentChars')}>
+                      <InputNumber
+                        aria-label={t('dataBand.hierarchy.indentChars')}
+                        value={band.dataBand?.hierarchical?.indentChars ?? 2}
+                        min={0}
+                        max={32}
+                        step={1}
+                        precision={0}
+                        style={{ width: '100%' }}
+                        onChange={value => updateBandDataBand(dataBand => ({
+                          ...dataBand,
+                          hierarchical: {
+                            ...dataBand.hierarchical,
+                            indentChars: Number(value ?? 0),
+                          },
+                        }))}
+                      />
+                    </Form.Item>
+                  </>
+                )}
                 <Form.Item label={t('bandProperties.filter')}>
                   <SummaryEditField
                     label={t('bandProperties.filter')}
@@ -658,6 +699,16 @@ function getSortFields(fields: DataField[] | undefined) {
     label: field.label || field.name,
     type: field.type,
   }));
+}
+
+function getHierarchyChildFieldOptions(fields: DataField[] | undefined) {
+  const options = (fields ?? []).map(field => ({
+    value: field.name,
+    label: field.label || field.name,
+  }));
+  return options.some(option => option.value === 'children')
+    ? options
+    : [{ value: 'children', label: 'children' }, ...options];
 }
 
 function moveRule<T>(rules: T[], from: number, to: number): T[] {

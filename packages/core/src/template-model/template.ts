@@ -14,7 +14,6 @@ const DEFAULT_BAND_HEIGHTS: Record<string, number> = {
   groupHeader: 25,
   groupFooter: 25,
   data: 20,
-  child: 15,
 };
 
 const DEFAULT_FONT = {
@@ -166,7 +165,7 @@ function createBandBehavior(type: Band['type']): Band['behavior'] {
     printIfEmpty: true,
     printOnAllPages: isRepeatOnEveryPageBandType(type),
     keepTogether: false,
-    canBreak: type === 'data' || type === 'child',
+    canBreak: type === 'data',
     printAtBottom: type === 'pageFooter',
     autoGrow: true,
     autoShrink: false,

@@ -12,7 +12,7 @@ const textBase = {
 };
 
 describe('phase 35 band contracts', () => {
-  it('keeps nested group ownership and EmptyData branch deterministic', () => {
+  it('keeps nested group ownership and skips empty data sections deterministically', () => {
     const groupedTemplate = makeTemplate([
       band('department-header', 'groupHeader', { group: { conditionExpression: '{employees.Department}' } }),
       band('team-header', 'groupHeader', { group: { conditionExpression: '{employees.Team}' } }),
@@ -42,14 +42,13 @@ describe('phase 35 band contracts', () => {
     const emptyTemplate = makeTemplate([
       band('header', 'header'),
       band('data', 'data', { dataBand: { dataSourceId: 'employees' } }),
-      band('empty', 'emptyData'),
       band('footer', 'footer'),
     ]);
     const emptySequence = executeBandPlan(buildBandPlan(emptyTemplate), { employees: [] })
       .filter(item => item.kind === 'band')
       .map(item => item.band.type);
 
-    expect(emptySequence).toEqual(['emptyData']);
+    expect(emptySequence).toEqual([]);
   });
 
   it('repeats section headers on page breaks and computes report totals after pagination', () => {
@@ -134,11 +133,10 @@ describe('phase 35 band contracts', () => {
     ]);
   });
 
-  it('does not print section header or footer when the data section uses EmptyData', () => {
+  it('does not print section header or footer when the data section has no rows', () => {
     const template = makeTemplate([
       band('section-header', 'header'),
       band('data', 'data', { dataBand: { dataSourceId: 'employees' } }),
-      band('empty', 'emptyData'),
       band('section-footer', 'footer'),
     ]);
 
@@ -146,7 +144,7 @@ describe('phase 35 band contracts', () => {
       .filter(item => item.kind === 'band')
       .map(item => item.band.id);
 
-    expect(sequence).toEqual(['empty']);
+    expect(sequence).toEqual([]);
   });
 
   it('honors band print-on rules during pagination', () => {

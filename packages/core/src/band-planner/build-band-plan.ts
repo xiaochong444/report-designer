@@ -5,7 +5,6 @@ interface PendingBands {
   headers: Band[];
   groupHeaders: Band[];
   columnHeaders: Band[];
-  emptyDataBands: Band[];
 }
 
 export function buildBandPlan(template: ReportTemplate): BandPlan {
@@ -62,16 +61,6 @@ export function buildBandPlan(template: ReportTemplate): BandPlan {
         case 'columnFooter':
           currentSection?.columnFooters.push(band);
           break;
-        case 'child':
-          currentSection?.childBands.push(band);
-          break;
-        case 'emptyData':
-          if (currentSection) {
-            currentSection.emptyDataBands.push(band);
-          } else {
-            pending.emptyDataBands.push(band);
-          }
-          break;
       }
     }
   }
@@ -86,9 +75,7 @@ function createDataSection(dataBand: Band, pending: PendingBands): DataSectionPl
     groupPairs: pending.groupHeaders.map((header) => ({ header })),
     columnHeaders: [...pending.columnHeaders],
     columnFooters: [],
-    childBands: [],
     footers: [],
-    emptyDataBands: [...pending.emptyDataBands],
   };
 }
 
@@ -103,12 +90,11 @@ function attachGroupFooter(section: DataSectionPlan, footer: Band): void {
 }
 
 function createPendingBands(): PendingBands {
-  return { headers: [], groupHeaders: [], columnHeaders: [], emptyDataBands: [] };
+  return { headers: [], groupHeaders: [], columnHeaders: [] };
 }
 
 function resetPendingBands(pending: PendingBands): void {
   pending.headers = [];
   pending.groupHeaders = [];
   pending.columnHeaders = [];
-  pending.emptyDataBands = [];
 }

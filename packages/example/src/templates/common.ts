@@ -205,7 +205,7 @@ export function band(id: string, type: Band['type'], height: number, components:
       printIfEmpty: true,
       printOnAllPages: isRepeatOnEveryPageBandType(type),
       keepTogether: false,
-      canBreak: type === 'data' || type === 'child',
+      canBreak: type === 'data',
       printAtBottom: type === 'pageFooter',
     },
     ...overrides,

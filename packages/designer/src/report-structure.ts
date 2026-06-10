@@ -30,8 +30,6 @@ const BAND_BASE_NAME: Record<BandType, string> = {
   groupFooter: 'GroupFooterBand',
   data: 'DataBand',
   hierarchicalData: 'HierarchicalDataBand',
-  child: 'ChildBand',
-  emptyData: 'EmptyDataBand',
   overlay: 'OverlayBand',
 };
 

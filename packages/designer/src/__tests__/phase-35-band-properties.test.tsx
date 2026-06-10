@@ -37,6 +37,27 @@ function loadSelectedDataBand() {
   return dataBand.id;
 }
 
+function loadSelectedHierarchicalBand() {
+  const template = createDefaultTemplate('Band Properties');
+  template.dataSources = [{
+    id: 'orgUnits',
+    name: 'Org Units',
+    type: 'json',
+    schema: [
+      { name: 'name', type: 'string', label: 'Name' },
+      { name: 'children', type: 'string', label: 'children' },
+      { name: 'nodes', type: 'string', label: 'nodes' },
+    ],
+  }];
+  const dataBand = template.pages[0].bands.find(band => band.type === 'data');
+  if (!dataBand) throw new Error('Missing data band');
+  dataBand.type = 'hierarchicalData';
+  dataBand.dataBand = { dataSourceId: 'orgUnits', hierarchical: { childrenField: 'children', indentChars: 2 } };
+  useDesignerStore.getState().loadTemplate(template);
+  useDesignerStore.getState().selectBand(dataBand.id);
+  return dataBand.id;
+}
+
 function selectedBand() {
   const state = useDesignerStore.getState();
   return state.template.pages[0].bands.find(band => band.id === state.selectedBandId);
@@ -100,6 +121,23 @@ describe('phase 35 band properties', () => {
     expect(screen.getByTestId('band-properties-data-form')).toHaveClass('ant-form-horizontal');
     expect(screen.getByTestId('band-properties-behavior-form')).toHaveClass('ant-form-horizontal');
     expect(within(screen.getByTestId('band-properties-data-form')).getByLabelText('排序')).toBeInTheDocument();
+  });
+
+  it('edits hierarchical data band child field and indentation', async () => {
+    loadSelectedHierarchicalBand();
+    render(
+      <DesignerI18nProvider locale="zh-CN">
+        <BandPropertyGrid />
+      </DesignerI18nProvider>,
+    );
+
+    await chooseCombobox('子项属性', 'nodes');
+    fireEvent.change(screen.getByLabelText('每层缩进字符数'), { target: { value: '4' } });
+
+    expect(selectedBand()?.dataBand?.hierarchical).toEqual({
+      childrenField: 'nodes',
+      indentChars: 4,
+    });
   });
 
   it('opens the shared expression editor from band expression fields and applies the edited value', async () => {

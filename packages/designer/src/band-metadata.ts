@@ -9,8 +9,6 @@ export const SUPPORTED_INSERT_BAND_TYPES = [
   'groupHeader',
   'data',
   'hierarchicalData',
-  'child',
-  'emptyData',
   'groupFooter',
   'columnFooter',
   'footer',
@@ -31,8 +29,6 @@ export const BAND_LABEL_KEYS: Record<BandType, DesignerMessageKey> = {
   groupFooter: 'band.type.groupFooter',
   data: 'band.type.data',
   hierarchicalData: 'band.type.hierarchicalData',
-  child: 'band.type.child',
-  emptyData: 'band.type.emptyData',
   overlay: 'band.type.overlay',
 };
 
@@ -49,8 +45,6 @@ export const BAND_DESCRIPTION_KEYS: Record<BandType, DesignerMessageKey> = {
   groupFooter: 'band.description.groupFooter',
   data: 'band.description.data',
   hierarchicalData: 'band.description.hierarchicalData',
-  child: 'band.description.child',
-  emptyData: 'band.description.emptyData',
   overlay: 'band.description.overlay',
 };
 
@@ -67,8 +61,6 @@ export const BAND_COLORS: Record<BandType, string> = {
   groupFooter: '#4527a0',
   data: '#6a1b9a',
   hierarchicalData: '#4f46e5',
-  child: '#ad1457',
-  emptyData: '#558b2f',
   overlay: '#7e22ce',
 };
 
@@ -85,7 +77,5 @@ export const BAND_GLYPH_KEYS: Record<BandType, string> = {
   groupFooter: 'group-footer',
   data: 'data',
   hierarchicalData: 'hierarchical-data',
-  child: 'child',
-  emptyData: 'empty-data',
   overlay: 'overlay',
 };

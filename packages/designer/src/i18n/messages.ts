@@ -150,8 +150,6 @@ export type DesignerMessageKey =
   | 'band.type.groupFooter'
   | 'band.type.data'
   | 'band.type.hierarchicalData'
-  | 'band.type.child'
-  | 'band.type.emptyData'
   | 'band.type.overlay'
   | 'band.description.reportTitle'
   | 'band.description.reportSummary'
@@ -165,8 +163,6 @@ export type DesignerMessageKey =
   | 'band.description.groupFooter'
   | 'band.description.data'
   | 'band.description.hierarchicalData'
-  | 'band.description.child'
-  | 'band.description.emptyData'
   | 'band.description.overlay'
   | 'styleLibrary.title'
   | 'styleLibrary.searchPlaceholder'
@@ -539,6 +535,8 @@ export type DesignerMessageKey =
   | 'dataBand.sort.moveDown'
   | 'dataBand.sort.deleteRule'
   | 'dataBand.sort.noFields'
+  | 'dataBand.hierarchy.childrenField'
+  | 'dataBand.hierarchy.indentChars'
   | 'dataBand.oddRowBackgroundColor'
   | 'dataBand.evenRowBackgroundColor'
   | 'dataBand.filter.filtered'
@@ -839,8 +837,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'band.type.groupFooter': '分组尾带',
     'band.type.data': '数据带',
     'band.type.hierarchicalData': '层级数据带',
-    'band.type.child': '子带',
-    'band.type.emptyData': '空数据带',
     'band.type.overlay': '覆盖带',
     'band.description.reportTitle': '该带区用于输出报表标题、封面信息及只在报表开头出现的内容。它在报表第一页顶部输出。',
     'band.description.reportSummary': '该带区用于输出报表汇总、总计及结束说明。它在报表所有数据输出完成后输出。',
@@ -854,8 +850,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'band.description.groupFooter': '该带区用于输出分组合计和分组结束信息。它会在对应分组数据之后输出。',
     'band.description.data': '该带区用于绑定数据表并逐行输出明细记录。分页、排序和过滤都围绕该带区展开。',
     'band.description.hierarchicalData': '该带区用于输出具有父子层级的数据。渲染时会按层级关系展开明细。',
-    'band.description.child': '该带区用于输出当前数据行的子内容。通常紧跟在主数据带之后。',
-    'band.description.emptyData': '该带区用于在数据为空时输出提示或占位内容。只有目标数据没有记录时输出。',
     'band.description.overlay': '该带区用于输出覆盖层内容，如背景标记、套打参考或页面浮层元素。',
     'styleLibrary.title': '文本样式库',
     'styleLibrary.searchPlaceholder': '搜索样式',
@@ -1228,6 +1222,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'dataBand.sort.moveDown': '下移排序规则 {index}',
     'dataBand.sort.deleteRule': '删除排序规则 {index}',
     'dataBand.sort.noFields': '当前数据源没有可排序字段',
+    'dataBand.hierarchy.childrenField': '子项属性',
+    'dataBand.hierarchy.indentChars': '每层缩进字符数',
     'dataBand.oddRowBackgroundColor': '奇数行背景',
     'dataBand.evenRowBackgroundColor': '偶数行背景',
     'dataBand.filter.filtered': '已过滤',
@@ -1525,8 +1521,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'band.type.groupFooter': 'GroupFooterBand',
     'band.type.data': 'DataBand',
     'band.type.hierarchicalData': 'HierarchicalDataBand',
-    'band.type.child': 'ChildBand',
-    'band.type.emptyData': 'EmptyDataBand',
     'band.type.overlay': 'OverlayBand',
     'band.description.reportTitle': 'Outputs the report title, cover information, and content that appears once at the beginning of the report.',
     'band.description.reportSummary': 'Outputs report summaries, grand totals, and closing notes after all report data has been rendered.',
@@ -1540,8 +1534,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'band.description.groupFooter': 'Outputs group totals and closing information after the records in a group.',
     'band.description.data': 'Binds to a data table and outputs detail records row by row. Pagination, sorting, and filtering are centered on this band.',
     'band.description.hierarchicalData': 'Outputs parent-child data in a hierarchy and expands detail records according to their relationships.',
-    'band.description.child': 'Outputs child content for the current data row. It is usually placed immediately after the parent DataBand.',
-    'band.description.emptyData': 'Outputs placeholder or message content when the target data has no records.',
     'band.description.overlay': 'Outputs overlay content such as background marks, preprinted-form references, or floating page elements.',
     'styleLibrary.title': 'Text Style Library',
     'styleLibrary.searchPlaceholder': 'Search styles',
@@ -1914,6 +1906,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'dataBand.sort.moveDown': 'Move sort rule {index} down',
     'dataBand.sort.deleteRule': 'Delete sort rule {index}',
     'dataBand.sort.noFields': 'The current data source has no sortable fields',
+    'dataBand.hierarchy.childrenField': 'Child property',
+    'dataBand.hierarchy.indentChars': 'Indent chars per level',
     'dataBand.oddRowBackgroundColor': 'Odd row background',
     'dataBand.evenRowBackgroundColor': 'Even row background',
     'dataBand.filter.filtered': 'Filtered',

@@ -42,7 +42,7 @@ describe('Phase 42 band insertion placement', () => {
     });
 
     expect(screen.getByRole('menuitem', { name: 'ReportSummaryBand' })).toBeInTheDocument();
-    expect(screen.getByRole('menuitem', { name: 'EmptyDataBand' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: 'EmptyDataBand' })).not.toBeInTheDocument();
 
     await act(async () => {
       fireEvent.click(screen.getByRole('menuitem', { name: 'ReportSummaryBand' }));

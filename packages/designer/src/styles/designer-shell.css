@@ -265,29 +265,6 @@
   border-left: 1px solid currentColor;
 }
 
-.rd-band-glyph-child {
-  border-left: 2px solid currentColor;
-}
-
-.rd-band-glyph-child::after {
-  left: 2px;
-  top: 4px;
-  width: 8px;
-  border-top: 2px solid currentColor;
-}
-
-.rd-band-glyph-empty-data {
-  border: 1px dashed currentColor;
-}
-
-.rd-band-glyph-empty-data::after {
-  left: 3px;
-  right: 3px;
-  top: 3px;
-  border-top: 1px solid currentColor;
-  opacity: 0.45;
-}
-
 .rd-band-glyph-group-footer {
   border-bottom: 2px solid currentColor;
   border-left: 2px solid currentColor;
@@ -1429,8 +1406,6 @@
 .rd-report-tree-band-groupHeader { background: #7dc8d4; }
 .rd-report-tree-band-groupFooter { background: #a89de8; }
 .rd-report-tree-band-data { background: #7eb3ea; }
-.rd-report-tree-band-child { background: #f0a1be; }
-
 .rd-field-option {
   width: 100%;
   height: 28px;

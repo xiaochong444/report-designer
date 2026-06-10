@@ -485,8 +485,6 @@ export const STANDARD_BAND_TYPES = [
   'columnFooter',
   'data',
   'hierarchicalData',
-  'child',
-  'emptyData',
   'overlay',
 ] as const;
 
@@ -527,6 +525,10 @@ export interface DataBandOptions {
   oddRowBackgroundColor?: string;
   evenRowBackgroundColor?: string;
   columns?: { count: number; gap: number; direction: 'downThenAcross' | 'acrossThenDown' };
+  hierarchical?: {
+    childrenField?: string;
+    indentChars?: number;
+  };
 }
 
 export interface GroupBandOptions {

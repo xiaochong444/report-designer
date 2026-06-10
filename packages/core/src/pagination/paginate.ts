@@ -318,7 +318,7 @@ export function paginate(
       activeSectionRepeatBands = item.repeatOnPageBreakBefore;
     }
 
-    if (['footer', 'columnFooter', 'reportSummary', 'emptyData'].includes(item.band.type)) {
+    if (['footer', 'columnFooter', 'reportSummary'].includes(item.band.type)) {
       activeSectionRepeatBands = [];
     }
 
@@ -618,7 +618,7 @@ function isDataRowBand(band: Band, context: RenderContext): boolean {
   return Boolean(
     context.row
       && context.dataSourceId
-      && (band.type === 'data' || band.type === 'hierarchicalData' || band.type === 'child'),
+      && (band.type === 'data' || band.type === 'hierarchicalData'),
   );
 }
 
@@ -864,7 +864,7 @@ function getBandBehavior(band: Band): NonNullable<Band['behavior']> {
     printIfEmpty: true,
     printOnAllPages: isRepeatOnEveryPageBandType(band.type),
     keepTogether: false,
-    canBreak: band.type === 'data' || band.type === 'child',
+    canBreak: band.type === 'data',
     printAtBottom: band.type === 'pageFooter',
     autoGrow: true,
     autoShrink: false,
