@@ -82,15 +82,22 @@ export function getNextComponentName(type: ReportComponent['type'], takenNames: 
 }
 
 export function prepareComponentForInsert(template: ReportTemplate, component: ReportComponent): ReportComponent {
+  const withDefaultText = (next: ReportComponent): ReportComponent => {
+    if (next.type !== 'text') return next;
+    const text = (next as ReportComponent & { text?: string }).text;
+    if (text !== undefined && text !== '') return next;
+    return { ...next, text: next.name ?? '' } as ReportComponent;
+  };
+
   if (!isAutoNameSeed(component)) {
-    return component;
+    return withDefaultText(component);
   }
 
   const takenNames = createNameRegistry(template);
-  return {
+  return withDefaultText({
     ...component,
     name: getNextComponentName(component.type, takenNames),
-  };
+  });
 }
 
 export function getBandBaseName(type: BandType) {

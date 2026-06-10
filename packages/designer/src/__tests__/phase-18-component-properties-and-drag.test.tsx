@@ -10,7 +10,7 @@ import { Designer } from '../components/Designer';
 import { PropertyEditor } from '../components/PropertyEditor';
 import { useDesignerStore } from '../store/designer-store';
 
-function textComponent(overrides: Partial<ReportComponent> = {}) {
+function textComponent(overrides: Partial<ReportComponent> & { text?: string } = {}) {
   return {
     id: 'text-1',
     type: 'text',
@@ -131,11 +131,39 @@ describe('Phase 18 component properties and canvas drag drop', () => {
 
     const inserted = components().find(component => component.type === 'text');
     expect(inserted).toBeTruthy();
-    expect(inserted.text).toBe('');
+    expect(inserted.name).toMatch(/^Text\d+$/);
+    expect(inserted.text).toBe(inserted.name);
+    expect(inserted.height).toBe(8);
     expect(inserted.dataSource).toBeUndefined();
     expect(useDesignerStore.getState().selectedComponentIds).toEqual([inserted.id]);
     expect(errorSpy.mock.calls.some(call => call.some(arg => String(arg).includes('NaN')))).toBe(false);
     errorSpy.mockRestore();
+  });
+
+  it('drops code components with visible sample values', async () => {
+    const template = createDefaultTemplate('Phase 18 Code Component Drop');
+    render(<Designer template={template} locale="zh-CN" />);
+
+    await waitFor(() => expect(screen.getByTestId('designer-page-sheet')).toBeInTheDocument());
+    mockCanvasRects();
+
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('designer-page-sheet'), {
+        clientX: 30,
+        clientY: 130,
+        dataTransfer: dataTransfer({ componentType: 'barcode' }),
+      });
+      fireEvent.drop(screen.getByTestId('designer-page-sheet'), {
+        clientX: 90,
+        clientY: 130,
+        dataTransfer: dataTransfer({ componentType: 'qrcode' }),
+      });
+    });
+
+    const insertedBarcode = components().find(component => component.type === 'barcode');
+    const insertedQRCode = components().find(component => component.type === 'qrcode');
+    expect(insertedBarcode).toMatchObject({ value: '1234567890', format: 'CODE128', showText: true });
+    expect(insertedQRCode).toMatchObject({ value: 'https://example.com', format: 'QR_CODE' });
   });
 
   it('shows data band column guides and clamps dropped components to the first column', async () => {
@@ -255,6 +283,39 @@ describe('Phase 18 component properties and canvas drag drop', () => {
 
     expect(componentBand('data').components.map(item => item.id)).toContain('text-drag');
     expect(componentBand('reportTitle').components.map(item => item.id)).not.toContain('text-drag');
+  });
+
+  it('finishes inline text editing when another component is selected', async () => {
+    const first = textComponent({ id: 'text-edit-a', name: 'TextA', x: 5, y: 5, text: 'Alpha' });
+    const second = textComponent({ id: 'text-edit-b', name: 'TextB', x: 60, y: 5, text: 'Beta' });
+    const template = createDefaultTemplate('Phase 18 Inline Edit Exit');
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [first, second];
+    useDesignerStore.getState().loadTemplate(template);
+    useDesignerStore.getState().selectComponents([first.id]);
+
+    render(<Canvas />);
+
+    const firstElement = document.querySelector('[data-component-id="text-edit-a"]') as HTMLElement;
+    const secondElement = document.querySelector('[data-component-id="text-edit-b"]') as HTMLElement;
+    expect(firstElement).toBeTruthy();
+    expect(secondElement).toBeTruthy();
+
+    fireEvent.doubleClick(firstElement);
+    const editor = await screen.findByDisplayValue('Alpha');
+    fireEvent.change(editor, { target: { value: 'Edited Alpha' } });
+
+    Object.defineProperty(document, 'elementFromPoint', {
+      configurable: true,
+      value: vi.fn(() => secondElement),
+    });
+
+    fireEvent.mouseDown(secondElement, { button: 0, clientX: 240, clientY: 140 });
+
+    await waitFor(() => {
+      expect(screen.queryByDisplayValue('Edited Alpha')).not.toBeInTheDocument();
+      expect(components().find(component => component.id === first.id)?.text).toBe('Edited Alpha');
+      expect(useDesignerStore.getState().selectedComponentIds).toEqual([second.id]);
+    });
   });
 
   it('shows text content as the only binding entry for text components', () => {

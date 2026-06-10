@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, Checkbox, Collapse, ColorPicker, Form, Input, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
-import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, BoldOutlined, ItalicOutlined, StrikethroughOutlined, UnderlineOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
+import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, BoldOutlined, EditOutlined, ItalicOutlined, StrikethroughOutlined, UnderlineOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { createDefaultPageBorder, createDefaultPageWatermark, getReportFontOptions, normalizeReportFonts } from '@report-designer/core';
 import type { EventMap, Margins, Page, PageBorder, PageEventName, PageWatermark, ReportFontOption, TableCell, TableComponent, TableRow, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
@@ -22,6 +22,7 @@ import { TextFormatEditor } from '../TextFormatEditor';
 import type { ExpressionCatalogExtensions } from '../../expression/expression-catalog';
 import { normalizeTable } from '../../table/table-structure';
 import { BorderEditor, PaddingEditor } from '../properties/BoxStyleEditors';
+import { ExpressionEditor } from '../ExpressionEditor';
 
 export const DesignerPropertyPanel: React.FC<{ expressionExtensions?: ExpressionCatalogExtensions }> = ({ expressionExtensions }) => {
   const { t } = useDesignerI18n();
@@ -54,7 +55,7 @@ export const DesignerPropertyPanel: React.FC<{ expressionExtensions?: Expression
     <aside className="rd-property-grid" data-testid="designer-property-grid">
       <div className="rd-panel-title">{selectedType}</div>
       <div className="rd-property-grid-body">
-        {showTableCellProperties ? <TableCellProperties /> : null}
+        {showTableCellProperties ? <TableCellProperties expressionExtensions={expressionExtensions} /> : null}
         {showTableRowProperties ? <TableRowProperties /> : null}
         {showBandProperties ? (
           <div className="rd-property-grid-band">
@@ -68,7 +69,7 @@ export const DesignerPropertyPanel: React.FC<{ expressionExtensions?: Expression
   );
 };
 
-const TableCellProperties: React.FC = () => {
+const TableCellProperties: React.FC<{ expressionExtensions?: ExpressionCatalogExtensions }> = ({ expressionExtensions }) => {
   const { t } = useDesignerI18n();
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
@@ -83,6 +84,7 @@ const TableCellProperties: React.FC = () => {
   const format = cell?.format ?? DEFAULT_CELL_FORMAT;
   const font = cell?.font;
   const reportFontOptions = getReportFontOptions(template.fonts);
+  const [textExpressionOpen, setTextExpressionOpen] = React.useState(false);
   const selectionText = selectedTableCell
     ? `${selectedTableCell.startRow + 1}:${selectedTableCell.startColumn + 1} - ${selectedTableCell.endRow + 1}:${selectedTableCell.endColumn + 1}`
     : '';
@@ -110,11 +112,20 @@ const TableCellProperties: React.FC = () => {
                 <Input aria-label={t('tableCell.range')} value={selectionText} disabled />
               </Form.Item>
               <Form.Item label={t('tableCell.text')}>
-                <Input
-                  aria-label={t('tableCell.text')}
-                  value={cell?.text ?? ''}
-                  onChange={event => updateCell({ text: event.target.value })}
-                />
+                <Space.Compact style={{ width: '100%' }}>
+                  <Input
+                    aria-label={t('tableCell.text')}
+                    value={cell?.text ?? ''}
+                    onChange={event => updateCell({ text: event.target.value })}
+                  />
+                  <Button
+                    aria-label={t('bandProperties.openExpressionEditorFor', { field: t('tableCell.text') })}
+                    title={t('bandProperties.openExpressionEditorFor', { field: t('tableCell.text') })}
+                    icon={<EditOutlined />}
+                    onClick={() => setTextExpressionOpen(true)}
+                    style={{ width: 32 }}
+                  />
+                </Space.Compact>
               </Form.Item>
               <Form.Item label={t('tableCell.rowSpan')}>
                 <InputNumber
@@ -260,6 +271,13 @@ const TableCellProperties: React.FC = () => {
             />
           ),
         }]}
+      />
+      <ExpressionEditor
+        open={textExpressionOpen}
+        value={cell?.text ?? ''}
+        expressionExtensions={expressionExtensions}
+        onChange={(value) => updateCell({ text: value })}
+        onClose={() => setTextExpressionOpen(false)}
       />
     </div>
   );

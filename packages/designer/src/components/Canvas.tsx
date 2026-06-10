@@ -1829,13 +1829,60 @@ const BandView: React.FC<{
 }> = ({ band, visualY, labelIndex, page, isSelected, pendingBandInsertType, selectedIds, selectedTableCell, fonts, isDragging, isComponentMoveTarget, onOpenContextMenu, onStartBandSort, onUpdateComponent, currentPageId }) => {
   const { t } = useDesignerI18n();
   const [editId, setEditId] = useState<string | null>(null);
-  const [editKind, setEditKind] = useState<'text' | 'richtext' | null>(null);
+  const [editKind, setEditKind] = useState<'text' | 'richtext' | 'tableCell' | null>(null);
   const [editText, setEditText] = useState('');
+  const [editCell, setEditCell] = useState<TableCellSelection | null>(null);
   const richTextEditComponent = editKind === 'richtext' && editId
     ? band.components.find((component) => component.id === editId && component.type === 'richtext')
     : null;
+  const finishTextEdit = useCallback((text: string = editText) => {
+    if (!editId || editKind !== 'text') return;
+    const component = band.components.find(item => item.id === editId);
+    if (!component || component.type !== 'text') {
+      setEditId(null);
+      setEditKind(null);
+      return;
+    }
+    onUpdateComponent(currentPageId, band.id, editId, { text }, { text: (component as any).text });
+    setEditId(null);
+    setEditKind(null);
+  }, [band.components, band.id, currentPageId, editId, editKind, editText, onUpdateComponent]);
+
+  const finishTableCellEdit = useCallback((text: string = editText) => {
+    if (!editId || editKind !== 'tableCell' || !editCell) return;
+    const table = band.components.find(item => item.id === editId && item.type === 'table') as TableComponent | undefined;
+    if (!table) {
+      setEditId(null);
+      setEditKind(null);
+      setEditCell(null);
+      return;
+    }
+    const nextTable = updateTableCellText(table, editCell.startRow, editCell.startColumn, text);
+    onUpdateComponent(currentPageId, band.id, table.id, { rows: nextTable.rows }, { rows: table.rows });
+    setEditId(null);
+    setEditKind(null);
+    setEditCell(null);
+  }, [band.components, band.id, currentPageId, editCell, editId, editKind, editText, onUpdateComponent]);
+
+  useEffect(() => {
+    if (!editId || editKind !== 'text' || selectedIds.includes(editId)) return;
+    finishTextEdit(editText);
+  }, [editId, editKind, editText, finishTextEdit, selectedIds]);
+
+  useEffect(() => {
+    if (!editId || editKind !== 'tableCell' || !editCell) return;
+    const sameCell = Boolean(
+      selectedIds.includes(editCell.tableId)
+      && selectedTableCell
+      && selectedTableCell.tableId === editCell.tableId
+      && selectedTableCell.startRow === editCell.startRow
+      && selectedTableCell.startColumn === editCell.startColumn,
+    );
+    if (!sameCell) finishTableCellEdit(editText);
+  }, [editCell, editId, editKind, editText, finishTableCellEdit, selectedIds, selectedTableCell]);
   const selectBand = useDesignerStore((state) => state.selectBand);
   const selectComponents = useDesignerStore((state) => state.selectComponents);
+  const selectTableCell = useDesignerStore((state) => state.selectTableCell);
   const insertBandAfter = useDesignerStore((state) => state.insertBandAfter);
   const baseColor = BAND_COLORS[band.type] || '#757575';
   const baseLabel = BAND_LABEL_KEYS[band.type] ? t(BAND_LABEL_KEYS[band.type]) : band.type;
@@ -1934,13 +1981,20 @@ const BandView: React.FC<{
             selectedTableCell={selectedTableCell?.tableId === comp.id ? selectedTableCell : null}
             editingKind={editId === comp.id ? editKind : null}
             editText={editText}
-            onStartTextEdit={() => { setEditId(comp.id); setEditKind('text'); setEditText((comp as any).text || ''); }}
+            onStartTextEdit={() => { selectBand(null); selectComponents([comp.id]); setEditId(comp.id); setEditKind('text'); setEditText((comp as any).text || ''); }}
             onStartRichTextEdit={() => { setEditId(comp.id); setEditKind('richtext'); }}
-            onFinishEdit={(text) => {
-              onUpdateComponent(currentPageId, band.id, comp.id, { text }, { text: (comp as any).text });
-              setEditId(null);
-              setEditKind(null);
+            onFinishEdit={finishTextEdit}
+            editingCell={editId === comp.id && editKind === 'tableCell' ? editCell : null}
+            onStartTableCellEdit={(selection, text) => {
+              selectBand(null);
+              selectComponents([selection.tableId]);
+              selectTableCell(selection);
+              setEditId(selection.tableId);
+              setEditKind('tableCell');
+              setEditCell(selection);
+              setEditText(text);
             }}
+            onFinishTableCellEdit={finishTableCellEdit}
             onEditTextChange={setEditText} />
         ))}
       </div>
@@ -2235,9 +2289,12 @@ const ComponentView: React.FC<{
   component: ReportComponent; bandId: string;
   selected: boolean; editing: boolean; editText: string;
   selectedTableCell: TableCellSelection | null;
-  editingKind: 'text' | 'richtext' | null;
+  editingKind: 'text' | 'richtext' | 'tableCell' | null;
+  editingCell: TableCellSelection | null;
   onStartTextEdit: () => void; onStartRichTextEdit: () => void;
+  onStartTableCellEdit: (selection: TableCellSelection, text: string) => void;
   onFinishEdit: (text: string) => void;
+  onFinishTableCellEdit: (text: string) => void;
   onEditTextChange: (t: string) => void;
 }> = ({
   component,
@@ -2247,9 +2304,12 @@ const ComponentView: React.FC<{
   editText,
   selectedTableCell,
   editingKind,
+  editingCell,
   onStartTextEdit,
   onStartRichTextEdit,
+  onStartTableCellEdit,
   onFinishEdit,
+  onFinishTableCellEdit,
   onEditTextChange,
 }) => {
   const { t } = useDesignerI18n();
@@ -2297,6 +2357,12 @@ const ComponentView: React.FC<{
           imagePlaceholder: t('canvas.imagePlaceholder'),
           subreportPlaceholder: t('canvas.subreportPlaceholder'),
           localTemplatePlaceholder: t('canvas.localTemplatePlaceholder'),
+        }, {
+          editingCell,
+          editText,
+          onStartTableCellEdit,
+          onEditTextChange,
+          onFinishTableCellEdit,
         })}
       </div>
 
@@ -2461,6 +2527,13 @@ function getCompContent(
   bandId: string,
   selectedTableCell: TableCellSelection | null,
   labels: { imagePlaceholder: string; subreportPlaceholder: string; localTemplatePlaceholder: string },
+  tableEditing?: {
+    editingCell: TableCellSelection | null;
+    editText: string;
+    onStartTableCellEdit: (selection: TableCellSelection, text: string) => void;
+    onEditTextChange: (text: string) => void;
+    onFinishTableCellEdit: (text: string) => void;
+  },
 ): React.ReactNode {
   switch (comp.type) {
     case 'text':
@@ -2531,7 +2604,7 @@ function getCompContent(
       );
     }
     case 'table':
-      return <TablePreview table={comp as TableComponent} bandId={bandId} selectedTableCell={selectedTableCell} />;
+      return <TablePreview table={comp as TableComponent} bandId={bandId} selectedTableCell={selectedTableCell} editing={tableEditing} />;
     case 'chart':
       return <DesignerChartPreview chart={comp as ChartComponent} />;
     case 'richtext':
@@ -2895,7 +2968,35 @@ function formatDesignDateTime(date: Date, pattern: string): string {
   return pattern.replace(/yyyy|MM|dd|HH|mm|ss/g, token => parts[token] ?? token);
 }
 
-const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTableCell: TableCellSelection | null }> = ({ table, bandId, selectedTableCell }) => {
+function updateTableCellText(table: TableComponent, rowIndex: number, columnIndex: number, text: string): TableComponent {
+  const normalized = normalizeTable(table);
+  return {
+    ...normalized,
+    rows: normalized.rows?.map((row, currentRowIndex) => (
+      currentRowIndex !== rowIndex
+        ? row
+        : {
+            ...row,
+            cells: row.cells.map((cell, currentColumnIndex) => (
+              currentColumnIndex === columnIndex ? { ...cell, text } : cell
+            )),
+          }
+    )),
+  };
+}
+
+const TablePreview: React.FC<{
+  table: TableComponent;
+  bandId: string;
+  selectedTableCell: TableCellSelection | null;
+  editing?: {
+    editingCell: TableCellSelection | null;
+    editText: string;
+    onStartTableCellEdit: (selection: TableCellSelection, text: string) => void;
+    onEditTextChange: (text: string) => void;
+    onFinishTableCellEdit: (text: string) => void;
+  };
+}> = ({ table, bandId, selectedTableCell, editing }) => {
   const normalized = normalizeTable(table);
   const rows = normalized.rows ?? [];
   const rowCount = rows.length;
@@ -2941,6 +3042,20 @@ const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTa
       const topPx = safeCssNumber(mmToPx(rowTops[rowIndex] ?? 0));
       const widthPx = safeCssNumber(mmToPx(width));
       const heightPx = safeCssNumber(mmToPx(height));
+      const isEditing = Boolean(
+        editing?.editingCell
+        && editing.editingCell.tableId === normalized.id
+        && editing.editingCell.startRow === rowIndex
+        && editing.editingCell.startColumn === columnIndex,
+      );
+      const cellSelection: TableCellSelection = {
+        tableId: normalized.id,
+        bandId,
+        startRow: rowIndex,
+        startColumn: columnIndex,
+        endRow: rowIndex,
+        endColumn: columnIndex,
+      };
 
       if (hasVisibleBorder(border)) {
         borderLines.push(...tableBorderLinesToNodes(border, {
@@ -2960,6 +3075,11 @@ const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTa
           data-table-row={rowIndex}
           data-table-column={columnIndex}
           data-testid={`designer-table-cell-${rowIndex}-${columnIndex}`}
+          onDoubleClick={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            editing?.onStartTableCellEdit(cellSelection, cell.text ?? '');
+          }}
           style={{
             position: 'absolute',
             left: leftPx,
@@ -2989,7 +3109,36 @@ const TablePreview: React.FC<{ table: TableComponent; bandId: string; selectedTa
             textOverflow: 'ellipsis',
           }}
         >
-          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell.text ?? ''}</span>
+          {isEditing ? (
+            <input
+              autoFocus
+              value={editing?.editText ?? ''}
+              aria-label="单元格文本"
+              onChange={event => editing?.onEditTextChange(event.target.value)}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === 'Escape') {
+                  editing?.onFinishTableCellEdit(editing?.editText ?? '');
+                }
+              }}
+              onBlur={() => editing?.onFinishTableCellEdit(editing?.editText ?? '')}
+              onPointerDown={event => event.stopPropagation()}
+              onMouseDown={event => event.stopPropagation()}
+              style={{
+                width: '100%',
+                height: '100%',
+                border: 'none',
+                outline: 'none',
+                background: 'transparent',
+                font: 'inherit',
+                color: 'inherit',
+                textAlign: 'inherit',
+                padding: 0,
+                minWidth: 0,
+              }}
+            />
+          ) : (
+            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{cell.text ?? ''}</span>
+          )}
           {columnIndex < row.cells.length - 1 ? (
             <div
               data-table-cell-resize

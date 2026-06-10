@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import '@testing-library/jest-dom/vitest';
 import type { ReportComponent, TableComponent } from '@report-designer/core';
@@ -8,6 +8,16 @@ import { createDefaultTemplate } from '@report-designer/core';
 import { Canvas } from '../components/Canvas';
 import { DesignerPropertyPanel } from '../components/panels/DesignerPropertyPanel';
 import { useDesignerStore } from '../store/designer-store';
+
+vi.mock('@monaco-editor/react', () => ({
+  default: (props: Record<string, unknown>) => (
+    <textarea
+      aria-label={props['aria-label'] as string}
+      value={props.value as string}
+      onChange={(event) => (props.onChange as (value: string | undefined) => void)(event.target.value)}
+    />
+  ),
+}));
 
 function tableComponent(): TableComponent {
   return {
@@ -148,6 +158,44 @@ describe('phase 34 table cell selection', () => {
     fireEvent.change(screen.getByLabelText('文本内容'), { target: { value: 'Total' } });
 
     expect(tableCell(1, 1)?.text).toBe('Total');
+  });
+
+  it('edits selected table cell text inline from a canvas double click', async () => {
+    loadWith(tableComponent());
+    render(<Canvas />);
+
+    fireEvent.doubleClick(screen.getByTestId('designer-table-cell-1-1'));
+
+    const editor = await screen.findByLabelText('单元格文本');
+    expect(editor).toHaveValue('Subtotal');
+    fireEvent.change(editor, { target: { value: 'Inline Total' } });
+    fireEvent.blur(editor);
+
+    await waitFor(() => {
+      expect(tableCell(1, 1)?.text).toBe('Inline Total');
+      expect(screen.queryByLabelText('单元格文本')).not.toBeInTheDocument();
+    });
+  });
+
+  it('opens the expression editor for selected table cell text', async () => {
+    loadWith(tableComponent());
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 1);
+    fireEvent.click(screen.getByRole('button', { name: '打开表达式编辑器：文本内容' }));
+    fireEvent.change(await screen.findByLabelText('表达式'), {
+      target: { value: '{orders.Total}' },
+    });
+    const confirmButton = document.querySelector('.ant-modal-footer .ant-btn-primary') as HTMLElement | null;
+    if (!confirmButton) throw new Error('Expression editor confirm button was not found');
+    fireEvent.click(confirmButton);
+
+    await waitFor(() => expect(tableCell(1, 1)?.text).toBe('{orders.Total}'));
   });
 
   it('updates selected table cell appearance from the property panel', () => {

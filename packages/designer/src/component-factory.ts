@@ -39,7 +39,7 @@ export function createDefaultComponent(type: string, xMm: number, yMm: number): 
   switch (type) {
     case 'text':
       return {
-        id, type: 'text', x, y, width: 40, height: 15,
+        id, type: 'text', x, y, width: 40, height: 8,
         text: '',
         font: defaultFont(),
         textAlign: 'left',
@@ -87,9 +87,9 @@ export function createDefaultComponent(type: string, xMm: number, yMm: number): 
         },
       } as ReportComponent;
     case 'barcode':
-      return { id, type: 'barcode', x, y, width: 50, height: 16, value: '', format: 'CODE128', showText: true } as ReportComponent;
+      return { id, type: 'barcode', x, y, width: 50, height: 16, value: '1234567890', format: 'CODE128', showText: true } as ReportComponent;
     case 'qrcode':
-      return { id, type: 'qrcode', x, y, width: 24, height: 24, value: '', format: 'QR_CODE' } as ReportComponent;
+      return { id, type: 'qrcode', x, y, width: 24, height: 24, value: 'https://example.com', format: 'QR_CODE' } as ReportComponent;
     case 'table':
       return {
         id,
