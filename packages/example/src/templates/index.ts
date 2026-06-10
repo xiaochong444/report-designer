@@ -2,6 +2,7 @@ import employees from '../fixtures/json/employees.json';
 import orders from '../fixtures/json/orders.json';
 import { commonComponentsDetailTemplate, commonComponentsTemplate } from './common-components';
 import { chartsTemplate } from './charts';
+import { clothingOrderDynamicSizeData, clothingOrderDynamicSizeTemplate } from './clothing-order-dynamic-size';
 import { customChineseFontTemplate } from './custom-chinese-font';
 import { eventLogicTemplate, eventOrdersData } from './event-logic';
 import { groupedEmployeesTemplate } from './grouped-employees';
@@ -53,6 +54,7 @@ export const sampleReports = [
   { key: 'charts', label: 'Charts', template: chartsTemplate, data: sampleReportData },
   { key: 'invoice', label: 'Invoice', template: invoiceTemplate, data: sampleReportData },
   { key: 'salesOrderPrint', label: 'Sales Order Print', template: salesOrderPrintTemplate, data: salesOrderPrintData },
+  { key: 'clothingOrderDynamicSize', label: '服装订单动态尺码打印', template: clothingOrderDynamicSizeTemplate, data: clothingOrderDynamicSizeData },
   { key: 'tableDetail', label: 'Table Detail', template: tableDetailTemplate, data: sampleReportData },
   { key: 'masterDetailOrders', label: 'Master Detail Orders', template: masterDetailOrdersTemplate, data: sampleReportData },
   { key: 'productPriceLabels', label: 'Product Price Labels', template: productPriceLabelsTemplate, data: productPriceLabelsData },
@@ -73,6 +75,8 @@ export {
   commonComponentsDetailTemplate,
   commonComponentsTemplate,
   chartsTemplate,
+  clothingOrderDynamicSizeData,
+  clothingOrderDynamicSizeTemplate,
   customChineseFontTemplate,
   eventLogicTemplate,
   groupedEmployeesTemplate,
