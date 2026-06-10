@@ -13,11 +13,14 @@ import {
   type DesignerEventName,
   type EventTargetType,
 } from './event-editor-utils';
-import { getDefaultHelperCompletionItems } from './event-script-monaco';
+import { getDefaultHelperCompletionItems, type EventCompletionComponentItem } from './event-script-monaco';
 
 export interface EventTreeItem {
   key: string;
   title: string;
+  name?: string;
+  type?: string;
+  insertable?: boolean;
   children?: EventTreeItem[];
 }
 
@@ -40,6 +43,19 @@ interface EventEditorDialogProps {
   dataContext?: EventEditorDataContractInput;
   dictionaryItems?: EventTreeItem[];
   componentItems?: EventTreeItem[];
+  textItems?: EventCompletionComponentItem[];
+  imageItems?: EventCompletionComponentItem[];
+  tableItems?: EventCompletionComponentItem[];
+  barcodeItems?: EventCompletionComponentItem[];
+  qrcodeItems?: EventCompletionComponentItem[];
+  checkboxItems?: EventCompletionComponentItem[];
+  richtextItems?: EventCompletionComponentItem[];
+  chartItems?: EventCompletionComponentItem[];
+  lineItems?: EventCompletionComponentItem[];
+  shapeItems?: EventCompletionComponentItem[];
+  pageNumberItems?: EventCompletionComponentItem[];
+  dateTimeItems?: EventCompletionComponentItem[];
+  panelItems?: EventCompletionComponentItem[];
   onCancel: () => void;
   onSave: (events: EventMap<string>) => void;
 }
@@ -49,6 +65,19 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   dataContext,
   dictionaryItems = [],
   events,
+  textItems,
+  imageItems,
+  tableItems,
+  barcodeItems,
+  qrcodeItems,
+  checkboxItems,
+  richtextItems,
+  chartItems,
+  lineItems,
+  shapeItems,
+  pageNumberItems,
+  dateTimeItems,
+  panelItems,
   initialCursor,
   initialEventName,
   onCancel,
@@ -100,7 +129,9 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
     [dictionaryItems],
   );
   const componentTreeItems = useMemo(
-    () => namespaceTreeItems(componentItems, 'component', rawKey => rawKey),
+    () => namespaceTreeItems(componentItems, 'component', (_rawKey, item) => (
+      getEventTreeItemName(item) ? `ctx.getComponent?.(${JSON.stringify(getEventTreeItemName(item))})` : undefined
+    )),
     [componentItems],
   );
   const helperTreeItems: SideTreeItem[] = helperItems.map(item => ({
@@ -203,6 +234,19 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
             dataContext={dataContext}
             dictionaryItems={dictionaryItems}
             componentItems={componentItems}
+            textItems={textItems}
+            imageItems={imageItems}
+            tableItems={tableItems}
+            barcodeItems={barcodeItems}
+            qrcodeItems={qrcodeItems}
+            checkboxItems={checkboxItems}
+            richtextItems={richtextItems}
+            chartItems={chartItems}
+            lineItems={lineItems}
+            shapeItems={shapeItems}
+            pageNumberItems={pageNumberItems}
+            dateTimeItems={dateTimeItems}
+            panelItems={panelItems}
             exampleItems={exampleItems}
             initialCursor={initialCursor}
             loadingText={t('events.editorLoading')}
@@ -251,21 +295,25 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
 function namespaceTreeItems(
   items: EventTreeItem[],
   namespace: 'field' | 'component',
-  buildInsertText: (rawKey: string) => string,
+  buildInsertText: (rawKey: string, item: EventTreeItem) => string | undefined,
 ): SideTreeItem[] {
-  return items.map(item => {
+  return items.flatMap(item => {
     const children = item.children?.length
       ? namespaceTreeItems(item.children, namespace, buildInsertText)
       : undefined;
-    const insertText = children ? undefined : buildInsertText(item.key);
+    const insertText = item.insertable === false ? undefined : buildInsertText(item.key, item);
 
-    return {
+    if (!children?.length && !insertText && namespace === 'component') {
+      return [];
+    }
+
+    return [{
       key: `${namespace}:${item.key}`,
       title: item.title,
       insertText,
       searchText: [item.key, item.title, insertText].filter(Boolean).join(' '),
       children,
-    };
+    }];
   });
 }
 
@@ -318,4 +366,8 @@ function buildInsertTextMap(items: SideTreeItem[]): Map<string, string> {
   }
 
   return result;
+}
+
+function getEventTreeItemName(item: EventTreeItem): string | undefined {
+  return item.name?.trim() || undefined;
 }

@@ -2,7 +2,7 @@ import React from 'react';
 import { Button, Checkbox, Collapse, ColorPicker, Form, Input, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
 import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, BoldOutlined, EditOutlined, ItalicOutlined, StrikethroughOutlined, UnderlineOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { createDefaultPageBorder, createDefaultPageWatermark, getReportFontOptions, normalizeReportFonts } from '@report-designer/core';
-import type { EventMap, Margins, Page, PageBorder, PageEventName, PageWatermark, ReportFontOption, TableCell, TableComponent, TableRow, TextFormatConfig } from '@report-designer/core';
+import type { EventMap, Margins, Page, PageBorder, PageEventName, PageWatermark, ReportComponent, ReportFontOption, TableCell, TableComponent, TableRow, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import {
   detectPaperType,
@@ -1014,17 +1014,38 @@ function buildDictionaryEventItems(template: { dataSources: Array<{ id: string; 
   }));
 }
 
-function buildComponentEventItems(template: { pages: Array<{ id: string; bands: Array<{ id: string; name?: string; components: Array<{ id: string; name?: string }> }> }> }): EventTreeItem[] {
+function buildComponentEventItems(template: { pages: Array<{ id: string; bands: Array<{ id: string; name?: string; components: ReportComponent[] }> }> }): EventTreeItem[] {
   return template.pages.map(page => ({
     key: page.id,
     title: page.id,
+    insertable: false,
     children: page.bands.map(band => ({
       key: band.id,
       title: band.name || band.id,
-      children: band.components.map(component => ({
-        key: component.name || component.id,
-        title: component.name || component.id,
-      })),
+      insertable: false,
+      children: buildComponentTreeItems(band.components),
     })),
   }));
+}
+
+function buildComponentTreeItems(components: ReportComponent[]): EventTreeItem[] {
+  return components.flatMap(component => {
+    const children = component.type === 'panel'
+      ? buildComponentTreeItems((component as ReportComponent & { components?: ReportComponent[] }).components ?? [])
+      : undefined;
+    const item: EventTreeItem = {
+      key: component.id,
+      title: component.name ? `${component.name} (${component.type})` : `${component.type}: ${component.id}`,
+      name: component.name,
+      type: component.type,
+      insertable: Boolean(component.name),
+      children,
+    };
+
+    if (!item.name && !children?.length) {
+      return [];
+    }
+
+    return [item];
+  });
 }

@@ -46,19 +46,40 @@ interface EventLogCollector {
   error(message: string, target?: Partial<EventTargetState>): void;
 }
 
+type ComponentType =
+  | 'text'
+  | 'image'
+  | 'chart'
+  | 'table'
+  | 'barcode'
+  | 'qrcode'
+  | 'checkbox'
+  | 'richtext'
+  | 'subreport'
+  | 'panel'
+  | 'line'
+  | 'shape'
+  | 'pagenumber'
+  | 'datetime';
+
 interface ReportComponent {
   id: string;
   name?: string;
-  type: string;
+  type: ComponentType;
   x: number;
   y: number;
   width: number;
   height: number;
+  visible?: unknown;
+  events?: Record<string, unknown>;
 }
 
 interface TextComponent extends ReportComponent {
   type: 'text';
   text: string;
+  font?: Record<string, unknown>;
+  textAlign?: string;
+  verticalAlign?: string;
 }
 
 interface ImageComponent extends ReportComponent {
@@ -67,12 +88,153 @@ interface ImageComponent extends ReportComponent {
   fitMode?: string;
 }
 
+interface ChartComponent extends ReportComponent {
+  type: 'chart';
+  chartType?: string;
+  variant?: string;
+  binding?: Record<string, unknown>;
+}
+
+interface TableCell {
+  text?: string;
+  rowSpan?: number;
+  colSpan?: number;
+  width?: number;
+  [key: string]: unknown;
+}
+
+interface TableComponent extends ReportComponent {
+  type: 'table';
+  rows?: Array<{ cells: TableCell[] }>;
+  rowCount?: number;
+  columnCount?: number;
+}
+
 interface BarcodeComponent extends ReportComponent {
   type: 'barcode';
   value: string;
   format?: string;
   showText?: boolean;
 }
+
+interface QRCodeComponent extends ReportComponent {
+  type: 'qrcode';
+  value: string;
+  format?: string;
+}
+
+interface CheckboxComponent extends ReportComponent {
+  type: 'checkbox';
+  checked: string | boolean;
+  label?: string;
+}
+
+interface RichtextComponent extends ReportComponent {
+  type: 'richtext';
+  html: string;
+}
+
+interface PanelComponent extends ReportComponent {
+  type: 'panel';
+  components: ReportComponent[];
+}
+
+interface LineComponent extends ReportComponent {
+  type: 'line';
+  startX: number;
+  startY: number;
+  endX: number;
+  endY: number;
+}
+
+interface ShapeComponent extends ReportComponent {
+  type: 'shape';
+  shapeType?: string;
+}
+
+interface PageNumberComponent extends ReportComponent {
+  type: 'pagenumber';
+  format?: string;
+}
+
+interface DateTimeComponent extends ReportComponent {
+  type: 'datetime';
+  format?: string;
+}
+
+type EventComponentBounds = Partial<Pick<ReportComponent, 'x' | 'y' | 'width' | 'height'>>;
+
+interface EventComponentHandle<TComponent extends ReportComponent = ReportComponent> {
+  readonly component: TComponent;
+  readonly id: string;
+  readonly name: string | undefined;
+  readonly type: TComponent['type'];
+  setProperty(path: string, value: unknown): this;
+  getProperty(path: string): unknown;
+  setBounds(bounds: EventComponentBounds): this;
+  show(): this;
+  hide(): this;
+}
+
+interface EventTextHandle extends EventComponentHandle<TextComponent> {
+  setText(text: string): this;
+  bindText(expression: string): this;
+}
+
+interface EventImageHandle extends EventComponentHandle<ImageComponent> {
+  setSource(src: string): this;
+}
+
+interface EventBarcodeHandle extends EventComponentHandle<BarcodeComponent> {
+  setValue(value: string): this;
+  setFormat(format: string): this;
+}
+
+interface EventQRCodeHandle extends EventComponentHandle<QRCodeComponent> {
+  setValue(value: string): this;
+}
+
+interface EventCheckboxHandle extends EventComponentHandle<CheckboxComponent> {
+  setChecked(checked: string | boolean): this;
+  setLabel(label: string): this;
+}
+
+interface EventRichtextHandle extends EventComponentHandle<RichtextComponent> {
+  setHtml(html: string): this;
+}
+
+interface EventTableCellMatch {
+  row: number;
+  column: number;
+  cell: TableCell;
+}
+
+interface EventTableHandle extends EventComponentHandle<TableComponent> {
+  readonly rowCount: number;
+  readonly columnCount: number;
+  findCellText(text: string): EventTableCellMatch | undefined;
+  ensureColumnCount(columnCount: number): this;
+  ensureRowCount(rowCount: number): this;
+  insertColumnsAfter(afterColumn: number, count?: number): this;
+  insertRowsAfter(afterRow: number, count?: number): this;
+  setCellText(row: number, column: number, text: string): this;
+  setCell(row: number, column: number, cell: Partial<TableCell>): this;
+  mergeCells(row: number, column: number, rowSpan: number, colSpan: number): this;
+  setColumnWidth(column: number, width: number | undefined): this;
+  distributeColumns(startColumn?: number, count?: number): this;
+}
+
+type EventTableComponentHandle = EventTableHandle;
+type EventBaseComponentFactory = (name: string) => EventComponentHandle;
+type EventTextComponentFactory = (name: string) => EventTextHandle;
+type EventImageComponentFactory = (name: string) => EventImageHandle;
+type EventTableComponentFactory = (name: string) => EventTableHandle;
+type EventBarcodeComponentFactory = (name: string) => EventBarcodeHandle;
+type EventQRCodeComponentFactory = (name: string) => EventQRCodeHandle;
+type EventCheckboxComponentFactory = (name: string) => EventCheckboxHandle;
+type EventRichtextComponentFactory = (name: string) => EventRichtextHandle;
+type EventTypedComponentFactory = (name: string) => EventComponentHandle;
+type EventComponentAccessor = EventBaseComponentFactory & Partial<ReportComponent>;
 
 interface DynamicTextOptions {
   name?: string;
@@ -110,7 +272,8 @@ interface EventContext {
   report?: unknown;
   page?: unknown;
   band?: unknown;
-  component?: ReportComponent;
+  component?: EventComponentAccessor;
+  currentComponent?: ReportComponent;
   row?: Record<string, unknown>;
   rowIndex?: number;
   dataSourceId?: string;
@@ -124,9 +287,22 @@ interface EventContext {
   cancel?: () => void;
   hide?: () => void;
   setValue?: (value: unknown) => void;
-  getComponent?: (idOrName: string) => ReportComponent | undefined;
-  setComponentProperty?: (idOrName: string, path: string, value: unknown) => void;
-  bindText?: (idOrName: string, expression: string) => void;
+  getComponent?: (name: string) => ReportComponent | undefined;
+  setComponentProperty?: (name: string, path: string, value: unknown) => void;
+  bindText?: (name: string, expression: string) => void;
+  text?: EventTextComponentFactory;
+  image?: EventImageComponentFactory;
+  table?: EventTableComponentFactory;
+  barcode?: EventBarcodeComponentFactory;
+  qrcode?: EventQRCodeComponentFactory;
+  checkbox?: EventCheckboxComponentFactory;
+  richtext?: EventRichtextComponentFactory;
+  chart?: EventTypedComponentFactory;
+  line?: EventTypedComponentFactory;
+  shape?: EventTypedComponentFactory;
+  pageNumber?: EventTypedComponentFactory;
+  dateTime?: EventTypedComponentFactory;
+  panel?: EventTypedComponentFactory;
   createText?: (options: DynamicTextOptions) => TextComponent;
   createImage?: (options: DynamicImageOptions) => ImageComponent;
   createBarcode?: (options: DynamicBarcodeOptions) => BarcodeComponent;
@@ -150,7 +326,8 @@ interface BandEventContext extends EventContext {
 }
 
 interface ComponentEventContext extends EventContext {
-  component: ReportComponent;
+  component: EventComponentAccessor;
+  currentComponent: ReportComponent;
   target: EventTargetState & { ownerType: 'component' };
 }
 

@@ -1,7 +1,7 @@
 import React from 'react';
 import { Button, Collapse, ColorPicker, Form, Input, InputNumber, Modal, Select, Space, Switch, Typography } from 'antd';
 import { ArrowDownOutlined, ArrowUpOutlined, DeleteOutlined, EditOutlined } from '@ant-design/icons';
-import type { BandPrintOn, DataBandOptions, DataField, GroupBandOptions } from '@report-designer/core';
+import type { BandPrintOn, DataBandOptions, DataField, GroupBandOptions, ReportComponent } from '@report-designer/core';
 import { isRepeatOnEveryPageBandType } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../../page-settings';
@@ -750,19 +750,40 @@ function buildDictionaryEventItems(template: { dataSources: Array<{ id: string; 
   }));
 }
 
-function buildComponentEventItems(template: { pages: Array<{ id: string; bands: Array<{ id: string; name?: string; components: Array<{ id: string; name?: string }> }> }> }): EventTreeItem[] {
+function buildComponentEventItems(template: { pages: Array<{ id: string; bands: Array<{ id: string; name?: string; components: ReportComponent[] }> }> }): EventTreeItem[] {
   return template.pages.map(page => ({
     key: page.id,
     title: page.id,
+    insertable: false,
     children: page.bands.map(band => ({
       key: band.id,
       title: band.name || band.id,
-      children: band.components.map(component => ({
-        key: component.name || component.id,
-        title: component.name || component.id,
-      })),
+      insertable: false,
+      children: buildComponentTreeItems(band.components),
     })),
   }));
+}
+
+function buildComponentTreeItems(components: ReportComponent[]): EventTreeItem[] {
+  return components.flatMap(component => {
+    const children = component.type === 'panel'
+      ? buildComponentTreeItems((component as ReportComponent & { components?: ReportComponent[] }).components ?? [])
+      : undefined;
+    const item: EventTreeItem = {
+      key: component.id,
+      title: component.name ? `${component.name} (${component.type})` : `${component.type}: ${component.id}`,
+      name: component.name,
+      type: component.type,
+      insertable: Boolean(component.name),
+      children,
+    };
+
+    if (!item.name && !children?.length) {
+      return [];
+    }
+
+    return [item];
+  });
 }
 
 function getSortFields(fields: DataField[] | undefined) {

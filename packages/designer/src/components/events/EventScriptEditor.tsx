@@ -6,6 +6,7 @@ import {
   buildEventScriptCompletions,
   getEventScriptModelPath,
   splitDiagnostics,
+  type EventCompletionComponentItem,
   type EventCompletionTextItem,
   type EventCompletionTreeItem,
   type MonacoCompletionConstants,
@@ -26,6 +27,19 @@ export interface EventScriptEditorProps {
   dataContext?: EventEditorDataContractInput;
   dictionaryItems?: EventCompletionTreeItem[];
   componentItems?: EventCompletionTreeItem[];
+  textItems?: EventCompletionComponentItem[];
+  imageItems?: EventCompletionComponentItem[];
+  tableItems?: EventCompletionComponentItem[];
+  barcodeItems?: EventCompletionComponentItem[];
+  qrcodeItems?: EventCompletionComponentItem[];
+  checkboxItems?: EventCompletionComponentItem[];
+  richtextItems?: EventCompletionComponentItem[];
+  chartItems?: EventCompletionComponentItem[];
+  lineItems?: EventCompletionComponentItem[];
+  shapeItems?: EventCompletionComponentItem[];
+  pageNumberItems?: EventCompletionComponentItem[];
+  dateTimeItems?: EventCompletionComponentItem[];
+  panelItems?: EventCompletionComponentItem[];
   exampleItems?: EventCompletionTextItem[];
   initialCursor?: { line?: number; column?: number };
   loadingText?: string;
@@ -74,6 +88,19 @@ export function EventScriptEditor({
   dataContext,
   dictionaryItems,
   componentItems,
+  textItems,
+  imageItems,
+  tableItems,
+  barcodeItems,
+  qrcodeItems,
+  checkboxItems,
+  richtextItems,
+  chartItems,
+  lineItems,
+  shapeItems,
+  pageNumberItems,
+  dateTimeItems,
+  panelItems,
   exampleItems,
   initialCursor,
   loadingText,
@@ -102,9 +129,41 @@ export function EventScriptEditor({
       dataContext,
       dictionaryItems,
       componentItems,
+      textItems,
+      imageItems,
+      tableItems,
+      barcodeItems,
+      qrcodeItems,
+      checkboxItems,
+      richtextItems,
+      chartItems,
+      lineItems,
+      shapeItems,
+      pageNumberItems,
+      dateTimeItems,
+      panelItems,
       exampleItems,
     }),
-    [componentItems, dataContext, dictionaryItems, exampleItems, helperItems],
+    [
+      barcodeItems,
+      chartItems,
+      checkboxItems,
+      componentItems,
+      dataContext,
+      dateTimeItems,
+      dictionaryItems,
+      exampleItems,
+      helperItems,
+      imageItems,
+      lineItems,
+      pageNumberItems,
+      panelItems,
+      qrcodeItems,
+      richtextItems,
+      shapeItems,
+      tableItems,
+      textItems,
+    ],
   );
   const latestCompletionInputRef = useRef(completionInput);
 

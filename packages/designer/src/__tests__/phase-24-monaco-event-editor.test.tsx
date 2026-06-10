@@ -131,7 +131,7 @@ describe('phase 24 monaco event editor helpers', () => {
           {
             key: 'page1',
             title: 'Page 1',
-            children: [{ key: 'TitleText', title: 'TitleText' }],
+            children: [{ key: 'title-text-id', title: 'TitleText', name: 'TitleText' }],
           },
         ],
         exampleItems: [{ label: 'Set value', insertText: 'ctx.setValue(${1:value});', detail: 'Example' }],
@@ -146,7 +146,8 @@ describe('phase 24 monaco event editor helpers', () => {
       kind: monaco.CompletionItemKind.Field,
     });
     expect(items[2]).toMatchObject({
-      detail: 'TitleText',
+      detail: 'title-text-id',
+      insertText: 'ctx.getComponent?.("TitleText")',
       kind: monaco.CompletionItemKind.Variable,
     });
     expect(items[3]).toMatchObject({
@@ -331,7 +332,7 @@ describe('phase 24 monaco event editor helpers', () => {
     const onDiagnostics = vi.fn();
     const helperItems = [{ label: 'ctx.hide', insertText: 'ctx.hide?.();', detail: 'Hide component' }];
     const dictionaryItems = [{ key: 'Order.Amount', title: 'Order.Amount' }];
-    const componentItems = [{ key: 'TotalLabel', title: 'TotalLabel' }];
+    const componentItems = [{ key: 'total-label-id', title: 'TotalLabel', name: 'TotalLabel' }];
     const exampleItems = [{ label: 'Set value', insertText: 'ctx.setValue(${1:value});' }];
 
     render(
@@ -378,7 +379,7 @@ describe('phase 24 monaco event editor helpers', () => {
       suggestions: expect.arrayContaining([
         expect.objectContaining({ label: 'ctx.hide' }),
         expect.objectContaining({ label: 'Order.Amount', insertText: '{Order.Amount}' }),
-        expect.objectContaining({ label: 'TotalLabel', insertText: 'TotalLabel' }),
+        expect.objectContaining({ label: 'TotalLabel', insertText: 'ctx.getComponent?.("TotalLabel")' }),
         expect.objectContaining({ label: 'Set value' }),
       ]),
     });
@@ -680,7 +681,7 @@ describe('phase 24 monaco event editor helpers', () => {
           targetType="component"
           events={{}}
           dictionaryItems={[{ key: 'Orders.Amount', title: 'Orders.Amount' }]}
-          componentItems={[{ key: 'TotalLabel', title: 'TotalLabel' }]}
+          componentItems={[{ key: 'total-label-id', title: 'TotalLabel', name: 'TotalLabel' }]}
           onCancel={() => undefined}
           onSave={() => undefined}
         />
