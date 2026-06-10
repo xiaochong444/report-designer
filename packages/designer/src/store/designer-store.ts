@@ -20,7 +20,17 @@ import type {
 import { createDefaultTemplate, getDefaultTextStyle, isRepeatOnEveryPageBandType, normalizeTemplate } from '@report-designer/core';
 import { CommandDispatcher, registerCommand } from '@report-designer/core';
 import type { ReportUnit } from '../page-settings';
-import { ensureTemplateBandNames, ensureTemplateComponentNames, getNextBandName, getNextComponentName, prepareBandForInsert, prepareComponentForInsert } from '../report-structure';
+import {
+  collectComponentNames,
+  ensureTemplateBandNames,
+  ensureTemplateComponentNames,
+  getNextBandName,
+  getNextComponentName,
+  isComponentNameAvailable,
+  normalizeComponentName,
+  prepareBandForInsert,
+  prepareComponentForInsert,
+} from '../report-structure';
 import {
   applyDefaultTextStyle,
   applyTextStyleToComponent,
@@ -693,14 +703,19 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
   updateComponent: (pageId, bandId, componentId, updates, previous) => {
     const { template, dispatcher } = get();
     const band = findBand(template, pageId, bandId);
-    const comp = band?.components.find(c => c.id === componentId);
+    const comp = band ? findComponentInTree(band.components, componentId) : undefined;
     const normalizedUpdates = comp && isTextComponent(comp)
       ? normalizeLocalTextComponentUpdates(comp, updates)
       : updates;
+    const sanitizedUpdates = sanitizeComponentUpdates(template, componentId, normalizedUpdates);
+    if (Object.keys(sanitizedUpdates).length === 0) return;
     const prevData = previous || (comp ? { ...comp } : undefined);
     const newTemplate = dispatcher.execute(template, {
-      type: 'update-component',
-      payload: { pageId, bandId, componentId, updates: normalizedUpdates, previous: prevData },
+      type: UPDATE_COMPONENTS_COMMAND,
+      payload: {
+        updates: [{ pageId, bandId, componentId, updates: sanitizedUpdates }],
+        previous: prevData ? [{ pageId, bandId, componentId, updates: prevData }] : [],
+      },
       execute: () => template,
       undo: () => template,
     });
@@ -1172,25 +1187,24 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
       ? page.bands.find(b => b.components.some(c => c.id === selectedComponentIds[0]))?.id
       : page.bands.find(b => b.type === 'data')?.id ?? page.bands[0]?.id;
     if (!pasteBandId) return;
-    const newComponents = clipboard.map(comp => {
-      const preparedComp = prepareComponentForInsert(template, { ...comp, name: comp.name });
-      return {
-        ...preparedComp,
-        id: `${comp.type}_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+    const newIds: string[] = [];
+    let newTemplate = template;
+    for (const comp of clipboard) {
+      const preparedComp = prepareComponentForInsert(newTemplate, { ...comp, name: comp.name });
+      const clonedComp = cloneComponentTreeWithNewIds(preparedComp);
+      const component = {
+        ...clonedComp,
         x: comp.x + 5,
         y: comp.y + 5,
       };
-    });
-    let newTemplate = template;
-    for (const component of newComponents) {
       newTemplate = dispatcher.execute(newTemplate, {
         type: 'add-component',
         payload: { pageId: currentPageId, bandId: pasteBandId, component },
         execute: () => newTemplate,
         undo: () => newTemplate,
       });
+      newIds.push(component.id);
     }
-    const newIds = newComponents.map(component => component.id);
     set({ template: newTemplate, selectedComponentIds: newIds });
   },
 
@@ -1679,6 +1693,42 @@ function findBand(template: ReportTemplate, pageId: string, bandId: string): Ban
   return page.bands.find(b => b.id === bandId);
 }
 
+function findComponentInTree(components: ReportComponent[], componentId: string): ReportComponent | undefined {
+  for (const component of components) {
+    if (component.id === componentId) return component;
+    const children = getNestedComponents(component);
+    if (!children) continue;
+    const child = findComponentInTree(children, componentId);
+    if (child) return child;
+  }
+  return undefined;
+}
+
+function getNestedComponents(component: ReportComponent): ReportComponent[] | undefined {
+  if (!('components' in component)) return undefined;
+  const children = (component as ReportComponent & { components?: ReportComponent[] }).components;
+  return Array.isArray(children) ? children : undefined;
+}
+
+function withNestedComponents(component: ReportComponent, components: ReportComponent[]) {
+  return { ...component, components } as ReportComponent;
+}
+
+function cloneComponentTreeWithNewIds(component: ReportComponent): ReportComponent {
+  let cloned = {
+    ...component,
+    id: createComponentInstanceId(component.type),
+  };
+  const children = getNestedComponents(component);
+  if (!children) return cloned;
+  cloned = withNestedComponents(cloned, children.map(cloneComponentTreeWithNewIds));
+  return cloned;
+}
+
+function createComponentInstanceId(type: ReportComponent['type']) {
+  return `${type}_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 function getMinimumBandHeight(band?: Band): number {
   if (!band || band.components.length === 0) return 5;
   const componentBottom = Math.max(...band.components.map(component => component.y + component.height));
@@ -1807,26 +1857,6 @@ function cloneBandForInsert(existingBands: Band[], source: Band, template: Repor
   };
 }
 
-function collectComponentNames(template: ReportTemplate): Set<string> {
-  const names = new Set<string>();
-  const visit = (components: ReportComponent[]) => {
-    for (const component of components) {
-      if (component.name?.trim()) {
-        names.add(component.name.trim());
-      }
-      if ('components' in component && Array.isArray((component as ReportComponent & { components?: ReportComponent[] }).components)) {
-        visit((component as ReportComponent & { components?: ReportComponent[] }).components ?? []);
-      }
-    }
-  };
-  for (const page of template.pages) {
-    for (const band of page.bands) {
-      visit(band.components);
-    }
-  }
-  return names;
-}
-
 function cloneComponentForBandCopy(component: ReportComponent, takenNames: Set<string>): ReportComponent {
   const cloned = JSON.parse(JSON.stringify(component)) as ReportComponent;
   cloned.id = `component_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
@@ -1838,6 +1868,24 @@ function cloneComponentForBandCopy(component: ReportComponent, takenNames: Set<s
   }
 
   return cloned;
+}
+
+function sanitizeComponentUpdates(
+  template: ReportTemplate,
+  componentId: string,
+  updates: Record<string, any>,
+): Record<string, any> {
+  if (!Object.prototype.hasOwnProperty.call(updates, 'name')) {
+    return updates;
+  }
+
+  const name = normalizeComponentName(updates.name);
+  const { name: _ignoredName, ...restUpdates } = updates;
+  if (!isComponentNameAvailable(template, name, componentId)) {
+    return restUpdates;
+  }
+
+  return { ...updates, name };
 }
 
 function createBandBehavior(type: BandType): NonNullable<Band['behavior']> {
@@ -1874,13 +1922,29 @@ function applyComponentUpdates(template: ReportTemplate, updates: ComponentUpdat
       ...page,
       bands: page.bands.map(band => ({
         ...band,
-        components: band.components.map(component => {
-          const update = updatesByComponent.get(`${page.id}/${band.id}/${component.id}`);
-          return update ? { ...component, ...update.updates } : component;
-        }),
+        components: applyComponentUpdatesInTree(page.id, band.id, band.components, updatesByComponent),
       })),
     })),
   };
+}
+
+function applyComponentUpdatesInTree(
+  pageId: string,
+  bandId: string,
+  components: ReportComponent[],
+  updatesByComponent: Map<string, ComponentUpdatePayload>,
+): ReportComponent[] {
+  return components.map(component => {
+    const update = updatesByComponent.get(`${pageId}/${bandId}/${component.id}`);
+    let nextComponent = update ? { ...component, ...update.updates } as ReportComponent : component;
+    const children = getNestedComponents(nextComponent);
+    if (!children) return nextComponent;
+    const nextChildren = applyComponentUpdatesInTree(pageId, bandId, children, updatesByComponent);
+    if (nextChildren.some((child, index) => child !== children[index])) {
+      nextComponent = withNestedComponents(nextComponent, nextChildren);
+    }
+    return nextComponent;
+  });
 }
 
 function cleanEventMap<TName extends string>(events: EventMap<TName>): EventMap<TName> | undefined {

@@ -14,7 +14,7 @@ import {
 } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
 import { getReportFontOptions, supportsComponentStyle } from '@report-designer/core';
-import type { BorderConfig, ChartAggregateMode, ChartComponent, ChartType, ChartVariant, DataSource, Padding, ReportTemplate, TableComponent, TextFormatConfig } from '@report-designer/core';
+import type { BorderConfig, ChartAggregateMode, ChartComponent, ChartType, ChartVariant, DataSource, Padding, ReportComponent, ReportTemplate, TableComponent, TextFormatConfig } from '@report-designer/core';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { ExpressionEditor } from './ExpressionEditor';
 import { normalizeTable } from '../table/table-structure';
@@ -26,6 +26,7 @@ import { buildEventEditorDataContext } from './events/event-editor-utils';
 import type { ExpressionCatalogExtensions } from '../expression/expression-catalog';
 import { BorderEditor, PaddingEditor } from './properties/BoxStyleEditors';
 import { BARCODE_FORMATS, QR_CODE_FORMATS } from '@report-designer/viewer';
+import { isComponentNameAvailable, normalizeComponentName } from '../report-structure';
 
 const NO_CONDITIONAL_FORMAT = '__none__';
 
@@ -51,7 +52,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
     const page = template.pages.find(p => p.id === currentPageId);
     if (!page) return { component: null, bandId: null };
     for (const band of page.bands) {
-      const comp = band.components.find(c => c.id === selectedComponentIds[0]);
+      const comp = findComponentInTree(band.components, selectedComponentIds[0]);
       if (comp) return { component: comp, bandId: band.id };
     }
     return { component: null, bandId: null };
@@ -60,6 +61,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   const [expressionTarget, setExpressionTarget] = useState<{ field: string; label: string } | null>(null);
   const [eventEditorOpen, setEventEditorOpen] = useState(false);
   const [eventEditorTarget, setEventEditorTarget] = useState<typeof pendingEventEditorTarget>(null);
+  const [componentNameError, setComponentNameError] = useState<string | null>(null);
   const unitStep = getUnitStep(reportUnit);
   const fineUnitStep = getUnitStep(reportUnit, 'fine');
   const pendingTarget = pendingEventEditorTarget?.ownerType === 'component' && pendingEventEditorTarget.ownerId === component?.id
@@ -72,6 +74,10 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
     setEventEditorOpen(true);
     consumeEventEditorTarget(pendingTarget.requestId);
   }, [consumeEventEditorTarget, pendingTarget]);
+
+  React.useEffect(() => {
+    setComponentNameError(null);
+  }, [component?.id]);
 
   if (selectedComponentIds.length === 0) {
     return (
@@ -105,6 +111,22 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   const handleChange = (field: string, value: any) => {
     if (!component || !bandId || !currentPageId) return;
     updateComponent(currentPageId, bandId, component.id, { [field]: value }, { [field]: (component as any)[field] });
+  };
+
+  const handleNameChange = (value: string) => {
+    const name = normalizeComponentName(value);
+    if (!name) {
+      setComponentNameError(t('componentNameRequired'));
+      return;
+    }
+
+    if (name && !isComponentNameAvailable(template, name, component.id)) {
+      setComponentNameError(t('componentNameDuplicate'));
+      return;
+    }
+
+    setComponentNameError(null);
+    handleChange('name', value);
   };
 
   const openFieldExpressionEditor = (field: string, label: string) => {
@@ -150,11 +172,15 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
             label: t('general'),
             children: (
               <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-                <Form.Item label={t('name')}>
+                <Form.Item
+                  label={t('name')}
+                  validateStatus={componentNameError ? 'error' : undefined}
+                  help={componentNameError}
+                >
                   <Input
                     aria-label={t('name')}
                     value={comp.name || ''}
-                    onChange={(e) => handleChange('name', e.target.value)}
+                    onChange={(e) => handleNameChange(e.target.value)}
                     size="small"
                     placeholder={t('componentName')}
                   />
@@ -1347,6 +1373,17 @@ function readImageAsDataUrl(file: File): Promise<string> {
   });
 }
 
+function findComponentInTree(components: ReportComponent[], componentId: string): ReportComponent | undefined {
+  for (const component of components) {
+    if (component.id === componentId) return component;
+    if ('components' in component && Array.isArray((component as ReportComponent & { components?: ReportComponent[] }).components)) {
+      const child = findComponentInTree((component as ReportComponent & { components?: ReportComponent[] }).components ?? [], componentId);
+      if (child) return child;
+    }
+  }
+  return undefined;
+}
+
 function buildDictionaryEventItems(template: ReportTemplate): EventTreeItem[] {
   return template.dataSources.map(source => ({
     key: source.id,
@@ -1594,6 +1631,8 @@ const propertyEditorMessages = {
     name: '名称',
     type: '类型',
     componentName: '组件名称',
+    componentNameDuplicate: '组件名称不能重复',
+    componentNameRequired: '组件名称不能为空',
     width: '宽度',
     height: '高度',
     visibleExpression: '可见表达式',
@@ -1787,6 +1826,8 @@ const propertyEditorMessages = {
     name: 'Name',
     type: 'Type',
     componentName: 'Component name',
+    componentNameDuplicate: 'Component name must be unique',
+    componentNameRequired: 'Component name is required',
     width: 'Width',
     height: 'Height',
     visibleExpression: 'Visible expression',
