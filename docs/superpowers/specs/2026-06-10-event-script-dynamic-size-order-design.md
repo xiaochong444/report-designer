@@ -2,13 +2,15 @@
 
 ## Goal
 
-Build a script-driven clothing order print example where report events expand table columns and header rows from runtime size data. The implementation must also improve the event editor so scripts can discover every current report component by id or name, see component-aware completions, and call safe component mutation helpers from `ctx`.
+Build a script-driven clothing order print example where report events expand table columns and header rows from runtime size data. The implementation must also improve the event editor so scripts can discover every current report component by component `name`, see component-aware completions, and call safe component mutation helpers from `ctx`.
 
 ## Current Context
 
 - Component `id` and `name` are different. `id` is generated internally, for example `comp_table_xxxxxx`; `name` is the user-facing name, for example `Table1`.
-- Runtime `ctx.getComponent(idOrName)` already searches both `id` and `name`, but the Monaco event editor only inserts component names as plain text and does not describe available component APIs.
-- Runtime `ctx.setComponentProperty(idOrName, path, value)` exists for generic mutation.
+- Script authors should not use component `id`, because generated ids are hard to read and unstable for human-authored scripts.
+- Runtime component lookup should use component `name` only. `ctx.getComponent(name)` and type-specific helpers must resolve by `name`.
+- Automatic component naming already uses a report-wide component-name registry. Manual renaming must also enforce report-wide uniqueness so script lookup by `name` is unambiguous.
+- Runtime `ctx.setComponentProperty(name, path, value)` exists for generic mutation and should resolve by component `name`.
 - Designer-side table utilities already support normalized table rows, inserting rows/columns, cell merging, cell text, cell widths, and equalized columns in `packages/designer/src/table/table-structure.ts`.
 - Core event runtime does not expose a table-specific handle, so scripts cannot safely perform common table mutations without directly editing nested table data.
 - Core event runtime also lacks type-specific handles for text, image, barcode, QR code, checkbox, rich text, chart, line, shape, page number, date/time, and panel components. These should be handled as a complete component scripting surface, not as a table-only special case.
@@ -92,20 +94,20 @@ if (!ctx.state.clothingSizeTableBuilt) {
 Add a generic component handle plus type-specific handles:
 
 ```ts
-ctx.component(idOrName: string): EventComponentHandle;
-ctx.text(idOrName: string): EventTextHandle;
-ctx.image(idOrName: string): EventImageHandle;
-ctx.table(idOrName: string): EventTableHandle;
-ctx.barcode(idOrName: string): EventBarcodeHandle;
-ctx.qrcode(idOrName: string): EventQRCodeHandle;
-ctx.checkbox(idOrName: string): EventCheckboxHandle;
-ctx.richtext(idOrName: string): EventRichTextHandle;
-ctx.chart(idOrName: string): EventChartHandle;
-ctx.line(idOrName: string): EventLineHandle;
-ctx.shape(idOrName: string): EventShapeHandle;
-ctx.pageNumber(idOrName: string): EventPageNumberHandle;
-ctx.dateTime(idOrName: string): EventDateTimeHandle;
-ctx.panel(idOrName: string): EventPanelHandle;
+ctx.component(name: string): EventComponentHandle;
+ctx.text(name: string): EventTextHandle;
+ctx.image(name: string): EventImageHandle;
+ctx.table(name: string): EventTableHandle;
+ctx.barcode(name: string): EventBarcodeHandle;
+ctx.qrcode(name: string): EventQRCodeHandle;
+ctx.checkbox(name: string): EventCheckboxHandle;
+ctx.richtext(name: string): EventRichTextHandle;
+ctx.chart(name: string): EventChartHandle;
+ctx.line(name: string): EventLineHandle;
+ctx.shape(name: string): EventShapeHandle;
+ctx.pageNumber(name: string): EventPageNumberHandle;
+ctx.dateTime(name: string): EventDateTimeHandle;
+ctx.panel(name: string): EventPanelHandle;
 ```
 
 All handles share base operations:
@@ -180,13 +182,13 @@ Mutator methods update the underlying component in place, then return the same h
 
 ## Editor Completion Design
 
-The Monaco event editor should understand component ids and names:
+The Monaco event editor should use component names only:
 
-- `ctx.getComponent("...")` should offer all component ids and names.
-- `ctx.component("...")` should offer all component ids and names and return the generic handle.
+- `ctx.getComponent("...")` should offer all component names.
+- `ctx.component("...")` should offer all component names and return the generic handle.
 - Type-specific helpers such as `ctx.text("...")`, `ctx.image("...")`, `ctx.barcode("...")`, and `ctx.table("...")` should offer only matching component types.
-- `ctx.table("...")` should offer only table component ids and names.
-- Component completion details should include the component type and whether the insert text is an `id` or `name`.
+- `ctx.table("...")` should offer only table component names.
+- Component completion details should include the component type and component name. Generated internal ids should not be shown in the primary completion label or inserted script.
 - `ctx.component`, all type-specific helper methods, and their handle methods should be present in the TypeScript declaration extra lib, so typing `ctx.table("OrderSizeHeaderTable").` or `ctx.text("Title1").` shows useful methods with explanations.
 
 The existing component tree in the event dialog can remain, but completion insertion should be upgraded from raw component key insertion to useful snippets such as:
@@ -246,14 +248,16 @@ The final implementation can improve this script for width setting and fixed-col
 
 ## Testing Strategy
 
-- Core tests for `ctx.table` lookup by id and name, invalid component handling, column insertion, row insertion, cell text, merges, and column distribution.
-- Editor completion tests for component id/name suggestions and `ctx.table(...)` snippets.
+- Core tests for `ctx.table` lookup by name, invalid component handling, column insertion, row insertion, cell text, merges, and column distribution.
+- Designer tests for report-wide component name uniqueness during manual rename.
+- Editor completion tests for component-name suggestions and `ctx.table(...)` snippets.
 - Example tests verifying that the clothing order template includes the `beforeData` script, header/detail table names, placeholder cells, and a data source with multiple size groups.
 - Render or pagination tests verifying the expanded output has multiple header rows and aligned dynamic size columns.
 
 ## Acceptance Criteria
 
-- A user can type component ids or names in the event editor and receive relevant completions.
+- A user can type component names in the event editor and receive relevant completions.
+- Component names are unique across the whole report after insertion, duplication, paste, and manual rename.
 - All current component types have a discoverable script entry point and at least base mutation methods.
 - A user can call `ctx.table("OrderSizeHeaderTable")` from a report `beforeData` event.
 - A script can insert enough size columns and header rows from runtime data.

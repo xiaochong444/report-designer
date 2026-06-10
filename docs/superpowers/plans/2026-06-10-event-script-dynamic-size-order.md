@@ -4,7 +4,7 @@
 
 **Goal:** Add script-driven component mutation APIs for all current components and a clothing order print example whose size columns/header rows are generated from runtime data.
 
-**Architecture:** Move reusable table-structure operations into core, expose safe `ctx.component(idOrName)` and type-specific component handles, and teach the Monaco event editor to suggest component ids/names plus type-specific helper snippets. The clothing order example uses report `beforeData` to mutate header/detail tables before pagination.
+**Architecture:** Move reusable table-structure operations into core, expose safe `ctx.component(name)` and type-specific component handles, and teach the Monaco event editor to suggest unique component names plus type-specific helper snippets. The clothing order example uses report `beforeData` to mutate header/detail tables before pagination.
 
 **Tech Stack:** TypeScript, React, Monaco, Vitest, `@report-designer/core`, `@report-designer/designer`.
 
@@ -21,13 +21,144 @@
 - Modify `packages/core/src/event-engine/event-editor-contract.ts`: add component handle declarations, type-specific helper signatures, `TableComponent`, `TableCell`, and `EventTableHandle`.
 - Modify `packages/designer/src/components/events/event-script-monaco.ts`: add component-aware completions for `ctx.getComponent`, `ctx.component`, and each type-specific helper.
 - Modify `packages/designer/src/components/events/EventScriptEditor.tsx`: pass richer component completion metadata to Monaco.
-- Modify `packages/designer/src/components/events/EventEditorDialog.tsx`, `DesignerPropertyPanel.tsx`, and `BandPropertyGrid.tsx`: build component completion items with id, name, type, and type-specific grouping support.
+- Modify `packages/designer/src/components/events/EventEditorDialog.tsx`, `DesignerPropertyPanel.tsx`, and `BandPropertyGrid.tsx`: build component completion items with name and type, and group them by component type.
+- Modify `packages/designer/src/report-structure.ts`: expose component-name collection and uniqueness helpers.
+- Modify `packages/designer/src/store/designer-store.ts`: enforce unique component names during manual rename updates.
+- Modify `packages/designer/src/components/PropertyEditor.tsx`: show validation state for duplicate component names.
 - Create `packages/example/src/templates/clothing-order-dynamic-size.ts`: bundled clothing order dynamic size example.
 - Modify `packages/example/src/templates/index.ts`: register the bundled example.
 - Test files:
   - `packages/core/__tests__/phase-45-event-component-handles.test.ts`
+  - `packages/designer/src/__tests__/phase-45-component-name-uniqueness.test.tsx`
   - `packages/designer/src/__tests__/phase-45-event-component-completions.test.tsx`
   - `packages/example/src/__tests__/phase-45-clothing-order-dynamic-size-example.test.ts`
+
+## Task 0: Enforce Report-Wide Component Name Uniqueness
+
+**Files:**
+- Modify: `packages/designer/src/report-structure.ts`
+- Modify: `packages/designer/src/store/designer-store.ts`
+- Modify: `packages/designer/src/components/PropertyEditor.tsx`
+- Test: `packages/designer/src/__tests__/phase-45-component-name-uniqueness.test.tsx`
+
+- [ ] **Step 1: Write the failing uniqueness test**
+
+Create `packages/designer/src/__tests__/phase-45-component-name-uniqueness.test.tsx`:
+
+```tsx
+/* @vitest-environment jsdom */
+import React from 'react';
+import { fireEvent, render, screen } from '@testing-library/react';
+import '@testing-library/jest-dom/vitest';
+import { describe, expect, it } from 'vitest';
+import { createDefaultTemplate, type TextComponent } from '@report-designer/core';
+import { DesignerPropertyPanel } from '../components/panels/DesignerPropertyPanel';
+import { useDesignerStore } from '../store/designer-store';
+
+function text(id: string, name: string): TextComponent {
+  return {
+    id,
+    name,
+    type: 'text',
+    x: 0,
+    y: 0,
+    width: 30,
+    height: 8,
+    text: name,
+    font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+    textAlign: 'left',
+    verticalAlign: 'middle',
+    border: { style: 'none', width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+    canGrow: false,
+    canShrink: false,
+  };
+}
+
+describe('component name uniqueness', () => {
+  it('rejects duplicate component names across the whole report', () => {
+    const template = createDefaultTemplate('Name uniqueness');
+    const dataBand = template.pages[0].bands.find(band => band.type === 'data')!;
+    dataBand.components = [text('text-1', 'OrderTitle'), text('text-2', 'OrderAmount')];
+
+    useDesignerStore.getState().loadTemplate(template);
+    useDesignerStore.getState().selectComponents(['text-2']);
+    render(<DesignerPropertyPanel />);
+
+    fireEvent.change(screen.getByLabelText('名称'), { target: { value: 'OrderTitle' } });
+
+    const components = useDesignerStore.getState().template.pages[0].bands.flatMap(band => band.components);
+    expect(components.find(component => component.id === 'text-2')?.name).toBe('OrderAmount');
+    expect(screen.getByText('组件名称不能重复')).toBeInTheDocument();
+  });
+});
+```
+
+- [ ] **Step 2: Run the failing uniqueness test**
+
+Run:
+
+```bash
+pnpm --filter @report-designer/designer test -- phase-45-component-name-uniqueness.test.tsx
+```
+
+Expected: fail because duplicate manual rename is currently accepted or no validation message is shown.
+
+- [ ] **Step 3: Add reusable name uniqueness helpers**
+
+In `packages/designer/src/report-structure.ts`, export helpers:
+
+```ts
+export function collectComponentNames(template: ReportTemplate, excludeComponentId?: string): Set<string> {
+  const names = new Set<string>();
+  for (const page of template.pages) {
+    for (const band of page.bands) {
+      for (const component of band.components) {
+        collectComponentNamesFromList([component], names, excludeComponentId);
+      }
+    }
+  }
+  return names;
+}
+
+export function isComponentNameAvailable(template: ReportTemplate, name: string, excludeComponentId?: string): boolean {
+  const trimmed = name.trim();
+  if (!trimmed) return false;
+  return !collectComponentNames(template, excludeComponentId).has(trimmed);
+}
+```
+
+The helper must recurse into panel children.
+
+- [ ] **Step 4: Enforce uniqueness in store updates**
+
+In `packages/designer/src/store/designer-store.ts`, when `updateComponent` receives `updates.name`, trim the value and reject the update if another component already has the same name. Keep the previous component name unchanged.
+
+- [ ] **Step 5: Show validation in the property editor**
+
+In `packages/designer/src/components/PropertyEditor.tsx`, when the selected component name duplicates another report component, render the validation message:
+
+```text
+组件名称不能重复
+```
+
+The input should keep showing the attempted value only if the store accepts it. If the store rejects it, the input re-renders from the unchanged selected component.
+
+- [ ] **Step 6: Run uniqueness tests**
+
+Run:
+
+```bash
+pnpm --filter @report-designer/designer test -- phase-45-component-name-uniqueness.test.tsx phase-15-report-tree-naming.test.tsx
+```
+
+Expected: pass.
+
+- [ ] **Step 7: Commit**
+
+```bash
+git add packages/designer/src/report-structure.ts packages/designer/src/store/designer-store.ts packages/designer/src/components/PropertyEditor.tsx packages/designer/src/__tests__/phase-45-component-name-uniqueness.test.tsx
+git commit -m "feat(designer): 保证组件名称全局唯一"
+```
 
 ## Task 1: Move Reusable Table Structure Helpers To Core
 
@@ -488,37 +619,42 @@ export function createEventTableHandle(component: TableComponent): EventTableHan
 
 - [ ] **Step 4: Attach the ctx helper family**
 
-In `packages/core/src/event-engine/types.ts`, import handle types and add:
+In `packages/core/src/event-engine/types.ts`, import handle types and make script-facing lookup parameters use component `name`:
 
 ```ts
-component?: (idOrName: string) => EventComponentHandle;
-text?: (idOrName: string) => EventTextHandle;
-image?: (idOrName: string) => EventImageHandle;
-table?: (idOrName: string) => EventTableHandle;
-barcode?: (idOrName: string) => EventBarcodeHandle;
-qrcode?: (idOrName: string) => EventQRCodeHandle;
-checkbox?: (idOrName: string) => EventCheckboxHandle;
-richtext?: (idOrName: string) => EventRichTextHandle;
-chart?: (idOrName: string) => EventComponentHandle<ChartComponent>;
-line?: (idOrName: string) => EventComponentHandle<LineComponent>;
-shape?: (idOrName: string) => EventComponentHandle<ShapeComponent>;
-pageNumber?: (idOrName: string) => EventComponentHandle<PageNumberComponent>;
-dateTime?: (idOrName: string) => EventComponentHandle<DateTimeComponent>;
-panel?: (idOrName: string) => EventComponentHandle<PanelComponent>;
+component?: (name: string) => EventComponentHandle;
+text?: (name: string) => EventTextHandle;
+image?: (name: string) => EventImageHandle;
+table?: (name: string) => EventTableHandle;
+barcode?: (name: string) => EventBarcodeHandle;
+qrcode?: (name: string) => EventQRCodeHandle;
+checkbox?: (name: string) => EventCheckboxHandle;
+richtext?: (name: string) => EventRichTextHandle;
+chart?: (name: string) => EventComponentHandle<ChartComponent>;
+line?: (name: string) => EventComponentHandle<LineComponent>;
+shape?: (name: string) => EventComponentHandle<ShapeComponent>;
+pageNumber?: (name: string) => EventComponentHandle<PageNumberComponent>;
+dateTime?: (name: string) => EventComponentHandle<DateTimeComponent>;
+panel?: (name: string) => EventComponentHandle<PanelComponent>;
 ```
 
-In `packages/core/src/event-engine/event-context.ts`, add a typed lookup helper:
+In `packages/core/src/event-engine/event-context.ts`, make `ctx.getComponent(name)` resolve by component `name` only. Do not match generated internal component ids in script-facing lookup. Add a typed lookup helper:
 
 ```ts
-const getTypedComponent = <T extends ReportComponent>(idOrName: string, type: string): T => {
-  const found = getComponent(idOrName);
-  if (!found) throw new Error(`Component "${idOrName}" was not found.`);
-  if (found.type !== type) throw new Error(`Component "${idOrName}" is a ${found.type} component, not a ${type} component.`);
+const getComponentByName = (name: string): ReportComponent | undefined => (
+  findComponentByNameInComponents(options.band?.components ?? [], name)
+  ?? findComponentByNameInTemplate(requireReport(), name)
+);
+
+const getTypedComponent = <T extends ReportComponent>(name: string, type: string): T => {
+  const found = getComponentByName(name);
+  if (!found) throw new Error(`Component "${name}" was not found.`);
+  if (found.type !== type) throw new Error(`Component "${name}" is a ${found.type} component, not a ${type} component.`);
   return found as T;
 };
 ```
 
-Attach `component`, `text`, `image`, `table`, `barcode`, `qrcode`, `checkbox`, `richtext`, `chart`, `line`, `shape`, `pageNumber`, `dateTime`, and `panel` to `ctx`. Export handle types and factories from `packages/core/src/event-engine/index.ts`.
+Attach `component`, `text`, `image`, `table`, `barcode`, `qrcode`, `checkbox`, `richtext`, `chart`, `line`, `shape`, `pageNumber`, `dateTime`, and `panel` to `ctx`. Keep internal rendering code free to use component ids where it already does; only the event script lookup surface changes to names. Export handle types and factories from `packages/core/src/event-engine/index.ts`.
 
 - [ ] **Step 5: Run event handle tests**
 
@@ -561,7 +697,7 @@ const monaco = {
 };
 
 describe('event component completions', () => {
-  it('suggests component ids, names, and type-specific snippets', () => {
+  it('suggests component names and type-specific snippets', () => {
     const completions = buildEventScriptCompletions({
       componentItems: [
         { key: 'comp_table_abc', title: 'OrderSizeHeaderTable', insertable: true, children: [] },
@@ -608,9 +744,9 @@ Expected: fail because type-specific component item groups and snippet insertion
 In `packages/core/src/event-engine/event-editor-contract.ts`, add handle declarations matching runtime component handles. Add to `EventContext`:
 
 ```ts
-component?: (idOrName: string) => EventComponentHandle;
-text?: (idOrName: string) => EventTextHandle;
-table?: (idOrName: string) => EventTableHandle;
+component?: (name: string) => EventComponentHandle;
+text?: (name: string) => EventTextHandle;
+table?: (name: string) => EventTableHandle;
 ```
 
 - [ ] **Step 4: Add type-specific completion input**
@@ -814,6 +950,6 @@ git commit -m "test(examples): 覆盖动态尺码打印渲染"
 
 ## Self-Review Checklist
 
-- Spec coverage: event placement, component lookup, component id/name completions, table operations, clothing order example, and render alignment are each covered by tasks.
+- Spec coverage: event placement, component lookup by unique name, component-name completions, table operations, clothing order example, and render alignment are each covered by tasks.
 - Placeholder scan: the plan uses concrete file paths, commands, API names, and acceptance assertions.
 - Type consistency: `ctx.component`, type-specific helpers, `EventComponentHandle`, `EventTableHandle`, `TableComponent`, and `TableCell` are named consistently across runtime, editor DTS, completions, and example script.
