@@ -14,3 +14,4 @@ export * from './command-engine';
 export * from './event-engine';
 export * from './fonts';
 export * from './rich-text';
+export * from './table/table-structure';
