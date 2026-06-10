@@ -5,9 +5,10 @@ import {
   createDynamicBarcode,
   createDynamicImage,
   createDynamicText,
-  findComponentInTemplate,
   setComponentProperty as setTemplateComponentProperty,
 } from './event-template';
+import { createEventComponentHelpers } from './event-component-handles';
+import type { EventBaseComponentFactory } from './event-component-handles';
 import type {
   DynamicBarcodeOptions,
   DynamicImageOptions,
@@ -19,6 +20,28 @@ import type {
   EventRuntimeState,
   EventTargetState,
 } from './types';
+
+const reportComponentPropertyKeys = new Set<PropertyKey>([
+  'id',
+  'name',
+  'type',
+  'x',
+  'y',
+  'width',
+  'height',
+  'zOrder',
+  'backgroundColor',
+  'border',
+  'padding',
+  'style',
+  'conditionalFormat',
+  'visible',
+  'printableExpression',
+  'enabledExpression',
+  'conditions',
+  'events',
+  'anchor',
+]);
 
 export interface CreateEventContextOptions {
   mode?: EventMode;
@@ -51,17 +74,20 @@ export function createEventContext(options: CreateEventContextOptions): EventCon
     return report;
   };
 
-  const getComponent = (idOrName: string): ReportComponent | undefined => (
-    findComponentInComponents(options.band?.components ?? [], idOrName)
-    ?? findComponentInTemplate(requireReport(), idOrName)
+  const getComponent = (name: string): ReportComponent | undefined => (
+    findComponentInComponents(options.band?.components ?? [], name)
+    ?? (report ? findComponentInTemplateByName(report, name) : undefined)
   );
+  const componentHelpers = createEventComponentHelpers({ getComponentByName: getComponent });
+  const componentAccessor = createComponentAccessor(componentHelpers.component, options.component);
 
   const ctx: EventContext = {
     mode: options.mode ?? 'preview',
     report,
     page: options.page,
     band: options.band,
-    component: options.component,
+    component: componentAccessor,
+    currentComponent: options.component,
     row: options.row,
     rowIndex: options.rowIndex ?? -1,
     dataSourceId: options.dataSourceId,
@@ -91,23 +117,36 @@ export function createEventContext(options: CreateEventContextOptions): EventCon
       execution.hasValue = true;
     },
     getComponent,
-    setComponentProperty(idOrName: string, path: string, value: unknown) {
-      const found = getComponent(idOrName);
+    setComponentProperty(name: string, path: string, value: unknown) {
+      const found = getComponent(name);
       if (!found) {
-        throw new Error(`Component "${idOrName}" was not found.`);
+        throw new Error(`Component "${name}" was not found.`);
       }
       setTemplateComponentProperty(found, path, value);
     },
-    bindText(idOrName: string, expression: string) {
-      const found = getComponent(idOrName);
+    bindText(name: string, expression: string) {
+      const found = getComponent(name);
       if (!found) {
-        throw new Error(`Component "${idOrName}" was not found.`);
+        throw new Error(`Component "${name}" was not found.`);
       }
       if (found.type !== 'text') {
-        throw new Error(`Component "${idOrName}" is not a text component.`);
+        throw new Error(`Component "${name}" is not a text component.`);
       }
       (found as TextComponent).text = expression;
     },
+    text: componentHelpers.text,
+    image: componentHelpers.image,
+    table: componentHelpers.table,
+    barcode: componentHelpers.barcode,
+    qrcode: componentHelpers.qrcode,
+    checkbox: componentHelpers.checkbox,
+    richtext: componentHelpers.richtext,
+    chart: componentHelpers.chart,
+    line: componentHelpers.line,
+    shape: componentHelpers.shape,
+    pageNumber: componentHelpers.pageNumber,
+    dateTime: componentHelpers.dateTime,
+    panel: componentHelpers.panel,
     createText(options: DynamicTextOptions) {
       const component = createDynamicText(
         options,
@@ -146,14 +185,27 @@ export function createEventContext(options: CreateEventContextOptions): EventCon
   return ctx;
 }
 
-function findComponentInComponents(components: ReportComponent[], idOrName: string): ReportComponent | undefined {
+function findComponentInTemplateByName(template: ReportTemplate, name: string): ReportComponent | undefined {
+  for (const page of template.pages) {
+    for (const band of page.bands) {
+      const found = findComponentInComponents(band.components, name);
+      if (found) {
+        return found;
+      }
+    }
+  }
+
+  return undefined;
+}
+
+function findComponentInComponents(components: ReportComponent[], name: string): ReportComponent | undefined {
   for (const component of components) {
-    if (component.id === idOrName || component.name === idOrName) {
+    if (component.name === name) {
       return component;
     }
 
     if (isPanelComponent(component)) {
-      const found = findComponentInComponents(component.components, idOrName);
+      const found = findComponentInComponents(component.components, name);
       if (found) {
         return found;
       }
@@ -165,4 +217,35 @@ function findComponentInComponents(components: ReportComponent[], idOrName: stri
 
 function isPanelComponent(component: ReportComponent): component is PanelComponent {
   return component.type === 'panel';
+}
+
+function createComponentAccessor(
+  factory: EventBaseComponentFactory,
+  currentComponent: ReportComponent | undefined,
+): EventContext['component'] {
+  if (!currentComponent) {
+    return factory;
+  }
+
+  return new Proxy(factory, {
+    get(target, property, receiver) {
+      if (reportComponentPropertyKeys.has(property)) {
+        return (currentComponent as unknown as Record<PropertyKey, unknown>)[property];
+      }
+      if (property in currentComponent) {
+        return (currentComponent as unknown as Record<PropertyKey, unknown>)[property];
+      }
+      return Reflect.get(target, property, receiver);
+    },
+    set(_target, property, value) {
+      (currentComponent as unknown as Record<PropertyKey, unknown>)[property] = value;
+      return true;
+    },
+    has(target, property) {
+      if (reportComponentPropertyKeys.has(property)) {
+        return property in currentComponent;
+      }
+      return property in currentComponent || property in target;
+    },
+  }) as EventContext['component'];
 }

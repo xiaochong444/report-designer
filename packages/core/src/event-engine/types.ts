@@ -65,6 +65,19 @@ import type {
   ReportTemplate,
   TextComponent,
 } from '../template-model/types';
+import type {
+  EventBaseComponentFactory,
+  EventBarcodeComponentFactory,
+  EventCheckboxComponentFactory,
+  EventImageComponentFactory,
+  EventRichtextComponentFactory,
+  EventQRCodeComponentFactory,
+  EventTableComponentFactory,
+  EventTextComponentFactory,
+  EventTypedComponentFactory,
+} from './event-component-handles';
+
+export type EventComponentAccessor = EventBaseComponentFactory & Partial<ReportComponent>;
 
 export interface DynamicTextOptions {
   name?: string;
@@ -102,7 +115,8 @@ export interface EventContext {
   report?: ReportTemplate;
   page?: Page;
   band?: Band;
-  component?: ReportComponent;
+  component?: EventComponentAccessor;
+  currentComponent?: ReportComponent;
   row?: Record<string, unknown>;
   rowIndex?: number;
   dataSourceId?: string;
@@ -118,9 +132,22 @@ export interface EventContext {
   cancel?: () => void;
   hide?: () => void;
   setValue?: (value: unknown) => void;
-  getComponent?: (idOrName: string) => ReportComponent | undefined;
-  setComponentProperty?: (idOrName: string, path: string, value: unknown) => void;
-  bindText?: (idOrName: string, expression: string) => void;
+  getComponent?: (name: string) => ReportComponent | undefined;
+  setComponentProperty?: (name: string, path: string, value: unknown) => void;
+  bindText?: (name: string, expression: string) => void;
+  text?: EventTextComponentFactory;
+  image?: EventImageComponentFactory;
+  table?: EventTableComponentFactory;
+  barcode?: EventBarcodeComponentFactory;
+  qrcode?: EventQRCodeComponentFactory;
+  checkbox?: EventCheckboxComponentFactory;
+  richtext?: EventRichtextComponentFactory;
+  chart?: EventTypedComponentFactory;
+  line?: EventTypedComponentFactory;
+  shape?: EventTypedComponentFactory;
+  pageNumber?: EventTypedComponentFactory;
+  dateTime?: EventTypedComponentFactory;
+  panel?: EventTypedComponentFactory;
   createText?: (options: DynamicTextOptions) => TextComponent;
   createImage?: (options: DynamicImageOptions) => ImageComponent;
   createBarcode?: (options: DynamicBarcodeOptions) => BarcodeComponent;
