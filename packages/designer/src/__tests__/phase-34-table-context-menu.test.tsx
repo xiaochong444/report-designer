@@ -121,6 +121,19 @@ describe('phase 34 table context menu', () => {
     expect(selectedCell(3, 2)).toMatchObject({ text: 'Tail' });
   });
 
+  it('closes an open submenu when hovering another top-level menu item', () => {
+    loadWith(tableComponent({ cells: [{ row: 2, column: 2, text: 'Tail' }] }));
+    render(<Canvas />);
+
+    openCellMenu(1, 1);
+    fireEvent.mouseEnter(screen.getByText('插入'));
+    expect(screen.getByText('在下方插入行')).toBeInTheDocument();
+
+    fireEvent.mouseEnter(screen.getByText('平均分布列宽'));
+
+    expect(screen.queryByText('在下方插入行')).not.toBeInTheDocument();
+  });
+
   it('inserts rows and columns before or after the clicked cell', () => {
     loadWith(tableComponent({ cells: [{ row: 2, column: 2, text: 'Tail' }] }));
     render(<Canvas />);

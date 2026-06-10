@@ -1,5 +1,4 @@
 import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react';
-import { flushSync } from 'react-dom';
 import { Button, Dropdown, Modal, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
@@ -1521,15 +1520,25 @@ type ContextMenuAction =
 
 type ContextMenuItem = NonNullable<MenuProps['items']>[number];
 
+function areMenuKeysEqual(a: string[], b: string[]): boolean {
+  return a.length === b.length && a.every((key, index) => key === b[index]);
+}
+
 function divider(key: string): ContextMenuItem {
   return { type: 'divider', key };
 }
 
-function menuLabel(label: string, shortcut?: string, visible = true): React.ReactNode {
+function menuLabel(label: string, shortcut?: string, visible = true, onMouseEnter?: () => void): React.ReactNode {
   if (!visible) return <span aria-hidden />;
-  if (!shortcut) return label;
+  if (!shortcut) {
+    return (
+      <span style={{ display: 'block' }} onMouseEnter={onMouseEnter}>
+        {label}
+      </span>
+    );
+  }
   return (
-    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, minWidth: 150 }}>
+    <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 24, minWidth: 150 }} onMouseEnter={onMouseEnter}>
       <span>{label}</span>
       <span style={{ color: '#999', fontSize: 11 }}>{shortcut}</span>
     </span>
@@ -1539,14 +1548,13 @@ function menuLabel(label: string, shortcut?: string, visible = true): React.Reac
 function menuItem(
   key: ContextMenuAction,
   label: string,
-  options: { shortcut?: string; disabled?: boolean; danger?: boolean; children?: ContextMenuItem[]; visible?: boolean } = {},
+  options: { shortcut?: string; disabled?: boolean; danger?: boolean; visible?: boolean; onMouseEnter?: () => void } = {},
 ): ContextMenuItem {
   return {
     key,
-    label: menuLabel(label, options.shortcut, options.visible),
+    label: menuLabel(label, options.shortcut, options.visible, options.onMouseEnter),
     disabled: options.disabled,
     danger: options.danger,
-    children: options.children,
   };
 }
 
@@ -1584,10 +1592,14 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
   const { t } = useDesignerI18n();
   const [openKeys, setOpenKeys] = useState<string[]>([]);
   const isTableCellMenu = selectedType === 'table' && !!tableCell;
+  const closeSubmenus = useCallback(() => {
+    setOpenKeys((current) => current.length > 0 ? [] : current);
+  }, []);
   const openSubmenu = useCallback((keys: string[]) => {
-    flushSync(() => {
-      setOpenKeys(keys);
-    });
+    setOpenKeys((current) => areMenuKeysEqual(current, keys) ? current : keys);
+  }, []);
+  const handleOpenChange = useCallback((keys: string[]) => {
+    setOpenKeys((current) => areMenuKeysEqual(current, keys) ? current : keys);
   }, []);
   const isSubmenuOpen = useCallback((key: string) => openKeys.includes(key), [openKeys]);
   const menuSubmenu = useCallback((
@@ -1603,7 +1615,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       <span
         style={{ display: 'block' }}
         onMouseEnter={() => openSubmenu(openPath)}
-        onMouseOver={() => openSubmenu(openPath)}
       >
         {visible ? label : null}
       </span>
@@ -1643,28 +1654,34 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
     equalizeRows: onEqualizeTableRows,
   };
 
+  const topLevelMenuItem = useCallback((
+    key: ContextMenuAction,
+    label: string,
+    options: { shortcut?: string; disabled?: boolean; danger?: boolean; visible?: boolean } = {},
+  ) => menuItem(key, label, { ...options, onMouseEnter: closeSubmenus }), [closeSubmenus]);
+
   const commonEditItems: ContextMenuItem[] = [
-    menuItem('cut', t('contextMenu.cut'), { shortcut: 'Ctrl+X', disabled: !hasSelection }),
-    menuItem('copy', t('contextMenu.copy'), { shortcut: 'Ctrl+C', disabled: !hasSelection }),
-    menuItem('paste', t('contextMenu.paste'), { shortcut: 'Ctrl+V', disabled: !hasClipboard }),
+    topLevelMenuItem('cut', t('contextMenu.cut'), { shortcut: 'Ctrl+X', disabled: !hasSelection }),
+    topLevelMenuItem('copy', t('contextMenu.copy'), { shortcut: 'Ctrl+C', disabled: !hasSelection }),
+    topLevelMenuItem('paste', t('contextMenu.paste'), { shortcut: 'Ctrl+V', disabled: !hasClipboard }),
   ];
 
   const componentItems: ContextMenuItem[] = [
     ...commonEditItems,
-    menuItem('duplicate', t('contextMenu.duplicate'), { shortcut: 'Ctrl+D', disabled: !hasSelection }),
+    topLevelMenuItem('duplicate', t('contextMenu.duplicate'), { shortcut: 'Ctrl+D', disabled: !hasSelection }),
     divider('edit-divider'),
     menuSubmenu('arrange', t('contextMenu.table.arrange'), [
       menuItem('bringToFront', t('contextMenu.bringToFront'), { shortcut: 'Ctrl+Alt+↑', disabled: !hasSelection }),
       menuItem('sendToBack', t('contextMenu.sendToBack'), { shortcut: 'Ctrl+Alt+↓', disabled: !hasSelection }),
     ], !hasSelection),
     divider('delete-divider'),
-    menuItem('delete', t('contextMenu.delete'), { shortcut: 'Del', disabled: !hasSelection, danger: true }),
+    topLevelMenuItem('delete', t('contextMenu.delete'), { shortcut: 'Del', disabled: !hasSelection, danger: true }),
   ];
 
   const tableItems: ContextMenuItem[] = [
     ...commonEditItems,
     divider('clear-divider'),
-    menuItem('clearCell', t('contextMenu.table.clearContent'), { disabled: !tableCell }),
+    topLevelMenuItem('clearCell', t('contextMenu.table.clearContent'), { disabled: !tableCell }),
     divider('structure-divider'),
     menuSubmenu('insert', t('contextMenu.table.insert'), [
       menuItem('insertRowAbove', t('contextMenu.table.insertRowAboveExcel'), { visible: isSubmenuOpen('insert') }),
@@ -1677,11 +1694,11 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
       menuItem('deleteColumn', t('contextMenu.table.deleteCurrentColumn'), { visible: isSubmenuOpen('deleteTablePart') }),
     ], !tableCell),
     divider('cell-divider'),
-    menuItem('mergeCells', t('contextMenu.table.mergeCells'), { disabled: !tableCell }),
-    menuItem('splitCell', t('contextMenu.table.splitCell'), { disabled: !tableCell }),
+    topLevelMenuItem('mergeCells', t('contextMenu.table.mergeCells'), { disabled: !tableCell }),
+    topLevelMenuItem('splitCell', t('contextMenu.table.splitCell'), { disabled: !tableCell }),
     divider('distribution-divider'),
-    menuItem('equalizeColumns', t('contextMenu.table.distributeColumns')),
-    menuItem('equalizeRows', t('contextMenu.table.distributeRows')),
+    topLevelMenuItem('equalizeColumns', t('contextMenu.table.distributeColumns')),
+    topLevelMenuItem('equalizeRows', t('contextMenu.table.distributeRows')),
     divider('style-divider'),
     menuSubmenu('cellStyle', t('contextMenu.table.cellStyle'), [
       menuItem('copyCellStyle', t('contextMenu.table.copyStyle'), { visible: isSubmenuOpen('cellStyle') }),
@@ -1721,6 +1738,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({
         forceSubMenuRender: true,
         subMenuOpenDelay: 0,
         subMenuCloseDelay: 0,
+        onOpenChange: handleOpenChange,
         onClick: ({ key }) => {
           actionMap[key as ContextMenuAction]?.();
         },
