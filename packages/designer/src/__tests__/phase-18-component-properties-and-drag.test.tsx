@@ -138,6 +138,29 @@ describe('Phase 18 component properties and canvas drag drop', () => {
     errorSpy.mockRestore();
   });
 
+  it('shows data band column guides and clamps dropped components to the first column', async () => {
+    const template = createDefaultTemplate('Phase 18 Columns');
+    const dataBand = template.pages[0].bands.find(band => band.type === 'data')!;
+    dataBand.dataBand = { dataSourceId: 'employees', columns: { count: 3, gap: 5, direction: 'acrossThenDown' } };
+    render(<Designer template={template} locale="zh-CN" />);
+
+    await waitFor(() => expect(screen.getByTestId('designer-page-sheet')).toBeInTheDocument());
+    expect(screen.getAllByTestId('designer-band-column-guide')).toHaveLength(2);
+    mockCanvasRects();
+
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId('designer-page-sheet'), {
+        clientX: 400,
+        clientY: 130,
+        dataTransfer: dataTransfer({ componentType: 'text' }),
+      });
+    });
+
+    const inserted = components().find(component => component.type === 'text');
+    expect(inserted).toBeTruthy();
+    expect(inserted.x).toBeLessThanOrEqual(53.4);
+  });
+
   it('allows real browser palette drags whose data transfer types are lowercased', async () => {
     const template = createDefaultTemplate('Phase 18 Browser Drag');
     render(<Designer template={template} locale="zh-CN" />);

@@ -51,9 +51,10 @@ describe('Phase 10 ribbon tabs', () => {
     expect(ribbonContent).not.toHaveTextContent('JSON');
     expect(ribbonContent).not.toHaveTextContent('Band wizard');
     expect(ribbonContent).not.toHaveTextContent('Group wizard');
-    for (const name of ['Insert band', 'Text', 'Rich Text', 'Image', 'Table', 'Chart', 'Barcode', 'QR Code', 'Checkbox', 'Page #', 'Date/Time', 'Line', 'Shape', 'Panel', 'Subreport']) {
+    for (const name of ['Insert band', 'Text', 'Rich Text', 'Image', 'Table', 'Chart', 'Barcode', 'QR Code', 'Checkbox', 'Page #', 'Date/Time', 'Line', 'Shape', 'Panel']) {
       expect(screen.getByRole('button', { name })).toHaveTextContent('');
     }
+    expect(screen.queryByRole('button', { name: 'Subreport' })).not.toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('button', { name: 'Page Layout' }));
     expect(screen.getByRole('button', { name: 'Page Layout' })).toHaveClass('rd-ribbon-tab-active');
@@ -96,7 +97,6 @@ describe('Phase 10 ribbon tabs', () => {
       { label: 'Line', type: 'line' },
       { label: 'Shape', type: 'shape' },
       { label: 'Panel', type: 'panel' },
-      { label: 'Subreport', type: 'subreport' },
     ];
 
     expect(screen.getByTestId('ribbon-insert-band-button')).toHaveStyle({ minWidth: '52px' });

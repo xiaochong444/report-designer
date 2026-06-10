@@ -144,6 +144,33 @@ describe('example sample paper defaults', () => {
     ]));
   });
 
+  it('bundles a product price label sample using data band columns', () => {
+    const sample = sampleReports.find(report => report.key === 'productPriceLabels');
+    const dataBand = sample?.template.pages[0].bands.find(band => band.id === 'ppl-data');
+
+    expect(sample?.label).toBe('Product Price Labels');
+    expect(dataBand?.type).toBe('data');
+    expect(dataBand?.dataBand?.dataSourceId).toBe('productLabels');
+    expect(dataBand?.dataBand?.columns).toEqual({ count: 3, gap: 5, direction: 'acrossThenDown' });
+
+    const document = renderReport(sample!.template, sample!.data);
+    const headers = document.pages.flatMap(page => page.items).filter(item => item.bandId === 'ppl-column-header');
+    const labels = document.pages.flatMap(page => page.items).filter(item => item.bandId === 'ppl-data');
+
+    expect(headers).toHaveLength(3);
+    expect(headers.map(header => header.components[0]?.content)).toEqual(['FRESH MARKET', 'FRESH MARKET', 'FRESH MARKET']);
+    expect(labels).toHaveLength(12);
+    expect(labels[0].x).toBeCloseTo(10, 1);
+    expect(labels[1].x).toBeCloseTo(75, 1);
+    expect(labels[2].x).toBeCloseTo(140, 1);
+    expect(renderedContent(document)).toEqual(expect.arrayContaining([
+      'Organic Apples',
+      '$3.99',
+      'Whole Milk',
+      '$4.59',
+    ]));
+  });
+
   it('bundles a sales order print sample driven by inferred object data sources and data bands', () => {
     const sample = sampleReports.find(report => report.key === 'salesOrderPrint');
     const bands = sample?.template.pages[0].bands ?? [];

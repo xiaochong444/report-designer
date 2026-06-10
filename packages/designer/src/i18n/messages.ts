@@ -321,7 +321,6 @@ export type DesignerMessageKey =
   | 'leftPanel.componentTable'
   | 'leftPanel.componentCheckbox'
   | 'leftPanel.componentRichText'
-  | 'leftPanel.componentSubreport'
   | 'leftPanel.componentPanel'
   | 'leftPanel.componentLine'
   | 'leftPanel.componentShape'
@@ -330,7 +329,6 @@ export type DesignerMessageKey =
   | 'leftPanel.groupCommon'
   | 'leftPanel.groupData'
   | 'leftPanel.groupGraphics'
-  | 'leftPanel.groupAdvanced'
   | 'leftPanel.searchComponents'
   | 'leftPanel.searchDictionary'
   | 'leftPanel.searchReportTree'
@@ -537,6 +535,11 @@ export type DesignerMessageKey =
   | 'dataBand.sort.noFields'
   | 'dataBand.hierarchy.childrenField'
   | 'dataBand.hierarchy.indentChars'
+  | 'dataBand.columns.count'
+  | 'dataBand.columns.gap'
+  | 'dataBand.columns.direction'
+  | 'dataBand.columns.downThenAcross'
+  | 'dataBand.columns.acrossThenDown'
   | 'dataBand.oddRowBackgroundColor'
   | 'dataBand.evenRowBackgroundColor'
   | 'dataBand.filter.filtered'
@@ -831,8 +834,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'band.type.pageFooter': '页脚带',
     'band.type.header': '表头带',
     'band.type.footer': '表尾带',
-    'band.type.columnHeader': '列头带',
-    'band.type.columnFooter': '列尾带',
+    'band.type.columnHeader': '栏头带',
+    'band.type.columnFooter': '栏尾带',
     'band.type.groupHeader': '分组头带',
     'band.type.groupFooter': '分组尾带',
     'band.type.data': '数据带',
@@ -844,8 +847,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'band.description.pageFooter': '该带区用于输出页脚，如页码、打印时间及签名区域。它在每页的底部输出。',
     'band.description.header': '该带区用于输出数据明细的表头或列标题。通常放在数据带之前，并可随数据重复输出。',
     'band.description.footer': '该带区用于输出数据明细后的页内小计或说明。通常放在数据带之后输出。',
-    'band.description.columnHeader': '该带区用于多列报表的列头内容，在每个分栏顶部输出。',
-    'band.description.columnFooter': '该带区用于多列报表的列尾内容，在每个分栏底部输出。',
+    'band.description.columnHeader': '该带区用于数据带分栏的栏头内容，在每个分栏顶部输出。',
+    'band.description.columnFooter': '该带区用于数据带分栏的栏尾内容，在每个分栏底部输出。',
     'band.description.groupHeader': '该带区用于输出分组标题。分组条件变化时，它会在对应数据前输出。',
     'band.description.groupFooter': '该带区用于输出分组合计和分组结束信息。它会在对应分组数据之后输出。',
     'band.description.data': '该带区用于绑定数据表并逐行输出明细记录。分页、排序和过滤都围绕该带区展开。',
@@ -1008,7 +1011,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.componentTable': '表格',
     'leftPanel.componentCheckbox': '复选框',
     'leftPanel.componentRichText': '富文本',
-    'leftPanel.componentSubreport': '子报表',
     'leftPanel.componentPanel': '面板',
     'leftPanel.componentLine': '线条',
     'leftPanel.componentShape': '形状',
@@ -1017,7 +1019,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.groupCommon': '常用',
     'leftPanel.groupData': '数据',
     'leftPanel.groupGraphics': '图形',
-    'leftPanel.groupAdvanced': '高级',
     'leftPanel.searchComponents': '搜索组件',
     'leftPanel.searchDictionary': '搜索数据源和字段',
     'leftPanel.searchReportTree': '搜索报表树',
@@ -1224,6 +1225,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'dataBand.sort.noFields': '当前数据源没有可排序字段',
     'dataBand.hierarchy.childrenField': '子项属性',
     'dataBand.hierarchy.indentChars': '每层缩进字符数',
+    'dataBand.columns.count': '分栏数',
+    'dataBand.columns.gap': '栏间距',
+    'dataBand.columns.direction': '分栏方向',
+    'dataBand.columns.downThenAcross': '先向下再向右',
+    'dataBand.columns.acrossThenDown': '先向右再向下',
     'dataBand.oddRowBackgroundColor': '奇数行背景',
     'dataBand.evenRowBackgroundColor': '偶数行背景',
     'dataBand.filter.filtered': '已过滤',
@@ -1692,7 +1698,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.componentTable': 'Table',
     'leftPanel.componentCheckbox': 'Checkbox',
     'leftPanel.componentRichText': 'Rich Text',
-    'leftPanel.componentSubreport': 'Subreport',
     'leftPanel.componentPanel': 'Panel',
     'leftPanel.componentLine': 'Line',
     'leftPanel.componentShape': 'Shape',
@@ -1701,7 +1706,6 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'leftPanel.groupCommon': 'Common',
     'leftPanel.groupData': 'Data',
     'leftPanel.groupGraphics': 'Graphics',
-    'leftPanel.groupAdvanced': 'Advanced',
     'leftPanel.searchComponents': 'Search components',
     'leftPanel.searchDictionary': 'Search data sources and fields',
     'leftPanel.searchReportTree': 'Search report tree',
@@ -1908,6 +1912,11 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'dataBand.sort.noFields': 'The current data source has no sortable fields',
     'dataBand.hierarchy.childrenField': 'Child property',
     'dataBand.hierarchy.indentChars': 'Indent chars per level',
+    'dataBand.columns.count': 'Columns',
+    'dataBand.columns.gap': 'Column gap',
+    'dataBand.columns.direction': 'Column direction',
+    'dataBand.columns.downThenAcross': 'Down then across',
+    'dataBand.columns.acrossThenDown': 'Across then down',
     'dataBand.oddRowBackgroundColor': 'Odd row background',
     'dataBand.evenRowBackgroundColor': 'Even row background',
     'dataBand.filter.filtered': 'Filtered',

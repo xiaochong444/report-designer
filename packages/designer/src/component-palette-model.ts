@@ -7,7 +7,7 @@ export interface ComponentPaletteItem {
 }
 
 export interface ComponentPaletteGroup {
-  key: 'common' | 'data' | 'graphics' | 'advanced';
+  key: 'common' | 'data' | 'graphics';
   labelKey: DesignerMessageKey;
   types: ComponentType[];
 }
@@ -26,12 +26,10 @@ export const COMPONENT_TYPES: ComponentPaletteItem[] = [
   { type: 'line', labelKey: 'leftPanel.componentLine' },
   { type: 'shape', labelKey: 'leftPanel.componentShape' },
   { type: 'panel', labelKey: 'leftPanel.componentPanel' },
-  { type: 'subreport', labelKey: 'leftPanel.componentSubreport' },
 ];
 
 export const COMPONENT_GROUPS: ComponentPaletteGroup[] = [
   { key: 'common', labelKey: 'leftPanel.groupCommon', types: ['text', 'richtext', 'image', 'table', 'chart'] },
   { key: 'data', labelKey: 'leftPanel.groupData', types: ['barcode', 'qrcode', 'checkbox', 'pagenumber', 'datetime'] },
   { key: 'graphics', labelKey: 'leftPanel.groupGraphics', types: ['line', 'shape', 'panel'] },
-  { key: 'advanced', labelKey: 'leftPanel.groupAdvanced', types: ['subreport'] },
 ];

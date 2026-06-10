@@ -2,7 +2,7 @@ import React, { useMemo, useRef, useState, useCallback, useEffect } from 'react'
 import { Button, Dropdown, Modal, Tooltip } from 'antd';
 import type { MenuProps } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
-import { sanitizeRichHtml, type ReportComponent, type Band, type BandType, type BorderConfig, type ChartComponent, type ChartDataPoint, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type TableCell, type TableComponent } from '@report-designer/core';
+import { sanitizeRichHtml, type ReportComponent, type Band, type BandType, type BorderConfig, type ChartComponent, type ChartDataPoint, type Page, type PageBorder, type PageWatermark, type Padding, type PanelComponent, type ReportFont, type TableCell, type TableComponent } from '@report-designer/core';
 import { useDesignerStore } from '../store/designer-store';
 import type { TableCellSelection } from '../store/designer-store';
 import { normalizeTable, resolveCollapsedCellBorder, resolveTableCellStyle, resolveTableRowCellWidths } from '../table/table-structure';
@@ -563,7 +563,9 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         for (const compId of m.compIds) {
           const orig = m.origPositions[compId];
           if (!orig) continue;
-          const newX = orig.x + dxMm;
+          const currentBand = currentPage?.bands.find(band => band.id === m.bandMap[compId]);
+          const currentComponent = flatRef.current.find(item => item.comp.id === compId)?.comp;
+          const newX = clampComponentXToFirstColumn(currentPage, currentBand, orig.x + dxMm, currentComponent?.width ?? 0);
           const newY = orig.y + dyMm;
           moveComponentSilent(pageId, m.bandMap[compId], compId, newX, newY);
         }
@@ -588,6 +590,12 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
         if (m.handle.includes('w')) { nw = Math.max(5, m.origW - dx); nx = m.origX + dx; }
         if (m.handle.includes('s')) nh = Math.max(5, m.origH + dy);
         if (m.handle.includes('n')) { nh = Math.max(5, m.origH - dy); ny = m.origY + dy; }
+        const resizeBand = currentPage?.bands.find(band => band.id === m.bandId);
+        const maxRight = getFirstColumnDesignWidth(currentPage, resizeBand);
+        if (maxRight !== undefined) {
+          nx = Math.max(0, Math.min(nx, maxRight - 5));
+          nw = Math.max(5, Math.min(nw, maxRight - nx));
+        }
         updateComponentSilent(currentPageIdRef.current, m.bandId, m.compId,
           { x: nx, y: ny, width: nw, height: nh },
         );
@@ -659,9 +667,11 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             const targetBand = findBandAtComponentCenter(m.bandMap[compId], comp.y, comp.height);
             if (targetBand && targetBand.band.id !== m.bandMap[compId]) {
               const targetY = convertComponentYToBand(m.bandMap[compId], targetBand.band.id, comp.y);
-              moveComponentToBand(currentPageIdRef.current, m.bandMap[compId], targetBand.band.id, compId, comp.x, targetY, orig.x, orig.y);
+              const targetX = clampComponentXToFirstColumn(page, targetBand.band, comp.x, comp.width);
+              moveComponentToBand(currentPageIdRef.current, m.bandMap[compId], targetBand.band.id, compId, targetX, targetY, orig.x, orig.y);
             } else {
-              moveComponent(currentPageIdRef.current, m.bandMap[compId], compId, comp.x, comp.y, orig.x, orig.y);
+              const targetX = clampComponentXToFirstColumn(page, band, comp.x, comp.width);
+              moveComponent(currentPageIdRef.current, m.bandMap[compId], compId, targetX, comp.y, orig.x, orig.y);
             }
           }
         }
@@ -904,7 +914,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
       const bodyTop = visualY + BAND_HEADER_MM;
       const bandBottom = bodyTop + band.height;
       if (yMm >= bandTop && yMm <= bandBottom) {
-        const bandX = xMm;
+        const bandX = clampComponentXToFirstColumn(currentPage, band, xMm, 0);
         const bandY = Math.max(0, Math.min(band.height, Math.round((yMm - bodyTop) * 10) / 10));
         const panelTarget = findPanelDropTarget(band, bandX, bandY);
         if (panelTarget) {
@@ -1160,6 +1170,7 @@ export const Canvas: React.FC<{ className?: string }> = ({ className }) => {
             {/* Bands */}
             {bands.map(({ band, visualY }) => (
               <BandView key={band.id} band={band} visualY={visualY}
+                page={currentPage}
                 labelIndex={bandLabelIndexes[band.id] ?? 1}
                 isSelected={band.id === selectedBandId}
                 pendingBandInsertType={pendingBandInsertType}
@@ -1805,6 +1816,7 @@ const BandContextMenu: React.FC<{
 
 const BandView: React.FC<{
   band: Band; visualY: number; labelIndex: number; isSelected: boolean; selectedIds: string[];
+  page?: Page;
   pendingBandInsertType: BandType | null;
   selectedTableCell: TableCellSelection | null;
   fonts?: ReportFont[];
@@ -1814,7 +1826,7 @@ const BandView: React.FC<{
   onStartBandSort: (bandId: string, event: React.MouseEvent<HTMLDivElement>) => void;
   onUpdateComponent: (pageId: string, bandId: string, compId: string, updates: Record<string, any>, prev?: Record<string, any>) => void;
   currentPageId: string;
-}> = ({ band, visualY, labelIndex, isSelected, pendingBandInsertType, selectedIds, selectedTableCell, fonts, isDragging, isComponentMoveTarget, onOpenContextMenu, onStartBandSort, onUpdateComponent, currentPageId }) => {
+}> = ({ band, visualY, labelIndex, page, isSelected, pendingBandInsertType, selectedIds, selectedTableCell, fonts, isDragging, isComponentMoveTarget, onOpenContextMenu, onStartBandSort, onUpdateComponent, currentPageId }) => {
   const { t } = useDesignerI18n();
   const [editId, setEditId] = useState<string | null>(null);
   const [editKind, setEditKind] = useState<'text' | 'richtext' | null>(null);
@@ -1830,6 +1842,7 @@ const BandView: React.FC<{
   const bandLabel = formatBandTitle(baseLabel, labelIndex, band);
   const headerHeight = mmToPx(BAND_HEADER_MM);
   const bodyHeight = mmToPx(band.height);
+  const columnGuide = getBandColumnGuide(page, band);
 
   const handleBandMouseDown = (event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target as HTMLElement;
@@ -1911,6 +1924,7 @@ const BandView: React.FC<{
         top: headerHeight,
         height: safeCssNumber(bodyHeight),
       }}>
+        {columnGuide ? <BandColumnGuides guide={columnGuide} bodyHeight={bodyHeight} /> : null}
         {band.components
           .slice()
           .sort((a, b) => (a.zOrder ?? 0) - (b.zOrder ?? 0))
@@ -1963,6 +1977,123 @@ const BandView: React.FC<{
     </div>
   );
 };
+
+interface BandColumnGuideLayout {
+  count: number;
+  width: number;
+  gap: number;
+}
+
+const BandColumnGuides: React.FC<{ guide: BandColumnGuideLayout; bodyHeight: number }> = ({ guide, bodyHeight }) => (
+  <>
+    {Array.from({ length: guide.count - 1 }, (_, index) => {
+      const leftMm = guide.width + index * (guide.width + guide.gap) + guide.gap / 2;
+      return (
+        <div
+          key={index}
+          data-testid="designer-band-column-guide"
+          style={{
+            position: 'absolute',
+            left: safeCssNumber(mmToPx(leftMm)),
+            top: 0,
+            height: safeCssNumber(bodyHeight),
+            borderLeft: '1px dashed rgba(22, 119, 255, 0.75)',
+            pointerEvents: 'none',
+            zIndex: 6,
+          }}
+        />
+      );
+    })}
+    <div
+      data-testid="designer-band-first-column"
+      style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        width: safeCssNumber(mmToPx(guide.width)),
+        height: safeCssNumber(bodyHeight),
+        boxShadow: 'inset -1px 0 rgba(22, 119, 255, 0.3)',
+        pointerEvents: 'none',
+        zIndex: 5,
+      }}
+    />
+  </>
+);
+
+function getBandColumnGuide(page: Page | undefined, band: Band): BandColumnGuideLayout | undefined {
+  const width = getFirstColumnDesignWidth(page, band);
+  const columns = getBandColumnSettings(page, band);
+  if (!width || !columns || columns.count <= 1) {
+    return undefined;
+  }
+  return {
+    count: columns.count,
+    gap: columns.gap,
+    width,
+  };
+}
+
+function clampComponentXToFirstColumn(page: Page | undefined, band: Band | undefined, x: number, componentWidth: number): number {
+  const maxRight = getFirstColumnDesignWidth(page, band);
+  if (maxRight === undefined) {
+    return Math.max(0, Math.round(x * 10) / 10);
+  }
+
+  const maxX = Math.max(0, maxRight - componentWidth);
+  return Math.max(0, Math.min(maxX, Math.round(x * 10) / 10));
+}
+
+function getFirstColumnDesignWidth(page: Page | undefined, band: Band | undefined): number | undefined {
+  if (!page || !band) {
+    return undefined;
+  }
+
+  const settings = getBandColumnSettings(page, band);
+  if (!settings || settings.count <= 1) {
+    return undefined;
+  }
+
+  const printableWidth = page.width - page.margins.left - page.margins.right;
+  return Math.max(1, (printableWidth - settings.gap * (settings.count - 1)) / settings.count);
+}
+
+function getBandColumnSettings(page: Page | undefined, band: Band | undefined): { count: number; gap: number } | undefined {
+  if (!page || !band) {
+    return undefined;
+  }
+
+  const sourceBand = resolveColumnSourceBand(page, band);
+  const count = Math.max(1, Math.floor(sourceBand?.dataBand?.columns?.count ?? 1));
+  if (count <= 1) {
+    return undefined;
+  }
+
+  return {
+    count,
+    gap: Math.max(0, sourceBand?.dataBand?.columns?.gap ?? 0),
+  };
+}
+
+function resolveColumnSourceBand(page: Page, band: Band): Band | undefined {
+  if (band.type === 'data' && (band.dataBand?.columns?.count ?? 1) > 1) {
+    return band;
+  }
+
+  const bandIndex = page.bands.findIndex(item => item.id === band.id);
+  if (bandIndex < 0) {
+    return undefined;
+  }
+
+  if (band.type === 'columnHeader') {
+    return page.bands.slice(bandIndex + 1).find(item => item.type === 'data' && (item.dataBand?.columns?.count ?? 1) > 1);
+  }
+
+  if (band.type === 'columnFooter') {
+    return [...page.bands.slice(0, bandIndex)].reverse().find(item => item.type === 'data' && (item.dataBand?.columns?.count ?? 1) > 1);
+  }
+
+  return undefined;
+}
 
 const BandDragPreview: React.FC<{ band: Band; labelIndex: number; top: number }> = ({ band, labelIndex, top }) => {
   const { t } = useDesignerI18n();

@@ -36,6 +36,25 @@ interface InternalRenderReportOptions extends RenderReportOptions {
 
 const DEFAULT_MAX_SUBREPORT_DEPTH = 3;
 
+type BandLogicalItem = Extract<LogicalBandItem, { kind: 'band' }>;
+
+interface DataBandColumnLayout {
+  count: number;
+  gap: number;
+  width: number;
+  direction: 'downThenAcross' | 'acrossThenDown';
+}
+
+interface DataBandColumnFlow {
+  dataBandId: string;
+  layout: DataBandColumnLayout;
+  columnHeaders: BandLogicalItem[];
+  columnIndex: number;
+  columnCursors: number[];
+  rowY: number;
+  rowHeight: number;
+}
+
 function createRenderEventRuntime(
   template: ReportTemplate,
   data: Record<string, Record<string, unknown>[]>,
@@ -205,6 +224,8 @@ export function paginate(
   let activeSectionRepeatBands: Band[] = [];
   let currentPage: RenderPage | undefined;
   let cursorY = 0;
+  let columnFlow: DataBandColumnFlow | undefined;
+  let pendingColumnHeaders: BandLogicalItem[] = [];
 
   const newPage = () => {
     currentPage = {
@@ -229,6 +250,9 @@ export function paginate(
       placeBand(groupHeader, createEmptyContext(options, rowsByBand), true);
     }
     for (const sectionBand of activeSectionRepeatBands) {
+      if (columnFlow && sectionBand.type === 'columnHeader') {
+        continue;
+      }
       placeBand(sectionBand, createEmptyContext(options, rowsByBand), true);
     }
   };
@@ -295,9 +319,189 @@ export function paginate(
     return box;
   };
 
+  const measureBandAt = (band: Band, context: RenderContext, x: number, y: number, width: number): RenderBandBox => {
+    const layoutContext = withParameters(withRuntimeContext(context, options), options.parameters);
+    return layoutBand(band, {
+      x,
+      y,
+      width,
+      context: layoutContext,
+      rowsByBand,
+      pageRowsByBand: currentPage ? pageRows.get(currentPage) ?? {} : {},
+      styles,
+      conditionalFormats,
+      renderSubreport: createSubreportRenderer(rowsByBand, options, false),
+      eventRuntime: undefined,
+      eventMode: 'measure',
+    });
+  };
+
+  const placeBandAt = (band: Band, context: RenderContext, x: number, y: number, width: number): RenderBandBox | undefined => {
+    ensurePage();
+    const runtimeContext = withRuntimeContext(context, options);
+    const eventBand = prepareBandInstance(band, runtimeContext, options, templatePage);
+    if (!eventBand) {
+      return undefined;
+    }
+
+    const layoutContext = withParameters(runtimeContext, options.parameters);
+    const behavior = getBandBehavior(eventBand);
+    if (!shouldPrintBand(behavior, currentPage!.pageNumber, layoutContext, rowsByBand)) {
+      return undefined;
+    }
+
+    const layoutState = createLayoutState(options);
+    const preview = layoutBand(eventBand, { x, y, width, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, conditionalFormats, renderSubreport: createSubreportRenderer(rowsByBand, options, false), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'measure' });
+    if (behavior.printIfEmpty === false && preview.components.length === 0) {
+      return undefined;
+    }
+
+    const box = layoutBand(eventBand, { x, y, width, context: layoutContext, rowsByBand, pageRowsByBand: pageRows.get(currentPage!) ?? {}, styles, conditionalFormats, renderSubreport: createSubreportRenderer(rowsByBand, options, true), eventRuntime: withEventPage(options.eventRuntime, templatePage), eventState: layoutState, eventMode: 'render' });
+    currentPage!.items.push(box);
+    collectPageRow(pageRows.get(currentPage!)!, eventBand, runtimeContext);
+    finishBandInstance(eventBand, runtimeContext, options, templatePage);
+    return box;
+  };
+
+  const renderColumnHeaders = (flow: DataBandColumnFlow) => {
+    if (flow.columnHeaders.length === 0) {
+      return;
+    }
+
+    let headerY = cursorY;
+    for (const item of flow.columnHeaders) {
+      let headerHeight = 0;
+      for (let columnIndex = 0; columnIndex < flow.layout.count; columnIndex += 1) {
+        const x = printableX + columnIndex * (flow.layout.width + flow.layout.gap);
+        const box = placeBandAt(item.band, item.context, x, headerY, flow.layout.width);
+        headerHeight = Math.max(headerHeight, box?.height ?? item.band.height);
+      }
+      headerY += headerHeight;
+    }
+
+    flow.columnCursors = Array.from({ length: flow.layout.count }, () => headerY);
+    flow.rowY = headerY;
+    flow.rowHeight = 0;
+    cursorY = headerY;
+  };
+
+  const resetColumnFlowForPage = (flow: DataBandColumnFlow) => {
+    flow.columnIndex = 0;
+    flow.columnCursors = Array.from({ length: flow.layout.count }, () => cursorY);
+    flow.rowY = cursorY;
+    flow.rowHeight = 0;
+    renderColumnHeaders(flow);
+  };
+
+  const ensureColumnFlow = (layout: DataBandColumnLayout, columnHeaders: BandLogicalItem[], dataBandId: string): DataBandColumnFlow => {
+    if (!columnFlow || columnFlow.dataBandId !== dataBandId || !sameColumnLayout(columnFlow.layout, layout)) {
+      columnFlow = {
+        dataBandId,
+        layout,
+        columnHeaders,
+        columnIndex: 0,
+        columnCursors: Array.from({ length: layout.count }, () => cursorY),
+        rowY: cursorY,
+        rowHeight: 0,
+      };
+      renderColumnHeaders(columnFlow);
+    }
+    return columnFlow;
+  };
+
+  const finishColumnFlow = () => {
+    if (!columnFlow) {
+      return;
+    }
+
+    cursorY = columnFlow.layout.direction === 'acrossThenDown'
+      ? columnFlow.rowY + (columnFlow.columnIndex > 0 ? columnFlow.rowHeight : 0)
+      : Math.max(...columnFlow.columnCursors);
+    columnFlow = undefined;
+  };
+
+  const placeColumnDataBand = (band: Band, context: RenderContext, layout: DataBandColumnLayout, columnHeaders: BandLogicalItem[]): RenderBandBox | undefined => {
+    ensurePage();
+    const flow = ensureColumnFlow(layout, columnHeaders, band.id);
+
+    if (layout.direction === 'acrossThenDown') {
+      const columnX = printableX + flow.columnIndex * (layout.width + layout.gap);
+      const preview = measureBandAt(band, context, columnX, flow.rowY, layout.width);
+      if (flow.columnIndex === 0 && flow.rowY + preview.height > pageBottomY && currentPage!.items.length > 0) {
+        newPage();
+        resetColumnFlowForPage(flow);
+      }
+
+      const x = printableX + flow.columnIndex * (layout.width + layout.gap);
+      const box = placeBandAt(band, context, x, flow.rowY, layout.width);
+      const placedHeight = box?.height ?? preview.height;
+      flow.rowHeight = Math.max(flow.rowHeight, placedHeight);
+      if (flow.columnIndex >= layout.count - 1) {
+        flow.rowY += flow.rowHeight;
+        flow.rowHeight = 0;
+        flow.columnIndex = 0;
+      } else {
+        flow.columnIndex += 1;
+      }
+      cursorY = flow.rowY + (flow.columnIndex > 0 ? flow.rowHeight : 0);
+      return box;
+    }
+
+    let columnY = flow.columnCursors[flow.columnIndex];
+    let columnX = printableX + flow.columnIndex * (layout.width + layout.gap);
+    let preview = measureBandAt(band, context, columnX, columnY, layout.width);
+    if (columnY + preview.height > pageBottomY && currentPage!.items.length > 0) {
+      if (flow.columnIndex < layout.count - 1) {
+        flow.columnIndex += 1;
+      } else {
+        newPage();
+        resetColumnFlowForPage(flow);
+      }
+      columnY = flow.columnCursors[flow.columnIndex];
+      columnX = printableX + flow.columnIndex * (layout.width + layout.gap);
+      preview = measureBandAt(band, context, columnX, columnY, layout.width);
+    }
+
+    const box = placeBandAt(band, context, columnX, columnY, layout.width);
+    flow.columnCursors[flow.columnIndex] += box?.height ?? preview.height;
+    cursorY = Math.max(...flow.columnCursors);
+    return box;
+  };
+
+  const placeColumnFooterBand = (item: BandLogicalItem): void => {
+    if (!columnFlow) {
+      placeBand(item.band, item.context);
+      return;
+    }
+
+    const footerY = columnFlow.layout.direction === 'acrossThenDown'
+      ? columnFlow.rowY + (columnFlow.columnIndex > 0 ? columnFlow.rowHeight : 0)
+      : Math.max(...columnFlow.columnCursors);
+    let footerHeight = 0;
+    for (let columnIndex = 0; columnIndex < columnFlow.layout.count; columnIndex += 1) {
+      const x = printableX + columnIndex * (columnFlow.layout.width + columnFlow.layout.gap);
+      const box = placeBandAt(item.band, item.context, x, footerY, columnFlow.layout.width);
+      footerHeight = Math.max(footerHeight, box?.height ?? item.band.height);
+    }
+    cursorY = footerY + footerHeight;
+    columnFlow = undefined;
+  };
+
+  const flushPendingColumnHeaders = () => {
+    for (const item of pendingColumnHeaders) {
+      placeBand(item.band, item.context);
+    }
+    pendingColumnHeaders = [];
+  };
+
   for (const item of logicalItems) {
     if (item.kind === 'pageBreak') {
       newPage();
+      continue;
+    }
+
+    if (item.band.type === 'columnHeader') {
+      pendingColumnHeaders.push(item);
       continue;
     }
 
@@ -318,11 +522,28 @@ export function paginate(
       activeSectionRepeatBands = item.repeatOnPageBreakBefore;
     }
 
+    if (item.band.type === 'columnFooter' && columnFlow) {
+      placeColumnFooterBand(item);
+      activeSectionRepeatBands = [];
+      pendingColumnHeaders = [];
+      continue;
+    }
+
     if (['footer', 'columnFooter', 'reportSummary'].includes(item.band.type)) {
+      flushPendingColumnHeaders();
+      finishColumnFlow();
       activeSectionRepeatBands = [];
     }
 
-    placeBand(item.band, item.context);
+    const columnLayout = resolveDataBandColumnLayout(item.band, printableWidth);
+    if (columnLayout) {
+      placeColumnDataBand(item.band, item.context, columnLayout, pendingColumnHeaders);
+      pendingColumnHeaders = [];
+    } else {
+      flushPendingColumnHeaders();
+      finishColumnFlow();
+      placeBand(item.band, item.context);
+    }
 
     if (item.band.type === 'groupFooter') {
       const index = repeatedGroups.length - 1;
@@ -331,6 +552,9 @@ export function paginate(
       }
     }
   }
+
+  flushPendingColumnHeaders();
+  finishColumnFlow();
 
   if (!currentPage) {
     newPage();
@@ -361,6 +585,34 @@ export function paginate(
 
 function createLayoutState(options: InternalRenderReportOptions): LayoutEventState | undefined {
   return options.eventRuntime ? createLayoutEventState() : undefined;
+}
+
+function resolveDataBandColumnLayout(band: Band, availableWidth: number): DataBandColumnLayout | undefined {
+  if (band.type !== 'data') {
+    return undefined;
+  }
+
+  const columns = band.dataBand?.columns;
+  const count = Math.max(1, Math.floor(columns?.count ?? 1));
+  if (count <= 1) {
+    return undefined;
+  }
+
+  const gap = Math.max(0, columns?.gap ?? 0);
+  const width = Math.max(1, (availableWidth - gap * (count - 1)) / count);
+  return {
+    count,
+    gap,
+    width,
+    direction: columns?.direction ?? 'downThenAcross',
+  };
+}
+
+function sameColumnLayout(a: DataBandColumnLayout, b: DataBandColumnLayout): boolean {
+  return a.count === b.count
+    && a.gap === b.gap
+    && a.width === b.width
+    && a.direction === b.direction;
 }
 
 function clonePageWatermark(watermark: Page['watermark']): PageWatermark | undefined {

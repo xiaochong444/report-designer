@@ -123,6 +123,25 @@ describe('phase 35 band properties', () => {
     expect(within(screen.getByTestId('band-properties-data-form')).getByLabelText('排序')).toBeInTheDocument();
   });
 
+  it('edits data band column settings', async () => {
+    loadSelectedDataBand();
+    render(
+      <DesignerI18nProvider locale="zh-CN">
+        <BandPropertyGrid />
+      </DesignerI18nProvider>,
+    );
+
+    fireEvent.change(screen.getByLabelText('分栏数'), { target: { value: '3' } });
+    fireEvent.change(screen.getByLabelText('栏间距'), { target: { value: '6' } });
+    await chooseCombobox('分栏方向', '先向右再向下');
+
+    expect(selectedBand()?.dataBand?.columns).toEqual({
+      count: 3,
+      gap: 6,
+      direction: 'acrossThenDown',
+    });
+  });
+
   it('edits hierarchical data band child field and indentation', async () => {
     loadSelectedHierarchicalBand();
     render(

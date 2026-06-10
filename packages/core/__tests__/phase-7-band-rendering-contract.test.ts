@@ -153,6 +153,95 @@ describe('Phase 7 band rendering contract', () => {
     expect(contents).toEqual(['Root', '  Child']);
   });
 
+  it('lays out data band rows across configured columns before moving down', () => {
+    const template = makeTemplate([
+      band('labels', 'data', {
+        height: 12,
+        dataBand: { dataSourceId: 'employees', columns: { count: 3, gap: 5, direction: 'acrossThenDown' } },
+        components: [textComponent('label', '{employees.Name}')],
+      }),
+    ]);
+
+    const document = renderReport(template, {
+      employees: [
+        { Name: 'A' },
+        { Name: 'B' },
+        { Name: 'C' },
+        { Name: 'D' },
+      ],
+    });
+
+    const boxes = document.pages[0].items.filter(item => item.bandId === 'labels');
+    expect(boxes).toHaveLength(4);
+    expect(boxes.map(box => box.components[0]?.content)).toEqual(['A', 'B', 'C', 'D']);
+    expect(boxes.map(box => Math.round(box.y * 10) / 10)).toEqual([20, 20, 20, 32]);
+    expect(boxes[0].x).toBeCloseTo(20, 1);
+    expect(boxes[1].x).toBeCloseTo(78.3, 1);
+    expect(boxes[2].x).toBeCloseTo(136.7, 1);
+    expect(boxes[3].x).toBeCloseTo(20, 1);
+    expect(boxes[0].width).toBeCloseTo(53.3, 1);
+  });
+
+  it('repeats column header bands for each data band column', () => {
+    const template = makeTemplate([
+      band('label-header', 'columnHeader', {
+        height: 8,
+        components: [textComponent('header-text', 'PRICE')],
+      }),
+      band('labels', 'data', {
+        height: 12,
+        dataBand: { dataSourceId: 'employees', columns: { count: 3, gap: 5, direction: 'acrossThenDown' } },
+        components: [textComponent('label', '{employees.Name}')],
+      }),
+    ]);
+
+    const document = renderReport(template, {
+      employees: [
+        { Name: 'A' },
+        { Name: 'B' },
+        { Name: 'C' },
+      ],
+    });
+
+    const headers = document.pages[0].items.filter(item => item.bandId === 'label-header');
+    const labels = document.pages[0].items.filter(item => item.bandId === 'labels');
+    expect(headers).toHaveLength(3);
+    expect(headers.map(box => box.components[0]?.content)).toEqual(['PRICE', 'PRICE', 'PRICE']);
+    expect(headers[0].x).toBeCloseTo(20, 1);
+    expect(headers[1].x).toBeCloseTo(78.3, 1);
+    expect(headers[2].x).toBeCloseTo(136.7, 1);
+    expect(headers.every(box => box.width > 53 && box.width < 54)).toBe(true);
+    expect(labels.map(box => Math.round(box.y * 10) / 10)).toEqual([28, 28, 28]);
+  });
+
+  it('moves down a data band column before continuing in the next column', () => {
+    const template = makeTemplate([
+      band('labels', 'data', {
+        height: 100,
+        dataBand: { dataSourceId: 'employees', columns: { count: 2, gap: 10, direction: 'downThenAcross' } },
+        components: [textComponent('label', '{employees.Name}')],
+      }),
+    ]);
+    template.pages[0].height = 260;
+    template.pages[0].margins = { top: 20, right: 20, bottom: 20, left: 20 };
+
+    const document = renderReport(template, {
+      employees: [
+        { Name: 'A' },
+        { Name: 'B' },
+        { Name: 'C' },
+      ],
+    });
+
+    const boxes = document.pages[0].items.filter(item => item.bandId === 'labels');
+    expect(boxes).toHaveLength(3);
+    expect(boxes.map(box => Math.round(box.y * 10) / 10)).toEqual([20, 120, 20]);
+    expect(boxes[0].x).toBeCloseTo(20, 1);
+    expect(boxes[1].x).toBeCloseTo(20, 1);
+    expect(boxes[2].x).toBeCloseTo(110, 1);
+    expect(boxes[0].width).toBeCloseTo(80, 1);
+  });
+
   it('rejects orphan HeaderBand without a following DataBand', () => {
     const template = makeTemplate([
       band('header', 'header'),
@@ -176,3 +265,21 @@ describe('Phase 7 band rendering contract', () => {
     expect(result.errors.some(error => error.message.includes('Data band requires dataBand.dataSourceId'))).toBe(true);
   });
 });
+
+function textComponent(id: string, text: string) {
+  return {
+    id,
+    type: 'text' as const,
+    x: 0,
+    y: 0,
+    width: 30,
+    height: 6,
+    text,
+    font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+    textAlign: 'left' as const,
+    verticalAlign: 'top' as const,
+    border: { style: 'none' as const, width: 0, color: '#000000', sides: { top: false, right: false, bottom: false, left: false } },
+    canGrow: false,
+    canShrink: false,
+  };
+}

@@ -9,6 +9,7 @@ import { hierarchicalOrgData, hierarchicalOrgTemplate } from './hierarchical-org
 import { invoiceTemplate } from './invoice';
 import { longTextPaginationTemplate } from './long-text-pagination';
 import { masterDetailOrdersTemplate } from './master-detail-orders';
+import { productPriceLabelsData, productPriceLabelsTemplate } from './product-price-labels';
 import { salesOrderPrintData, salesOrderPrintTemplate } from './sales-order-print';
 import { tableDetailTemplate } from './table-detail';
 
@@ -54,6 +55,7 @@ export const sampleReports = [
   { key: 'salesOrderPrint', label: 'Sales Order Print', template: salesOrderPrintTemplate, data: salesOrderPrintData },
   { key: 'tableDetail', label: 'Table Detail', template: tableDetailTemplate, data: sampleReportData },
   { key: 'masterDetailOrders', label: 'Master Detail Orders', template: masterDetailOrdersTemplate, data: sampleReportData },
+  { key: 'productPriceLabels', label: 'Product Price Labels', template: productPriceLabelsTemplate, data: productPriceLabelsData },
   { key: 'hierarchicalOrg', label: 'Hierarchical Organization', template: hierarchicalOrgTemplate, data: hierarchicalOrgData },
   { key: 'customChineseFont', label: 'Custom Chinese Font', template: customChineseFontTemplate, data: sampleReportData },
   { key: 'longTextPagination', label: 'Long Text Pagination', template: longTextPaginationTemplate, data: sampleReportData },
@@ -79,6 +81,8 @@ export {
   invoiceTemplate,
   longTextPaginationTemplate,
   masterDetailOrdersTemplate,
+  productPriceLabelsData,
+  productPriceLabelsTemplate,
   salesOrderPrintData,
   salesOrderPrintTemplate,
   tableDetailTemplate,

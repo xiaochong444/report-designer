@@ -55,6 +55,7 @@ export const BandPropertyGrid: React.FC<{ expressionExtensions?: ExpressionCatal
   const sortFields = getSortFields(dataFields);
   const sortRules = band.dataBand?.sort ?? [];
   const isDataBand = band.type === 'data' || band.type === 'hierarchicalData';
+  const isPlainDataBand = band.type === 'data';
   const isHierarchicalDataBand = band.type === 'hierarchicalData';
   const hierarchyChildFieldOptions = getHierarchyChildFieldOptions(dataFields);
   const isGroupHeader = band.type === 'groupHeader';
@@ -301,6 +302,77 @@ export const BandPropertyGrid: React.FC<{ expressionExtensions?: ExpressionCatal
                           hierarchical: {
                             ...dataBand.hierarchical,
                             indentChars: Number(value ?? 0),
+                          },
+                        }))}
+                      />
+                    </Form.Item>
+                  </>
+                )}
+                {isPlainDataBand && (
+                  <>
+                    <Form.Item label={t('dataBand.columns.count')}>
+                      <InputNumber
+                        aria-label={t('dataBand.columns.count')}
+                        value={band.dataBand?.columns?.count ?? 1}
+                        min={1}
+                        max={8}
+                        step={1}
+                        precision={0}
+                        style={{ width: '100%' }}
+                        onChange={value => updateBandDataBand(dataBand => {
+                          const count = Math.max(1, Number(value ?? 1));
+                          if (count <= 1) {
+                            const { columns, ...rest } = dataBand;
+                            return rest;
+                          }
+                          return {
+                            ...dataBand,
+                            columns: {
+                              count,
+                              gap: dataBand.columns?.gap ?? 4,
+                              direction: dataBand.columns?.direction ?? 'downThenAcross',
+                            },
+                          };
+                        })}
+                      />
+                    </Form.Item>
+                    <Form.Item label={t('dataBand.columns.gap')}>
+                      <InputNumber
+                        aria-label={t('dataBand.columns.gap')}
+                        value={band.dataBand?.columns?.gap ?? 4}
+                        min={0}
+                        max={80}
+                        step={unitStep}
+                        precision={1}
+                        disabled={(band.dataBand?.columns?.count ?? 1) <= 1}
+                        style={{ width: '100%' }}
+                        onChange={value => updateBandDataBand(dataBand => ({
+                          ...dataBand,
+                          columns: {
+                            count: Math.max(2, dataBand.columns?.count ?? 2),
+                            gap: Math.max(0, Number(value ?? 0)),
+                            direction: dataBand.columns?.direction ?? 'downThenAcross',
+                          },
+                        }))}
+                      />
+                    </Form.Item>
+                    <Form.Item label={t('dataBand.columns.direction')}>
+                      <Select
+                        aria-label={t('dataBand.columns.direction')}
+                        value={band.dataBand?.columns?.direction ?? 'downThenAcross'}
+                        size="small"
+                        disabled={(band.dataBand?.columns?.count ?? 1) <= 1}
+                        style={{ width: '100%' }}
+                        options={[
+                          { value: 'downThenAcross', label: t('dataBand.columns.downThenAcross') },
+                          { value: 'acrossThenDown', label: t('dataBand.columns.acrossThenDown') },
+                        ]}
+                        onChange={direction => updateBandDataBand(dataBand => ({
+                          ...dataBand,
+                          columns: {
+                            count: Math.max(2, dataBand.columns?.count ?? 2),
+                            gap: dataBand.columns?.gap ?? 4,
+                            direction,
                           },
                         }))}
                       />
