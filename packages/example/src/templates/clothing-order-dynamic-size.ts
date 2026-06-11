@@ -38,70 +38,84 @@ const clothingOrderStyles: ReportStyle[] = [
 ];
 
 export const clothingOrderDynamicSizeData = {
-  clothingOrder: {
-    orderNo: 'CO-202606-018',
-    customer: '杭州织造商贸有限公司',
-    season: '2026 夏',
-    sizeGroups: [
-      {
-        name: '常规尺码',
-        sizes: [
-          { field: 'S1', name: 'S' },
-          { field: 'S2', name: 'M' },
-          { field: 'S3', name: 'L' },
-          { field: 'S4', name: 'XL' },
-        ],
-      },
-      {
-        name: '裤长',
-        sizes: [
-          { field: 'S5', name: '80' },
-          { field: 'S6', name: '90' },
-        ],
-      },
-    ],
-    items: [
-      {
-        styleNo: 'KZ-86021',
-        productName: '特种绣花针织裤',
-        tagPrice: 199,
-        color: '藏青',
-        S1: 12,
-        S2: 18,
-        S3: 15,
-        S4: 10,
-        S5: 9,
-        S6: 7,
-        totalQty: 55,
-        unitPrice: 19.9,
-        amount: 1095,
-      },
-      {
-        styleNo: 'KZ-86022',
-        productName: '弹力修身休闲裤',
-        tagPrice: 169,
-        color: '米白',
-        S1: 8,
-        S2: 16,
-        S3: 14,
-        S4: 6,
-        S5: 5,
-        S6: 4,
-        totalQty: 44,
-        unitPrice: 18,
-        amount: 792,
-      },
-    ],
-  },
+  orderNo: 'CO-202606-018',
+  customer: '杭州织造商贸有限公司',
+  season: '2026 夏',
+  sizeGroups: [
+    {
+      name: '常规尺码',
+      sizes: [
+        { field: 'S1', name: 'S' },
+        { field: 'S2', name: 'M' },
+        { field: 'S3', name: 'L' },
+        { field: 'S4', name: 'XL' },
+      ],
+    },
+    {
+      name: '裤长',
+      sizes: [
+        { field: 'S5', name: '80' },
+        { field: 'S6', name: '90' },
+      ],
+    },
+  ],
+  items: [
+    {
+      styleNo: 'KZ-86021',
+      productName: '特种绣花针织裤',
+      tagPrice: 199,
+      color: '藏青',
+      S1: 12,
+      S2: 18,
+      S3: 15,
+      S4: 10,
+      S5: 9,
+      S6: 7,
+      totalQty: 55,
+      unitPrice: 19.9,
+      amount: 1095,
+    },
+    {
+      styleNo: 'KZ-86022',
+      productName: '弹力修身休闲裤',
+      tagPrice: 169,
+      color: '米白',
+      S1: 8,
+      S2: 16,
+      S3: 14,
+      S4: 6,
+      S5: 5,
+      S6: 4,
+      totalQty: 44,
+      unitPrice: 18,
+      amount: 792,
+    },
+  ],
 };
 
 const beforeDataScript = `
-const orderSource = ctx.data.clothingOrder;
-const rootOrder = Array.isArray(ctx.data.root) ? ctx.data.root[0]?.clothingOrder : undefined;
-const clothingOrder = Array.isArray(orderSource) ? orderSource[0] : (orderSource ?? rootOrder);
-const sizeGroups = clothingOrder?.sizeGroups ?? ctx.data.clothingOrder?.sizeGroups ?? [];
-const headerTable = ctx.table?.("OrderSizeHeaderTable");
-const detailTable = ctx.table?.("OrderSizeDetailTable");
+/**
+ * @typedef {{ field?: string, name?: string }} SizeOption
+ * @typedef {{ name?: string, sizes?: SizeOption[] }} SizeGroup
+ * @typedef {{ id?: string, text?: string, width?: number, textAlign?: string, rowSpan?: number, colSpan?: number, [key: string]: unknown }} ScriptCell
+ * @typedef {{ id?: string, height?: number, cells?: ScriptCell[], [key: string]: unknown }} ScriptRow
+ * @typedef {{ width?: number, height?: number, rowCount?: number, columnCount?: number, rows?: ScriptRow[] }} ScriptTableComponent
+ * @typedef {{ column?: number }} ScriptCellLookup
+ * @typedef {{ component: ScriptTableComponent, findCellText: (text: string) => ScriptCellLookup | undefined }} ScriptTableHandle
+ * @typedef {{ height?: number, components?: Array<{ name?: string }> }} ScriptBand
+ * @typedef {{ bands?: ScriptBand[] }} ScriptPage
+ * @typedef {{ pages?: ScriptPage[] }} ScriptReport
+ */
+const directOrder = ctx.data && typeof ctx.data === "object" && Array.isArray(ctx.data.sizeGroups)
+  ? ctx.data
+  : undefined;
+/** @type {{ sizeGroups?: SizeGroup[] }} */
+const order = directOrder ?? {};
+const sizeGroups = Array.isArray(order.sizeGroups) ? order.sizeGroups : [];
+/** @type {ScriptTableHandle | undefined} */
+const headerTable = /** @type {ScriptTableHandle | undefined} */ (ctx.table?.("OrderSizeHeaderTable"));
+/** @type {ScriptTableHandle | undefined} */
+const detailTable = /** @type {ScriptTableHandle | undefined} */ (ctx.table?.("OrderSizeDetailTable"));
 
 if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length > 0) {
   const placeholder = headerTable.findCellText("S1") ?? detailTable.findCellText("{S1}");
@@ -135,6 +149,15 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
   const detailSeedRow = detailTable.component.rows?.[0] ?? { height: rowHeight, cells: [] };
   const detailSeedCells = detailSeedRow.cells ?? [];
 
+  /**
+   * @param {ScriptCell | undefined} seed
+   * @param {string} id
+   * @param {string} text
+   * @param {number} width
+   * @param {string} textAlign
+   * @param {number} [rowSpan]
+   * @returns {ScriptCell}
+   */
   const copyCell = (seed, id, text, width, textAlign, rowSpan = 1) => ({
     ...seed,
     id,
@@ -241,8 +264,9 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
   detailTable.component.columnCount = totalColumnCount;
   detailTable.component.height = rowHeight;
 
-  for (const page of ctx.report?.pages ?? []) {
-    for (const band of page.bands) {
+  const report = /** @type {ScriptReport | undefined} */ (ctx.report);
+  for (const page of report?.pages ?? []) {
+    for (const band of page.bands ?? []) {
       if (band.components?.some(component => component.name === "OrderSizeHeaderTable")) {
         band.height = Math.max(band.height ?? 0, headerHeight);
       }
@@ -330,18 +354,18 @@ export const clothingOrderDynamicSizeTemplate = {
         textAlign: 'center',
       }),
       text('clothing-order-no-label', '订单号', 0, 15, 14, 6, { style: commonTextStyleIds.header }),
-      text('clothing-order-no', '{clothingOrder.orderNo}', 16, 15, 44, 6, { style: commonTextStyleIds.dataBottomBorder }),
+      text('clothing-order-no', '{orderNo}', 16, 15, 44, 6, { style: commonTextStyleIds.dataBottomBorder }),
       text('clothing-order-customer-label', '客户', 64, 15, 12, 6, { style: commonTextStyleIds.header }),
-      text('clothing-order-customer', '{clothingOrder.customer}', 78, 15, 66, 6, { style: commonTextStyleIds.dataBottomBorder }),
+      text('clothing-order-customer', '{customer}', 78, 15, 66, 6, { style: commonTextStyleIds.dataBottomBorder }),
       text('clothing-order-season-label', '季节', 148, 15, 12, 6, { style: commonTextStyleIds.header }),
-      text('clothing-order-season', '{clothingOrder.season}', 162, 15, 28, 6, { style: commonTextStyleIds.dataBottomBorder }),
+      text('clothing-order-season', '{season}', 162, 15, 28, 6, { style: commonTextStyleIds.dataBottomBorder }),
       text('clothing-order-note', '尺码列由 beforeData 脚本根据 sizeGroups 动态生成', 0, 25, 190, 6, {
         style: 'clothing-order-meta',
       }),
     ]),
     band('clothing-order-size-header-band', 'header', 14, [orderSizeHeaderTable]),
     band('clothing-order-size-detail-band', 'data', 7, [orderSizeDetailTable], {
-      dataBand: { dataSourceId: 'clothingOrder.items' },
+      dataBand: { dataSourceId: 'items' },
     }),
     band('clothing-order-page-footer', 'pageFooter', 8, [
       text('clothing-order-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),

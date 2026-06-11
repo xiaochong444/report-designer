@@ -1,6 +1,6 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { render } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { DesignerI18nProvider } from '../i18n';
 import { EventEditorDialog } from '../components/events/EventEditorDialog';
@@ -61,6 +61,15 @@ const monaco = {
     InsertAsSnippet: 4,
   },
 };
+
+function toggleTreeNode(title: string) {
+  const node = screen.getByText(title).closest('.ant-tree-treenode');
+  const switcher = node?.querySelector<HTMLElement>('.ant-tree-switcher');
+  if (!switcher) {
+    throw new Error(`Missing tree switcher for ${title}`);
+  }
+  fireEvent.click(switcher);
+}
 
 describe('phase 45 event component completions', () => {
   beforeEach(() => {
@@ -195,6 +204,8 @@ describe('phase 45 event component completions', () => {
     );
 
     expect(document.body.textContent).not.toContain('internal-id');
+    expect(document.body.textContent).not.toContain('OrderTitleText (text)');
+    toggleTreeNode('Components');
     expect(document.body.textContent).toContain('OrderTitleText (text)');
   });
 });

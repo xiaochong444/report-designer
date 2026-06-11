@@ -94,23 +94,27 @@ describe('phase 45 clothing order dynamic size example', () => {
 
     expect(script).toContain('ctx.table?.("OrderSizeHeaderTable")');
     expect(script).toContain('ctx.table?.("OrderSizeDetailTable")');
+    expect(script).not.toContain('ctx.data.root');
+    expect(script).not.toContain('ctx.data.clothingOrder');
   });
 
   it('bundles unique sizeGroups metadata and S1 quantity data', () => {
-    expect(clothingOrderDynamicSizeData.clothingOrder.sizeGroups[0]?.sizes[0]).toMatchObject({
+    expect(clothingOrderDynamicSizeData.sizeGroups[0]?.sizes[0]).toMatchObject({
       field: 'S1',
       name: 'S',
     });
-    expect(clothingOrderDynamicSizeData.clothingOrder.sizeGroups[1]?.sizes).toEqual([
+    expect(clothingOrderDynamicSizeData.sizeGroups[1]?.sizes).toEqual([
       { field: 'S5', name: '80' },
       { field: 'S6', name: '90' },
     ]);
-    expect(clothingOrderDynamicSizeData.clothingOrder.items[0]).toHaveProperty('S1');
-    const sizeFields = clothingOrderDynamicSizeData.clothingOrder.sizeGroups.flatMap(group =>
+    expect(clothingOrderDynamicSizeData.items[0]).toHaveProperty('S1');
+    const sizeFields = clothingOrderDynamicSizeData.sizeGroups.flatMap(group =>
       group.sizes.map(size => size.field),
     );
     expect(new Set(sizeFields).size).toBe(sizeFields.length);
     expect(clothingOrderDynamicSizeTemplate.dataSources).toEqual([]);
+    expect(clothingOrderDynamicSizeData).not.toHaveProperty('clothingOrder');
+    expect(clothingOrderDynamicSizeTemplate.pages[0].bands[2]?.dataBand?.dataSourceId).toBe('items');
   });
 
   it('registers the bundled sample report', () => {
@@ -137,7 +141,7 @@ describe('phase 45 clothing order dynamic size example', () => {
   });
 
   it('expands dynamic size header and detail tables with aligned structure', () => {
-    const sizeGroups = clothingOrderDynamicSizeData.clothingOrder.sizeGroups;
+    const sizeGroups = clothingOrderDynamicSizeData.sizeGroups;
     const fixedBeforeColumnCount = 4;
     const fixedAfterColumnCount = 3;
     const sizeColumnCount = sizeGroups.reduce((sum, group) => sum + group.sizes.length, 0);
@@ -192,9 +196,9 @@ describe('phase 45 clothing order dynamic size example', () => {
 
     const headerContents = renderedHeaderTable.rows.flatMap(row => row.map(cell => cell.content));
     expect(headerContents).toEqual(expect.arrayContaining(['80', '90']));
-    expect(detailRow[fixedBeforeColumnCount]?.content).toBe(String(clothingOrderDynamicSizeData.clothingOrder.items[0].S1));
-    expect(detailRow[fixedBeforeColumnCount + 1]?.content).toBe(String(clothingOrderDynamicSizeData.clothingOrder.items[0].S2));
-    expect(detailRow[fixedBeforeColumnCount + 4]?.content).toBe(String(clothingOrderDynamicSizeData.clothingOrder.items[0].S5));
-    expect(detailRow[fixedBeforeColumnCount + 5]?.content).toBe(String(clothingOrderDynamicSizeData.clothingOrder.items[0].S6));
+    expect(detailRow[fixedBeforeColumnCount]?.content).toBe(String(clothingOrderDynamicSizeData.items[0].S1));
+    expect(detailRow[fixedBeforeColumnCount + 1]?.content).toBe(String(clothingOrderDynamicSizeData.items[0].S2));
+    expect(detailRow[fixedBeforeColumnCount + 4]?.content).toBe(String(clothingOrderDynamicSizeData.items[0].S5));
+    expect(detailRow[fixedBeforeColumnCount + 5]?.content).toBe(String(clothingOrderDynamicSizeData.items[0].S6));
   });
 });

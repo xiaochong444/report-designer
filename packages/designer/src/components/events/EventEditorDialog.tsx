@@ -100,6 +100,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   const [errors, setErrors] = useState<string[]>([]);
   const [editorDiagnostics, setEditorDiagnostics] = useState<EventScriptEditorDiagnostics>(EMPTY_DIAGNOSTICS);
   const [search, setSearch] = useState('');
+  const [expandedSideTreeKeys, setExpandedSideTreeKeys] = useState<React.Key[]>([]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -108,6 +109,8 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
     setDrafts({ ...(events ?? {}) });
     setErrors([]);
     setEditorDiagnostics(EMPTY_DIAGNOSTICS);
+    setSearch('');
+    setExpandedSideTreeKeys([]);
   }, [events, initialEventName, open, targetType]);
 
   const activeDraft = normalizeEvent(drafts[active]);
@@ -153,7 +156,10 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
     { key: 'root:examples', title: t('events.scriptTemplates'), children: exampleTreeItems },
   ];
   const filteredSideTree = useMemo(() => filterSideTree(sideTree, search), [search, sideTree]);
-  const expandedSideTreeKeys = useMemo(() => collectTreeKeys(filteredSideTree), [filteredSideTree]);
+  const visibleExpandedSideTreeKeys = useMemo(
+    () => (search.trim() ? collectTreeKeys(filteredSideTree) : expandedSideTreeKeys),
+    [expandedSideTreeKeys, filteredSideTree, search],
+  );
   const insertTextByKey = useMemo(() => buildInsertTextMap(sideTree), [sideTree]);
 
   const updateDraft = (event: EventScript) => {
@@ -255,12 +261,23 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
             onDiagnostics={setEditorDiagnostics}
           />
           {errors.length > 0 ? (
-            <Alert type="error" title={errors.join('\n')} />
+            <Alert
+              type="error"
+              title={(
+                <div data-testid="event-editor-diagnostics" style={diagnosticTextStyle}>
+                  {errors.join('\n')}
+                </div>
+              )}
+            />
           ) : editorDiagnostics.warnings.length > 0 ? (
             <Alert
               type="warning"
               title={t('events.typeWarnings')}
-              description={editorDiagnostics.warnings.join('\n')}
+              description={(
+                <div data-testid="event-editor-diagnostics" style={diagnosticTextStyle}>
+                  {editorDiagnostics.warnings.join('\n')}
+                </div>
+              )}
             />
           ) : (
             <Alert type="success" title={t('events.validationPassed')} />
@@ -275,9 +292,10 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
             onChange={(event) => setSearch(event.target.value)}
           />
           <Tree
-            autoExpandParent
-            expandedKeys={expandedSideTreeKeys}
+            autoExpandParent={Boolean(search.trim())}
+            expandedKeys={visibleExpandedSideTreeKeys}
             treeData={filteredSideTree}
+            onExpand={setExpandedSideTreeKeys}
             onSelect={(keys) => {
               const key = String(keys[0] ?? '');
               const insertText = insertTextByKey.get(key);
@@ -290,6 +308,13 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
       </div>
     </Modal>
   );
+};
+
+const diagnosticTextStyle: React.CSSProperties = {
+  margin: 0,
+  maxHeight: 120,
+  overflowY: 'auto',
+  whiteSpace: 'pre-wrap',
 };
 
 function namespaceTreeItems(

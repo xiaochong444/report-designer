@@ -86,6 +86,15 @@ const dataContext = {
   parameters: [{ id: 'amount_field', name: 'amountField', type: 'string' as const }],
 };
 
+function toggleTreeNode(title: string) {
+  const node = screen.getByText(title).closest('.ant-tree-treenode');
+  const switcher = node?.querySelector<HTMLElement>('.ant-tree-switcher');
+  if (!switcher) {
+    throw new Error(`Missing tree switcher for ${title}`);
+  }
+  fireEvent.click(switcher);
+}
+
 describe('phase 24 monaco event editor helpers', () => {
   beforeEach(() => {
     monacoEditorMock.lastProps = undefined;
@@ -620,8 +629,9 @@ describe('phase 24 monaco event editor helpers', () => {
     );
 
     expect(screen.getByText('Context helpers')).toBeInTheDocument();
-    expect(screen.getByText('Set event value')).toBeInTheDocument();
+    expect(screen.queryByText('Set event value')).not.toBeInTheDocument();
 
+    toggleTreeNode('Script templates');
     fireEvent.click(screen.getByText('Set event value'));
     expect(screen.getByLabelText('Script')).toHaveValue('ctx.setValue?.("");');
 
@@ -670,7 +680,30 @@ describe('phase 24 monaco event editor helpers', () => {
     );
 
     expect(screen.getByText('上下文辅助')).toBeInTheDocument();
+    expect(screen.queryByText('设置事件值')).not.toBeInTheDocument();
+    toggleTreeNode('脚本模板');
     expect(screen.getByText('设置事件值')).toBeInTheDocument();
+  });
+
+  it('keeps side tree groups collapsed by default and lets users expand them', () => {
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{}}
+          dictionaryItems={[{ key: 'Orders.Amount', title: 'Orders.Amount' }]}
+          onCancel={() => undefined}
+          onSave={() => undefined}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    expect(screen.getByText('Fields')).toBeInTheDocument();
+    expect(screen.queryByText('Orders.Amount')).not.toBeInTheDocument();
+
+    toggleTreeNode('Fields');
+    expect(screen.getByText('Orders.Amount')).toBeInTheDocument();
   });
 
   it('filters side tree helpers, fields, and components from the search box', () => {
@@ -725,6 +758,10 @@ describe('phase 24 monaco event editor helpers', () => {
     });
 
     expect(screen.getByText('Type warnings')).toBeInTheDocument();
+    expect(screen.getByTestId('event-editor-diagnostics')).toHaveStyle({
+      maxHeight: '120px',
+      overflowY: 'auto',
+    });
     fireEvent.click(screen.getByText('Apply'));
 
     expect(saved).toMatchObject({
@@ -779,6 +816,7 @@ describe('phase 24 monaco event editor helpers', () => {
       </DesignerI18nProvider>,
     );
 
+    toggleTreeNode('Fields');
     fireEvent.click(screen.getByText('Conflicting field'));
 
     expect(screen.getByLabelText('Script')).toHaveValue('{helper:ctx.hide}');

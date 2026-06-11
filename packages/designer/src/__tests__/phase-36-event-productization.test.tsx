@@ -16,6 +16,15 @@ vi.mock('@monaco-editor/react', () => ({
   ),
 }));
 
+function toggleTreeNode(title: string) {
+  const node = screen.getByText(title).closest('.ant-tree-treenode');
+  const switcher = node?.querySelector<HTMLElement>('.ant-tree-switcher');
+  if (!switcher) {
+    throw new Error(`Missing tree switcher for ${title}`);
+  }
+  fireEvent.click(switcher);
+}
+
 describe('phase 36 event productization', () => {
   it('builds localized script templates for the active event', () => {
     const templates = buildEventScriptTemplates('component', 'getValue', key => key);
@@ -54,6 +63,8 @@ describe('phase 36 event productization', () => {
     );
 
     expect(screen.getByText('Script templates')).toBeInTheDocument();
+    expect(screen.queryByText('Set event value')).not.toBeInTheDocument();
+    toggleTreeNode('Script templates');
     fireEvent.click(screen.getByText('Set event value'));
     expect(screen.getByLabelText('Script')).toHaveValue('ctx.setValue?.("");');
 
@@ -77,6 +88,8 @@ describe('phase 36 event productization', () => {
     );
 
     expect(screen.getByText('脚本模板')).toBeInTheDocument();
+    expect(screen.queryByText('写入报表状态')).not.toBeInTheDocument();
+    toggleTreeNode('脚本模板');
     expect(screen.getByText('写入报表状态')).toBeInTheDocument();
     expect(screen.getByText('创建文本组件')).toBeInTheDocument();
   });

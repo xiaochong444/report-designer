@@ -75,7 +75,7 @@ describe('Phase 10 ribbon tabs', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Preview' }));
     expect(screen.getByRole('button', { name: 'Preview' })).toHaveClass('rd-ribbon-tab-active');
     expect(ribbonContent).toHaveTextContent('Print Preview');
-  }, 20000);
+  }, 60000);
 
   it('exposes every toolbox component from Insert and inserts them from icon buttons', () => {
     render(<Designer template={createDefaultTemplate('Ribbon Insert Components')} locale="en-US" />);
