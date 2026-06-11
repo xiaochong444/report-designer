@@ -128,7 +128,7 @@ export function buildEventScriptCompletions(
       insertTextRules: constants.CompletionItemInsertTextRule.InsertAsSnippet,
     }),
     ...mapDataContextItems(input.dataContext, constants),
-    ...flattenTreeItems(input.dictionaryItems).map(item => ({
+    ...flattenTreeItems(flattenSingleRootCompletionItems(input.dictionaryItems)).map(item => ({
       label: item.title,
       detail: item.key,
       kind: constants.CompletionItemKind.Field,
@@ -146,6 +146,9 @@ export function splitDiagnostics(markers: MonacoDiagnostic[], lineTemplate = 'Li
   const warnings: string[] = [];
 
   for (const marker of markers) {
+    if (isIgnoredDiagnostic(marker.message)) {
+      continue;
+    }
     const lineLabel = lineTemplate.replace('{line}', String(marker.startLineNumber));
     const message = `${lineLabel}: ${marker.message}`;
     if (marker.severity >= 8) {
@@ -156,6 +159,11 @@ export function splitDiagnostics(markers: MonacoDiagnostic[], lineTemplate = 'Li
   }
 
   return { blocking, warnings };
+}
+
+function isIgnoredDiagnostic(message: string): boolean {
+  return /\bimplicitly (?:has|have)(?: an?)? ['"]?any['"]? type\b/i.test(message)
+    || /\bimplicitly (?:has|have) type ['"]?any['"]?\b/i.test(message);
 }
 
 export function getDefaultHelperCompletionItems(t: (key: string) => string): EventCompletionTextItem[] {
@@ -392,4 +400,22 @@ function flattenTreeItems(items: EventCompletionTreeItem[] | undefined): EventCo
   }
 
   return result;
+}
+
+function flattenSingleRootCompletionItems(items: EventCompletionTreeItem[] | undefined): EventCompletionTreeItem[] | undefined {
+  if (!items || items.length !== 1 || items[0]?.key !== 'root' || !items[0].children?.length) {
+    return items;
+  }
+
+  return items[0].children.map(stripRootCompletionPrefix);
+}
+
+function stripRootCompletionPrefix(item: EventCompletionTreeItem): EventCompletionTreeItem {
+  const key = item.key.startsWith('root.') ? item.key.slice('root.'.length) : item.key;
+
+  return {
+    ...item,
+    key,
+    children: item.children?.map(stripRootCompletionPrefix),
+  };
 }

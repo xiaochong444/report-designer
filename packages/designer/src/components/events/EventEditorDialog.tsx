@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
-import { Alert, Button, Input, Modal, Space, Switch, Tree, Typography } from 'antd';
+import { Alert, Button, Input, Modal, Switch, Tree } from 'antd';
+import { FullscreenExitOutlined, FullscreenOutlined } from '@ant-design/icons';
 import type { EventEditorDataContractInput, EventMap, EventScript } from '@report-designer/core';
 import { useDesignerI18n, type DesignerMessageKey } from '../../i18n';
 import { EventScriptEditor, type EventScriptEditorDiagnostics } from './EventScriptEditor';
@@ -26,7 +27,8 @@ export interface EventTreeItem {
 
 interface SideTreeItem {
   key: string;
-  title: string;
+  title: React.ReactNode;
+  label: string;
   insertText?: string;
   searchText?: string;
   children?: SideTreeItem[];
@@ -101,6 +103,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   const [editorDiagnostics, setEditorDiagnostics] = useState<EventScriptEditorDiagnostics>(EMPTY_DIAGNOSTICS);
   const [search, setSearch] = useState('');
   const [expandedSideTreeKeys, setExpandedSideTreeKeys] = useState<React.Key[]>([]);
+  const [fullscreen, setFullscreen] = useState(false);
 
   React.useEffect(() => {
     if (!open) return;
@@ -111,6 +114,7 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
     setEditorDiagnostics(EMPTY_DIAGNOSTICS);
     setSearch('');
     setExpandedSideTreeKeys([]);
+    setFullscreen(false);
   }, [events, initialEventName, open, targetType]);
 
   const activeDraft = normalizeEvent(drafts[active]);
@@ -125,10 +129,15 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   );
   const eventTree = eventNamesByTarget[targetType].map(name => ({
     key: name,
-    title: t(`events.${name}`),
+    title: (
+      <div className="rd-event-editor-tree-node">
+        <span className="rd-expression-tree-glyph rd-expression-tree-glyph-expression" aria-hidden />
+        <span>{t(`events.${name}`)}</span>
+      </div>
+    ),
   }));
   const fieldTreeItems = useMemo(
-    () => namespaceTreeItems(dictionaryItems, 'field', rawKey => `{${rawKey}}`),
+    () => buildFieldSideTree(flattenSingleDataSourceFieldItems(dictionaryItems)),
     [dictionaryItems],
   );
   const componentTreeItems = useMemo(
@@ -139,21 +148,23 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
   );
   const helperTreeItems: SideTreeItem[] = helperItems.map(item => ({
     key: `helper:${item.label}`,
-    title: item.detail ? `${item.label} - ${item.detail}` : item.label,
+    label: item.label,
+    title: makeSideTreeTitle(item.label, 'function'),
     insertText: item.insertText ?? item.label,
     searchText: [item.label, item.detail, item.insertText].filter(Boolean).join(' '),
   }));
   const exampleTreeItems: SideTreeItem[] = exampleItems.map((item, index) => ({
     key: `example:${index}`,
-    title: item.label,
+    label: item.label,
+    title: makeSideTreeTitle(item.label, 'format'),
     insertText: item.insertText ?? item.label,
     searchText: [item.label, item.detail, item.insertText].filter(Boolean).join(' '),
   }));
   const sideTree: SideTreeItem[] = [
-    { key: 'root:fields', title: t('events.fields'), children: fieldTreeItems },
-    { key: 'root:components', title: t('events.components'), children: componentTreeItems },
-    { key: 'root:context-helpers', title: t('events.contextHelpers'), children: helperTreeItems },
-    { key: 'root:examples', title: t('events.scriptTemplates'), children: exampleTreeItems },
+    makeSideTreeFolder('root:fields', t('events.fields'), fieldTreeItems),
+    makeSideTreeFolder('root:components', t('events.components'), componentTreeItems),
+    makeSideTreeFolder('root:context-helpers', t('events.contextHelpers'), helperTreeItems),
+    makeSideTreeFolder('root:examples', t('events.scriptTemplates'), exampleTreeItems),
   ];
   const filteredSideTree = useMemo(() => filterSideTree(sideTree, search), [search, sideTree]);
   const visibleExpandedSideTreeKeys = useMemo(
@@ -198,11 +209,44 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
     updateDraft({ ...activeDraft, script });
   };
 
+  const updateSideTreeExpandedKeys = (
+    keys: React.Key[],
+    info: { node: { key: React.Key }; expanded: boolean },
+  ) => {
+    setExpandedSideTreeKeys(current => {
+      if (info.expanded) {
+        return [...new Set([...current, info.node.key])];
+      }
+      const collapsedKey = info.node.key;
+      const collapsedPrefix = `${collapsedKey}.`;
+      const nextKeys = keys.filter(key => {
+        const value = String(key);
+        return value !== String(collapsedKey) && !value.startsWith(collapsedPrefix);
+      });
+      return nextKeys;
+    });
+  };
+
   return (
     <Modal
       open={open}
-      title={dialogTitle}
-      width={900}
+      title={(
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, paddingRight: 40 }}>
+          <span>{dialogTitle}</span>
+          <Button
+            aria-label={fullscreen ? t('events.exitFullscreen') : t('events.fullscreen')}
+            data-testid="event-editor-fullscreen-toggle"
+            icon={fullscreen ? <FullscreenExitOutlined /> : <FullscreenOutlined />}
+            size="small"
+            type="text"
+            onClick={() => setFullscreen(value => !value)}
+          />
+        </div>
+      )}
+      width={fullscreen ? '100vw' : 1040}
+      zIndex={9999}
+      wrapClassName={fullscreen ? 'rd-event-editor-modal-fullscreen' : undefined}
+      style={fullscreen ? { top: 0, height: '100vh', paddingBottom: 0 } : undefined}
       onCancel={onCancel}
       footer={[
         <Button key="validate" onClick={validate}>{t('events.validate')}</Button>,
@@ -210,56 +254,64 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
         <Button key="apply" type="primary" onClick={apply}>{t('events.apply')}</Button>,
       ]}
     >
-      <div style={{ display: 'grid', gridTemplateColumns: '180px minmax(320px, 1fr) 230px', gap: 12, minHeight: 450 }}>
-        <div style={{ borderRight: '1px solid #f0f0f0', paddingRight: 8 }}>
-          <Typography.Text strong>{t('events.title')}</Typography.Text>
+      <div className={`rd-event-editor ${fullscreen ? 'rd-event-editor-fullscreen' : ''}`}>
+        <aside className="rd-event-editor-rail">
           <Tree
+            className="rd-expression-tree"
             selectedKeys={[active]}
             treeData={eventTree}
+            blockNode
             onSelect={(keys) => {
               const next = String(keys[0] ?? active) as DesignerEventName;
               setActive(next);
               clearEditorFeedback();
             }}
           />
-        </div>
-        <Space orientation="vertical" size={8} style={{ minWidth: 0, width: '100%' }}>
-          <Switch
-            aria-label={t('events.enabled')}
-            checked={activeDraft.enabled}
-            checkedChildren={t('events.enabled')}
-            unCheckedChildren={t('events.off')}
-            onChange={(enabled) => updateDraft({ ...activeDraft, enabled })}
-          />
-          <EventScriptEditor
-            ariaLabel={t('events.script')}
-            value={activeDraft.script}
-            targetType={targetType}
-            eventName={active}
-            helperItems={helperItems}
-            dataContext={dataContext}
-            dictionaryItems={dictionaryItems}
-            componentItems={componentItems}
-            textItems={textItems}
-            imageItems={imageItems}
-            tableItems={tableItems}
-            barcodeItems={barcodeItems}
-            qrcodeItems={qrcodeItems}
-            checkboxItems={checkboxItems}
-            richtextItems={richtextItems}
-            chartItems={chartItems}
-            lineItems={lineItems}
-            shapeItems={shapeItems}
-            pageNumberItems={pageNumberItems}
-            dateTimeItems={dateTimeItems}
-            panelItems={panelItems}
-            exampleItems={exampleItems}
-            initialCursor={initialCursor}
-            loadingText={t('events.editorLoading')}
-            diagnosticLineLabel={t('events.diagnosticLine')}
-            onChange={updateScript}
-            onDiagnostics={setEditorDiagnostics}
-          />
+        </aside>
+        <section className="rd-event-editor-main">
+          <div className="rd-event-editor-toolbar">
+            <Switch
+              aria-label={t('events.enabled')}
+              checked={activeDraft.enabled}
+              checkedChildren={t('events.enabled')}
+              unCheckedChildren={t('events.off')}
+              style={{ alignSelf: 'flex-start' }}
+              onChange={(enabled) => updateDraft({ ...activeDraft, enabled })}
+            />
+          </div>
+          <div className="rd-event-editor-monaco-host">
+            <EventScriptEditor
+              ariaLabel={t('events.script')}
+              value={activeDraft.script}
+              targetType={targetType}
+              eventName={active}
+              helperItems={helperItems}
+              dataContext={dataContext}
+              dictionaryItems={dictionaryItems}
+              componentItems={componentItems}
+              textItems={textItems}
+              imageItems={imageItems}
+              tableItems={tableItems}
+              barcodeItems={barcodeItems}
+              qrcodeItems={qrcodeItems}
+              checkboxItems={checkboxItems}
+              richtextItems={richtextItems}
+              chartItems={chartItems}
+              lineItems={lineItems}
+              shapeItems={shapeItems}
+              pageNumberItems={pageNumberItems}
+              dateTimeItems={dateTimeItems}
+              panelItems={panelItems}
+              exampleItems={exampleItems}
+              initialCursor={initialCursor}
+              loadingText={t('events.editorLoading')}
+              diagnosticLineLabel={t('events.diagnosticLine')}
+              height="100%"
+              onChange={updateScript}
+              onDiagnostics={setEditorDiagnostics}
+            />
+          </div>
+          <div className="rd-event-editor-footer">
           {errors.length > 0 ? (
             <Alert
               type="error"
@@ -282,29 +334,35 @@ export const EventEditorDialog: React.FC<EventEditorDialogProps> = ({
           ) : (
             <Alert type="success" title={t('events.validationPassed')} />
           )}
-        </Space>
-        <div style={{ borderLeft: '1px solid #f0f0f0', paddingLeft: 8, overflow: 'auto', maxHeight: 450 }}>
+          </div>
+        </section>
+        <aside className="rd-event-editor-browser">
           <Input.Search
+            allowClear
             placeholder={t('common.search')}
             size="small"
             value={search}
-            style={{ marginBottom: 8 }}
             onChange={(event) => setSearch(event.target.value)}
           />
-          <Tree
-            autoExpandParent={Boolean(search.trim())}
-            expandedKeys={visibleExpandedSideTreeKeys}
-            treeData={filteredSideTree}
-            onExpand={setExpandedSideTreeKeys}
-            onSelect={(keys) => {
-              const key = String(keys[0] ?? '');
-              const insertText = insertTextByKey.get(key);
-              if (insertText) {
-                appendSnippet(insertText);
-              }
-            }}
-          />
-        </div>
+          <div className="rd-event-editor-browser-tree">
+            <Tree
+              className="rd-expression-tree"
+              autoExpandParent={Boolean(search.trim())}
+              expandedKeys={visibleExpandedSideTreeKeys}
+              treeData={filteredSideTree}
+              blockNode
+              virtual={false}
+              onExpand={updateSideTreeExpandedKeys}
+              onSelect={(keys) => {
+                const key = String(keys[0] ?? '');
+                const insertText = insertTextByKey.get(key);
+                if (insertText) {
+                  appendSnippet(insertText);
+                }
+              }}
+            />
+          </div>
+        </aside>
       </div>
     </Modal>
   );
@@ -334,7 +392,8 @@ function namespaceTreeItems(
 
     return [{
       key: `${namespace}:${item.key}`,
-      title: item.title,
+      label: item.title,
+      title: makeSideTreeTitle(item.title, namespace === 'component' ? 'resource' : children?.length ? 'folder' : 'field-string'),
       insertText,
       searchText: [item.key, item.title, insertText].filter(Boolean).join(' '),
       children,
@@ -361,7 +420,7 @@ function filterSideTree(items: SideTreeItem[], query: string): SideTreeItem[] {
   }
 
   return items.flatMap(item => {
-    const selfMatches = [item.key, item.title, item.insertText, item.searchText]
+    const selfMatches = [item.key, item.label, item.insertText, item.searchText]
       .filter(Boolean)
       .some(value => String(value).toLocaleLowerCase().includes(normalizedQuery));
 
@@ -395,4 +454,99 @@ function buildInsertTextMap(items: SideTreeItem[]): Map<string, string> {
 
 function getEventTreeItemName(item: EventTreeItem): string | undefined {
   return item.name?.trim() || undefined;
+}
+
+type SideGlyphKind = 'folder' | 'field-string' | 'function' | 'format' | 'resource';
+
+function makeSideTreeTitle(label: string, kind: SideGlyphKind): React.ReactNode {
+  return (
+    <div className="rd-event-editor-tree-node">
+      <span className={`rd-expression-tree-glyph rd-expression-tree-glyph-${kind}`} aria-hidden />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function makeSideTreeFolder(key: string, label: string, children: SideTreeItem[]): SideTreeItem {
+  return {
+    key,
+    label,
+    title: makeSideTreeTitle(label, 'folder'),
+    searchText: label,
+    children,
+  };
+}
+
+function buildFieldSideTree(items: EventTreeItem[]): SideTreeItem[] {
+  const roots: SideTreeItem[] = [];
+
+  const addPath = (fieldKey: string, label: string) => {
+    const segments = fieldKey.split('.').filter(Boolean);
+    if (!segments.length) return;
+    let siblings = roots;
+    let currentPath = '';
+
+    segments.forEach((segment, index) => {
+      currentPath = currentPath ? `${currentPath}.${segment}` : segment;
+      const isLeaf = index === segments.length - 1;
+      const nodeKey = isLeaf ? `field:${fieldKey}` : `field-folder:${currentPath}`;
+      let node = siblings.find(candidate => candidate.key === nodeKey);
+
+      if (!node) {
+        const nodeLabel = isLeaf ? basename(label || fieldKey) : segment;
+        node = {
+          key: nodeKey,
+          label: nodeLabel,
+          title: makeSideTreeTitle(nodeLabel, isLeaf ? 'field-string' : 'folder'),
+          insertText: isLeaf ? `{${fieldKey}}` : undefined,
+          searchText: [fieldKey, label, nodeLabel].filter(Boolean).join(' '),
+          children: isLeaf ? undefined : [],
+        };
+        siblings.push(node);
+      }
+
+      if (!isLeaf) {
+        node.children ??= [];
+        siblings = node.children;
+      }
+    });
+  };
+
+  const collect = (item: EventTreeItem) => {
+    if (item.children?.length) {
+      item.children.forEach(collect);
+      return;
+    }
+    if (item.insertable === false) {
+      return;
+    }
+    addPath(item.key, item.title);
+  };
+
+  items.forEach(collect);
+  return roots;
+}
+
+function basename(value: string): string {
+  return value.split('.').filter(Boolean).at(-1) ?? value;
+}
+
+function flattenSingleDataSourceFieldItems(items: EventTreeItem[]): EventTreeItem[] {
+  const source = items[0];
+  if (items.length !== 1 || !source?.children?.length) {
+    return items;
+  }
+
+  return source.children.map(item => stripSourceFieldPrefix(item, source.key));
+}
+
+function stripSourceFieldPrefix(item: EventTreeItem, sourceKey: string): EventTreeItem {
+  const prefix = `${sourceKey}.`;
+  const key = item.key.startsWith(prefix) ? item.key.slice(prefix.length) : item.key;
+
+  return {
+    ...item,
+    key,
+    children: item.children?.map(child => stripSourceFieldPrefix(child, sourceKey)),
+  };
 }

@@ -176,6 +176,8 @@ export function band(id: string, type: Band['type'], height: number, components:
       keepTogether: false,
       canBreak: type === 'data',
       printAtBottom: type === 'pageFooter',
+      autoGrow: true,
+      autoShrink: false,
     },
     ...overrides,
   };

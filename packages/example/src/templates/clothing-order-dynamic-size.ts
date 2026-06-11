@@ -16,7 +16,7 @@ const detailBorder: BorderConfig = {
 };
 
 const cellPadding: Padding = { top: 1, right: 1, bottom: 1, left: 1 };
-const designColumnWidths = [20, 40, 18, 18, 18, 18, 18, 22];
+const designColumnWidths = [20, 40, 18, 18, undefined, 18, 18, 22] as const;
 
 const clothingOrderStyles: ReportStyle[] = [
   {
@@ -41,6 +41,7 @@ export const clothingOrderDynamicSizeData = {
   orderNo: 'CO-202606-018',
   customer: '杭州织造商贸有限公司',
   season: '2026 夏',
+  remark: '备注：请按颜色分包，尾箱随货附尺码明细。',
   sizeGroups: [
     {
       name: '常规尺码',
@@ -54,8 +55,8 @@ export const clothingOrderDynamicSizeData = {
     {
       name: '裤长',
       sizes: [
-        { field: 'S5', name: '80' },
-        { field: 'S6', name: '90' },
+        { field: 'S1', name: '80' },
+        { field: 'S2', name: '90' },
       ],
     },
   ],
@@ -69,8 +70,6 @@ export const clothingOrderDynamicSizeData = {
       S2: 18,
       S3: 15,
       S4: 10,
-      S5: 9,
-      S6: 7,
       totalQty: 55,
       unitPrice: 19.9,
       amount: 1095,
@@ -80,12 +79,10 @@ export const clothingOrderDynamicSizeData = {
       productName: '弹力修身休闲裤',
       tagPrice: 169,
       color: '米白',
-      S1: 8,
-      S2: 16,
-      S3: 14,
-      S4: 6,
-      S5: 5,
-      S6: 4,
+      S1: 5,
+      S2: 4,
+      S3: '',
+      S4: '',
       totalQty: 44,
       unitPrice: 18,
       amount: 792,
@@ -94,70 +91,34 @@ export const clothingOrderDynamicSizeData = {
 };
 
 const beforeDataScript = `
-/**
- * @typedef {{ field?: string, name?: string }} SizeOption
- * @typedef {{ name?: string, sizes?: SizeOption[] }} SizeGroup
- * @typedef {{ id?: string, text?: string, width?: number, textAlign?: string, rowSpan?: number, colSpan?: number, [key: string]: unknown }} ScriptCell
- * @typedef {{ id?: string, height?: number, cells?: ScriptCell[], [key: string]: unknown }} ScriptRow
- * @typedef {{ width?: number, height?: number, rowCount?: number, columnCount?: number, rows?: ScriptRow[] }} ScriptTableComponent
- * @typedef {{ column?: number }} ScriptCellLookup
- * @typedef {{ component: ScriptTableComponent, findCellText: (text: string) => ScriptCellLookup | undefined }} ScriptTableHandle
- * @typedef {{ height?: number, components?: Array<{ name?: string }> }} ScriptBand
- * @typedef {{ bands?: ScriptBand[] }} ScriptPage
- * @typedef {{ pages?: ScriptPage[] }} ScriptReport
- */
-const directOrder = ctx.data && typeof ctx.data === "object" && Array.isArray(ctx.data.sizeGroups)
-  ? ctx.data
-  : undefined;
-/** @type {{ sizeGroups?: SizeGroup[] }} */
-const order = directOrder ?? {};
-const sizeGroups = Array.isArray(order.sizeGroups) ? order.sizeGroups : [];
-/** @type {ScriptTableHandle | undefined} */
-const headerTable = /** @type {ScriptTableHandle | undefined} */ (ctx.table?.("OrderSizeHeaderTable"));
-/** @type {ScriptTableHandle | undefined} */
-const detailTable = /** @type {ScriptTableHandle | undefined} */ (ctx.table?.("OrderSizeDetailTable"));
+const sizeGroups = ctx.data && typeof ctx.data === "object" && Array.isArray(ctx.data.sizeGroups)
+  ? ctx.data.sizeGroups
+  : [];
+const headerTable = ctx.table?.("OrderSizeHeaderTable");
+const detailTable = ctx.table?.("OrderSizeDetailTable");
 
 if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length > 0) {
+  // S1 是设计时的尺码占位列，脚本会把这一列扩展成当前订单需要的尺码列。
   const placeholder = headerTable.findCellText("S1") ?? detailTable.findCellText("{S1}");
   const sizeColumn = placeholder?.column ?? 4;
   const groupCount = Math.max(1, sizeGroups.length);
   const groupedSizes = sizeGroups.map(group => Array.isArray(group.sizes) ? group.sizes : []);
-  const allSizes = groupedSizes.flat();
-  const sizeCount = Math.max(1, allSizes.length);
-  const rowHeight = 7;
-  const fixedBefore = [
-    { text: "款号", width: 20 },
-    { text: "品名", width: 40 },
-    { text: "吊牌价", width: 18 },
-    { text: "颜色", width: 18 },
-  ];
-  const fixedAfter = [
-    { text: "总数量", width: 18 },
-    { text: "价格", width: 18 },
-    { text: "金额", width: 22 },
-  ];
-  const fixedWidth = [...fixedBefore, ...fixedAfter].reduce((sum, column) => sum + column.width, 0);
-  const sizeWidth = Math.max(8, Math.round(((headerTable.component.width || 190) - fixedWidth) / sizeCount * 10) / 10);
-  const columnWidths = [
-    ...fixedBefore.map(column => column.width),
-    ...Array.from({ length: sizeCount }, () => sizeWidth),
-    ...fixedAfter.map(column => column.width),
-  ];
-  const totalColumnCount = columnWidths.length;
-  const headerSeedRow = headerTable.component.rows?.[0] ?? { height: rowHeight, cells: [] };
+  // 尺码列数量取所有尺码组里尺码数量的最大值，不把多个尺码组累加。
+  // 例如服装用 S1-S4，裤长也从 S1/S2 开始，它们共享同一组渲染列。
+  const sizeCount = Math.max(1, ...groupedSizes.map(sizes => sizes.length));
+  const headerSeedRow = headerTable.component.rows?.[0] ?? { height: 7, cells: [] };
   const headerSeedCells = headerSeedRow.cells ?? [];
-  const detailSeedRow = detailTable.component.rows?.[0] ?? { height: rowHeight, cells: [] };
+  const detailSeedRow = detailTable.component.rows?.[0] ?? { height: headerSeedRow.height ?? 7, cells: [] };
   const detailSeedCells = detailSeedRow.cells ?? [];
+  const headerRowHeight = headerSeedRow.height ?? 7;
+  const detailRowHeight = detailSeedRow.height ?? headerRowHeight;
+  // 读取占位列左侧和右侧的模板单元格，固定列的文本、宽度和样式都沿用模板配置。
+  const headerBefore = headerSeedCells.slice(0, sizeColumn);
+  const headerAfter = headerSeedCells.slice(sizeColumn + 1);
+  const detailBefore = detailSeedCells.slice(0, sizeColumn);
+  const detailAfter = detailSeedCells.slice(sizeColumn + 1);
+  const totalColumnCount = headerBefore.length + sizeCount + headerAfter.length;
 
-  /**
-   * @param {ScriptCell | undefined} seed
-   * @param {string} id
-   * @param {string} text
-   * @param {number} width
-   * @param {string} textAlign
-   * @param {number} [rowSpan]
-   * @returns {ScriptCell}
-   */
   const copyCell = (seed, id, text, width, textAlign, rowSpan = 1) => ({
     ...seed,
     id,
@@ -169,44 +130,39 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
   });
 
   headerTable.component.rows = Array.from({ length: groupCount }, (_unused, row) => {
-    let groupStart = 0;
-    for (let index = 0; index < row; index += 1) {
-      groupStart += groupedSizes[index]?.length ?? 0;
-    }
     const sizes = groupedSizes[row] ?? [];
     const cells = [];
 
-    fixedBefore.forEach((column, index) => {
+    headerBefore.forEach((cell, index) => {
       cells.push(copyCell(
-        headerSeedCells[index],
+        cell,
         "dynamic_size_header_cell_" + (row + 1) + "_" + (cells.length + 1),
-        row === 0 ? column.text : "",
-        column.width,
-        "center",
+        row === 0 ? cell.text ?? "" : "",
+        cell.width,
+        cell.textAlign ?? "center",
         row === 0 ? groupCount : 1,
       ));
     });
 
     for (let offset = 0; offset < sizeCount; offset += 1) {
-      const name = offset >= groupStart && offset < groupStart + sizes.length
-        ? sizes[offset - groupStart]?.name ?? ""
-        : "";
+      // 每个尺码组占一行，并且都从第一列尺码列开始；短的尺码组右侧留空。
+      const name = sizes[offset]?.name ?? "";
       cells.push(copyCell(
         headerSeedCells[sizeColumn],
         "dynamic_size_header_cell_" + (row + 1) + "_" + (cells.length + 1),
         name,
-        sizeWidth,
+        undefined,
         "center",
       ));
     }
 
-    fixedAfter.forEach((column, offset) => {
+    headerAfter.forEach((cell) => {
       cells.push(copyCell(
-        headerSeedCells[sizeColumn + 1 + offset],
+        cell,
         "dynamic_size_header_cell_" + (row + 1) + "_" + (cells.length + 1),
-        row === 0 ? column.text : "",
-        column.width,
-        "center",
+        row === 0 ? cell.text ?? "" : "",
+        cell.width,
+        cell.textAlign ?? "center",
         row === 0 ? groupCount : 1,
       ));
     });
@@ -214,72 +170,64 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
     return {
       ...headerSeedRow,
       id: "dynamic_size_header_row_" + (row + 1),
-      height: rowHeight,
+      height: headerRowHeight,
       cells,
     };
   });
 
-  const detailExpressions = ["{styleNo}", "{productName}", "{tagPrice}", "{color}"];
-  const detailCells = fixedBefore.map((column, index) => copyCell(
-    detailSeedCells[index],
+  const detailCells = detailBefore.map((cell, index) => copyCell(
+    cell,
     "dynamic_size_detail_cell_" + (index + 1),
-    detailExpressions[index],
-    column.width,
-    index === 1 || index === 3 ? "left" : "right",
+    cell.text ?? "",
+    cell.width,
+    cell.textAlign ?? "left",
   ));
 
   for (let offset = 0; offset < sizeCount; offset += 1) {
-    const field = allSizes[offset]?.field ?? "S" + (offset + 1);
+    // 明细单元格直接绑定 S1...S(最大尺码列数)。某行不用的尺码字段在数据里保持为空。
+    const field = "S" + (offset + 1);
     detailCells.push(copyCell(
       detailSeedCells[sizeColumn],
       "dynamic_size_detail_cell_" + (detailCells.length + 1),
       "{" + field + "}",
-      sizeWidth,
+      undefined,
       "right",
     ));
   }
 
-  ["{totalQty}", "{unitPrice}", "{amount}"].forEach((expression, offset) => {
+  detailAfter.forEach((cell) => {
     detailCells.push(copyCell(
-      detailSeedCells[sizeColumn + 1 + offset],
+      cell,
       "dynamic_size_detail_cell_" + (detailCells.length + 1),
-      expression,
-      fixedAfter[offset].width,
-      "right",
+      cell.text ?? "",
+      cell.width,
+      cell.textAlign ?? "right",
     ));
   });
 
   detailTable.component.rows = [{
     ...detailSeedRow,
     id: "dynamic_size_detail_row",
-    height: rowHeight,
+    height: detailRowHeight,
     cells: detailCells,
   }];
 
-  const headerHeight = rowHeight * groupCount;
+  const headerHeight = headerRowHeight * groupCount;
   headerTable.component.rowCount = groupCount;
   headerTable.component.columnCount = totalColumnCount;
   headerTable.component.height = headerHeight;
   detailTable.component.rowCount = 1;
   detailTable.component.columnCount = totalColumnCount;
-  detailTable.component.height = rowHeight;
-
-  const report = /** @type {ScriptReport | undefined} */ (ctx.report);
-  for (const page of report?.pages ?? []) {
-    for (const band of page.bands ?? []) {
-      if (band.components?.some(component => component.name === "OrderSizeHeaderTable")) {
-        band.height = Math.max(band.height ?? 0, headerHeight);
-      }
-    }
-  }
+  detailTable.component.height = detailRowHeight;
 }
 `.trim();
 
 function tableCell(textValue: string, columnIndex: number, overrides: Partial<TableCell> = {}): TableCell {
+  const width = designColumnWidths[columnIndex];
   return {
     id: `cell_${columnIndex + 1}`,
     text: textValue,
-    width: designColumnWidths[columnIndex],
+    ...(width === undefined ? {} : { width }),
     padding: cellPadding,
     ...overrides,
   };
@@ -346,6 +294,46 @@ const orderSizeDetailTable = orderTable('clothing-size-detail-table', 'OrderSize
   }),
 ], detailBorder);
 
+const orderSummaryTable = orderTable('clothing-order-summary-table', 'OrderSummaryTable', 24, [
+  tableRow('clothing-order-summary-total-row', 8, [
+    tableCell('合计', 0, { colSpan: 7, textAlign: 'center' }),
+    tableCell('', 1),
+    tableCell('', 2),
+    tableCell('', 3),
+    tableCell('', 4),
+    tableCell('', 5),
+    tableCell('', 6),
+    tableCell('FORMAT("N2", SUM({items.amount}))', 7, { textAlign: 'right' }),
+  ], {
+    font: { size: 10, bold: true, color: '#111827' },
+    backgroundColor: '#f9fafb',
+  }),
+  tableRow('clothing-order-summary-upper-row', 8, [
+    tableCell('金额大写', 0, { textAlign: 'center' }),
+    tableCell('RMBUPPER(SUM({items.amount}))', 1, { colSpan: 7 }),
+    tableCell('', 2),
+    tableCell('', 3),
+    tableCell('', 4),
+    tableCell('', 5),
+    tableCell('', 6),
+    tableCell('', 7),
+  ], {
+    font: { size: 9, color: '#111827' },
+  }),
+  tableRow('clothing-order-summary-remark-row', 8, [
+    tableCell('备注', 0, { textAlign: 'center' }),
+    tableCell('{remark}', 1, { colSpan: 7 }),
+    tableCell('', 2),
+    tableCell('', 3),
+    tableCell('', 4),
+    tableCell('', 5),
+    tableCell('', 6),
+    tableCell('', 7),
+  ], {
+    font: { size: 9, color: '#111827' },
+  }),
+], fullBorder);
+
 export const clothingOrderDynamicSizeTemplate = {
   ...template('clothing-order-dynamic-size', '服装订单动态尺码打印', [
     band('clothing-order-title-band', 'reportTitle', 34, [
@@ -367,6 +355,7 @@ export const clothingOrderDynamicSizeTemplate = {
     band('clothing-order-size-detail-band', 'data', 7, [orderSizeDetailTable], {
       dataBand: { dataSourceId: 'items' },
     }),
+    band('clothing-order-summary-band', 'reportSummary', 26, [orderSummaryTable]),
     band('clothing-order-page-footer', 'pageFooter', 8, [
       text('clothing-order-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
     ]),

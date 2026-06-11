@@ -44,6 +44,7 @@ export interface EventScriptEditorProps {
   initialCursor?: { line?: number; column?: number };
   loadingText?: string;
   diagnosticLineLabel?: string;
+  height?: string | number;
   onChange: (value: string) => void;
   onDiagnostics?: (diagnostics: EventScriptEditorDiagnostics) => void;
 }
@@ -60,6 +61,7 @@ interface MonacoLike {
       };
       javascriptDefaults?: {
         setCompilerOptions: (options: Record<string, unknown>) => void;
+        setDiagnosticsOptions?: (options: Record<string, unknown>) => void;
         addExtraLib: (content: string, filePath?: string) => Disposable;
       };
     };
@@ -102,6 +104,7 @@ export function EventScriptEditor({
   dateTimeItems,
   panelItems,
   exampleItems,
+  height = '420px',
   initialCursor,
   loadingText,
   diagnosticLineLabel,
@@ -228,7 +231,13 @@ export function EventScriptEditor({
         allowNonTsExtensions: true,
         checkJs: true,
         noEmit: true,
+        noImplicitAny: false,
+        noImplicitThis: false,
+        strict: false,
         target: monaco.languages?.typescript?.ScriptTarget?.ES2020 ?? FALLBACK_SCRIPT_TARGET_ES2020,
+      });
+      javascriptDefaults.setDiagnosticsOptions?.({
+        noSuggestionDiagnostics: true,
       });
     },
     [],
@@ -272,7 +281,7 @@ export function EventScriptEditor({
       value={value}
       language="javascript"
       path={getEventScriptModelPath(targetType, eventName)}
-      height="420px"
+      height={height}
       loading={loadingText}
       options={{
         minimap: { enabled: false },

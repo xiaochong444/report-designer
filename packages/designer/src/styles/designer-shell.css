@@ -1114,6 +1114,104 @@
 .rd-expression-tree-glyph-resource::before { content: "R"; }
 .rd-expression-tree-glyph-folder::before { content: "+"; }
 
+.rd-event-editor {
+  --rd-event-editor-panel-height: 430px;
+  display: grid;
+  grid-template-columns: 118px minmax(0, 1fr) 250px;
+  gap: 12px;
+  align-items: start;
+}
+
+.rd-event-editor-fullscreen {
+  --rd-event-editor-panel-height: 100%;
+  height: 100%;
+  min-height: 0;
+}
+
+.rd-event-editor-rail {
+  box-sizing: border-box;
+  height: var(--rd-event-editor-panel-height);
+  padding-right: 10px;
+  border-right: 1px solid var(--rd-border);
+  overflow: auto;
+}
+
+.rd-event-editor-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  height: var(--rd-event-editor-panel-height);
+  border: 1px solid var(--rd-border);
+  border-radius: 4px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rd-event-editor-toolbar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  min-height: 38px;
+  padding: 7px 10px;
+  border-bottom: 1px solid var(--rd-border);
+  background: #fff;
+}
+
+.rd-event-editor-monaco-host {
+  flex: 1;
+  min-height: 0;
+}
+
+.rd-event-editor-footer {
+  flex: none;
+  min-height: 44px;
+  padding: 8px 10px;
+  border-top: 1px solid var(--rd-border);
+  color: #7a8593;
+  font-size: 11px;
+}
+
+.rd-event-editor-footer .ant-alert {
+  padding: 4px 8px;
+  font-size: 12px;
+}
+
+.rd-event-editor-browser {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+  height: var(--rd-event-editor-panel-height);
+  border: 1px solid var(--rd-border);
+  border-radius: 4px;
+  padding: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+.rd-event-editor-browser .ant-input-affix-wrapper,
+.rd-event-editor-browser .ant-input {
+  font-size: 12px;
+}
+
+.rd-event-editor-browser-tree {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 0;
+}
+
+.rd-event-editor-tree-node {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 20px;
+  font-size: 11px;
+  line-height: 1.1;
+  color: var(--rd-text);
+}
+
 .rd-report-tree-root {
   display: inline-flex;
   align-items: center;
@@ -1448,4 +1546,25 @@
 .rd-status-spacer {
   flex: 1;
   min-width: 12px;
+}
+
+.rd-event-editor-modal-fullscreen .ant-modal {
+  top: 0 !important;
+  max-width: none;
+  height: 100vh;
+  margin: 0;
+  padding-bottom: 0;
+}
+
+.rd-event-editor-modal-fullscreen .ant-modal-container,
+.rd-event-editor-modal-fullscreen .ant-modal-content {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.rd-event-editor-modal-fullscreen .ant-modal-body {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
 }

@@ -429,6 +429,7 @@ export type DesignerMessageKey =
   | 'tableCell.properties'
   | 'tableCell.range'
   | 'tableCell.text'
+  | 'tableCell.columnWidth'
   | 'tableCell.rowSpan'
   | 'tableCell.colSpan'
   | 'tableCell.appearance'
@@ -567,6 +568,8 @@ export type DesignerMessageKey =
   | 'events.editReport'
   | 'events.editPage'
   | 'events.script'
+  | 'events.fullscreen'
+  | 'events.exitFullscreen'
   | 'events.validate'
   | 'events.apply'
   | 'events.cancel'
@@ -1119,6 +1122,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableCell.properties': '单元格属性',
     'tableCell.range': '范围',
     'tableCell.text': '文本内容',
+    'tableCell.columnWidth': '列宽',
     'tableCell.rowSpan': '合并行数',
     'tableCell.colSpan': '合并列数',
     'tableCell.appearance': '外观',
@@ -1257,6 +1261,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.editReport': '编辑报表事件',
     'events.editPage': '编辑页面事件',
     'events.script': '脚本',
+    'events.fullscreen': '全屏',
+    'events.exitFullscreen': '退出全屏',
     'events.validate': '校验',
     'events.apply': '应用',
     'events.cancel': '取消',
@@ -1806,6 +1812,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'tableCell.properties': 'Cell Properties',
     'tableCell.range': 'Range',
     'tableCell.text': 'Text Content',
+    'tableCell.columnWidth': 'Column Width',
     'tableCell.rowSpan': 'Row Span',
     'tableCell.colSpan': 'Column Span',
     'tableCell.appearance': 'Appearance',
@@ -1944,6 +1951,8 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'events.editReport': 'Edit Report Events',
     'events.editPage': 'Edit Page Events',
     'events.script': 'Script',
+    'events.fullscreen': 'Fullscreen',
+    'events.exitFullscreen': 'Exit fullscreen',
     'events.validate': 'Validate',
     'events.apply': 'Apply',
     'events.cancel': 'Cancel',

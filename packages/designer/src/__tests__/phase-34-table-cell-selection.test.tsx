@@ -160,6 +160,46 @@ describe('phase 34 table cell selection', () => {
     expect(tableCell(1, 1)?.text).toBe('Total');
   });
 
+  it('shows and updates the selected table cell column width from the property panel', () => {
+    const table = tableComponent();
+    table.rows = [
+      {
+        id: 'row_1',
+        height: 8,
+        cells: [
+          { id: 'cell_1_1', text: 'Name' },
+          { id: 'cell_1_2', text: 'Qty', width: 24 },
+          { id: 'cell_1_3', text: 'Amount' },
+        ],
+      },
+      {
+        id: 'row_2',
+        height: 8,
+        cells: [
+          { id: 'cell_2_1', text: 'A' },
+          { id: 'cell_2_2', text: 'Subtotal' },
+          { id: 'cell_2_3', text: '10' },
+        ],
+      },
+    ];
+    loadWith(table);
+    render(
+      <>
+        <Canvas />
+        <DesignerPropertyPanel />
+      </>,
+    );
+
+    clickCell(1, 1);
+    expect((screen.getByLabelText('列宽') as HTMLInputElement).value).toBe('');
+
+    fireEvent.change(screen.getByLabelText('列宽'), { target: { value: '26' } });
+    expect(tableCell(1, 1)?.width).toBe(26);
+
+    clickCell(0, 1);
+    expect((screen.getByLabelText('列宽') as HTMLInputElement).value).toBe('24.0');
+  });
+
   it('edits selected table cell text inline from a canvas double click', async () => {
     loadWith(tableComponent());
     render(<Canvas />);

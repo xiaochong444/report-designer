@@ -103,9 +103,16 @@ interface TableCell {
   [key: string]: unknown;
 }
 
+interface TableRow {
+  id?: string;
+  height?: number;
+  cells: TableCell[];
+  [key: string]: unknown;
+}
+
 interface TableComponent extends ReportComponent {
   type: 'table';
-  rows?: Array<{ cells: TableCell[] }>;
+  rows?: TableRow[];
   rowCount?: number;
   columnCount?: number;
 }

@@ -75,6 +75,7 @@ const TableCellProperties: React.FC<{ expressionExtensions?: ExpressionCatalogEx
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedTableCell = useDesignerStore(s => s.selectedTableCell);
   const updateSelectedTableCell = useDesignerStore(s => s.updateSelectedTableCell);
+  const setSelectedTableCellWidth = useDesignerStore(s => s.setSelectedTableCellWidth);
   const page = template.pages.find(item => item.id === currentPageId);
   const table = page?.bands
     .find(band => band.id === selectedTableCell?.bandId)
@@ -93,6 +94,9 @@ const TableCellProperties: React.FC<{ expressionExtensions?: ExpressionCatalogEx
 
   const updateCell = (updates: Partial<TableCell>) => {
     updateSelectedTableCell(updates);
+  };
+  const updateCellWidth = (width: number | null) => {
+    setSelectedTableCellWidth(selectedTableCell.startRow, selectedTableCell.startColumn, width == null ? undefined : Number(width));
   };
   const updateFont = (updates: Partial<NonNullable<TableCell['font']>>) => {
     updateCell({ font: compactFont(font, updates) });
@@ -126,6 +130,16 @@ const TableCellProperties: React.FC<{ expressionExtensions?: ExpressionCatalogEx
                     style={{ width: 32 }}
                   />
                 </Space.Compact>
+              </Form.Item>
+              <Form.Item label={t('tableCell.columnWidth')}>
+                <InputNumber
+                  aria-label={t('tableCell.columnWidth')}
+                  value={cell?.width}
+                  min={0.1}
+                  step={0.5}
+                  style={{ width: '100%' }}
+                  onChange={updateCellWidth}
+                />
               </Form.Item>
               <Form.Item label={t('tableCell.rowSpan')}>
                 <InputNumber

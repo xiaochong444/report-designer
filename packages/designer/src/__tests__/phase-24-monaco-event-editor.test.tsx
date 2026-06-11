@@ -46,6 +46,7 @@ const monaco = {
       },
       javascriptDefaults: {
         setCompilerOptions: vi.fn(),
+        setDiagnosticsOptions: vi.fn(),
         addExtraLib: vi.fn((_content: string, _filePath?: string) => createDisposable()),
       },
     },
@@ -87,7 +88,11 @@ const dataContext = {
 };
 
 function toggleTreeNode(title: string) {
-  const node = screen.getByText(title).closest('.ant-tree-treenode');
+  const browser = document.querySelector('.rd-event-editor-browser');
+  const node = screen
+    .getAllByText(title)
+    .map(element => element.closest('.ant-tree-treenode'))
+    .find(element => element?.closest('.rd-event-editor-browser') === browser && !element.closest('[aria-hidden="true"]'));
   const switcher = node?.querySelector<HTMLElement>('.ant-tree-switcher');
   if (!switcher) {
     throw new Error(`Missing tree switcher for ${title}`);
@@ -113,6 +118,14 @@ describe('phase 24 monaco event editor helpers', () => {
     expect(extraLib).toContain('declare const ctx: ComponentGetValueEventContext');
     expect(extraLib).toContain('interface ComponentGetValueEventContext');
     expect(extraLib.match(/declare const ctx:/g)).toHaveLength(1);
+  });
+
+  it('documents table row height for scripts that read template table rows', () => {
+    const extraLib = buildEventEditorExtraLib('report', 'beforeData');
+
+    expect(extraLib).toContain('interface TableRow');
+    expect(extraLib).toContain('height?: number;');
+    expect(extraLib).toContain('rows?: TableRow[];');
   });
 
   it('adds typed event data declarations to the selected event ctx extra lib', () => {
@@ -167,6 +180,27 @@ describe('phase 24 monaco event editor helpers', () => {
       kind: monaco.CompletionItemKind.Function,
       insertTextRules: monaco.CompletionItemInsertTextRule.InsertAsSnippet,
     });
+  });
+
+  it('flattens a single root data source for dictionary completions', () => {
+    const items = buildEventScriptCompletions(
+      {
+        dictionaryItems: [{
+          key: 'root',
+          title: 'root',
+          children: [
+            { key: 'root.sizeGroups', title: 'sizeGroups' },
+            { key: 'root.items.amount', title: 'items.amount' },
+          ],
+        }],
+      },
+      monaco,
+    );
+
+    expect(items).toEqual([
+      expect.objectContaining({ label: 'sizeGroups', detail: 'sizeGroups', insertText: '{sizeGroups}' }),
+      expect.objectContaining({ label: 'items.amount', detail: 'items.amount', insertText: '{items.amount}' }),
+    ]);
   });
 
   it('adds row, data source, and parameter completions before dictionary fields', () => {
@@ -274,6 +308,19 @@ describe('phase 24 monaco event editor helpers', () => {
     expect(result.warnings).toEqual(['Line 5: Unused value']);
   });
 
+  it('filters implicit any diagnostics from event scripts', () => {
+    const result = splitDiagnostics([
+      { severity: 4, startLineNumber: 31, message: "Parameter 'seed' implicitly has an 'any' type, but a better type may be inferred from usage." },
+      { severity: 4, startLineNumber: 32, message: "Variable 'value' implicitly has type 'any' in some locations where its type cannot be determined." },
+      { severity: 4, startLineNumber: 40, message: 'Unused value' },
+    ]);
+
+    expect(result).toEqual({
+      blocking: [],
+      warnings: ['Line 40: Unused value'],
+    });
+  });
+
   it('renders the event script editor loading text and forwards script changes', () => {
     const onChange = vi.fn();
 
@@ -368,7 +415,13 @@ describe('phase 24 monaco event editor helpers', () => {
       allowNonTsExtensions: true,
       checkJs: true,
       noEmit: true,
+      noImplicitAny: false,
+      noImplicitThis: false,
+      strict: false,
       target: monaco.languages.typescript.ScriptTarget.ES2020,
+    });
+    expect(monaco.languages.typescript.javascriptDefaults.setDiagnosticsOptions).toHaveBeenCalledWith({
+      noSuggestionDiagnostics: true,
     });
 
     (props?.onMount as (_editor: unknown, monacoInstance: typeof monaco) => void)({}, monaco);
@@ -666,6 +719,41 @@ describe('phase 24 monaco event editor helpers', () => {
     });
   });
 
+  it('lets users expand the event editor dialog to a fullscreen editing layout', () => {
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{}}
+          onCancel={() => undefined}
+          onSave={() => undefined}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    expect(monacoEditorMock.lastProps?.height).toBe('100%');
+
+    fireEvent.click(screen.getByTestId('event-editor-fullscreen-toggle'));
+
+    expect(screen.getByLabelText('Exit fullscreen')).toBeInTheDocument();
+    expect(monacoEditorMock.lastProps?.height).toBe('100%');
+    const modal = screen.getByLabelText('Exit fullscreen').closest('.ant-modal') as HTMLElement | null;
+    const modalWrap = screen.getByLabelText('Exit fullscreen').closest('.rd-event-editor-modal-fullscreen') as HTMLElement | null;
+    expect(modal).toHaveStyle({
+      top: '0px',
+      height: '100vh',
+      paddingBottom: '0px',
+    });
+    expect(modalWrap).toHaveStyle({ zIndex: '9999' });
+    expect(modalWrap).toBeTruthy();
+    expect(screen.getByLabelText('Enabled')).toBeInTheDocument();
+    expect(screen.getByLabelText('Enabled')).toHaveStyle({ alignSelf: 'flex-start' });
+    expect(screen.getByText('Validation passed')).toBeInTheDocument();
+    const title = screen.getByLabelText('Exit fullscreen').parentElement;
+    expect(title).toHaveStyle({ paddingRight: '40px' });
+  });
+
   it('renders Chinese dialog helper groups and examples', () => {
     render(
       <DesignerI18nProvider locale="zh-CN">
@@ -685,7 +773,7 @@ describe('phase 24 monaco event editor helpers', () => {
     expect(screen.getByText('设置事件值')).toBeInTheDocument();
   });
 
-  it('keeps side tree groups collapsed by default and lets users expand them', () => {
+  it('keeps side tree groups collapsed by default and reveals nested fields through search', () => {
     render(
       <DesignerI18nProvider locale="en-US">
         <EventEditorDialog
@@ -703,7 +791,69 @@ describe('phase 24 monaco event editor helpers', () => {
     expect(screen.queryByText('Orders.Amount')).not.toBeInTheDocument();
 
     toggleTreeNode('Fields');
-    expect(screen.getByText('Orders.Amount')).toBeInTheDocument();
+    expect(screen.getByText('Orders')).toBeInTheDocument();
+    expect(screen.queryByText('Amount')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'Amount' } });
+    expect(screen.getByText('Amount')).toBeInTheDocument();
+  });
+
+  it('renders a single root data source as a nested event field tree', async () => {
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{}}
+          dictionaryItems={[{
+            key: 'root',
+            title: 'root',
+            children: [
+              { key: 'root.sizeGroups', title: 'sizeGroups' },
+              { key: 'root.items.amount', title: 'items.amount' },
+            ],
+          }]}
+          onCancel={() => undefined}
+          onSave={() => undefined}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    toggleTreeNode('Fields');
+
+    expect(screen.queryByText('root')).not.toBeInTheDocument();
+    expect(screen.getByText('sizeGroups')).toBeInTheDocument();
+    expect(screen.getByText('items')).toBeInTheDocument();
+    expect(screen.queryByText('items.amount')).not.toBeInTheDocument();
+    expect(screen.queryByText('amount')).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'amount' } });
+    expect(screen.getByText('amount')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('amount'));
+    expect(screen.getByLabelText('Script')).toHaveValue('{items.amount}');
+  });
+
+  it('uses expression editor sized and styled panels for the event editor dialog', () => {
+    render(
+      <DesignerI18nProvider locale="en-US">
+        <EventEditorDialog
+          open
+          targetType="component"
+          events={{}}
+          dictionaryItems={[{ key: 'Orders.Amount', title: 'Orders.Amount' }]}
+          onCancel={() => undefined}
+          onSave={() => undefined}
+        />
+      </DesignerI18nProvider>,
+    );
+
+    const modal = screen.getByRole('dialog').closest('.ant-modal') as HTMLElement | null;
+    expect(modal).toHaveStyle({ width: '1040px' });
+    expect(screen.getByLabelText('Script').closest('.rd-event-editor-main')).toBeInTheDocument();
+    const treeSearch = screen.getByPlaceholderText('Search');
+    expect(treeSearch.closest('.rd-event-editor-browser')).toBeInTheDocument();
+    expect(treeSearch.closest('.rd-event-editor-browser')?.querySelector('.rd-event-editor-browser-tree')).toBeInTheDocument();
   });
 
   it('filters side tree helpers, fields, and components from the search box', () => {
@@ -722,7 +872,7 @@ describe('phase 24 monaco event editor helpers', () => {
     );
 
     fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'Amount' } });
-    expect(screen.getByText('Orders.Amount')).toBeInTheDocument();
+    expect(screen.getByText('Amount')).toBeInTheDocument();
     expect(screen.queryByText('TotalLabel')).not.toBeInTheDocument();
     expect(screen.queryByText(/ctx\.hide/)).not.toBeInTheDocument();
 
@@ -802,7 +952,7 @@ describe('phase 24 monaco event editor helpers', () => {
     });
   });
 
-  it('inserts namespaced field keys as fields instead of helper snippets', () => {
+  it('inserts namespaced field keys as fields instead of helper snippets', async () => {
     render(
       <DesignerI18nProvider locale="en-US">
         <EventEditorDialog
@@ -816,7 +966,7 @@ describe('phase 24 monaco event editor helpers', () => {
       </DesignerI18nProvider>,
     );
 
-    toggleTreeNode('Fields');
+    fireEvent.change(screen.getByPlaceholderText('Search'), { target: { value: 'Conflicting field' } });
     fireEvent.click(screen.getByText('Conflicting field'));
 
     expect(screen.getByLabelText('Script')).toHaveValue('{helper:ctx.hide}');
