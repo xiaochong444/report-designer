@@ -26,7 +26,7 @@ function loadText() {
     canShrink: false,
   } as ReportComponent;
   const template = createDefaultTemplate('Phase 9 Designer');
-  template.dataSources = [{ id: 'employees', name: 'employees', type: 'json', schema: [{ name: 'Salary', type: 'number' }] }];
+  template.dataSources = [{ id: 'root', name: 'root', type: 'json', schema: [{ name: 'employees.Salary', type: 'number' }] }];
   template.styles = [{
     id: 'total-style',
     name: 'Total',
@@ -136,12 +136,12 @@ describe('Phase 9 text binding and style UI', () => {
   it('keeps default style formatting locked when dropping fields into a styled text template', async () => {
     const template = createDefaultTemplate('Phase 9 Field Drop');
     template.dataSources = [{
-      id: 'employees',
-      name: 'employees',
+      id: 'root',
+      name: 'root',
       type: 'json',
       schema: [
-        { name: 'Salary', type: 'number' },
-        { name: 'HireDate', type: 'date' },
+        { name: 'employees.Salary', type: 'number' },
+        { name: 'employees.HireDate', type: 'date' },
       ],
     }];
     template.styles = [{
@@ -168,7 +168,7 @@ describe('Phase 9 text binding and style UI', () => {
 
     const dropTarget = screen.getByText('将常用报表组件拖入选中的带区。').parentElement as HTMLElement;
     const makeTransfer = (fieldName: string, fieldType: string) => ({
-      getData: (key: string) => key === 'fieldBinding' ? JSON.stringify({ dataSourceId: 'employees', fieldName, fieldType }) : '',
+      getData: (key: string) => key === 'fieldBinding' ? JSON.stringify({ dataSourceId: 'root', fieldName: `employees.${fieldName}`, fieldType }) : '',
       effectAllowed: 'copy',
       dropEffect: 'copy',
       setData: () => {},

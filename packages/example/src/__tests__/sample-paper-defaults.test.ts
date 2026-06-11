@@ -93,8 +93,8 @@ describe('example sample paper defaults', () => {
 
     expect(sample?.label).toBe('Table Detail');
     expect(sample?.data.orders[0].items).toHaveLength(2);
-    expect(sample?.template.dataSources.map(source => source.id)).toEqual(expect.arrayContaining(['orderLines']));
     expect(sample?.template.pages[0].bands.find(band => band.id === 'table-detail-data')?.dataBand?.dataSourceId).toBe('orderLines');
+    expect(sample?.template.dataSources).toEqual([]);
     expect(detailTable).toMatchObject({
       type: 'table',
     });
@@ -130,6 +130,7 @@ describe('example sample paper defaults', () => {
     const data = sample?.data as { orgUnits?: Array<{ children?: unknown[] }> };
 
     expect(sample?.label).toBe('Hierarchical Organization');
+    expect(sample?.template.dataSources).toEqual([]);
     expect(bands.find(band => band.id === 'ho-data')?.type).toBe('hierarchicalData');
     expect(bands.find(band => band.id === 'ho-data')?.dataBand?.dataSourceId).toBe('orgUnits');
     expect(bands.find(band => band.id === 'ho-data')?.dataBand?.hierarchical).toEqual({ childrenField: 'children', indentChars: 3 });
@@ -149,6 +150,7 @@ describe('example sample paper defaults', () => {
     const dataBand = sample?.template.pages[0].bands.find(band => band.id === 'ppl-data');
 
     expect(sample?.label).toBe('Product Price Labels');
+    expect(sample?.template.dataSources).toEqual([]);
     expect(dataBand?.type).toBe('data');
     expect(dataBand?.dataBand?.dataSourceId).toBe('productLabels');
     expect(dataBand?.dataBand?.columns).toEqual({ count: 3, gap: 5, direction: 'acrossThenDown' });
@@ -223,6 +225,15 @@ describe('example sample paper defaults', () => {
       totalAmount,
     ]));
     expect(content.some(value => String(value).endsWith('元整'))).toBe(true);
+  });
+
+  it('uses a single JSON input model for bundled sample templates', () => {
+    const forbiddenSourceIds = new Set(['orders.items', 'orderLines', 'orgUnits', 'productLabels']);
+
+    for (const sample of sampleReports) {
+      const dataSourceIds = sample.template.dataSources.map(source => source.id);
+      expect(dataSourceIds.filter(id => forbiddenSourceIds.has(id))).toEqual([]);
+    }
   });
 
   it('bundles a chart sample with common chart types bound to JSON data', () => {

@@ -109,17 +109,3 @@ export const chartsTemplate = template('charts', 'Charts', [
     text('charts-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
   ]),
 ]);
-
-chartsTemplate.dataSources.push({
-  id: 'chartSales',
-  name: 'chartSales',
-  type: 'json',
-  path: 'chartSales',
-  fields: [
-    { id: 'chartSales.month', name: 'month', path: 'chartSales.month', type: 'string', nullable: false },
-    { id: 'chartSales.customer', name: 'customer', path: 'chartSales.customer', type: 'string', nullable: false },
-    { id: 'chartSales.channel', name: 'channel', path: 'chartSales.channel', type: 'string', nullable: false },
-    { id: 'chartSales.amount', name: 'amount', path: 'chartSales.amount', type: 'number', nullable: false },
-    { id: 'chartSales.qty', name: 'qty', path: 'chartSales.qty', type: 'number', nullable: false },
-  ],
-});

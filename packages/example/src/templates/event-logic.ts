@@ -70,15 +70,7 @@ export const eventLogicTemplate: ReportTemplate = {
   events: {
     beforePreview: { enabled: true, script: 'ctx.log.info("Preview event sample");' },
   },
-  dataSources: [
-    { id: 'eventOrders', name: 'eventOrders', type: 'json', fields: [
-      { id: 'eventOrders.Customer', name: 'Customer', path: 'eventOrders.Customer', type: 'string', nullable: false },
-      { id: 'eventOrders.Amount', name: 'Amount', path: 'eventOrders.Amount', type: 'number', nullable: false },
-      { id: 'eventOrders.AlternateAmount', name: 'AlternateAmount', path: 'eventOrders.AlternateAmount', type: 'number', nullable: false },
-      { id: 'eventOrders.Description', name: 'Description', path: 'eventOrders.Description', type: 'string', nullable: true },
-      { id: 'eventOrders.IsVip', name: 'IsVip', path: 'eventOrders.IsVip', type: 'boolean', nullable: false },
-    ] },
-  ],
+  dataSources: [],
   parameters: [
     { id: 'amountField', name: 'amountField', type: 'string', defaultValue: 'Amount' },
   ],

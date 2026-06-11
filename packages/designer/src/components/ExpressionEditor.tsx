@@ -169,18 +169,11 @@ export const ExpressionEditor: React.FC<{
 
   const dataSourceNodes = useMemo<TreeNodeMeta[]>(
     () => {
-      const rootSource = template.dataSources.find(dataSource => dataSource.id === 'root');
+      const rootSource = template.dataSources.find(dataSource => dataSource.id === 'root') ?? template.dataSources[0];
       const rootFieldNodes = rootSource
         ? buildExpressionFieldNodes(rootSource.id, buildFieldPathTree(rootSource))
         : [];
-      const sourceNodes = template.dataSources
-        .filter(dataSource => dataSource.id !== 'root')
-        .map((dataSource) =>
-          makeTreeNode(`ds.${dataSource.id}`, dataSource.name, 'folder', {
-          searchText: `${dataSource.name} ${dataSource.id}`.toLowerCase(),
-          children: buildExpressionFieldNodes(dataSource.id, buildFieldPathTree(dataSource)),
-        }));
-      return [...rootFieldNodes, ...sourceNodes];
+      return rootFieldNodes;
     },
     [template.dataSources],
   );

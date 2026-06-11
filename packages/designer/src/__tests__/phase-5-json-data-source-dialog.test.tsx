@@ -13,7 +13,7 @@ describe('Phase 5 JSON data source dialog', () => {
     useDesignerStore.getState().loadTemplate(createDefaultTemplate('Dialog Test'));
   });
 
-  it('previews pasted JSON and adds inferred JSON data sources', () => {
+  it('previews pasted JSON and adds a single inferred JSON root source', () => {
     render(
       <DesignerI18nProvider locale="en-US">
         <JsonDataSourceDialog open onClose={() => {}} />
@@ -24,15 +24,19 @@ describe('Phase 5 JSON data source dialog', () => {
       target: { value: '{ "employees": [{ "name": "Alice", "department": "Engineering", "salary": 100 }] }' },
     });
 
-    expect(screen.getByText('employees')).toBeInTheDocument();
+    expect(screen.getByText('root')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Add data sources' }));
 
     const template = useDesignerStore.getState().template;
-    expect(template.dataSources[0]).toMatchObject({ id: 'employees', type: 'json' });
-    expect((template.dataSources[0].schema ?? []).map((field) => field.name)).toEqual(['name', 'department', 'salary']);
+    expect(template.dataSources.map(source => source.id)).toEqual(['root']);
+    expect((template.dataSources[0].schema ?? []).map((field) => field.name)).toEqual([
+      'employees.name',
+      'employees.department',
+      'employees.salary',
+    ]);
   });
 
-  it('preserves nested array parent metadata for table detail binding', () => {
+  it('keeps nested arrays as root field paths instead of child data sources', () => {
     render(
       <DesignerI18nProvider locale="en-US">
         <JsonDataSourceDialog open onClose={() => {}} />
@@ -46,12 +50,12 @@ describe('Phase 5 JSON data source dialog', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Add data sources' }));
 
     const template = useDesignerStore.getState().template;
-    expect(template.dataSources.find(source => source.id === 'orders.items')).toMatchObject({
-      id: 'orders.items',
-      parentSourceId: 'orders',
-      parentPath: 'orders.items',
-      path: 'orders.items',
-    });
+    expect(template.dataSources.map(source => source.id)).toEqual(['root']);
+    expect((template.dataSources[0].schema ?? []).map((field) => field.name)).toEqual(expect.arrayContaining([
+      'orders.orderNo',
+      'orders.items.name',
+      'orders.items.qty',
+    ]));
   });
 
   it('localizes visible JSON data source dialog copy to Chinese', () => {

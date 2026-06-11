@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { expandJsonDataBySources, inferJsonDictionary, renderReport } from '../src';
+import { expandJsonDataBySources, inferJsonDictionary, mergeInferredDataSources, renderReport } from '../src';
 import { band, makeTemplate } from './phase-2-helpers';
 
 const textBase = {
@@ -12,7 +12,7 @@ const textBase = {
 };
 
 describe('phase 46 automatic data sources', () => {
-  it('infers master and detail data sources for a single JSON object', () => {
+  it('infers one JSON root source while preserving nested array fields', () => {
     const data = {
       orderNo: 'SO-202606-001',
       customer: { name: '华东客户' },
@@ -22,12 +22,9 @@ describe('phase 46 automatic data sources', () => {
     const dataSources = inferJsonDictionary(data).dataSources;
     const expanded = expandJsonDataBySources(data, dataSources);
 
-    expect(dataSources.map(source => source.id)).toEqual(['root', 'items']);
-    expect(dataSources.find(source => source.id === 'root')?.fields?.map(field => field.name)).toEqual(
-      expect.arrayContaining(['orderNo', 'customer.name']),
-    );
-    expect(dataSources.find(source => source.id === 'items')?.fields?.map(field => field.name)).toEqual(
-      expect.arrayContaining(['product.name', 'salesAmount']),
+    expect(dataSources.map(source => source.id)).toEqual(['root']);
+    expect(dataSources[0]?.fields?.map(field => field.name)).toEqual(
+      expect.arrayContaining(['orderNo', 'customer.name', 'items.product.name', 'items.salesAmount']),
     );
     expect(expanded.root[0]).toMatchObject({
       orderNo: 'SO-202606-001',
@@ -37,6 +34,53 @@ describe('phase 46 automatic data sources', () => {
       'product.name': '云服务年包',
       salesAmount: 1000,
     });
+  });
+
+  it('wraps a top-level JSON array into an items property', () => {
+    const data = [
+      { product: { name: '云服务年包' }, salesAmount: 1000 },
+      { product: { name: '实施服务' }, salesAmount: 500 },
+    ];
+
+    const dataSources = inferJsonDictionary(data).dataSources;
+    const expanded = expandJsonDataBySources(data as any, dataSources);
+
+    expect(dataSources.map(source => source.id)).toEqual(['root']);
+    expect(dataSources[0]?.fields?.map(field => field.name)).toEqual(
+      expect.arrayContaining(['items.product.name', 'items.salesAmount']),
+    );
+    expect(expanded.root[0].items).toHaveLength(2);
+    expect(expanded.items.map(row => row['product.name'])).toEqual(['云服务年包', '实施服务']);
+  });
+
+  it('collapses legacy template data sources into one root source', () => {
+    const template = makeTemplate([]);
+    template.dataSources = [
+      {
+        id: 'orders',
+        name: 'orders',
+        type: 'json',
+        fields: [{ name: 'orderNo', type: 'string' }],
+      },
+      {
+        id: 'orders.items',
+        name: 'items',
+        type: 'json',
+        path: 'orders.items',
+        parentSourceId: 'orders',
+        fields: [{ name: 'product.name', type: 'string' }],
+      },
+    ];
+
+    const merged = mergeInferredDataSources(template, {
+      orders: [{ orderNo: 'SO-1', items: [{ product: { name: '云服务年包' } }] }],
+    });
+
+    expect(merged.dataSources.map(source => source.id)).toEqual(['root']);
+    expect(merged.dataSources[0].fields?.map(field => field.name)).toEqual(expect.arrayContaining([
+      'orders.orderNo',
+      'orders.items.product.name',
+    ]));
   });
 
   it('infers JSON data sources and resolves current-row field expressions', () => {

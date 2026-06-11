@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { Alert, Button, Input, Modal, Space, Table, Typography } from 'antd';
 import type { DataField, DataSource } from '@report-designer/core';
-import { inferJsonDictionary } from '@report-designer/core';
+import { expandJsonDataBySources, inferJsonDictionary } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
 import { useDesignerI18n } from '../../i18n';
 
@@ -38,8 +38,6 @@ export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open
         name: source.name,
         type: 'json',
         path: source.path,
-        parentSourceId: source.parentSourceId,
-        parentPath: source.parentPath,
         fields: fields.map<DataField>(field => ({
           name: field.name,
           type: field.type === 'null' ? 'string' : field.type,
@@ -50,16 +48,15 @@ export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open
           type: field.type === 'null' ? 'string' : field.type,
           label: field.name,
         })),
-        data: getRowsByPath(parsed, source.path ?? source.id),
       };
     });
 
     updateTemplate(template => ({
       ...template,
-      dataSources: mergeDataSources(template.dataSources, nextSources),
+      dataSources: nextSources,
     }));
 
-    setDataSources(Object.fromEntries(nextSources.map(source => [source.id, source.data ?? []])));
+    setDataSources(expandJsonDataBySources(parsed, nextSources));
     onClose();
   };
 
@@ -106,22 +103,3 @@ export const JsonDataSourceDialog: React.FC<JsonDataSourceDialogProps> = ({ open
     </Modal>
   );
 };
-
-function mergeDataSources(current: DataSource[], next: DataSource[]): DataSource[] {
-  const incoming = new Map(next.map(source => [source.id, source]));
-  return [...current.filter(source => !incoming.has(source.id)), ...next];
-}
-
-function getRowsByPath(data: Record<string, unknown>, path: string): Record<string, any>[] {
-  const value = path.split('.').reduce<unknown>((cursor, segment) => {
-    if (Array.isArray(cursor)) {
-      return cursor.flatMap(row => row?.[segment] ?? []);
-    }
-    if (cursor && typeof cursor === 'object') {
-      return (cursor as Record<string, unknown>)[segment];
-    }
-    return undefined;
-  }, data);
-
-  return Array.isArray(value) ? value.filter(row => row && typeof row === 'object') as Record<string, any>[] : [];
-}

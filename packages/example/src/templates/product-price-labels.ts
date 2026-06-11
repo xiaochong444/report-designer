@@ -1,19 +1,4 @@
-import type { DataSource } from '@report-designer/core';
 import { band, commonTextStyleIds, template, text } from './common';
-
-const productLabelsSource: DataSource = {
-  id: 'productLabels',
-  name: 'productLabels',
-  type: 'json',
-  path: 'productLabels',
-  fields: [
-    { id: 'productLabels.sku', name: 'sku', path: 'productLabels.sku', type: 'string', nullable: false },
-    { id: 'productLabels.name', name: 'name', path: 'productLabels.name', type: 'string', nullable: false },
-    { id: 'productLabels.category', name: 'category', path: 'productLabels.category', type: 'string', nullable: false },
-    { id: 'productLabels.price', name: 'price', path: 'productLabels.price', type: 'number', nullable: false },
-    { id: 'productLabels.unit', name: 'unit', path: 'productLabels.unit', type: 'string', nullable: false },
-  ],
-};
 
 export const productPriceLabelsData = {
   productLabels: [
@@ -32,7 +17,7 @@ export const productPriceLabelsData = {
   ],
 };
 
-const baseProductPriceLabelsTemplate = template('product-price-labels', 'Product Price Labels', [
+export const productPriceLabelsTemplate = template('product-price-labels', 'Product Price Labels', [
   band('ppl-title', 'reportTitle', 12, [
     text('ppl-title-text', 'Product Price Labels', 0, 1, 170, 8, { style: commonTextStyleIds.title }),
   ]),
@@ -62,8 +47,3 @@ const baseProductPriceLabelsTemplate = template('product-price-labels', 'Product
     text('ppl-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
   ]),
 ]);
-
-export const productPriceLabelsTemplate = {
-  ...baseProductPriceLabelsTemplate,
-  dataSources: [...baseProductPriceLabelsTemplate.dataSources, productLabelsSource],
-};

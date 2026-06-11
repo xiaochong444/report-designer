@@ -49,15 +49,15 @@ function makeDictionaryTemplate(): ReportTemplate {
   const template = createDefaultTemplate('Dictionary Demo');
   template.dataSources = [
     {
-      id: 'Products',
-      name: 'Products',
+      id: 'root',
+      name: 'root',
       type: 'json',
       schema: [
-        { name: 'ProductID', type: 'number' },
-        { name: 'ProductName', type: 'string' },
-        { name: 'UnitPrice', type: 'number' },
-        { name: 'CreatedAt', type: 'date' },
-        { name: 'Discontinued', type: 'boolean' },
+        { name: 'Products.ProductID', type: 'number' },
+        { name: 'Products.ProductName', type: 'string' },
+        { name: 'Products.UnitPrice', type: 'number' },
+        { name: 'Products.CreatedAt', type: 'date' },
+        { name: 'Products.Discontinued', type: 'boolean' },
       ],
     },
   ];

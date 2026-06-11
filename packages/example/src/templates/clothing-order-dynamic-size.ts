@@ -55,8 +55,8 @@ export const clothingOrderDynamicSizeData = {
       {
         name: '裤长',
         sizes: [
-          { field: 'S1', name: '80' },
-          { field: 'S2', name: '90' },
+          { field: 'S5', name: '80' },
+          { field: 'S6', name: '90' },
         ],
       },
     ],
@@ -70,6 +70,8 @@ export const clothingOrderDynamicSizeData = {
         S2: 18,
         S3: 15,
         S4: 10,
+        S5: 9,
+        S6: 7,
         totalQty: 55,
         unitPrice: 19.9,
         amount: 1095,
@@ -83,6 +85,8 @@ export const clothingOrderDynamicSizeData = {
         S2: 16,
         S3: 14,
         S4: 6,
+        S5: 5,
+        S6: 4,
         totalQty: 44,
         unitPrice: 18,
         amount: 792,
@@ -103,7 +107,9 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
   const placeholder = headerTable.findCellText("S1") ?? detailTable.findCellText("{S1}");
   const sizeColumn = placeholder?.column ?? 4;
   const groupCount = Math.max(1, sizeGroups.length);
-  const sizeCount = Math.max(1, ...sizeGroups.map(group => Array.isArray(group.sizes) ? group.sizes.length : 0));
+  const groupedSizes = sizeGroups.map(group => Array.isArray(group.sizes) ? group.sizes : []);
+  const allSizes = groupedSizes.flat();
+  const sizeCount = Math.max(1, allSizes.length);
   const rowHeight = 7;
   const fixedBefore = [
     { text: "款号", width: 20 },
@@ -140,7 +146,11 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
   });
 
   headerTable.component.rows = Array.from({ length: groupCount }, (_unused, row) => {
-    const sizes = Array.isArray(sizeGroups[row]?.sizes) ? sizeGroups[row].sizes : [];
+    let groupStart = 0;
+    for (let index = 0; index < row; index += 1) {
+      groupStart += groupedSizes[index]?.length ?? 0;
+    }
+    const sizes = groupedSizes[row] ?? [];
     const cells = [];
 
     fixedBefore.forEach((column, index) => {
@@ -155,7 +165,9 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
     });
 
     for (let offset = 0; offset < sizeCount; offset += 1) {
-      const name = sizes[offset]?.name ?? "";
+      const name = offset >= groupStart && offset < groupStart + sizes.length
+        ? sizes[offset - groupStart]?.name ?? ""
+        : "";
       cells.push(copyCell(
         headerSeedCells[sizeColumn],
         "dynamic_size_header_cell_" + (row + 1) + "_" + (cells.length + 1),
@@ -194,7 +206,7 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
   ));
 
   for (let offset = 0; offset < sizeCount; offset += 1) {
-    const field = sizeGroups[0]?.sizes?.[offset]?.field ?? "S" + (offset + 1);
+    const field = allSizes[offset]?.field ?? "S" + (offset + 1);
     detailCells.push(copyCell(
       detailSeedCells[sizeColumn],
       "dynamic_size_detail_cell_" + (detailCells.length + 1),
@@ -341,50 +353,5 @@ export const clothingOrderDynamicSizeTemplate = {
       script: beforeDataScript,
     },
   },
-  dataSources: [
-    {
-      id: 'clothingOrder',
-      name: 'clothingOrder',
-      type: 'json' as const,
-      path: 'clothingOrder',
-      fields: [
-        { id: 'clothingOrder.orderNo', name: 'orderNo', path: 'clothingOrder.orderNo', type: 'string' as const, nullable: false },
-        { id: 'clothingOrder.customer', name: 'customer', path: 'clothingOrder.customer', type: 'string' as const, nullable: false },
-        { id: 'clothingOrder.season', name: 'season', path: 'clothingOrder.season', type: 'string' as const, nullable: false },
-        { id: 'clothingOrder.sizeGroups', name: 'sizeGroups', path: 'clothingOrder.sizeGroups', type: 'string' as const, nullable: false },
-      ],
-    },
-    {
-      id: 'clothingOrder.items',
-      name: 'items',
-      type: 'json' as const,
-      path: 'clothingOrder.items',
-      parentSourceId: 'clothingOrder',
-      parentPath: 'clothingOrder.items',
-      fields: [
-        { id: 'clothingOrder.items.styleNo', name: 'styleNo', path: 'clothingOrder.items.styleNo', type: 'string' as const, nullable: false },
-        { id: 'clothingOrder.items.productName', name: 'productName', path: 'clothingOrder.items.productName', type: 'string' as const, nullable: false },
-        { id: 'clothingOrder.items.tagPrice', name: 'tagPrice', path: 'clothingOrder.items.tagPrice', type: 'number' as const, nullable: false },
-        { id: 'clothingOrder.items.color', name: 'color', path: 'clothingOrder.items.color', type: 'string' as const, nullable: false },
-        { id: 'clothingOrder.items.S1', name: 'S1', path: 'clothingOrder.items.S1', type: 'number' as const, nullable: false },
-        { id: 'clothingOrder.items.S2', name: 'S2', path: 'clothingOrder.items.S2', type: 'number' as const, nullable: false },
-        { id: 'clothingOrder.items.S3', name: 'S3', path: 'clothingOrder.items.S3', type: 'number' as const, nullable: false },
-        { id: 'clothingOrder.items.S4', name: 'S4', path: 'clothingOrder.items.S4', type: 'number' as const, nullable: false },
-        { id: 'clothingOrder.items.totalQty', name: 'totalQty', path: 'clothingOrder.items.totalQty', type: 'number' as const, nullable: false },
-        { id: 'clothingOrder.items.unitPrice', name: 'unitPrice', path: 'clothingOrder.items.unitPrice', type: 'number' as const, nullable: false },
-        { id: 'clothingOrder.items.amount', name: 'amount', path: 'clothingOrder.items.amount', type: 'number' as const, nullable: false },
-      ],
-    },
-    {
-      id: 'clothingOrder.sizeGroups',
-      name: 'sizeGroups',
-      type: 'json' as const,
-      path: 'clothingOrder.sizeGroups',
-      parentSourceId: 'clothingOrder',
-      parentPath: 'clothingOrder.sizeGroups',
-      fields: [
-        { id: 'clothingOrder.sizeGroups.name', name: 'name', path: 'clothingOrder.sizeGroups.name', type: 'string' as const, nullable: false },
-      ],
-    },
-  ],
+  dataSources: [],
 };

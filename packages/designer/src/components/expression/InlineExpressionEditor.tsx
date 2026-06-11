@@ -2,7 +2,7 @@ import React, { useMemo } from 'react';
 import { Button, Input, Space, Tag, Typography } from 'antd';
 import type { DataSource } from '@report-designer/core';
 import { useDesignerI18n } from '../../i18n';
-import { formatDataFieldExpression } from '../../data-source-fields';
+import { formatDataFieldExpression, formatDataFieldLabel } from '../../data-source-fields';
 
 interface InlineExpressionEditorProps {
   value: string;
@@ -30,7 +30,7 @@ export const InlineExpressionEditor: React.FC<InlineExpressionEditorProps> = ({ 
       <Space wrap>
         {dataSources.flatMap(source => (source.schema ?? source.fields ?? []).map(field => (
           <Button key={`${source.id}.${field.name}`} size="small" onClick={() => append(fieldExpression(source, field.name))}>
-            {source.id}.{field.name}
+            {formatDataFieldLabel(source.id, field.name)}
           </Button>
         )))}
       </Space>

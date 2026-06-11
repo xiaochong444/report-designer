@@ -96,13 +96,21 @@ describe('phase 45 clothing order dynamic size example', () => {
     expect(script).toContain('ctx.table?.("OrderSizeDetailTable")');
   });
 
-  it('bundles sizeGroups metadata and S1 quantity data', () => {
+  it('bundles unique sizeGroups metadata and S1 quantity data', () => {
     expect(clothingOrderDynamicSizeData.clothingOrder.sizeGroups[0]?.sizes[0]).toMatchObject({
       field: 'S1',
       name: 'S',
     });
+    expect(clothingOrderDynamicSizeData.clothingOrder.sizeGroups[1]?.sizes).toEqual([
+      { field: 'S5', name: '80' },
+      { field: 'S6', name: '90' },
+    ]);
     expect(clothingOrderDynamicSizeData.clothingOrder.items[0]).toHaveProperty('S1');
-    expect(JSON.stringify(clothingOrderDynamicSizeTemplate.dataSources)).toContain('sizeGroups');
+    const sizeFields = clothingOrderDynamicSizeData.clothingOrder.sizeGroups.flatMap(group =>
+      group.sizes.map(size => size.field),
+    );
+    expect(new Set(sizeFields).size).toBe(sizeFields.length);
+    expect(clothingOrderDynamicSizeTemplate.dataSources).toEqual([]);
   });
 
   it('registers the bundled sample report', () => {
@@ -132,7 +140,7 @@ describe('phase 45 clothing order dynamic size example', () => {
     const sizeGroups = clothingOrderDynamicSizeData.clothingOrder.sizeGroups;
     const fixedBeforeColumnCount = 4;
     const fixedAfterColumnCount = 3;
-    const sizeColumnCount = Math.max(...sizeGroups.map(group => group.sizes.length));
+    const sizeColumnCount = sizeGroups.reduce((sum, group) => sum + group.sizes.length, 0);
     const totalColumnCount = fixedBeforeColumnCount + sizeColumnCount + fixedAfterColumnCount;
 
     const eventReport = runBeforeDataTemplate();
@@ -145,6 +153,8 @@ describe('phase 45 clothing order dynamic size example', () => {
     expect(eventDetailTable.columnCount).toBe(totalColumnCount);
     expect(detailCells[fixedBeforeColumnCount]?.text).toBe('{S1}');
     expect(detailCells[fixedBeforeColumnCount + 1]?.text).toBe('{S2}');
+    expect(detailCells[fixedBeforeColumnCount + 4]?.text).toBe('{S5}');
+    expect(detailCells[fixedBeforeColumnCount + 5]?.text).toBe('{S6}');
 
     const document = renderReport(clothingOrderDynamicSizeTemplate, clothingOrderDynamicSizeData as any);
     const renderedHeaderTable = findRenderedTable(document, 'clothing-size-header-table');
@@ -184,5 +194,7 @@ describe('phase 45 clothing order dynamic size example', () => {
     expect(headerContents).toEqual(expect.arrayContaining(['80', '90']));
     expect(detailRow[fixedBeforeColumnCount]?.content).toBe(String(clothingOrderDynamicSizeData.clothingOrder.items[0].S1));
     expect(detailRow[fixedBeforeColumnCount + 1]?.content).toBe(String(clothingOrderDynamicSizeData.clothingOrder.items[0].S2));
+    expect(detailRow[fixedBeforeColumnCount + 4]?.content).toBe(String(clothingOrderDynamicSizeData.clothingOrder.items[0].S5));
+    expect(detailRow[fixedBeforeColumnCount + 5]?.content).toBe(String(clothingOrderDynamicSizeData.clothingOrder.items[0].S6));
   });
 });

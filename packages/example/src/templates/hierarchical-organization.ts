@@ -1,20 +1,4 @@
-import type { DataSource } from '@report-designer/core';
 import { band, commonTextStyleIds, template, text } from './common';
-
-const orgUnitsSource: DataSource = {
-  id: 'orgUnits',
-  name: 'orgUnits',
-  type: 'json',
-  path: 'orgUnits',
-  fields: [
-    { id: 'orgUnits.id', name: 'id', path: 'orgUnits.id', type: 'string', nullable: false },
-    { id: 'orgUnits.sortOrder', name: 'sortOrder', path: 'orgUnits.sortOrder', type: 'number', nullable: false },
-    { id: 'orgUnits.name', name: 'name', path: 'orgUnits.name', type: 'string', nullable: false },
-    { id: 'orgUnits.children', name: 'children', path: 'orgUnits.children', type: 'string', nullable: true },
-    { id: 'orgUnits.manager', name: 'manager', path: 'orgUnits.manager', type: 'string', nullable: false },
-    { id: 'orgUnits.headcount', name: 'headcount', path: 'orgUnits.headcount', type: 'number', nullable: false },
-  ],
-};
 
 export const hierarchicalOrgData = {
   orgUnits: [
@@ -53,7 +37,7 @@ export const hierarchicalOrgData = {
   ],
 };
 
-const baseHierarchicalOrgTemplate = template('hierarchical-organization', 'Hierarchical Organization', [
+export const hierarchicalOrgTemplate = template('hierarchical-organization', 'Hierarchical Organization', [
   band('ho-title', 'reportTitle', 12, [
     text('ho-title-text', 'Hierarchical Organization', 0, 1, 190, 8, { style: commonTextStyleIds.title }),
   ]),
@@ -85,8 +69,3 @@ const baseHierarchicalOrgTemplate = template('hierarchical-organization', 'Hiera
     text('ho-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
   ]),
 ]);
-
-export const hierarchicalOrgTemplate = {
-  ...baseHierarchicalOrgTemplate,
-  dataSources: [...baseHierarchicalOrgTemplate.dataSources, orgUnitsSource],
-};

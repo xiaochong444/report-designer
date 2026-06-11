@@ -22,7 +22,7 @@ vi.mock('@report-designer/viewer', () => ({
 }));
 
 describe('phase 46 automatic designer data sources', () => {
-  it('loads inferred JSON data sources from the data prop when the template does not define them', async () => {
+  it('loads one inferred JSON root source from the data prop when the template does not define them', async () => {
     const template = createDefaultTemplate('Auto Data Sources');
     template.dataSources = [];
 
@@ -41,12 +41,16 @@ describe('phase 46 automatic designer data sources', () => {
 
     await waitFor(() => {
       const sources = useDesignerStore.getState().template.dataSources;
-      expect(sources.map(source => source.id)).toEqual(expect.arrayContaining(['root', 'items']));
-      expect(sources.find(source => source.id === 'root')?.fields?.map(field => field.name)).toEqual(
-        expect.arrayContaining(['orderNo', 'customer.name', 'customer.phone']),
-      );
-      expect(sources.find(source => source.id === 'items')?.fields?.map(field => field.name)).toEqual(
-        expect.arrayContaining(['product.code', 'product.name', 'salesAmount']),
+      expect(sources.map(source => source.id)).toEqual(['root']);
+      expect(sources[0]?.fields?.map(field => field.name)).toEqual(
+        expect.arrayContaining([
+          'orderNo',
+          'customer.name',
+          'customer.phone',
+          'items.product.code',
+          'items.product.name',
+          'items.salesAmount',
+        ]),
       );
     });
   });
@@ -94,12 +98,12 @@ describe('phase 46 automatic designer data sources', () => {
   it('inserts fully qualified nested item fields from the expression editor tree', async () => {
     const template = createDefaultTemplate('Nested Expression Tree');
     template.dataSources = [{
-      id: 'items',
-      name: 'items',
+      id: 'root',
+      name: 'root',
       type: 'json',
       fields: [
-        { name: 'product.name', type: 'string' },
-        { name: 'qty', type: 'number' },
+        { name: 'items.product.name', type: 'string' },
+        { name: 'items.qty', type: 'number' },
       ],
     }] as any;
     useDesignerStore.getState().loadTemplate(template);

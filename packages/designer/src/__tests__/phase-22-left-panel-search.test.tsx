@@ -53,13 +53,13 @@ function textComponent(id: string, name: string): ReportComponent {
 function makeTemplate(): ReportTemplate {
   const template = createDefaultTemplate('Grouped Employees');
   template.dataSources = [{
-    id: 'employees',
-    name: 'Staff Records',
+    id: 'root',
+    name: 'root',
     type: 'json',
     schema: [
-      { name: 'name', type: 'string' },
-      { name: 'department', type: 'string' },
-      { name: 'salary', type: 'number', label: 'Annual Pay' },
+      { name: 'employees.name', type: 'string' },
+      { name: 'employees.department', type: 'string' },
+      { name: 'employees.salary', type: 'number', label: 'Annual Pay' },
     ],
   }];
   const dataBand = template.pages[0].bands.find(band => band.type === 'data')!;
@@ -117,9 +117,10 @@ describe('Phase 22 left panel search consistency', () => {
 
     fireEvent.click(screen.getByRole('tab', { name: /Dictionary/ }));
     const search = await screen.findByPlaceholderText('Search data sources and fields');
-    fireEvent.change(search, { target: { value: 'Staff Records' } });
+    fireEvent.change(search, { target: { value: 'employees' } });
 
-    expect(screen.getByText('Staff Records [employees]')).toBeInTheDocument();
+    expect(screen.getByText('employees')).toBeInTheDocument();
+    expect(screen.queryByText('Staff Records [employees]')).not.toBeInTheDocument();
     expect(screen.getByText('Annual Pay')).toBeInTheDocument();
 
     fireEvent.change(search, { target: { value: 'Annual Pay' } });
@@ -147,7 +148,7 @@ describe('Phase 22 left panel search consistency', () => {
     expect(within(dictionary).getByText('Annual Pay')).toBeInTheDocument();
   });
 
-  it('renders inferred object fields as nested dictionary folders without showing root as a data source', async () => {
+  it('renders inferred object fields as one nested JSON tree without showing nested arrays as data sources', async () => {
     const template = createDefaultTemplate('Nested Dictionary');
     template.dataSources = [
       {
@@ -157,16 +158,9 @@ describe('Phase 22 left panel search consistency', () => {
         fields: [
           { name: 'orderNo', type: 'string' },
           { name: 'customer.name', type: 'string' },
-        ],
-      },
-      {
-        id: 'items',
-        name: 'items',
-        type: 'json',
-        fields: [
-          { name: 'product.name', type: 'string' },
-          { name: 'product.code', type: 'string' },
-          { name: 'qty', type: 'number' },
+          { name: 'items.product.name', type: 'string' },
+          { name: 'items.product.code', type: 'string' },
+          { name: 'items.qty', type: 'number' },
         ],
       },
     ] as any;
@@ -180,7 +174,8 @@ describe('Phase 22 left panel search consistency', () => {
     expect(within(dictionary).queryByText('root [root]')).not.toBeInTheDocument();
 
     fireEvent.change(search, { target: { value: 'items' } });
-    expect(within(dictionary).getByText('items [items]')).toBeInTheDocument();
+    expect(within(dictionary).getByText('items')).toBeInTheDocument();
+    expect(within(dictionary).queryByText('items [items]')).not.toBeInTheDocument();
 
     fireEvent.change(search, { target: { value: 'customer' } });
     expect(within(dictionary).getByText('customer')).toBeInTheDocument();

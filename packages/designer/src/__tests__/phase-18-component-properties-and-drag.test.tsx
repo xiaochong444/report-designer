@@ -203,10 +203,10 @@ describe('Phase 18 component properties and canvas drag drop', () => {
   it('drops a dictionary field as a single text expression without component dataSource metadata', async () => {
     const template = createDefaultTemplate('Phase 18 Field Drop');
     template.dataSources = [{
-      id: 'employees',
-      name: 'Employees',
+      id: 'root',
+      name: 'root',
       type: 'json',
-      schema: [{ name: 'Salary', type: 'number' }],
+      schema: [{ name: 'employees.Salary', type: 'number' }],
     }];
     template.styles = [];
     render(<Designer template={template} locale="zh-CN" />);
@@ -219,7 +219,7 @@ describe('Phase 18 component properties and canvas drag drop', () => {
         clientX: 40,
         clientY: 135,
         dataTransfer: dataTransfer({
-          fieldBinding: JSON.stringify({ dataSourceId: 'employees', fieldName: 'Salary', fieldType: 'number' }),
+          fieldBinding: JSON.stringify({ dataSourceId: 'root', fieldName: 'employees.Salary', fieldType: 'number' }),
         }),
       });
     });

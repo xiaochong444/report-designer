@@ -35,22 +35,13 @@ function loadSelectedTable(component: TableComponent = tableComponent()) {
   const template: ReportTemplate = createDefaultTemplate('Phase 40 Table Binding Properties');
   template.dataSources = [
     {
-      id: 'orders',
-      name: 'Orders',
+      id: 'root',
+      name: 'root',
       type: 'json',
       schema: [
-        { name: 'orderNo', type: 'string' },
-      ],
-    },
-    {
-      id: 'orders.items',
-      name: 'Items',
-      type: 'json',
-      path: 'orders.items',
-      parentSourceId: 'orders',
-      schema: [
-        { name: 'name', type: 'string' },
-        { name: 'qty', type: 'number' },
+        { name: 'orders.orderNo', type: 'string' },
+        { name: 'orders.items.name', type: 'string' },
+        { name: 'orders.items.qty', type: 'number' },
       ],
     },
   ];

@@ -35,20 +35,14 @@ Object.defineProperty(window, 'matchMedia', {
 function loadTemplateWithDataBand() {
   const template = createDefaultTemplate('DataBand Sorting');
   template.dataSources = [{
-    id: 'orders',
-    name: 'Orders',
+    id: 'root',
+    name: 'root',
     type: 'json',
     schema: [
-      { name: 'customer', type: 'string', label: 'Customer' },
-      { name: 'amount', type: 'number', label: 'Amount' },
-      { name: 'active', type: 'boolean', label: 'Active' },
-    ],
-  }, {
-    id: 'fieldsOnly',
-    name: 'Fields Only',
-    type: 'json',
-    fields: [
-      { name: 'createdAt', type: 'date', label: 'Created At' },
+      { name: 'orders.customer', type: 'string', label: 'Customer' },
+      { name: 'orders.amount', type: 'number', label: 'Amount' },
+      { name: 'orders.active', type: 'boolean', label: 'Active' },
+      { name: 'fieldsOnly.createdAt', type: 'date', label: 'Created At' },
     ],
   }];
   const dataBand = template.pages[0].bands.find(band => band.type === 'data');
@@ -114,7 +108,7 @@ describe('Phase 22 DataBand sorting property grid', () => {
   it('refreshes sort fields from schema fallback fields after changing data source', async () => {
     renderBandProperties('en-US');
 
-    await chooseCombobox('Data source', 'Fields Only');
+    await chooseCombobox('Data source', 'fieldsOnly');
     fireEvent.click(screen.getByRole('button', { name: 'Edit sorting' }));
     fireEvent.click(screen.getByRole('button', { name: 'Add sort rule' }));
     await chooseCombobox('Sort field 1', 'Created At');

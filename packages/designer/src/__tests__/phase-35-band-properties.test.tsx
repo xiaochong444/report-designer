@@ -21,12 +21,12 @@ vi.mock('@monaco-editor/react', () => ({
 function loadSelectedDataBand() {
   const template = createDefaultTemplate('Band Properties');
   template.dataSources = [{
-    id: 'orders',
-    name: 'Orders',
+    id: 'root',
+    name: 'root',
     type: 'json',
     schema: [
-      { name: 'amount', type: 'number', label: 'Amount' },
-      { name: 'customerName', type: 'string', label: 'Customer Name' },
+      { name: 'orders.amount', type: 'number', label: 'Amount' },
+      { name: 'orders.customerName', type: 'string', label: 'Customer Name' },
     ],
   }];
   const dataBand = template.pages[0].bands.find(band => band.type === 'data');
@@ -40,13 +40,13 @@ function loadSelectedDataBand() {
 function loadSelectedHierarchicalBand() {
   const template = createDefaultTemplate('Band Properties');
   template.dataSources = [{
-    id: 'orgUnits',
-    name: 'Org Units',
+    id: 'root',
+    name: 'root',
     type: 'json',
     schema: [
-      { name: 'name', type: 'string', label: 'Name' },
-      { name: 'children', type: 'string', label: 'children' },
-      { name: 'nodes', type: 'string', label: 'nodes' },
+      { name: 'orgUnits.name', type: 'string', label: 'Name' },
+      { name: 'orgUnits.children.name', type: 'string', label: 'children' },
+      { name: 'orgUnits.nodes.name', type: 'string', label: 'nodes' },
     ],
   }];
   const dataBand = template.pages[0].bands.find(band => band.type === 'data');

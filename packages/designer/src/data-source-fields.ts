@@ -11,9 +11,11 @@ export interface FieldPathTreeNode {
 }
 
 export function formatDataFieldExpression(sourceId: string, fieldName: string): string {
-  return sourceId === 'root'
-    ? `{${fieldName}}`
-    : `{${sourceId}.${fieldName}}`;
+  return `{${fieldName}}`;
+}
+
+export function formatDataFieldLabel(sourceId: string, fieldName: string): string {
+  return sourceId === 'root' ? fieldName : `${sourceId}.${fieldName}`;
 }
 
 export function buildFieldPathTree(source: DataSource): FieldPathTreeNode[] {

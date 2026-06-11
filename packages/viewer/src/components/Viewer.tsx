@@ -11,7 +11,7 @@ const { Content } = Layout;
 
 interface ViewerProps {
   template: ReportTemplate;
-  data: Record<string, any[]>;
+  data: unknown;
   className?: string;
   subreports?: RenderReportOptions['subreports'];
   expressionVariables?: RenderReportOptions['expressionVariables'];

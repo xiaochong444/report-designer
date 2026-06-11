@@ -9,7 +9,7 @@ interface DesignerProps {
   /** Optional initial template to load */
   template?: ReportTemplate;
   /** Optional data to bind to the template */
-  data?: Record<string, any[]>;
+  data?: unknown;
   /** Optional local subreport templates keyed by subreport template key/name */
   subreports?: Record<string, ReportTemplate>;
   /** Emits the current in-designer template so hosts can preview or persist draft edits. */
@@ -31,7 +31,13 @@ export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, 
   const loadedTemplateIdRef = useRef<string | undefined>(undefined);
   const loadedDataSignatureRef = useRef<string | undefined>(undefined);
   const handledNavigationKeyRef = useRef<string | undefined>(undefined);
-  const dataSignature = data ? Object.keys(data).join('|') : '';
+  const dataSignature = data == null
+    ? ''
+    : Array.isArray(data)
+      ? `array:${data.length}`
+      : typeof data === 'object'
+        ? Object.keys(data as Record<string, unknown>).join('|')
+        : typeof data;
 
   useEffect(() => {
     if (template && (loadedTemplateIdRef.current !== template.id || loadedDataSignatureRef.current !== dataSignature)) {

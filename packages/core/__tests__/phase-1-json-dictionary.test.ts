@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { formatJsonFieldExpression, inferJsonDictionary, parseJsonFieldExpression } from '../src';
 
 describe('Phase 1 JSON dictionary', () => {
-  it('infers top-level and nested array data sources from json data', () => {
+  it('infers a single root source from json data and keeps nested array paths as fields', () => {
     const dictionary = inferJsonDictionary({
       orders: [
         {
@@ -14,11 +14,7 @@ describe('Phase 1 JSON dictionary', () => {
       ],
     });
 
-    expect(dictionary.dataSources.map((source) => source.id)).toEqual(['orders', 'orders.lines']);
-    expect(dictionary.dataSources[1]).toMatchObject({
-      parentSourceId: 'orders',
-      parentPath: 'orders.lines',
-    });
+    expect(dictionary.dataSources.map((source) => source.id)).toEqual(['root']);
     expect(flattenFields(dictionary).map((field) => [field.path, field.type])).toEqual([
       ['orders.id', 'number'],
       ['orders.customer', 'string'],

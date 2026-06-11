@@ -27,12 +27,12 @@ function templateWithOrders() {
   const template = createDefaultTemplate('Expression Monaco');
   template.dataSources = [
     {
-      id: 'Orders',
-      name: 'Orders',
+      id: 'root',
+      name: 'root',
       type: 'json',
       schema: [
-        { name: 'Amount', type: 'number', label: 'Order Amount' },
-        { name: 'CreatedAt', type: 'date' },
+        { name: 'Orders.Amount', type: 'number', label: 'Order Amount' },
+        { name: 'Orders.CreatedAt', type: 'date' },
       ],
     },
   ];

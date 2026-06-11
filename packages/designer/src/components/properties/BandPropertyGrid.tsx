@@ -10,6 +10,7 @@ import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDial
 import { buildEventEditorDataContext } from '../events/event-editor-utils';
 import { ExpressionEditor } from '../ExpressionEditor';
 import type { ExpressionCatalogExtensions } from '../../expression/expression-catalog';
+import { createArrayPathOptions, getFieldsForPath } from '../../data-source-paths';
 
 type BandExpressionTarget = 'visibleExpression' | 'groupExpression';
 type SortRule = NonNullable<DataBandOptions['sort']>[number];
@@ -50,8 +51,10 @@ export const BandPropertyGrid: React.FC<{ expressionExtensions?: ExpressionCatal
   const bandMin = formatUnitValue(4, reportUnit);
   const bandMax = formatUnitValue(200, reportUnit);
   const dataSourceId = band.dataBand?.dataSourceId ?? band.dataSource;
-  const currentDataSource = template.dataSources.find(source => source.id === dataSourceId);
-  const dataFields = currentDataSource?.schema?.length ? currentDataSource.schema : currentDataSource?.fields;
+  const dataFields = getFieldsForPath(template.dataSources, dataSourceId);
+  const dataSourceOptions = createArrayPathOptions(template.dataSources, useDesignerStore.getState().dataSources, [
+    ...(dataSourceId ? [dataSourceId] : []),
+  ]);
   const sortFields = getSortFields(dataFields);
   const sortRules = band.dataBand?.sort ?? [];
   const isDataBand = band.type === 'data' || band.type === 'hierarchicalData';
@@ -262,7 +265,7 @@ export const BandPropertyGrid: React.FC<{ expressionExtensions?: ExpressionCatal
                     allowClear
                     size="small"
                     style={{ width: '100%' }}
-                    options={template.dataSources.map(source => ({ value: source.id, label: source.name || source.id }))}
+                    options={dataSourceOptions}
                     onChange={value => updateBandDataBand(dataBand => ({
                       ...dataBand,
                       dataSourceId: value,
@@ -795,10 +798,15 @@ function getSortFields(fields: DataField[] | undefined) {
 }
 
 function getHierarchyChildFieldOptions(fields: DataField[] | undefined) {
-  const options = (fields ?? []).map(field => ({
-    value: field.name,
-    label: field.label || field.name,
-  }));
+  const seen = new Set<string>();
+  const options = (fields ?? []).flatMap(field => {
+    const value = field.name.split('.')[0] || field.name;
+    if (!value || seen.has(value)) {
+      return [];
+    }
+    seen.add(value);
+    return [{ value, label: value }];
+  });
   return options.some(option => option.value === 'children')
     ? options
     : [{ value: 'children', label: 'children' }, ...options];

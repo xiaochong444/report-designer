@@ -324,18 +324,7 @@ const DataDictionary: React.FC<{ expressionExtensions?: ExpressionCatalogExtensi
     e.dataTransfer.effectAllowed = 'copy';
   };
 
-  const rootSource = dataSources.find(source => source.id === 'root');
-  const visibleDataSourceNodes = dataSources.filter(source => source.id !== 'root').map((ds) => ({
-    key: ds.id,
-    searchText: `${ds.id} ${ds.name}`,
-    title: (
-      <div className="rd-dictionary-node">
-        {renderDictionaryGlyph('datasource')}
-        <span>{`${ds.name || ds.id} [${ds.id}]`}</span>
-      </div>
-    ),
-    children: renderDictionaryFieldNodes(buildFieldPathTree(ds), handleFieldDragStart),
-  }));
+  const rootSource = dataSources.find(source => source.id === 'root') ?? dataSources[0];
   const rootFieldNodes = rootSource
     ? renderDictionaryFieldNodes(buildFieldPathTree(rootSource), handleFieldDragStart)
     : [];
@@ -411,7 +400,7 @@ const DataDictionary: React.FC<{ expressionExtensions?: ExpressionCatalogExtensi
           <span>{t('leftPanel.dataSources')}</span>
         </div>
       ),
-      children: [...rootFieldNodes, ...visibleDataSourceNodes],
+      children: rootFieldNodes,
     },
     {
       key: 'dictionary-system-variables',

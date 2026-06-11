@@ -27,6 +27,7 @@ import type { ExpressionCatalogExtensions } from '../expression/expression-catal
 import { BorderEditor, PaddingEditor } from './properties/BoxStyleEditors';
 import { BARCODE_FORMATS, QR_CODE_FORMATS } from '@report-designer/viewer';
 import { isComponentNameAvailable, normalizeComponentName } from '../report-structure';
+import { createArrayPathOptions, getFieldsForPath } from '../data-source-paths';
 
 const NO_CONDITIONAL_FORMAT = '__none__';
 
@@ -99,14 +100,12 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
 
   const comp = component as any;
   const currentPage = template.pages.find(p => p.id === currentPageId);
-  const dataSources = currentPage?.bands.reduce<string[]>((acc, b) => {
+  const bandDataPaths = currentPage?.bands.reduce<string[]>((acc, b) => {
     const dataSourceId = b.dataBand?.dataSourceId ?? b.dataSource;
     if (dataSourceId && !acc.includes(dataSourceId)) acc.push(dataSourceId);
     return acc;
   }, []) ?? [];
-  for (const source of template.dataSources) {
-    if (!dataSources.includes(source.name)) dataSources.push(source.name);
-  }
+  const dataSourceOptions = createArrayPathOptions(template.dataSources, useDesignerStore.getState().dataSources, bandDataPaths);
 
   const handleChange = (field: string, value: any) => {
     if (!component || !bandId || !currentPageId) return;
@@ -448,7 +447,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
                 onChange={handleChange}
                 onOpenExpressionEditor={openFieldExpressionEditor}
                 t={t}
-                dataSources={dataSources}
+                dataSourceOptions={dataSourceOptions}
                 dataSourceDefinitions={template.dataSources}
               />
             ),
@@ -895,15 +894,15 @@ const ComponentContentProperties: React.FC<{
   onChange: (field: string, value: any) => void;
   onOpenExpressionEditor: (field: string, label: string) => void;
   t: ReturnType<typeof createPropertyT>;
-  dataSources: string[];
+  dataSourceOptions: Array<{ value: string; label: string }>;
   dataSourceDefinitions: DataSource[];
-}> = ({ component, comp, dataSourceDefinitions, dataSources, onChange, onOpenExpressionEditor, t }) => {
+}> = ({ component, comp, dataSourceDefinitions, dataSourceOptions, onChange, onOpenExpressionEditor, t }) => {
   switch (component.type) {
     case 'chart':
       return (
         <ChartPropertyPanel
           chart={comp as ChartComponent}
-          dataSources={dataSources}
+          dataSourceOptions={dataSourceOptions}
           dataSourceDefinitions={dataSourceDefinitions}
           onChange={onChange}
           onOpenExpressionEditor={onOpenExpressionEditor}
@@ -1139,16 +1138,15 @@ const ComponentContentProperties: React.FC<{
 
 const ChartPropertyPanel: React.FC<{
   chart: ChartComponent;
-  dataSources: string[];
+  dataSourceOptions: Array<{ value: string; label: string }>;
   dataSourceDefinitions: DataSource[];
   onChange: (field: string, value: any) => void;
   onOpenExpressionEditor: (field: string, label: string) => void;
   t: ReturnType<typeof createPropertyT>;
-}> = ({ chart, dataSourceDefinitions, dataSources, onChange, t }) => {
+}> = ({ chart, dataSourceDefinitions, dataSourceOptions, onChange, t }) => {
   const binding = chart.binding ?? {};
   const appearance = chart.appearance ?? {};
-  const source = dataSourceDefinitions.find(item => item.id === binding.dataSourceId || item.name === binding.dataSourceId);
-  const fieldOptions = (source?.schema ?? source?.fields ?? []).map(field => ({
+  const fieldOptions = getFieldsForPath(dataSourceDefinitions, binding.dataSourceId).map(field => ({
     value: `{${field.name}}`,
     label: field.label || field.name,
   }));
@@ -1191,15 +1189,14 @@ const ChartPropertyPanel: React.FC<{
     onChange('variant', defaultChartVariant(chartType));
   };
   const handleDataSourceChange = (dataSourceId?: string) => {
-    const nextSource = dataSourceDefinitions.find(item => item.id === dataSourceId || item.name === dataSourceId);
-    const fields = nextSource?.schema ?? nextSource?.fields ?? [];
+    const fields = getFieldsForPath(dataSourceDefinitions, dataSourceId);
     const category = fields.find(field => field.type !== 'number') ?? fields[0];
     const numberFields = fields.filter(field => field.type === 'number');
     const value = numberFields[0] ?? fields[1] ?? fields[0];
     const y = numberFields[1] ?? numberFields[0] ?? fields[1] ?? fields[0];
     updateBinding({
       dataSourceId: dataSourceId ?? '',
-      arrayPath: dataSourceId ? arrayPathForDataSource(dataSourceId, dataSourceDefinitions) : '',
+      arrayPath: dataSourceId ?? '',
       categoryExpression: binding.categoryExpression || fieldExpression(category),
       valueExpression: binding.valueExpression || fieldExpression(value),
       xExpression: binding.xExpression || fieldExpression(value),
@@ -1241,7 +1238,7 @@ const ChartPropertyPanel: React.FC<{
             showSearch
             size="small"
             placeholder={t('chooseDataSource')}
-            options={createDataSourceOptions(dataSources, dataSourceDefinitions)}
+            options={dataSourceOptions}
           />
         </Form.Item>
         <Form.Item label={t('chartArrayPath')}>
@@ -1429,53 +1426,6 @@ function buildComponentTreeItems(components: ReportComponent[]): EventTreeItem[]
 
     return [item];
   });
-}
-
-function createDataSourceOptions(
-  sourceNames: string[],
-  dataSources: ReportTemplate['dataSources'],
-): Array<{ value: string; label: string }> {
-  const options: Array<{ value: string; label: string }> = [];
-  const seen = new Set<string>();
-  const push = (value: string, label: string) => {
-    const key = `${value}::${label}`;
-    if (seen.has(key)) return;
-    seen.add(key);
-    options.push({ value, label });
-  };
-
-  for (const source of dataSources) {
-    const label = source.parentSourceId
-      ? `${source.name || source.id.split('.').at(-1) || source.id} (${source.id})`
-      : (source.name || source.id);
-    push(source.id, label);
-    if (!source.parentSourceId && source.name && source.name !== source.id) {
-      push(source.name, source.name);
-    }
-  }
-
-  for (const sourceName of sourceNames) {
-    push(sourceName, sourceName);
-  }
-
-  return options;
-}
-
-function arrayPathForDataSource(
-  dataSourceId: string,
-  dataSources: ReportTemplate['dataSources'],
-): string | undefined {
-  const source = dataSources.find(item => item.id === dataSourceId || item.name === dataSourceId);
-  if (!source) return undefined;
-  if (!source.parentSourceId) return undefined;
-
-  const parent = dataSources.find(item => item.id === source.parentSourceId);
-  const parentPath = parent?.path ?? parent?.id ?? source.parentSourceId;
-  const sourcePath = source.path ?? source.id;
-  if (sourcePath.startsWith(`${parentPath}.`)) {
-    return sourcePath.slice(parentPath.length + 1);
-  }
-  return sourcePath.split('.').at(-1);
 }
 
 function fieldExpression(field: { name: string } | undefined): string {

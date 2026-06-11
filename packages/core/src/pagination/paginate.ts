@@ -153,7 +153,7 @@ function runPageEvent(
 
 export function renderReport(
   template: ReportTemplate,
-  data: Record<string, Record<string, unknown>[]> = {},
+  data: unknown = {},
   options: RenderReportOptions = {},
 ): RenderDocument {
   return renderReportInternal(template, data, options);
@@ -161,7 +161,7 @@ export function renderReport(
 
 function renderReportInternal(
   template: ReportTemplate,
-  data: Record<string, Record<string, unknown>[]>,
+  data: unknown,
   options: InternalRenderReportOptions,
 ): RenderDocument {
   const normalizedTemplate = normalizeTemplate(mergeInferredDataSources(cloneReportTemplate(template), data));

@@ -13,7 +13,7 @@ describe('Phase 5 inline expression editor', () => {
       <DesignerI18nProvider locale="en-US">
         <InlineExpressionEditor
           value=""
-          dataSources={[{ id: 'employees', name: 'employees', type: 'json', schema: [{ name: 'salary', type: 'number' }] }]}
+          dataSources={[{ id: 'root', name: 'root', type: 'json', schema: [{ name: 'employees.salary', type: 'number' }] }]}
           onChange={(next) => { value = next; }}
         />
       </DesignerI18nProvider>,

@@ -5,33 +5,6 @@ type TextOptions = Omit<Partial<TextComponent>, 'font' | 'border'> & {
   border?: BorderConfig;
 };
 
-export const dataFields = {
-  employees: [
-    field('employees.id', 'id', 'number'),
-    field('employees.name', 'name', 'string'),
-    field('employees.department', 'department', 'string'),
-    field('employees.salary', 'salary', 'number'),
-    field('employees.hireDate', 'hireDate', 'date'),
-  ],
-  invoiceLines: [
-    field('invoiceLines.sku', 'sku', 'string'),
-    field('invoiceLines.name', 'name', 'string'),
-    field('invoiceLines.qty', 'qty', 'number'),
-    field('invoiceLines.unitPrice', 'unitPrice', 'number'),
-    field('invoiceLines.lineTotal', 'lineTotal', 'number'),
-  ],
-  orderLines: [
-    field('orderLines.orderNo', 'orderNo', 'string'),
-    field('orderLines.customer', 'customer', 'string'),
-    field('orderLines.orderDate', 'orderDate', 'date'),
-    field('orderLines.sku', 'sku', 'string'),
-    field('orderLines.name', 'name', 'string'),
-    field('orderLines.qty', 'qty', 'number'),
-    field('orderLines.unitPrice', 'unitPrice', 'number'),
-    field('orderLines.lineTotal', 'lineTotal', 'number'),
-  ],
-};
-
 export const commonTextStyleIds = {
   title: 'text-title',
   pageHeader: 'text-page-header',
@@ -182,11 +155,7 @@ export function template(
         bands: syncBandsWithTextStyles(bands, styles),
       },
     ],
-    dataSources: [
-      { id: 'employees', name: 'employees', type: 'json', path: 'employees', fields: dataFields.employees },
-      { id: 'invoiceLines', name: 'invoiceLines', type: 'json', path: 'invoiceLines', fields: dataFields.invoiceLines },
-      { id: 'orderLines', name: 'orderLines', type: 'json', path: 'orderLines', fields: dataFields.orderLines },
-    ],
+    dataSources: [],
     styles,
     conditionalFormats: [],
     parameters: [],
@@ -247,10 +216,6 @@ export function text(id: string, content: string, x: number, y: number, width: n
 
 export function moneyExpression(source: string, fieldName: string): string {
   return `FORMAT("N2", {${source}.${fieldName}})`;
-}
-
-function field(id: string, name: string, type: 'string' | 'number' | 'date' | 'boolean') {
-  return { id, name, path: id, type, nullable: false };
 }
 
 function cloneStyles(styles: ReportStyle[]): ReportStyle[] {

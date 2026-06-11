@@ -5,7 +5,7 @@ import {
   resolveExpressionCatalog,
   type ExpressionCatalogExtensions,
 } from '../../expression/expression-catalog';
-import { formatDataFieldExpression } from '../../data-source-fields';
+import { formatDataFieldExpression, formatDataFieldLabel } from '../../data-source-fields';
 
 export const REPORT_EXPRESSION_LANGUAGE_ID = 'report-expression';
 
@@ -87,7 +87,7 @@ export function buildExpressionCompletions(
     (source.schema ?? source.fields ?? []).map(field => {
       const insertText = formatDataFieldExpression(source.id, field.name);
       return {
-        label: `${source.id}.${field.name}`,
+        label: formatDataFieldLabel(source.id, field.name),
         kind: constants.CompletionItemKind.Field,
         detail: field.label || field.name,
         insertText,

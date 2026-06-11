@@ -3,80 +3,48 @@ import { getJsonValueByPath } from './json-path';
 
 export function inferJsonDictionary(data: unknown): JsonDictionary {
   const dataSources: DataSource[] = [];
-  if (!isPlainObject(data)) {
+  const normalizedData = normalizeJsonInput(data);
+  if (!isPlainObject(normalizedData)) {
     return { dataSources };
   }
 
-  if (!isDatasetMap(data)) {
-    visitArraySource('root', 'root', [data], dataSources, undefined, { childIdPrefix: '' });
-    return { dataSources };
-  }
-
-  for (const [key, value] of Object.entries(data)) {
-    if (Array.isArray(value)) {
-      visitArraySource(key, key, value, dataSources);
-    }
-  }
-
+  visitRootSource(normalizedData, dataSources);
   return { dataSources };
 }
 
-export function mergeInferredDataSources(template: ReportTemplate, data: Record<string, unknown> | undefined): ReportTemplate {
+export function mergeInferredDataSources(template: ReportTemplate, data: unknown | undefined): ReportTemplate {
+  const collapsed = collapseDataSources(template.dataSources);
   if (!data) {
-    return template;
+    return collapsed === template.dataSources ? template : { ...template, dataSources: collapsed };
   }
 
   const inferred = inferJsonDictionary(data).dataSources;
   if (inferred.length === 0) {
-    return template;
+    return collapsed === template.dataSources ? template : { ...template, dataSources: collapsed };
   }
 
-  let changed = false;
-  const byId = new Map(template.dataSources.map(source => [source.id, cloneDataSource(source)]));
-
-  for (const source of inferred) {
-    const existing = byId.get(source.id);
-    if (!existing) {
-      byId.set(source.id, cloneDataSource(source));
-      changed = true;
-      continue;
-    }
-
-    const mergedFields = mergeFields(existing.fields ?? existing.schema ?? [], source.fields ?? []);
-    if (mergedFields.length !== (existing.fields ?? existing.schema ?? []).length) {
-      existing.fields = mergedFields;
-      existing.schema = mergeFields(existing.schema ?? [], source.fields ?? []);
-      changed = true;
-    }
-    existing.path ??= source.path;
-    existing.parentSourceId ??= source.parentSourceId;
-    existing.parentPath ??= source.parentPath;
-  }
-
-  if (!changed) {
-    return template;
-  }
+  const existingRoot = collapsed.find(source => source.id === 'root');
+  const inferredRoot = cloneDataSource(inferred[0]);
+  const mergedFields = mergeFields(existingRoot?.fields ?? existingRoot?.schema ?? [], inferredRoot.fields ?? []);
+  inferredRoot.fields = mergedFields;
+  inferredRoot.schema = mergeFields(existingRoot?.schema ?? [], mergedFields);
 
   return {
     ...template,
-    dataSources: Array.from(byId.values()),
+    dataSources: [inferredRoot],
   };
 }
 
 export function expandJsonDataBySources(
-  data: Record<string, unknown[]> | Record<string, unknown>,
+  data: unknown,
   dataSources: DataSource[],
 ): Record<string, Record<string, unknown>[]> {
   const expanded: Record<string, Record<string, unknown>[]> = {};
+  const normalizedData = normalizeJsonInput(data);
 
-  if (!isDatasetMap(data)) {
-    expanded.root = [flattenRow(data, 'root')];
-  } else {
-    for (const [key, value] of Object.entries(data)) {
-      if (Array.isArray(value)) {
-        expanded[key] = value.filter(isPlainObject).map(row => flattenRow(row, key));
-      }
-    }
+  if (isPlainObject(normalizedData)) {
+    expanded.root = [flattenRow(normalizedData, 'root')];
+    collectArrayRows(normalizedData, '', expanded);
   }
 
   for (const source of dataSources) {
@@ -92,84 +60,80 @@ export function expandJsonDataBySources(
   return expanded;
 }
 
-function visitArraySource(
-  id: string,
-  path: string,
-  rows: unknown[],
-  dataSources: DataSource[],
-  parentSourceId?: string,
-  options: { childIdPrefix?: string } = {},
-): void {
+export function normalizeJsonInput(data: unknown): Record<string, unknown> | undefined {
+  if (Array.isArray(data)) {
+    return { items: data };
+  }
+  return isPlainObject(data) ? data : undefined;
+}
+
+function visitRootSource(data: Record<string, unknown>, dataSources: DataSource[]): void {
   const source: DataSource = {
-    id,
-    name: id.split('.').at(-1) ?? id,
+    id: 'root',
+    name: 'root',
     type: 'json',
-    path,
+    path: 'root',
     fields: [],
-    parentSourceId,
-    parentPath: parentSourceId ? path : undefined,
   };
   dataSources.push(source);
 
   const fieldSamples = new Map<string, unknown[]>();
-  const nestedArrays = new Map<string, unknown[]>();
-
-  for (const row of rows) {
-    if (!isPlainObject(row)) {
-      continue;
-    }
-
-    collectFieldsAndArrays(row, '', fieldSamples, nestedArrays);
-  }
+  collectFields(data, '', fieldSamples);
 
   source.fields = Array.from(fieldSamples.entries()).map(([fieldName, samples]) => createDataField(source, fieldName, samples));
-
-  for (const [fieldName, nestedRows] of nestedArrays.entries()) {
-    const childId = options.childIdPrefix === '' ? fieldName : `${id}.${fieldName}`;
-    visitArraySource(childId, `${path}.${fieldName}`, nestedRows, dataSources, id);
-  }
 }
 
-function collectFieldsAndArrays(
-  value: Record<string, unknown>,
+function collectFields(
+  value: unknown,
   prefix: string,
   fieldSamples: Map<string, unknown[]>,
-  nestedArrays: Map<string, unknown[]>,
 ): void {
+  if (Array.isArray(value)) {
+    if (value.length === 0 && prefix) {
+      const samples = fieldSamples.get(prefix) ?? [];
+      samples.push(undefined);
+      fieldSamples.set(prefix, samples);
+      return;
+    }
+    for (const child of value) {
+      collectFields(child, prefix, fieldSamples);
+    }
+    return;
+  }
+
+  if (!isPlainObject(value)) {
+    if (!prefix) {
+      return;
+    }
+    const samples = fieldSamples.get(prefix) ?? [];
+    samples.push(value);
+    fieldSamples.set(prefix, samples);
+    return;
+  }
+
   for (const [key, child] of Object.entries(value)) {
     const fieldName = prefix ? `${prefix}.${key}` : key;
-
-    if (Array.isArray(child)) {
-      const rows = nestedArrays.get(fieldName) ?? [];
-      rows.push(...child);
-      nestedArrays.set(fieldName, rows);
-      continue;
-    }
-
-    if (isPlainObject(child)) {
-      collectFieldsAndArrays(child, fieldName, fieldSamples, nestedArrays);
-      continue;
-    }
-
-    const samples = fieldSamples.get(fieldName) ?? [];
-    samples.push(child);
-    fieldSamples.set(fieldName, samples);
+    collectFields(child, fieldName, fieldSamples);
   }
 }
 
 function createDataField(source: DataSource, fieldName: string, samples: unknown[]): DataField {
   return {
-    id: `${source.id}.${fieldName}`,
+    id: fieldName,
     name: fieldName,
-    path: `${source.path}.${fieldName}`,
+    path: fieldName,
     type: inferFieldType(samples),
     nullable: samples.some((sample) => sample === null || sample === undefined || sample === ''),
   };
 }
 
-function getRowsByPath(data: Record<string, unknown>, path: string): Record<string, unknown>[] {
+function getRowsByPath(data: unknown, path: string): Record<string, unknown>[] {
+  const normalizedData = normalizeJsonInput(data);
+  if (!normalizedData) {
+    return [];
+  }
   const normalizedPath = path === 'root' ? '' : path.startsWith('root.') ? path.slice(5) : path;
-  const value = normalizedPath ? getJsonValueByPath(data, normalizedPath) : data;
+  const value = normalizedPath ? getJsonValueByPath(normalizedData, normalizedPath) : normalizedData;
   return Array.isArray(value) ? value.filter(isPlainObject) : [];
 }
 
@@ -197,12 +161,77 @@ function flattenRow(row: Record<string, unknown>, sourceId: string): Record<stri
   return flattened;
 }
 
+function collectArrayRows(value: unknown, prefix: string, expanded: Record<string, Record<string, unknown>[]>): void {
+  if (Array.isArray(value)) {
+    if (prefix) {
+      const rows = value.filter(isPlainObject);
+      if (rows.length > 0) {
+        expanded[prefix] = rows.map(row => flattenRow(row, prefix));
+      }
+    }
+    value.forEach(child => collectArrayRows(child, prefix, expanded));
+    return;
+  }
+
+  if (!isPlainObject(value)) {
+    return;
+  }
+
+  for (const [key, child] of Object.entries(value)) {
+    const childPath = prefix ? `${prefix}.${key}` : key;
+    collectArrayRows(child, childPath, expanded);
+  }
+}
+
 function cloneDataSource(source: DataSource): DataSource {
   return {
     ...source,
     fields: source.fields?.map(field => ({ ...field })),
     schema: source.schema?.map(field => ({ ...field })),
   };
+}
+
+function collapseDataSources(dataSources: DataSource[]): DataSource[] {
+  if (dataSources.length === 0) {
+    return dataSources;
+  }
+  if (dataSources.length === 1 && dataSources[0].id === 'root') {
+    return dataSources;
+  }
+
+  const root: DataSource = {
+    id: 'root',
+    name: 'root',
+    type: 'json',
+    path: 'root',
+    fields: [],
+    schema: [],
+  };
+
+  const fields: DataField[] = [];
+  const schemas: DataField[] = [];
+  for (const source of dataSources) {
+    fields.push(...collapseFieldsForSource(source, source.fields ?? source.schema ?? []));
+    schemas.push(...collapseFieldsForSource(source, source.schema ?? source.fields ?? []));
+  }
+  root.fields = mergeFields([], fields);
+  root.schema = mergeFields([], schemas);
+  return [root];
+}
+
+function collapseFieldsForSource(source: DataSource, fields: DataField[]): DataField[] {
+  const sourcePath = source.id === 'root' ? '' : source.path ?? source.id;
+  return fields.map(field => {
+    const name = sourcePath && !field.name.startsWith(`${sourcePath}.`)
+      ? `${sourcePath}.${field.name}`
+      : field.name;
+    return {
+      ...field,
+      id: name,
+      name,
+      path: name,
+    };
+  });
 }
 
 function mergeFields(current: DataField[], inferred: DataField[]): DataField[] {
@@ -246,11 +275,6 @@ function isDateLikeValue(value: unknown): boolean {
   }
 
   return /[-/:T]/.test(value) && !Number.isNaN(Date.parse(value));
-}
-
-function isDatasetMap(value: Record<string, unknown>): boolean {
-  const entries = Object.entries(value);
-  return entries.length > 0 && entries.every(([, child]) => Array.isArray(child));
 }
 
 function isPlainObject(value: unknown): value is Record<string, unknown> {
