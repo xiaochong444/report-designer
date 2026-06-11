@@ -361,7 +361,9 @@ function layoutComponent(
       y: options.y + component.y,
       width: component.width,
       height: component.height,
-      checked: resolveTemplateBoolean(checkboxComponent.checked, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
+      checked: typeof checkboxComponent.checked === 'boolean'
+        ? checkboxComponent.checked
+        : resolveTemplateBoolean(checkboxComponent.checked, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {}),
       label: checkboxComponent.label
         ? resolveTemplateValue(checkboxComponent.label, options.context, options.rowsByBand ?? {}, options.pageRowsByBand ?? {})
         : undefined,

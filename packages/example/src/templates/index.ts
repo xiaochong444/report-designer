@@ -1,3 +1,4 @@
+import type { ReportTemplate } from '@report-designer/core';
 import employees from '../fixtures/json/employees.json';
 import orders from '../fixtures/json/orders.json';
 import { commonComponentsDetailTemplate, commonComponentsTemplate } from './common-components';
@@ -41,6 +42,14 @@ export const chartSalesData = [
   { month: '2026-04', customer: 'Harbor Retail', channel: 'Online', amount: 1880, qty: 18 },
 ];
 
+type SampleReport = {
+  key: string;
+  label: string;
+  template: ReportTemplate;
+  data: unknown;
+  subreports?: Record<string, ReportTemplate>;
+};
+
 export const sampleReportData = {
   employees: employeesData,
   orders: tableOrdersData,
@@ -71,7 +80,7 @@ export const sampleReports = [
     subreports: { 'common-components-detail': commonComponentsDetailTemplate },
   },
   { key: 'eventLogic', label: 'Event Logic', template: eventLogicTemplate, data: sampleReportData },
-] as const;
+] as const satisfies readonly SampleReport[];
 
 export {
   commonComponentsDetailTemplate,

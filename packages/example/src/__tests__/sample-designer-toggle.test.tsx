@@ -7,7 +7,7 @@ import { useDesignerStore } from '@report-designer/designer';
 import App from '../App';
 import { commonTextStyleIds } from '../templates/common';
 
-globalThis.IS_REACT_ACT_ENVIRONMENT = true;
+(globalThis as typeof globalThis & { IS_REACT_ACT_ENVIRONMENT: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,

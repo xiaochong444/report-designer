@@ -10,13 +10,13 @@ export interface Margins {
 }
 
 export interface FontConfig {
-  family: string;
-  size: number;
-  bold: boolean;
-  italic: boolean;
-  underline: boolean;
-  strikethrough: boolean;
-  color: string;
+  family?: string;
+  size?: number;
+  bold?: boolean;
+  italic?: boolean;
+  underline?: boolean;
+  strikethrough?: boolean;
+  color?: string;
 }
 
 export interface ReportFont {
@@ -182,9 +182,9 @@ export interface ReportStyle {
   id: string;
   name: string;
   category?: 'text';
-  font: Partial<FontConfig>;
-  border: Partial<BorderConfig>;
-  backgroundColor: string;
+  font?: Partial<FontConfig>;
+  border?: Partial<BorderConfig>;
+  backgroundColor?: string;
   textAlign?: TextAlign;
   verticalAlign?: VerticalAlign;
   padding?: Partial<Padding>;
@@ -338,6 +338,7 @@ export interface TableCell {
 
 export interface TableRow {
   id: string;
+  role?: 'header' | 'body' | 'footer' | 'normal';
   height?: number;
   backgroundColor?: string;
   font?: FontConfig;
@@ -395,7 +396,7 @@ export interface QRCodeComponent extends ReportComponent {
 
 export interface CheckboxComponent extends ReportComponent {
   type: 'checkbox';
-  checked: Expression;
+  checked: Expression | boolean;
   label?: Expression;
   foregroundColor?: string;
   font?: FontConfig;

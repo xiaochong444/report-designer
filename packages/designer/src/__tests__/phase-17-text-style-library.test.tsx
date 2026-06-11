@@ -378,7 +378,7 @@ describe('Phase 17 text style library store behavior', () => {
         font: { ...historicalStyle.font, size: 22 },
       });
     }).not.toThrow();
-    expect(useDesignerStore.getState().template.styles.find(style => style.id === 'historical-style')?.font.size).toBe(22);
+    expect(useDesignerStore.getState().template.styles.find(style => style.id === 'historical-style')?.font?.size).toBe(22);
     expect(selectedText()?.font.size).toBe(22);
   });
 
@@ -1226,14 +1226,15 @@ describe('Phase 17 text style library store behavior', () => {
     };
     const template = createDefaultTemplate('Style Designer Extended Fields');
     template.styles = [style];
+    const styleBorder = style.border ?? {};
     template.pages[0].bands.find(band => band.type === 'data')!.components = [createText('text-1', {
       style: 'style-a',
       format: { type: style.format!.type, ...style.format },
       border: {
-        style: style.border.style ?? 'none',
-        width: style.border.width ?? 0,
-        color: style.border.color ?? '#000000',
-        sides: { top: false, right: false, bottom: false, left: false, ...(style.border.sides ?? {}) },
+        style: styleBorder.style ?? 'none',
+        width: styleBorder.width ?? 0,
+        color: styleBorder.color ?? '#000000',
+        sides: { top: false, right: false, bottom: false, left: false, ...(styleBorder.sides ?? {}) },
       },
     })];
 

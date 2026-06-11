@@ -72,18 +72,19 @@ function findRenderedTables(document: RenderDocument, id: string): RenderTable[]
   return tables;
 }
 
-function renderedText(document: any): string[] {
+function renderedText(document: RenderDocument): string[] {
   return document.pages
-    .flatMap((page: any) => page.items)
-    .flatMap((item: any) => item.components)
-    .flatMap((component: any) => {
+    .flatMap(page => page.items)
+    .flatMap(item => item.components)
+    .flatMap((component) => {
       if (component.type === 'table') {
-        return component.rows.flatMap((row: any[]) => row.map(cell => cell.content));
+        const table = component as RenderTable;
+        return table.rows.flatMap(row => row.map(cell => cell.content));
       }
-      return [component.content];
+      return [(component as { content?: string }).content];
     })
     .filter((value: unknown): value is string => value !== undefined && value !== null)
-    .map(value => String(value));
+    .map((value: string) => String(value));
 }
 
 describe('phase 45 clothing order dynamic size example', () => {
@@ -215,8 +216,8 @@ describe('phase 45 clothing order dynamic size example', () => {
     expect(headerFirstRow).toHaveLength(totalColumnCount);
     expect(renderedHeaderTable.columns).toHaveLength(renderedDetailTable.columns.length);
     expect(renderedHeaderTable.columns).toHaveLength(totalColumnCount);
-    expect(renderedHeaderTable.columns.reduce((sum, column) => sum + column.width, 0)).toBe(renderedHeaderTable.width);
-    expect(renderedDetailTable.columns.reduce((sum, column) => sum + column.width, 0)).toBe(renderedDetailTable.width);
+    expect(renderedHeaderTable.columns.reduce((sum, column) => sum + (column.width ?? 0), 0)).toBe(renderedHeaderTable.width);
+    expect(renderedDetailTable.columns.reduce((sum, column) => sum + (column.width ?? 0), 0)).toBe(renderedDetailTable.width);
 
     const fixedColumnIndexes = [
       0,

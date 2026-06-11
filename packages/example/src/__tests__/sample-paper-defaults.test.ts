@@ -160,7 +160,10 @@ describe('example sample paper defaults', () => {
     const labels = document.pages.flatMap(page => page.items).filter(item => item.bandId === 'ppl-data');
 
     expect(headers).toHaveLength(3);
-    expect(headers.map(header => header.components[0]?.content)).toEqual(['FRESH MARKET', 'FRESH MARKET', 'FRESH MARKET']);
+    expect(headers.map(header => {
+      const component = header.components[0];
+      return component && 'content' in component ? component.content : undefined;
+    })).toEqual(['FRESH MARKET', 'FRESH MARKET', 'FRESH MARKET']);
     expect(labels).toHaveLength(12);
     expect(labels[0].x).toBeCloseTo(10, 1);
     expect(labels[1].x).toBeCloseTo(75, 1);

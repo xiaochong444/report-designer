@@ -1,4 +1,4 @@
-import { isRepeatOnEveryPageBandType, resolveTextStyle, type BorderConfig, type FontConfig, type Band, type ReportComponent, type ReportStyle, type ReportTemplate, type TextComponent } from '@report-designer/core';
+import { isRepeatOnEveryPageBandType, resolveTextStyle, type BorderConfig, type FontConfig, type Band, type ReportComponentUnion, type ReportStyle, type ReportTemplate, type TextComponent } from '@report-designer/core';
 
 type TextOptions = Omit<Partial<TextComponent>, 'font' | 'border'> & {
   font?: Partial<FontConfig>;
@@ -162,7 +162,7 @@ export function template(
   };
 }
 
-export function band(id: string, type: Band['type'], height: number, components: ReportComponent[] = [], overrides: Partial<Band> = {}): Band {
+export function band(id: string, type: Band['type'], height: number, components: ReportComponentUnion[] = [], overrides: Partial<Band> = {}): Band {
   return {
     id,
     type,
@@ -236,11 +236,15 @@ function syncBandsWithTextStyles(bands: Band[], styles: ReportStyle[]): Band[] {
   return bands.map(bandDefinition => ({
     ...bandDefinition,
     components: bandDefinition.components.map(component => (
-      component.type === 'text'
+      isTextComponent(component)
         ? applyTextStyleSnapshot(component, styles)
         : component
     )),
   }));
+}
+
+function isTextComponent(component: Band['components'][number]): component is TextComponent {
+  return component.type === 'text';
 }
 
 function applyTextStyleSnapshot(component: TextComponent, styles: ReportStyle[]): TextComponent {

@@ -538,10 +538,10 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                   <IconRow label={t('styleLibrary.style')}>
                     <IconToggleGroup
                       items={[
-                        { label: t('styleLibrary.bold'), active: font.bold, icon: <BoldOutlined />, onClick: () => setFontFlag('bold', !font.bold) },
-                        { label: t('styleLibrary.italic'), active: font.italic, icon: <ItalicOutlined />, onClick: () => setFontFlag('italic', !font.italic) },
-                        { label: t('styleLibrary.underline'), active: font.underline, icon: <UnderlineOutlined />, onClick: () => setFontFlag('underline', !font.underline) },
-                        { label: t('styleLibrary.strike'), active: font.strikethrough, icon: <StrikethroughOutlined />, onClick: () => setFontFlag('strikethrough', !font.strikethrough) },
+                        { label: t('styleLibrary.bold'), active: Boolean(font.bold), icon: <BoldOutlined />, onClick: () => setFontFlag('bold', !font.bold) },
+                        { label: t('styleLibrary.italic'), active: Boolean(font.italic), icon: <ItalicOutlined />, onClick: () => setFontFlag('italic', !font.italic) },
+                        { label: t('styleLibrary.underline'), active: Boolean(font.underline), icon: <UnderlineOutlined />, onClick: () => setFontFlag('underline', !font.underline) },
+                        { label: t('styleLibrary.strike'), active: Boolean(font.strikethrough), icon: <StrikethroughOutlined />, onClick: () => setFontFlag('strikethrough', !font.strikethrough) },
                       ]}
                     />
                   </IconRow>

@@ -40,7 +40,8 @@ function renderedText(document: RenderDocument): string[] {
     .flatMap(item => item.components)
     .flatMap((component) => {
       if (component.type === 'table') {
-        return component.rows.flatMap(row => row.map(cell => cell.content));
+        const table = component as RenderTable;
+        return table.rows.flatMap(row => row.map(cell => cell.content));
       }
       return [(component as { content?: string }).content];
     })

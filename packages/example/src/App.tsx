@@ -60,6 +60,10 @@ function App() {
     () => sampleReports.find(report => report.key === sampleKey) ?? sampleReports[0],
     [sampleKey],
   );
+  const selectedSubreports = useMemo(
+    () => ('subreports' in selected ? selected.subreports as Record<string, ReportTemplate> : undefined),
+    [selected],
+  );
   const previewTemplate = previewDrafts[selected.key] ?? selected.template;
   const designerTemplate = useMemo(() => designerDrafts[selected.key] ?? previewTemplate, [designerDrafts, previewTemplate, selected.key]);
   const handleDesignerTemplateChange = useCallback((next: ReportTemplate) => {
@@ -87,7 +91,7 @@ function App() {
     setSilentPrintStatus('');
     try {
       const printDocument = renderReport(previewTemplate, selected.data, {
-        subreports: 'subreports' in selected ? selected.subreports : undefined,
+        subreports: selectedSubreports,
         expressionFunctions,
         expressionVariables,
         mode: 'print',
@@ -107,13 +111,13 @@ function App() {
     } finally {
       setSilentPrintLoading(false);
     }
-  }, [labels.silentPrintFailed, labels.silentPrintSent, previewTemplate, selected]);
+  }, [labels.silentPrintFailed, labels.silentPrintSent, previewTemplate, selected, selectedSubreports]);
   const handlePdfPrintValidation = useCallback(async () => {
     setPdfPrintLoading(true);
     setPdfPrintStatus('');
     try {
       const printDocument = renderReport(previewTemplate, selected.data, {
-        subreports: 'subreports' in selected ? selected.subreports : undefined,
+        subreports: selectedSubreports,
         expressionFunctions,
         expressionVariables,
         mode: 'print',
@@ -134,7 +138,7 @@ function App() {
     } finally {
       setPdfPrintLoading(false);
     }
-  }, [labels.pdfPrintValidationFailed, labels.pdfPrintValidationSent, previewTemplate, selected]);
+  }, [labels.pdfPrintValidationFailed, labels.pdfPrintValidationSent, previewTemplate, selected, selectedSubreports]);
 
   return (
     <Layout style={{ height: '100vh', minWidth: 900, background: '#eef1f5' }}>
@@ -225,7 +229,7 @@ function App() {
           <Viewer
             template={previewTemplate}
             data={selected.data}
-            subreports={'subreports' in selected ? selected.subreports : undefined}
+            subreports={selectedSubreports}
             expressionFunctions={expressionFunctions}
             expressionVariables={expressionVariables}
             locale={locale}
@@ -236,7 +240,7 @@ function App() {
             key={selected.key}
             template={designerTemplate}
             data={selected.data}
-            subreports={'subreports' in selected ? selected.subreports : undefined}
+            subreports={selectedSubreports}
             expressionExtensions={expressionExtensions}
             locale={locale}
             eventNavigationTarget={eventNavigationTarget}

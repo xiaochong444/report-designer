@@ -1,4 +1,4 @@
-import type { PanelComponent, ReportComponent } from '@report-designer/core';
+import type { PanelComponent, ReportComponentUnion } from '@report-designer/core';
 import { band, commonTextStyleIds, template, text } from './common';
 
 const panelBorder = {
@@ -19,7 +19,7 @@ const sampleImage =
   'data:image/png;base64,' +
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lxwQ2wAAAABJRU5ErkJggg==';
 
-const panelChildren: ReportComponent[] = [
+const panelChildren: ReportComponentUnion[] = [
   text('cc-panel-title', 'Panel child text', 4, 3, 54, 7, { style: commonTextStyleIds.header }),
   {
     id: 'cc-panel-image',
@@ -124,7 +124,7 @@ const panel: PanelComponent = {
   components: panelChildren,
 };
 
-const standaloneSubreport: ReportComponent = {
+const standaloneSubreport: ReportComponentUnion = {
   id: 'cc-subreport',
   type: 'subreport',
   name: 'Local Detail Template',
