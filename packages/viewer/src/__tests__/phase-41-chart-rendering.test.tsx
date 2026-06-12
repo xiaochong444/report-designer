@@ -105,7 +105,7 @@ describe('phase 41 chart rendering viewer', () => {
       theme: { baseTheme: 'light', customPalette: ['#ff0000', '#00ff00'] },
     }));
     expect(spec).toBeDefined();
-    // The post-processing should apply custom palette
+    expect(String((spec as any).theme)).toMatch(/^rd-chart-light-/);
     expect((spec as any).color?.range).toEqual(['#ff0000', '#00ff00']);
   });
 
