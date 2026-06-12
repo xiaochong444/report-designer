@@ -12,15 +12,14 @@ function chartTemplate(component: Partial<ChartComponent> = {}): ReportTemplate 
     y: 0,
     width: 120,
     height: 60,
-    chartType: 'bar',
-    variant: 'stacked',
+    chartType: 'column',
     binding: {
       dataSourceId: 'sales',
-      categoryExpression: '{Region}',
-      valueExpression: '{Amount}',
-      seriesExpression: '{Channel}',
+      dimensions: [{ field: 'Region' }],
+      measures: [{ field: 'Amount' }],
+      seriesField: 'Channel',
       aggregate: 'sum',
-      sort: [{ field: '{Region}', direction: 'asc' }],
+      sort: [{ field: 'Region', direction: 'asc' }],
     },
     appearance: {
       title: 'Sales by Region',
@@ -29,7 +28,7 @@ function chartTemplate(component: Partial<ChartComponent> = {}): ReportTemplate 
       showAxes: true,
       showGrid: true,
       showLabels: true,
-      palette: ['#2f6fed', '#f59e0b'],
+      theme: { baseTheme: 'light', customPalette: ['#2f6fed', '#f59e0b'] },
     },
     ...component,
   };
@@ -58,8 +57,8 @@ describe('phase 41 chart rendering', () => {
     const normalized = normalizeTemplate(chartTemplate({
       binding: {
         dataSourceId: 'sales',
-        categoryExpression: '{Region}',
-        valueExpression: '{Amount}',
+        dimensions: [{ field: 'Region' }],
+        measures: [{ field: 'Amount' }],
       },
       appearance: undefined,
     }));
@@ -67,12 +66,11 @@ describe('phase 41 chart rendering', () => {
     const chart = normalized.pages[0].bands[0].components[0] as ChartComponent;
     expect(chart).toMatchObject({
       type: 'chart',
-      chartType: 'bar',
-      variant: 'stacked',
+      chartType: 'column',
       binding: {
         dataSourceId: 'sales',
-        categoryExpression: '{Region}',
-        valueExpression: '{Amount}',
+        dimensions: [{ field: 'Region' }],
+        measures: [{ field: 'Amount' }],
         aggregate: 'none',
       },
       appearance: {
@@ -97,15 +95,13 @@ describe('phase 41 chart rendering', () => {
     const chart = document.pages[0].items[0].components[0];
     expect(chart.type).toBe('chart');
     expect(chart).toMatchObject({
-      chartType: 'bar',
-      variant: 'stacked',
+      chartType: 'column',
       title: 'Sales by Region',
       showLegend: true,
       legendPosition: 'right',
       showAxes: true,
       showGrid: true,
       showLabels: true,
-      palette: ['#2f6fed', '#f59e0b'],
     });
     expect(('data' in chart ? chart.data : []).map(({ category, series, value, label, x, y }) => ({ category, series, value, label, x, y }))).toEqual([
       { category: 'East', series: 'Online', value: 25, label: 'East', x: null, y: 25 },
@@ -114,15 +110,14 @@ describe('phase 41 chart rendering', () => {
     ]);
   });
 
-  it('renders point charts with x and y expressions', () => {
+  it('renders scatter charts with x and y dimensions/measures', () => {
     const document = renderReport(chartTemplate({
-      chartType: 'point',
-      variant: 'scatter',
+      chartType: 'scatter',
       binding: {
         dataSourceId: 'sales',
-        xExpression: '{Amount}',
-        yExpression: '{Margin}',
-        seriesExpression: '{Channel}',
+        dimensions: [{ field: 'Amount' }],
+        measures: [{ field: 'Margin' }],
+        seriesField: 'Channel',
       },
     }), {
       sales: [

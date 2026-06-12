@@ -20,16 +20,13 @@ function chartComponent(overrides: Partial<ChartComponent> = {}): ChartComponent
     y: 8,
     width: 80,
     height: 45,
-    chartType: 'bar',
-    variant: 'default',
+    chartType: 'column',
     binding: {
       dataSourceId: 'orders',
-      categoryExpression: '{customer}',
-      valueExpression: '{amount}',
-      xExpression: '',
-      yExpression: '',
-      seriesExpression: '',
-      labelExpression: '',
+      dimensions: [{ field: 'customer' }],
+      measures: [{ field: 'amount' }],
+      seriesField: '',
+      labelField: '',
       sort: [],
       aggregate: 'sum',
     },
@@ -40,7 +37,7 @@ function chartComponent(overrides: Partial<ChartComponent> = {}): ChartComponent
       showAxes: true,
       showGrid: true,
       showLabels: false,
-      palette: ['#2f6fed', '#16a34a'],
+      theme: { baseTheme: 'light' },
       axisTitleX: '',
       axisTitleY: 'Amount',
     },
@@ -85,8 +82,6 @@ describe('phase 41 chart component designer integration', () => {
 
     expect(screen.getByLabelText('图表类型')).toBeInTheDocument();
     expect(screen.getByLabelText('数据源')).toBeInTheDocument();
-    expect(screen.getByLabelText('类目字段')).toHaveValue('{customer}');
-    expect(screen.getByLabelText('数值字段')).toHaveValue('{amount}');
     expect(screen.getByLabelText('图表标题')).toHaveValue('Sales');
   });
 

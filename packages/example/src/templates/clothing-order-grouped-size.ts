@@ -218,10 +218,13 @@ if (headerTable && detailTable && sizeGroups.length > 0) {
   }
 
   // 设置初始表头标签（最大尺码组的名称）
+  // 新插入的尺码列：表头继承表头 S1 的对齐，明细继承明细 S1 的对齐
+  const headerTextAlign = headerPlaceholder?.cell?.textAlign ?? 'center';
+  const detailTextAlign = detailPlaceholder?.cell?.textAlign ?? 'right';
   for (let offset = 0; offset < maxSizeCount; offset++) {
     let name = largestSizes[offset] ? largestSizes[offset].name : "";
-    headerTable.setCellText(0, sizeColumn + offset, name);
-    detailTable.setCellText(0, sizeColumn + offset, "{S" + (offset + 1) + "}");
+    headerTable.setCell(0, sizeColumn + offset, { text: name, textAlign: headerTextAlign });
+    detailTable.setCell(0, sizeColumn + offset, { text: "{S" + (offset + 1) + "}", textAlign: detailTextAlign });
   }
 }
 `.trim();
@@ -246,12 +249,17 @@ let detailTable = ctx.table?.("GroupSizeDetailTable");
 if (headerTable && detailTable) {
   let placeholder = headerTable.findCellText("S1");
   let col = placeholder != null ? placeholder.column : 4;
+  // 从表头 S1 读取对齐方式（标题居中），从明细 S1 读取对齐方式（数值右对齐）
+  let detailPlaceholder = detailTable.findCellText("{S1}");
+  let headerTextAlign = placeholder?.cell?.textAlign ?? 'center';
+  let detailTextAlign = detailPlaceholder?.cell?.textAlign ?? 'right';
   // 用当前组的尺码名称覆盖表头；超出当前组尺码数的列清空
+  // 表头尺码列继承表头 S1 的对齐，明细尺码列继承明细 S1 的对齐
   let currentColumnCount = headerTable.columnCount - col - 3;
   for (let offset = 0; offset < currentColumnCount; offset++) {
     let name = sizes[offset] ? sizes[offset].name : "";
-    headerTable.setCellText(0, col + offset, name);
-    detailTable.setCellText(0, col + offset, "{S" + (offset + 1) + "}");
+    headerTable.setCell(0, col + offset, { text: name, textAlign: headerTextAlign });
+    detailTable.setCell(0, col + offset, { text: "{S" + (offset + 1) + "}", textAlign: detailTextAlign });
   }
 }
 `.trim();

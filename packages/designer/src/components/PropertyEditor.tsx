@@ -14,7 +14,7 @@ import {
 } from '@ant-design/icons';
 import { useDesignerStore } from '../store/designer-store';
 import { getReportFontOptions, supportsComponentStyle } from '@report-designer/core';
-import type { BorderConfig, ChartAggregateMode, ChartComponent, ChartType, ChartVariant, DataSource, Padding, ReportComponent, ReportTemplate, TableComponent, TextFormatConfig } from '@report-designer/core';
+import type { BorderConfig, ChartAggregateMode, ChartComponent, ChartType, DataSource, Padding, ReportComponent, ReportTemplate, TableComponent, TextFormatConfig } from '@report-designer/core';
 import { formatUnitValue, getUnitStep, parseUnitValue } from '../page-settings';
 import { ExpressionEditor } from './ExpressionEditor';
 import { normalizeTable } from '../table/table-structure';
@@ -1146,20 +1146,16 @@ const ChartPropertyPanel: React.FC<{
 }> = ({ chart, dataSourceDefinitions, dataSourceOptions, onChange, t }) => {
   const binding = chart.binding ?? {};
   const appearance = chart.appearance ?? {};
-  const fieldOptions = getFieldsForPath(dataSourceDefinitions, binding.dataSourceId).map(field => ({
-    value: `{${field.name}}`,
-    label: field.label || field.name,
-  }));
-  const expressionListId = `rd-chart-fields-${chart.id}`;
+  const fields = getFieldsForPath(dataSourceDefinitions, binding.dataSourceId);
+  const fieldSelectOptions = fields.map(f => ({ value: f.name, label: f.label || f.name }));
+  const numberFieldOptions = fields.filter(f => f.type === 'number').map(f => ({ value: f.name, label: f.label || f.name }));
   const updateBinding = (updates: Partial<ChartComponent['binding']>) => {
     onChange('binding', {
       dataSourceId: '',
-      categoryExpression: '',
-      valueExpression: '',
-      xExpression: '',
-      yExpression: '',
-      seriesExpression: '',
-      labelExpression: '',
+      dimensions: [],
+      measures: [],
+      seriesField: '',
+      labelField: '',
       sort: [],
       aggregate: 'none',
       ...binding,
@@ -1175,34 +1171,35 @@ const ChartPropertyPanel: React.FC<{
       showAxes: true,
       showGrid: true,
       showLabels: false,
-      palette: ['#2f6fed', '#16a34a', '#f59e0b', '#ef4444'],
+      theme: { baseTheme: 'light' },
       axisTitleX: '',
       axisTitleY: '',
-      innerRadius: 0.55,
-      outerRadius: 0.85,
       ...appearance,
       ...updates,
     });
   };
-  const handleTypeChange = (chartType: ChartType) => {
-    onChange('chartType', chartType);
-    onChange('variant', defaultChartVariant(chartType));
-  };
   const handleDataSourceChange = (dataSourceId?: string) => {
-    const fields = getFieldsForPath(dataSourceDefinitions, dataSourceId);
-    const category = fields.find(field => field.type !== 'number') ?? fields[0];
-    const numberFields = fields.filter(field => field.type === 'number');
-    const value = numberFields[0] ?? fields[1] ?? fields[0];
-    const y = numberFields[1] ?? numberFields[0] ?? fields[1] ?? fields[0];
+    const dsFields = getFieldsForPath(dataSourceDefinitions, dataSourceId);
+    const dimField = dsFields.find(f => f.type !== 'number') ?? dsFields[0];
+    const meaField = dsFields.find(f => f.type === 'number') ?? dsFields[1] ?? dsFields[0];
     updateBinding({
       dataSourceId: dataSourceId ?? '',
       arrayPath: dataSourceId ?? '',
-      categoryExpression: binding.categoryExpression || fieldExpression(category),
-      valueExpression: binding.valueExpression || fieldExpression(value),
-      xExpression: binding.xExpression || fieldExpression(value),
-      yExpression: binding.yExpression || fieldExpression(y),
+      dimensions: dimField ? [{ field: dimField.name }] : [],
+      measures: meaField ? [{ field: meaField.name }] : [],
     });
   };
+  const markStyle = appearance.markStyle ?? {};
+  const updateMarkStyle = (updates: Partial<typeof markStyle>) => {
+    updateAppearance({ markStyle: { ...markStyle, ...updates } });
+  };
+  const isBarLike = chart.chartType === 'column' || chart.chartType === 'columnParallel' || chart.chartType === 'columnPercent' || chart.chartType === 'bar' || chart.chartType === 'barParallel' || chart.chartType === 'barPercent';
+  const isLineLike = chart.chartType === 'line' || chart.chartType === 'area' || chart.chartType === 'areaPercent';
+  const isPieLike = chart.chartType === 'pie' || chart.chartType === 'donut' || chart.chartType === 'rose';
+  const isScatter = chart.chartType === 'scatter';
+  const isRadar = chart.chartType === 'radar';
+  const isFunnel = chart.chartType === 'funnel';
+  const theme = appearance.theme ?? { baseTheme: 'light' };
 
   return (
     <Space orientation="vertical" size={12} style={{ width: '100%' }}>
@@ -1211,18 +1208,9 @@ const ChartPropertyPanel: React.FC<{
           <Select
             aria-label={t('chartType')}
             value={chart.chartType}
-            onChange={handleTypeChange}
+            onChange={(value) => onChange('chartType', value)}
             size="small"
             options={chartTypeOptions(t)}
-          />
-        </Form.Item>
-        <Form.Item label={t('chartVariant')}>
-          <Select
-            aria-label={t('chartVariant')}
-            value={chart.variant}
-            onChange={(value) => onChange('variant', value)}
-            size="small"
-            options={chartVariantOptions(chart.chartType, t)}
           />
         </Form.Item>
       </Form>
@@ -1241,28 +1229,43 @@ const ChartPropertyPanel: React.FC<{
             options={dataSourceOptions}
           />
         </Form.Item>
-        <Form.Item label={t('chartArrayPath')}>
+        <Form.Item
+          label={t('chartArrayPath')}
+          tooltip={t('chartArrayPathTooltip')}
+        >
           <Input
             aria-label={t('chartArrayPath')}
             value={binding.arrayPath ?? ''}
             onChange={(event) => updateBinding({ arrayPath: event.target.value })}
             size="small"
-            placeholder={t('tableBindingArrayPathPlaceholder')}
+            placeholder={t('chartArrayPathPlaceholder')}
           />
         </Form.Item>
-        {chart.chartType === 'point' ? (
+        {isScatter ? (
           <>
-            {chartExpressionItem('xExpression', t('chartXField'))}
-            {chartExpressionItem('yExpression', t('chartYField'))}
+            <Form.Item label={t('chartXField')}>
+              <Select aria-label={t('chartXField')} value={binding.dimensions?.[0]?.field} onChange={(v) => updateBinding({ dimensions: [{ field: v }] })} size="small" options={numberFieldOptions} allowClear />
+            </Form.Item>
+            <Form.Item label={t('chartYField')}>
+              <Select aria-label={t('chartYField')} value={binding.measures?.[0]?.field} onChange={(v) => updateBinding({ measures: [{ field: v }] })} size="small" options={numberFieldOptions} allowClear />
+            </Form.Item>
           </>
         ) : (
           <>
-            {chartExpressionItem('categoryExpression', t('chartCategoryField'))}
-            {chartExpressionItem('valueExpression', t('chartValueField'))}
+            <Form.Item label={t('chartCategoryField')}>
+              <Select aria-label={t('chartCategoryField')} value={binding.dimensions?.[0]?.field} onChange={(v) => updateBinding({ dimensions: [{ field: v }] })} size="small" options={fieldSelectOptions} allowClear />
+            </Form.Item>
+            <Form.Item label={t('chartValueField')}>
+              <Select aria-label={t('chartValueField')} value={binding.measures?.[0]?.field} onChange={(v) => updateBinding({ measures: [{ field: v }] })} size="small" options={fieldSelectOptions} allowClear />
+            </Form.Item>
           </>
         )}
-        {chartExpressionItem('seriesExpression', t('chartSeriesField'), false)}
-        {chartExpressionItem('labelExpression', t('chartLabelField'), false)}
+        <Form.Item label={t('chartSeriesField')}>
+          <Select aria-label={t('chartSeriesField')} value={binding.seriesField || undefined} onChange={(v) => updateBinding({ seriesField: v ?? '' })} size="small" options={fieldSelectOptions} allowClear />
+        </Form.Item>
+        <Form.Item label={t('chartLabelField')}>
+          <Select aria-label={t('chartLabelField')} value={binding.labelField || undefined} onChange={(v) => updateBinding({ labelField: v ?? '' })} size="small" options={fieldSelectOptions} allowClear />
+        </Form.Item>
         <Form.Item label={t('chartAggregate')}>
           <Select
             aria-label={t('chartAggregate')}
@@ -1273,9 +1276,6 @@ const ChartPropertyPanel: React.FC<{
           />
         </Form.Item>
       </Form>
-      <datalist id={expressionListId}>
-        {fieldOptions.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}
-      </datalist>
 
       <Typography.Text strong>{t('chartAppearance')}</Typography.Text>
       <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
@@ -1298,25 +1298,58 @@ const ChartPropertyPanel: React.FC<{
           />
         </Form.Item>
         <Form.Item label={t('chartShowAxes')}>
-          <Switch aria-label={t('chartShowAxes')} size="small" checked={appearance.showAxes ?? true} onChange={(checked) => updateAppearance({ showAxes: checked })} disabled={chart.chartType === 'pie'} />
+          <Switch aria-label={t('chartShowAxes')} size="small" checked={appearance.showAxes ?? true} onChange={(checked) => updateAppearance({ showAxes: checked })} disabled={isPieLike} />
         </Form.Item>
         <Form.Item label={t('chartShowGrid')}>
-          <Switch aria-label={t('chartShowGrid')} size="small" checked={appearance.showGrid ?? true} onChange={(checked) => updateAppearance({ showGrid: checked })} disabled={chart.chartType === 'pie'} />
+          <Switch aria-label={t('chartShowGrid')} size="small" checked={appearance.showGrid ?? true} onChange={(checked) => updateAppearance({ showGrid: checked })} disabled={isPieLike} />
         </Form.Item>
         <Form.Item label={t('chartShowLabels')}>
           <Switch aria-label={t('chartShowLabels')} size="small" checked={appearance.showLabels ?? false} onChange={(checked) => updateAppearance({ showLabels: checked })} />
         </Form.Item>
         <Form.Item label={t('chartAxisTitleX')}>
-          <Input aria-label={t('chartAxisTitleX')} value={appearance.axisTitleX ?? ''} onChange={(event) => updateAppearance({ axisTitleX: event.target.value })} size="small" disabled={chart.chartType === 'pie'} />
+          <Input aria-label={t('chartAxisTitleX')} value={appearance.axisTitleX ?? ''} onChange={(event) => updateAppearance({ axisTitleX: event.target.value })} size="small" disabled={isPieLike} />
         </Form.Item>
         <Form.Item label={t('chartAxisTitleY')}>
-          <Input aria-label={t('chartAxisTitleY')} value={appearance.axisTitleY ?? ''} onChange={(event) => updateAppearance({ axisTitleY: event.target.value })} size="small" disabled={chart.chartType === 'pie'} />
+          <Input aria-label={t('chartAxisTitleY')} value={appearance.axisTitleY ?? ''} onChange={(event) => updateAppearance({ axisTitleY: event.target.value })} size="small" disabled={isPieLike} />
+        </Form.Item>
+        <Form.Item label={t('chartLabelType')}>
+          <Select
+            aria-label={t('chartLabelType')}
+            value={appearance.labelType ?? 'name'}
+            onChange={(value) => updateAppearance({ labelType: value })}
+            size="small"
+            options={[
+              { value: 'name', label: t('chartLabelTypeName') },
+              { value: 'value', label: t('chartLabelTypeValue') },
+              { value: 'percent', label: t('chartLabelTypePercent') },
+              { value: 'name-value', label: t('chartLabelTypeNameValue') },
+            ]}
+          />
+        </Form.Item>
+        <Form.Item label={t('chartAxisLabelRotation')}>
+          <InputNumber aria-label={t('chartAxisLabelRotation')} value={appearance.axisLabelRotation ?? 0} onChange={(v) => updateAppearance({ axisLabelRotation: v ?? 0 })} size="small" min={-90} max={90} />
+        </Form.Item>
+      </Form>
+
+      <Typography.Text strong>{t('chartTheme')}</Typography.Text>
+      <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+        <Form.Item label={t('chartBaseTheme')}>
+          <Select
+            aria-label={t('chartBaseTheme')}
+            value={theme.baseTheme ?? 'light'}
+            onChange={(value) => updateAppearance({ theme: { ...theme, baseTheme: value } })}
+            size="small"
+            options={[
+              { value: 'light', label: t('chartThemeLight') },
+              { value: 'dark', label: t('chartThemeDark') },
+            ]}
+          />
         </Form.Item>
         <Form.Item label={t('chartPalette')}>
           <Input
             aria-label={t('chartPalette')}
-            value={(appearance.palette ?? []).join(',')}
-            onChange={(event) => updateAppearance({ palette: event.target.value.split(',').map(item => item.trim()).filter(Boolean) })}
+            value={(theme.customPalette ?? []).join(',')}
+            onChange={(event) => updateAppearance({ theme: { ...theme, customPalette: event.target.value.split(',').map(s => s.trim()).filter(Boolean) } })}
             size="small"
             placeholder={t('chartPalettePlaceholder')}
           />
@@ -1325,23 +1358,157 @@ const ChartPropertyPanel: React.FC<{
           <Input aria-label={t('chartEmptyMessage')} value={chart.emptyMessage ?? ''} onChange={(event) => onChange('emptyMessage', event.target.value)} size="small" />
         </Form.Item>
       </Form>
+
+      {(isBarLike || isLineLike || isPieLike || isScatter || isRadar || isFunnel) ? (
+        <>
+          <Typography.Text strong>{t('chartMarkStyle')}</Typography.Text>
+          <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+            {isBarLike ? (
+              <>
+                <Form.Item label={t('chartBarWidth')}>
+                  <InputNumber aria-label={t('chartBarWidth')} value={markStyle.barWidth} onChange={(v) => updateMarkStyle({ barWidth: v ?? undefined })} size="small" min={0} max={100} step={1} />
+                </Form.Item>
+                <Form.Item label={t('chartCornerRadius')}>
+                  <InputNumber aria-label={t('chartCornerRadius')} value={markStyle.cornerRadius} onChange={(v) => updateMarkStyle({ cornerRadius: v ?? undefined })} size="small" min={0} max={50} step={1} />
+                </Form.Item>
+                <Form.Item label={t('chartFillOpacity')}>
+                  <InputNumber aria-label={t('chartFillOpacity')} value={markStyle.fillOpacity} onChange={(v) => updateMarkStyle({ fillOpacity: v ?? undefined })} size="small" min={0} max={1} step={0.05} />
+                </Form.Item>
+              </>
+            ) : null}
+            {isLineLike ? (
+              <>
+                <Form.Item label={t('chartCurveType')}>
+                  <Select
+                    aria-label={t('chartCurveType')}
+                    value={markStyle.curveType ?? 'linear'}
+                    onChange={(value) => updateMarkStyle({ curveType: value })}
+                    size="small"
+                    options={[
+                      { value: 'linear', label: t('chartCurveLinear') },
+                      { value: 'monotone', label: t('chartCurveMonotone') },
+                      { value: 'step', label: t('chartCurveStep') },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label={t('chartShowPoint')}>
+                  <Switch aria-label={t('chartShowPoint')} size="small" checked={markStyle.showPoint ?? true} onChange={(checked) => updateMarkStyle({ showPoint: checked })} />
+                </Form.Item>
+                <Form.Item label={t('chartPointSize')}>
+                  <InputNumber aria-label={t('chartPointSize')} value={markStyle.pointSize ?? 4} onChange={(v) => updateMarkStyle({ pointSize: v ?? 4 })} size="small" min={0} max={20} step={1} />
+                </Form.Item>
+              </>
+            ) : null}
+            {isPieLike ? (
+              <>
+                <Form.Item label={t('chartInnerRadius')}>
+                  <InputNumber aria-label={t('chartInnerRadius')} value={markStyle.innerRadius ?? (chart.chartType === 'donut' ? 0.55 : 0)} onChange={(v) => updateMarkStyle({ innerRadius: v ?? 0 })} size="small" min={0} max={1} step={0.05} />
+                </Form.Item>
+                <Form.Item label={t('chartOuterRadius')}>
+                  <InputNumber aria-label={t('chartOuterRadius')} value={markStyle.outerRadius ?? 0.85} onChange={(v) => updateMarkStyle({ outerRadius: v ?? 0.85 })} size="small" min={0.1} max={1} step={0.05} />
+                </Form.Item>
+                {chart.chartType === 'rose' ? (
+                  <Form.Item label={t('chartRoseType')}>
+                    <Select
+                      aria-label={t('chartRoseType')}
+                      value={markStyle.roseType ?? 'radius'}
+                      onChange={(value) => updateMarkStyle({ roseType: value })}
+                      size="small"
+                      options={[
+                        { value: 'radius', label: t('chartRoseRadius') },
+                        { value: 'area', label: t('chartRoseArea') },
+                      ]}
+                    />
+                  </Form.Item>
+                ) : null}
+              </>
+            ) : null}
+            {isScatter ? (
+              <>
+                <Form.Item label={t('chartShowTrendLine')}>
+                  <Switch aria-label={t('chartShowTrendLine')} size="small" checked={markStyle.showTrendLine ?? false} onChange={(checked) => updateMarkStyle({ showTrendLine: checked })} />
+                </Form.Item>
+                {markStyle.showTrendLine ? (
+                  <Form.Item label={t('chartTrendLineType')}>
+                    <Select
+                      aria-label={t('chartTrendLineType')}
+                      value={markStyle.trendLineType ?? 'linear'}
+                      onChange={(value) => updateMarkStyle({ trendLineType: value })}
+                      size="small"
+                      options={[
+                        { value: 'linear', label: t('chartCurveLinear') },
+                        { value: 'polynomial', label: t('chartTrendPolynomial') },
+                        { value: 'exponential', label: t('chartTrendExponential') },
+                      ]}
+                    />
+                  </Form.Item>
+                ) : null}
+                <Form.Item label={t('chartPointSize')}>
+                  <InputNumber aria-label={t('chartPointSize')} value={markStyle.pointSize ?? 6} onChange={(v) => updateMarkStyle({ pointSize: v ?? 6 })} size="small" min={1} max={30} step={1} />
+                </Form.Item>
+              </>
+            ) : null}
+            {isRadar ? (
+              <>
+                <Form.Item label={t('chartRadarShape')}>
+                  <Select
+                    aria-label={t('chartRadarShape')}
+                    value={markStyle.radarShape ?? 'polygon'}
+                    onChange={(value) => updateMarkStyle({ radarShape: value })}
+                    size="small"
+                    options={[
+                      { value: 'polygon', label: t('chartRadarPolygon') },
+                      { value: 'circle', label: t('chartRadarCircle') },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label={t('chartShowRadarArea')}>
+                  <Switch aria-label={t('chartShowRadarArea')} size="small" checked={markStyle.showRadarArea ?? true} onChange={(checked) => updateMarkStyle({ showRadarArea: checked })} />
+                </Form.Item>
+                {markStyle.showRadarArea ? (
+                  <Form.Item label={t('chartRadarAreaOpacity')}>
+                    <InputNumber aria-label={t('chartRadarAreaOpacity')} value={markStyle.radarAreaOpacity ?? 0.3} onChange={(v) => updateMarkStyle({ radarAreaOpacity: v ?? 0.3 })} size="small" min={0} max={1} step={0.05} />
+                  </Form.Item>
+                ) : null}
+              </>
+            ) : null}
+            {isFunnel ? (
+              <>
+                <Form.Item label={t('chartFunnelDirection')}>
+                  <Select
+                    aria-label={t('chartFunnelDirection')}
+                    value={markStyle.funnelDirection ?? 'vertical'}
+                    onChange={(value) => updateMarkStyle({ funnelDirection: value })}
+                    size="small"
+                    options={[
+                      { value: 'vertical', label: t('chartVertical') },
+                      { value: 'horizontal', label: t('chartHorizontal') },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label={t('chartFunnelShape')}>
+                  <Select
+                    aria-label={t('chartFunnelShape')}
+                    value={markStyle.funnelShape ?? 'trapezoid'}
+                    onChange={(value) => updateMarkStyle({ funnelShape: value })}
+                    size="small"
+                    options={[
+                      { value: 'trapezoid', label: t('chartFunnelTrapezoid') },
+                      { value: 'triangle', label: t('chartFunnelTriangle') },
+                      { value: 'rect', label: t('chartFunnelRect') },
+                    ]}
+                  />
+                </Form.Item>
+                <Form.Item label={t('chartShowConversionRate')}>
+                  <Switch aria-label={t('chartShowConversionRate')} size="small" checked={markStyle.showConversionRate ?? false} onChange={(checked) => updateMarkStyle({ showConversionRate: checked })} />
+                </Form.Item>
+              </>
+            ) : null}
+          </Form>
+        </>
+      ) : null}
     </Space>
   );
-
-  function chartExpressionItem(field: keyof ChartComponent['binding'], label: string, required = true) {
-    return (
-      <Form.Item label={label}>
-        <Input
-          aria-label={label}
-          value={String(binding[field] ?? '')}
-          onChange={(event) => updateBinding({ [field]: event.target.value })}
-          size="small"
-          list={expressionListId}
-          placeholder={required ? '{Field}' : t('expressionLikePlaceholder')}
-        />
-      </Form.Item>
-    );
-  }
 };
 
 const ExpressionFieldButton: React.FC<{
@@ -1428,54 +1595,30 @@ function buildComponentTreeItems(components: ReportComponent[]): EventTreeItem[]
   });
 }
 
-function fieldExpression(field: { name: string } | undefined): string {
-  return field?.name ? `{${field.name}}` : '';
-}
-
-function defaultChartVariant(type: ChartType): ChartVariant {
-  if (type === 'point') return 'scatter';
-  return 'default';
-}
-
 function chartTypeOptions(t: ReturnType<typeof createPropertyT>): Array<{ value: ChartType; label: string }> {
   return [
+    { value: 'column', label: t('chartTypeColumn') },
+    { value: 'columnParallel', label: t('chartTypeColumnParallel') },
+    { value: 'columnPercent', label: t('chartTypeColumnPercent') },
     { value: 'bar', label: t('chartTypeBar') },
+    { value: 'barParallel', label: t('chartTypeBarParallel') },
+    { value: 'barPercent', label: t('chartTypeBarPercent') },
     { value: 'line', label: t('chartTypeLine') },
     { value: 'area', label: t('chartTypeArea') },
+    { value: 'areaPercent', label: t('chartTypeAreaPercent') },
     { value: 'pie', label: t('chartTypePie') },
-    { value: 'point', label: t('chartTypePoint') },
-  ];
-}
-
-function chartVariantOptions(type: ChartType, t: ReturnType<typeof createPropertyT>): Array<{ value: ChartVariant; label: string }> {
-  if (type === 'point') {
-    return [{ value: 'scatter', label: t('chartVariantScatter') }];
-  }
-  if (type === 'line') {
-    return [
-      { value: 'default', label: t('chartVariantDefault') },
-      { value: 'smooth', label: t('chartVariantSmooth') },
-      { value: 'step', label: t('chartVariantStep') },
-    ];
-  }
-  if (type === 'bar') {
-    return [
-      { value: 'default', label: t('chartVariantDefault') },
-      { value: 'grouped', label: t('chartVariantGrouped') },
-      { value: 'stacked', label: t('chartVariantStacked') },
-      { value: 'horizontal', label: t('chartVariantHorizontal') },
-    ];
-  }
-  if (type === 'area') {
-    return [
-      { value: 'default', label: t('chartVariantDefault') },
-      { value: 'smooth', label: t('chartVariantSmooth') },
-      { value: 'stacked', label: t('chartVariantStacked') },
-    ];
-  }
-  return [
-    { value: 'default', label: t('chartVariantDefault') },
-    { value: 'donut', label: t('chartVariantDonut') },
+    { value: 'donut', label: t('chartTypeDonut') },
+    { value: 'rose', label: t('chartTypeRose') },
+    { value: 'scatter', label: t('chartTypeScatter') },
+    { value: 'radar', label: t('chartTypeRadar') },
+    { value: 'funnel', label: t('chartTypeFunnel') },
+    { value: 'dualAxis', label: t('chartTypeDualAxis') },
+    { value: 'heatmap', label: t('chartTypeHeatmap') },
+    { value: 'histogram', label: t('chartTypeHistogram') },
+    { value: 'boxPlot', label: t('chartTypeBoxPlot') },
+    { value: 'treeMap', label: t('chartTypeTreeMap') },
+    { value: 'sunburst', label: t('chartTypeSunburst') },
+    { value: 'circlePacking', label: t('chartTypeCirclePacking') },
   ];
 }
 
@@ -1560,6 +1703,8 @@ const propertyEditorMessages = {
     chartBinding: '数据绑定',
     chartDataSource: '数据源',
     chartArrayPath: '数组路径',
+    chartArrayPathTooltip: '用于主从报表场景，指定当前行中的子数组字段名（如 Items）。留空则使用数据源顶级数组。',
+    chartArrayPathPlaceholder: '如 Items 或 Orders.Lines',
     chartCategoryField: '类目字段',
     chartValueField: '数值字段',
     chartXField: 'X 轴字段',
@@ -1586,19 +1731,70 @@ const propertyEditorMessages = {
     chartPalette: '调色板',
     chartPalettePlaceholder: '使用逗号分隔，例如 #2f6fed,#16a34a',
     chartEmptyMessage: '空数据提示',
-    chartTypePoint: '点图',
+    chartTypeColumn: '柱状图',
+    chartTypeColumnParallel: '分组柱状图',
+    chartTypeColumnPercent: '百分比柱状图',
+    chartTypeBar: '条形图',
+    chartTypeBarParallel: '分组条形图',
+    chartTypeBarPercent: '百分比条形图',
     chartTypeLine: '折线图',
-    chartTypeBar: '柱状图',
     chartTypeArea: '面积图',
+    chartTypeAreaPercent: '百分比面积图',
     chartTypePie: '饼图',
-    chartVariantDefault: '默认',
-    chartVariantSmooth: '平滑',
-    chartVariantStep: '阶梯',
-    chartVariantGrouped: '分组',
-    chartVariantStacked: '堆叠',
-    chartVariantHorizontal: '横向',
-    chartVariantDonut: '环形',
-    chartVariantScatter: '散点',
+    chartTypeDonut: '环形图',
+    chartTypeRose: '玫瑰图',
+    chartTypeScatter: '散点图',
+    chartTypeRadar: '雷达图',
+    chartTypeFunnel: '漏斗图',
+    chartTypeDualAxis: '双轴图',
+    chartTypeHeatmap: '热力图',
+    chartTypeHistogram: '直方图',
+    chartTypeBoxPlot: '箱线图',
+    chartTypeTreeMap: '矩形树图',
+    chartTypeSunburst: '旭日图',
+    chartTypeCirclePacking: '圆形填充图',
+    chartLabelType: '标签类型',
+    chartLabelTypeName: '名称',
+    chartLabelTypeValue: '数值',
+    chartLabelTypePercent: '百分比',
+    chartLabelTypeNameValue: '名称+数值',
+    chartAxisLabelRotation: '轴标签旋转',
+    chartTheme: '主题设置',
+    chartBaseTheme: '基础主题',
+    chartThemeLight: '浅色',
+    chartThemeDark: '深色',
+    chartMarkStyle: '样式设置',
+    chartBarWidth: '柱宽',
+    chartCornerRadius: '圆角',
+    chartFillOpacity: '填充透明度',
+    chartCurveType: '曲线类型',
+    chartCurveLinear: '直线',
+    chartCurveMonotone: '平滑',
+    chartCurveStep: '阶梯',
+    chartShowPoint: '显示节点',
+    chartPointSize: '节点大小',
+    chartInnerRadius: '内径',
+    chartOuterRadius: '外径',
+    chartRoseType: '玫瑰类型',
+    chartRoseRadius: '半径',
+    chartRoseArea: '面积',
+    chartShowTrendLine: '显示趋势线',
+    chartTrendLineType: '趋势线类型',
+    chartTrendPolynomial: '多项式',
+    chartTrendExponential: '指数',
+    chartRadarShape: '雷达形状',
+    chartRadarPolygon: '多边形',
+    chartRadarCircle: '圆形',
+    chartShowRadarArea: '填充雷达区域',
+    chartRadarAreaOpacity: '雷达填充透明度',
+    chartFunnelDirection: '漏斗方向',
+    chartVertical: '垂直',
+    chartHorizontal: '水平',
+    chartFunnelShape: '漏斗形状',
+    chartFunnelTrapezoid: '梯形',
+    chartFunnelTriangle: '三角形',
+    chartFunnelRect: '矩形',
+    chartShowConversionRate: '显示转化率',
     name: '名称',
     type: '类型',
     componentName: '组件名称',
@@ -1755,6 +1951,8 @@ const propertyEditorMessages = {
     chartBinding: 'Data binding',
     chartDataSource: 'Data source',
     chartArrayPath: 'Array path',
+    chartArrayPathTooltip: 'For master-detail reports, specifies the sub-array field on the current row (e.g. Items). Leave empty to use the top-level data source array.',
+    chartArrayPathPlaceholder: 'e.g. Items or Orders.Lines',
     chartCategoryField: 'Category field',
     chartValueField: 'Value field',
     chartXField: 'X field',
@@ -1781,19 +1979,70 @@ const propertyEditorMessages = {
     chartPalette: 'Palette',
     chartPalettePlaceholder: 'Comma separated, for example #2f6fed,#16a34a',
     chartEmptyMessage: 'Empty message',
-    chartTypePoint: 'Point',
-    chartTypeLine: 'Line',
+    chartTypeColumn: 'Column',
+    chartTypeColumnParallel: 'Grouped Column',
+    chartTypeColumnPercent: 'Percent Column',
     chartTypeBar: 'Bar',
+    chartTypeBarParallel: 'Grouped Bar',
+    chartTypeBarPercent: 'Percent Bar',
+    chartTypeLine: 'Line',
     chartTypeArea: 'Area',
+    chartTypeAreaPercent: 'Percent Area',
     chartTypePie: 'Pie',
-    chartVariantDefault: 'Default',
-    chartVariantSmooth: 'Smooth',
-    chartVariantStep: 'Step',
-    chartVariantGrouped: 'Grouped',
-    chartVariantStacked: 'Stacked',
-    chartVariantHorizontal: 'Horizontal',
-    chartVariantDonut: 'Donut',
-    chartVariantScatter: 'Scatter',
+    chartTypeDonut: 'Donut',
+    chartTypeRose: 'Rose',
+    chartTypeScatter: 'Scatter',
+    chartTypeRadar: 'Radar',
+    chartTypeFunnel: 'Funnel',
+    chartTypeDualAxis: 'Dual Axis',
+    chartTypeHeatmap: 'Heatmap',
+    chartTypeHistogram: 'Histogram',
+    chartTypeBoxPlot: 'Box Plot',
+    chartTypeTreeMap: 'Tree Map',
+    chartTypeSunburst: 'Sunburst',
+    chartTypeCirclePacking: 'Circle Packing',
+    chartLabelType: 'Label type',
+    chartLabelTypeName: 'Name',
+    chartLabelTypeValue: 'Value',
+    chartLabelTypePercent: 'Percent',
+    chartLabelTypeNameValue: 'Name+Value',
+    chartAxisLabelRotation: 'Axis label rotation',
+    chartTheme: 'Theme',
+    chartBaseTheme: 'Base theme',
+    chartThemeLight: 'Light',
+    chartThemeDark: 'Dark',
+    chartMarkStyle: 'Mark Style',
+    chartBarWidth: 'Bar width',
+    chartCornerRadius: 'Corner radius',
+    chartFillOpacity: 'Fill opacity',
+    chartCurveType: 'Curve type',
+    chartCurveLinear: 'Linear',
+    chartCurveMonotone: 'Smooth',
+    chartCurveStep: 'Step',
+    chartShowPoint: 'Show points',
+    chartPointSize: 'Point size',
+    chartInnerRadius: 'Inner radius',
+    chartOuterRadius: 'Outer radius',
+    chartRoseType: 'Rose type',
+    chartRoseRadius: 'Radius',
+    chartRoseArea: 'Area',
+    chartShowTrendLine: 'Show trend line',
+    chartTrendLineType: 'Trend line type',
+    chartTrendPolynomial: 'Polynomial',
+    chartTrendExponential: 'Exponential',
+    chartRadarShape: 'Radar shape',
+    chartRadarPolygon: 'Polygon',
+    chartRadarCircle: 'Circle',
+    chartShowRadarArea: 'Fill radar area',
+    chartRadarAreaOpacity: 'Radar area opacity',
+    chartFunnelDirection: 'Funnel direction',
+    chartVertical: 'Vertical',
+    chartHorizontal: 'Horizontal',
+    chartFunnelShape: 'Funnel shape',
+    chartFunnelTrapezoid: 'Trapezoid',
+    chartFunnelTriangle: 'Triangle',
+    chartFunnelRect: 'Rectangle',
+    chartShowConversionRate: 'Show conversion rate',
     name: 'Name',
     type: 'Type',
     componentName: 'Component name',

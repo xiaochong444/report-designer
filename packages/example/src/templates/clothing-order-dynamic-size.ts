@@ -113,6 +113,11 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
   const headerRowHeight = headerSeedRow.height ?? 7;
   const detailRowHeight = detailSeedRow.height ?? headerRowHeight;
   // 读取占位列左侧和右侧的模板单元格，固定列的文本、宽度和样式都沿用模板配置。
+  // 同时读取 S1 占位列的对齐方式：表头尺码列继承表头 S1 的对齐，明细尺码列继承明细 S1 的对齐。
+  const seedCell = headerSeedCells[sizeColumn];
+  const seedDetailCell = detailSeedCells[sizeColumn];
+  const headerTextAlign = seedCell?.textAlign ?? 'center';
+  const detailTextAlign = seedDetailCell?.textAlign ?? 'right';
   const headerBefore = headerSeedCells.slice(0, sizeColumn);
   const headerAfter = headerSeedCells.slice(sizeColumn + 1);
   const detailBefore = detailSeedCells.slice(0, sizeColumn);
@@ -146,13 +151,14 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
 
     for (let offset = 0; offset < sizeCount; offset += 1) {
       // 每个尺码组占一行，并且都从第一列尺码列开始；短的尺码组右侧留空。
+      // 表头尺码列继承表头 S1 的对齐方式
       const name = sizes[offset]?.name ?? "";
       cells.push(copyCell(
         headerSeedCells[sizeColumn],
         "dynamic_size_header_cell_" + (row + 1) + "_" + (cells.length + 1),
         name,
         undefined,
-        "center",
+        headerTextAlign,
       ));
     }
 
@@ -185,13 +191,14 @@ if (headerTable && detailTable && Array.isArray(sizeGroups) && sizeGroups.length
 
   for (let offset = 0; offset < sizeCount; offset += 1) {
     // 明细单元格直接绑定 S1...S(最大尺码列数)。某行不用的尺码字段在数据里保持为空。
+    // 继承明细 S1 占位列的对齐方式。
     const field = "S" + (offset + 1);
     detailCells.push(copyCell(
       detailSeedCells[sizeColumn],
       "dynamic_size_detail_cell_" + (detailCells.length + 1),
       "{" + field + "}",
       undefined,
-      "right",
+      detailTextAlign,
     ));
   }
 

@@ -114,23 +114,108 @@ export interface TextFormatConfig {
   falseValues?: string[];
 }
 
-export type ChartType = 'point' | 'line' | 'bar' | 'area' | 'pie';
-export type ChartVariant = 'default' | 'smooth' | 'step' | 'grouped' | 'stacked' | 'horizontal' | 'donut' | 'scatter';
+export type ChartType =
+  // 折线/面积
+  | 'line' | 'area' | 'areaPercent'
+  // 柱状/条形
+  | 'column' | 'columnParallel' | 'columnPercent'
+  | 'bar' | 'barParallel' | 'barPercent'
+  // 饼/环/玫瑰
+  | 'pie' | 'donut' | 'rose'
+  // 散点
+  | 'scatter'
+  // 雷达
+  | 'radar'
+  // 漏斗
+  | 'funnel'
+  // 双轴组合
+  | 'dualAxis'
+  // 热力/直方/箱线
+  | 'heatmap' | 'histogram' | 'boxPlot'
+  // 层级关系
+  | 'sankey' | 'treeMap' | 'sunburst' | 'circlePacking';
+
 export type ChartAggregateMode = 'none' | 'sum' | 'avg' | 'count' | 'min' | 'max';
 export type ChartLegendPosition = 'top' | 'right' | 'bottom' | 'left';
 export type ChartSortDirection = 'asc' | 'desc';
 
+export interface ChartDimension {
+  field: string;
+  alias?: string;
+}
+
+export interface ChartMeasure {
+  field: string;
+  alias?: string;
+  aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
+}
+
 export interface ChartBinding {
   dataSourceId?: string;
   arrayPath?: Expression;
-  categoryExpression?: Expression;
-  valueExpression?: Expression;
-  xExpression?: Expression;
-  yExpression?: Expression;
-  seriesExpression?: Expression;
-  labelExpression?: Expression;
-  sort?: Array<{ field: Expression; direction: ChartSortDirection }>;
+  dimensions?: ChartDimension[];
+  measures?: ChartMeasure[];
+  seriesField?: string;
+  labelField?: string;
   aggregate?: ChartAggregateMode;
+  sort?: Array<{ field: string; direction: ChartSortDirection }>;
+  filterExpression?: Expression;
+}
+
+export interface ChartThemeConfig {
+  baseTheme: 'light' | 'dark';
+  customPalette?: string[];
+  backgroundColor?: string;
+  titleColor?: string;
+  subtitleColor?: string;
+  axisLabelColor?: string;
+  axisLineColor?: string;
+  gridColor?: string;
+  labelColor?: string;
+  fontFamily?: string;
+}
+
+export interface ChartMarkStyle {
+  // 柱状图
+  barWidth?: number;
+  cornerRadius?: number;
+  barLabelPosition?: 'inside' | 'top' | 'outside';
+  fillOpacity?: number;
+  lineWidth?: number;
+  stroke?: string;
+  // 折线图
+  curveType?: 'linear' | 'monotone' | 'step';
+  showPoint?: boolean;
+  pointSize?: number;
+  pointShape?: 'circle' | 'square' | 'triangle' | 'diamond';
+  showArea?: boolean;
+  areaOpacity?: number;
+  connectNulls?: boolean;
+  // 饼/环/玫瑰
+  innerRadius?: number;
+  outerRadius?: number;
+  startAngle?: number;
+  padAngle?: number;
+  roseType?: 'radius' | 'area';
+  // 散点图
+  showTrendLine?: boolean;
+  trendLineType?: 'linear' | 'polynomial' | 'exponential';
+  // 雷达图
+  radarShape?: 'polygon' | 'circle';
+  showRadarArea?: boolean;
+  radarAreaOpacity?: number;
+  axisCount?: number;
+  // 漏斗图
+  funnelDirection?: 'vertical' | 'horizontal';
+  funnelShape?: 'trapezoid' | 'triangle' | 'rect';
+  showConversionRate?: boolean;
+  funnelGap?: number;
+  funnelMinSize?: number;
+  funnelMaxSize?: number;
+  // 双轴图
+  primaryType?: 'bar' | 'line';
+  secondaryType?: 'bar' | 'line';
+  yAxisRightTitle?: string;
 }
 
 export interface ChartAppearance {
@@ -138,19 +223,17 @@ export interface ChartAppearance {
   subtitle?: string;
   showLegend?: boolean;
   legendPosition?: ChartLegendPosition;
+  showLabels?: boolean;
+  labelType?: 'name' | 'value' | 'percent' | 'name-value';
   showAxes?: boolean;
   showGrid?: boolean;
-  showLabels?: boolean;
-  palette?: string[];
-  valueFormat?: TextFormatConfig;
-  categoryFormat?: TextFormatConfig;
-  labelFormat?: TextFormatConfig;
   axisTitleX?: string;
   axisTitleY?: string;
+  axisLabelRotation?: number;
+  theme?: ChartThemeConfig;
+  markStyle?: ChartMarkStyle;
   backgroundColor?: string;
   padding?: Partial<Padding>;
-  innerRadius?: number;
-  outerRadius?: number;
 }
 
 export type TextAlign = 'left' | 'center' | 'right';
@@ -293,7 +376,6 @@ export interface ChartDataPoint {
 export interface ChartComponent extends ReportComponent {
   type: 'chart';
   chartType: ChartType;
-  variant: ChartVariant;
   binding: ChartBinding;
   appearance: ChartAppearance;
   data?: ChartDataPoint[];

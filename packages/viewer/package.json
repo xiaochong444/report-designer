@@ -21,6 +21,7 @@
     "@pdf-lib/fontkit": "^1.1.1",
     "@report-designer/core": "workspace:*",
     "@visactor/vchart": "^2.0.22",
+    "@visactor/vseed": "^0.5.6",
     "antd": "^6.0.0",
     "bwip-js": "^4.11.1",
     "lodash-es": "^4.17.21",

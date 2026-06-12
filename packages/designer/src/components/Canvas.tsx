@@ -2738,13 +2738,14 @@ const PanelChildrenPreview: React.FC<{ panel: ReportComponent & { components?: R
 };
 
 const DesignerChartPreview: React.FC<{ chart: ChartComponent }> = ({ chart }) => {
-  const palette = chart.appearance?.palette?.length
-    ? chart.appearance.palette
+  const palette = chart.appearance?.theme?.customPalette?.length
+    ? chart.appearance.theme.customPalette
     : ['#2f6fed', '#16a34a', '#f59e0b', '#ef4444', '#8b5cf6'];
   const points = chart.data?.length ? chart.data : createFallbackChartPoints(chart);
   const values = points.map(point => Number(point.value ?? point.y ?? 0)).filter(Number.isFinite);
   const max = Math.max(1, ...values.map(value => Math.abs(value)));
   const title = chart.appearance?.title;
+  const ct = chart.chartType;
 
   return (
     <div
@@ -2764,28 +2765,36 @@ const DesignerChartPreview: React.FC<{ chart: ChartComponent }> = ({ chart }) =>
         </div>
       ) : null}
       <div style={{ flex: 1, minHeight: 0 }}>
-        {chart.chartType === 'pie'
-          ? <PieChartPreview points={points} palette={palette} donut={chart.variant === 'donut'} />
-          : <CartesianChartPreview chart={chart} points={points} palette={palette} max={max} />}
+        {(ct === 'pie' || ct === 'donut' || ct === 'rose')
+          ? <PieChartPreview points={points} palette={palette} donut={ct === 'donut'} rose={ct === 'rose'} />
+          : ct === 'radar'
+            ? <RadarChartPreview points={points} palette={palette} max={max} />
+            : ct === 'funnel'
+              ? <FunnelChartPreview points={points} palette={palette} max={max} />
+              : ct === 'heatmap'
+                ? <HeatmapChartPreview points={points} palette={palette} max={max} />
+                : ct === 'treeMap' || ct === 'sunburst' || ct === 'circlePacking'
+                  ? <TreeMapChartPreview points={points} palette={palette} max={max} type={ct} />
+                  : <CartesianChartPreview chart={chart} points={points} palette={palette} max={max} />}
       </div>
     </div>
   );
 };
 
 function createFallbackChartPoints(chart: ChartComponent): ChartDataPoint[] {
-  const categories = chart.chartType === 'point' ? ['A', 'B', 'C', 'D'] : ['Q1', 'Q2', 'Q3', 'Q4'];
-  const values = chart.chartType === 'point' ? [22, 46, 33, 62] : [38, 64, 48, 72];
+  const categories = chart.chartType === 'scatter' ? ['A', 'B', 'C', 'D'] : ['Q1', 'Q2', 'Q3', 'Q4'];
+  const values = chart.chartType === 'scatter' ? [22, 46, 33, 62] : [38, 64, 48, 72];
   return categories.map((category, index) => ({
     category,
     value: values[index],
-    x: chart.chartType === 'point' ? index + 1 : null,
+    x: chart.chartType === 'scatter' ? index + 1 : null,
     y: values[index],
     label: category,
     raw: {},
   }));
 }
 
-const PieChartPreview: React.FC<{ points: ChartDataPoint[]; palette: string[]; donut: boolean }> = ({ donut, palette, points }) => {
+const PieChartPreview: React.FC<{ points: ChartDataPoint[]; palette: string[]; donut: boolean; rose?: boolean }> = ({ donut, palette, points, rose }) => {
   const values = points.map(point => Math.max(0, Number(point.value ?? 0))).filter(Number.isFinite);
   const total = values.reduce((sum, value) => sum + value, 0) || 1;
   let angle = 0;
@@ -2794,6 +2803,33 @@ const PieChartPreview: React.FC<{ points: ChartDataPoint[]; palette: string[]; d
     angle += (value / total) * 360;
     return `${palette[index % palette.length]} ${start}deg ${angle}deg`;
   });
+
+  if (rose) {
+    // Rose chart: sectors with varying radius
+    const maxR = 100;
+    let roseAngle = 0;
+    const sectors = values.map((value, index) => {
+      const sweep = (360 / values.length);
+      const startA = roseAngle;
+      roseAngle += sweep;
+      const r = (value / (Math.max(...values) || 1)) * maxR;
+      return { startA, sweep, r, color: palette[index % palette.length] };
+    });
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
+        <svg viewBox="-110 -110 220 220" width="70%" height="70%">
+          {sectors.map((s, i) => {
+            const midA = ((s.startA + s.sweep / 2) * Math.PI) / 180;
+            const x1 = Math.cos(((s.startA) * Math.PI) / 180) * s.r;
+            const y1 = Math.sin(((s.startA) * Math.PI) / 180) * s.r;
+            const x2 = Math.cos(((s.startA + s.sweep) * Math.PI) / 180) * s.r;
+            const y2 = Math.sin(((s.startA + s.sweep) * Math.PI) / 180) * s.r;
+            return <path key={i} d={`M0,0 L${x1},${y1} A${s.r},${s.r} 0 0,1 ${x2},${y2} Z`} fill={s.color} opacity={0.8} stroke="#fff" strokeWidth={1} />;
+          })}
+        </svg>
+      </div>
+    );
+  }
 
   return (
     <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
@@ -2835,7 +2871,7 @@ const CartesianChartPreview: React.FC<{
   const areaPoints = `${left},${top + plotHeight} ${linePoints} ${left + plotWidth},${top + plotHeight}`;
   const barWidth = Math.max(4, plotWidth / Math.max(1, points.length) * 0.58);
 
-  if (chart.chartType === 'point') {
+  if (chart.chartType === 'scatter') {
     return (
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
         <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
@@ -2846,26 +2882,26 @@ const CartesianChartPreview: React.FC<{
     );
   }
 
-  if (chart.chartType === 'bar') {
-    if (chart.variant === 'horizontal') {
-      const rowHeight = plotHeight / Math.max(1, points.length);
-      return (
-        <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
-          <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
-          {points.map((point, index) => (
-            <rect
-              key={index}
-              x={left}
-              y={top + index * rowHeight + rowHeight * 0.22}
-              width={(Number(point.value ?? 0) / max) * plotWidth}
-              height={Math.max(3, rowHeight * 0.56)}
-              fill={palette[index % palette.length]}
-              rx={1}
-            />
-          ))}
-        </svg>
-      );
-    }
+  if (chart.chartType === 'bar' || chart.chartType === 'barParallel' || chart.chartType === 'barPercent') {
+    const rowHeight = plotHeight / Math.max(1, points.length);
+    return (
+      <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
+        <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
+        {points.map((point, index) => (
+          <rect
+            key={index}
+            x={left}
+            y={top + index * rowHeight + rowHeight * 0.22}
+            width={(Number(point.value ?? 0) / max) * plotWidth}
+            height={Math.max(3, rowHeight * 0.56)}
+            fill={palette[index % palette.length]}
+            rx={1}
+          />
+        ))}
+      </svg>
+    );
+  }
+  if (chart.chartType === 'column' || chart.chartType === 'columnParallel' || chart.chartType === 'columnPercent') {
     return (
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
         <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
@@ -2906,6 +2942,130 @@ const ChartAxes: React.FC<{ left: number; top: number; plotWidth: number; plotHe
     <line x1={left} y1={top + plotHeight} x2={left + plotWidth} y2={top + plotHeight} stroke="#94a3b8" strokeWidth={1} />
   </>
 );
+
+const RadarChartPreview: React.FC<{ points: ChartDataPoint[]; palette: string[]; max: number }> = ({ points, palette, max }) => {
+  const cx = 100, cy = 100, r = 80;
+  const n = Math.max(3, points.length);
+  const axisAngles = Array.from({ length: n }, (_, i) => (i * 2 * Math.PI) / n - Math.PI / 2);
+  const gridLevels = [0.33, 0.66, 1.0];
+  const dataR = points.map(p => (Number(p.value ?? 0) / max) * r);
+  const dataPath = dataR.map((dr, i) => {
+    const a = axisAngles[i % n];
+    return `${cx + Math.cos(a) * dr},${cy + Math.sin(a) * dr}`;
+  }).join(' ');
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
+      <svg viewBox="0 0 200 200" width="70%" height="70%">
+        {gridLevels.map(level => (
+          <polygon key={level} points={axisAngles.map(a => `${cx + Math.cos(a) * r * level},${cy + Math.sin(a) * r * level}`).join(' ')} fill="none" stroke="#dbe3ef" strokeWidth={0.8} />
+        ))}
+        {axisAngles.map((a, i) => (
+          <line key={i} x1={cx} y1={cy} x2={cx + Math.cos(a) * r} y2={cy + Math.sin(a) * r} stroke="#cbd5e1" strokeWidth={0.6} />
+        ))}
+        <polygon points={dataPath} fill={palette[0]} fillOpacity={0.25} stroke={palette[0]} strokeWidth={1.5} />
+        {dataR.map((dr, i) => {
+          const a = axisAngles[i % n];
+          return <circle key={i} cx={cx + Math.cos(a) * dr} cy={cy + Math.sin(a) * dr} r={2.5} fill={palette[i % palette.length]} />;
+        })}
+      </svg>
+    </div>
+  );
+};
+
+const FunnelChartPreview: React.FC<{ points: ChartDataPoint[]; palette: string[]; max: number }> = ({ points, palette, max }) => {
+  const w = 180, h = 100;
+  const gap = 3;
+  const rowH = Math.max(6, (h - gap * (points.length - 1)) / Math.max(1, points.length));
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
+      <svg viewBox={`0 0 ${w} ${h}`} width="90%" height="90%">
+        {points.map((point, i) => {
+          const ratio = Math.max(0.15, Number(point.value ?? 0) / max);
+          const barW = ratio * (w * 0.85);
+          const x = (w - barW) / 2;
+          const y = i * (rowH + gap);
+          return <rect key={i} x={x} y={y} width={barW} height={rowH} rx={2} fill={palette[i % palette.length]} opacity={0.85} />;
+        })}
+      </svg>
+    </div>
+  );
+};
+
+const HeatmapChartPreview: React.FC<{ points: ChartDataPoint[]; palette: string[]; max: number }> = ({ points, palette }) => {
+  const cols = Math.min(4, points.length);
+  const rows = Math.ceil(points.length / cols);
+  const cellW = 36, cellH = 20, gap = 2;
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
+      <svg viewBox={`0 0 ${cols * (cellW + gap)} ${rows * (cellH + gap)}`} width="85%" height="85%">
+        {points.map((point, i) => {
+          const col = i % cols;
+          const row = Math.floor(i / cols);
+          const intensity = Math.max(0.15, Number(point.value ?? 0) / (Math.max(...points.map(p => Number(p.value ?? 0))) || 1));
+          return <rect key={i} x={col * (cellW + gap)} y={row * (cellH + gap)} width={cellW} height={cellH} rx={2} fill={palette[0]} opacity={intensity} />;
+        })}
+      </svg>
+    </div>
+  );
+};
+
+const TreeMapChartPreview: React.FC<{ points: ChartDataPoint[]; palette: string[]; max: number; type: string }> = ({ points, palette, max, type }) => {
+  if (type === 'sunburst') {
+    // Concentric rings
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
+        <svg viewBox="-110 -110 220 220" width="70%" height="70%">
+          <circle cx={0} cy={0} r={90} fill="#f1f5f9" stroke="#e2e8f0" strokeWidth={1} />
+          <circle cx={0} cy={0} r={55} fill="#fff" stroke="#e2e8f0" strokeWidth={1} />
+          <circle cx={0} cy={0} r={25} fill={palette[0]} opacity={0.3} />
+          {points.slice(0, 5).map((_, i) => {
+            const a1 = (i / 5) * 2 * Math.PI - Math.PI / 2;
+            const a2 = ((i + 1) / 5) * 2 * Math.PI - Math.PI / 2;
+            const x1 = Math.cos(a1) * 90, y1 = Math.sin(a1) * 90;
+            const x2 = Math.cos(a2) * 90, y2 = Math.sin(a2) * 90;
+            const ix1 = Math.cos(a1) * 55, iy1 = Math.sin(a1) * 55;
+            const ix2 = Math.cos(a2) * 55, iy2 = Math.sin(a2) * 55;
+            return <path key={i} d={`M${ix1},${iy1} L${x1},${y1} A90,90 0 0,1 ${x2},${y2} L${ix2},${iy2} A55,55 0 0,0 ${ix1},${iy1}`} fill={palette[i % palette.length]} opacity={0.6} stroke="#fff" strokeWidth={1} />;
+          })}
+        </svg>
+      </div>
+    );
+  }
+  if (type === 'circlePacking') {
+    return (
+      <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
+        <svg viewBox="0 0 200 200" width="70%" height="70%">
+          <circle cx={100} cy={100} r={90} fill="#f8fafc" stroke="#e2e8f0" strokeWidth={1} />
+          {points.slice(0, 5).map((p, i) => {
+            const r = Math.max(8, (Number(p.value ?? 0) / max) * 35);
+            const a = (i / 5) * 2 * Math.PI;
+            const cx = 100 + Math.cos(a) * 45;
+            const cy = 100 + Math.sin(a) * 45;
+            return <circle key={i} cx={cx} cy={cy} r={r} fill={palette[i % palette.length]} opacity={0.6} stroke="#fff" strokeWidth={1} />;
+          })}
+        </svg>
+      </div>
+    );
+  }
+  // TreeMap: nested rectangles
+  const w = 180, h = 100;
+  const sorted = [...points].sort((a, b) => Number(b.value ?? 0) - Number(a.value ?? 0));
+  const totalVal = sorted.reduce((s, p) => s + Math.max(0, Number(p.value ?? 0)), 0) || 1;
+  let cursor = 0;
+  return (
+    <div style={{ width: '100%', height: '100%', display: 'grid', placeItems: 'center' }}>
+      <svg viewBox={`0 0 ${w} ${h}`} width="90%" height="90%">
+        {sorted.map((p, i) => {
+          const frac = Math.max(0, Number(p.value ?? 0)) / totalVal;
+          const rw = frac * w;
+          const x = cursor;
+          cursor += rw;
+          return <rect key={i} x={x} y={0} width={Math.max(2, rw - 1)} height={h} rx={2} fill={palette[i % palette.length]} opacity={0.7} stroke="#fff" strokeWidth={1} />;
+        })}
+      </svg>
+    </div>
+  );
+};
 
 const PanelChildPreview: React.FC<{ component: ReportComponent }> = ({ component }) => {
   const { t } = useDesignerI18n();

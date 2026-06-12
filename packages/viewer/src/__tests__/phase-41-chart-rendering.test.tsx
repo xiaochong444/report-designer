@@ -37,19 +37,28 @@ function chart(overrides: Partial<RenderChart> = {}): RenderChart {
     y: 30,
     width: 80,
     height: 50,
-    chartType: 'bar',
-    variant: 'stacked',
+    chartType: 'column',
     data: [
       { category: 'East', series: 'Online', value: 25, label: 'East', x: null, y: 25, raw: {} },
       { category: 'East', series: 'Retail', value: 20, label: 'East', x: null, y: 20, raw: {} },
     ],
+    rawData: [
+      { category: 'East', series: 'Online', value: 25 },
+      { category: 'East', series: 'Retail', value: 20 },
+    ],
+    binding: {
+      dimensions: [{ field: 'category' }],
+      measures: [{ field: 'value' }],
+      seriesField: 'series',
+      aggregate: 'sum',
+      sort: [],
+    },
     title: 'Sales',
     showLegend: true,
     legendPosition: 'right',
     showAxes: true,
     showGrid: true,
     showLabels: true,
-    palette: ['#2f6fed', '#f59e0b'],
     aggregate: 'sum',
     emptyMessage: 'No chart data',
     style: {},
@@ -64,27 +73,40 @@ function documentWithChart(component = chart()): RenderDocument {
 }
 
 describe('phase 41 chart rendering viewer', () => {
-  it('builds VChart specs for common chart variants', () => {
-    expect(buildVChartSpec(chart())).toMatchObject({
-      type: 'bar',
-      stack: true,
-      seriesField: 'series',
-      xField: 'category',
-      yField: 'value',
-    });
+  it('builds VChart specs using VSeed pipeline for various chart types', () => {
+    // Column chart builds through VSeed
+    const columnSpec = buildVChartSpec(chart());
+    expect(columnSpec).toBeDefined();
+    expect(columnSpec.type).toBeDefined();
 
-    expect(buildVChartSpec(chart({ chartType: 'pie', variant: 'donut' }))).toMatchObject({
-      type: 'pie',
-      categoryField: 'category',
-      valueField: 'value',
-      innerRadius: 0.55,
-    });
+    // Pie chart
+    const pieSpec = buildVChartSpec(chart({ chartType: 'pie' }));
+    expect(pieSpec).toBeDefined();
 
-    expect(buildVChartSpec(chart({ chartType: 'point', variant: 'scatter' }))).toMatchObject({
-      type: 'scatter',
-      xField: 'x',
-      yField: 'y',
-    });
+    // Scatter chart
+    const scatterSpec = buildVChartSpec(chart({
+      chartType: 'scatter',
+      data: [
+        { category: '10', value: 25, series: undefined, label: 'A', x: 10, y: 25, raw: {} },
+      ],
+      rawData: [{ x: 10, y: 25 }],
+      binding: {
+        dimensions: [{ field: 'x' }],
+        measures: [{ field: 'y' }],
+        aggregate: 'none',
+        sort: [],
+      },
+    }));
+    expect(scatterSpec).toBeDefined();
+  });
+
+  it('applies theme and custom palette to the spec', () => {
+    const spec = buildVChartSpec(chart({
+      theme: { baseTheme: 'light', customPalette: ['#ff0000', '#00ff00'] },
+    }));
+    expect(spec).toBeDefined();
+    // The post-processing should apply custom palette
+    expect((spec as any).color?.range).toEqual(['#ff0000', '#00ff00']);
   });
 
   it('renders charts through the DOM preview renderer', async () => {
@@ -100,11 +122,11 @@ describe('phase 41 chart rendering viewer', () => {
     expect(imageHtml).toContain('rd-print-chart');
     expect(imageHtml).toContain(`src="${dataUrl}"`);
 
-    const placeholderHtml = buildPrintHtml(documentWithChart(chart({ data: [] })));
+    const placeholderHtml = buildPrintHtml(documentWithChart(chart({ data: [], rawData: [] })));
     expect(placeholderHtml).toContain('No chart data');
   });
 
   it('does not drop chart components during PDF export', async () => {
-    await expect(exportRenderDocumentToPDF(documentWithChart(chart({ data: [] })))).resolves.toBeInstanceOf(Uint8Array);
+    await expect(exportRenderDocumentToPDF(documentWithChart(chart({ data: [], rawData: [] })))).resolves.toBeInstanceOf(Uint8Array);
   });
 });

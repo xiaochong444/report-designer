@@ -723,9 +723,7 @@ function layoutChart(component: ChartComponent, options: LayoutBandOptions): Ren
   const rows = resolveChartRows(component, options);
   const sortedRows = applyChartSort(rows, component.binding?.sort ?? [], options.context);
   const aggregate = component.binding?.aggregate ?? 'none';
-  const data = aggregate === 'none'
-    ? sortedRows.map((row) => buildChartPoint(component, row, options))
-    : aggregateChartPoints(component, sortedRows, aggregate, options);
+  const data = buildChartData(component, sortedRows, aggregate, options);
 
   return {
     id: component.id,
@@ -735,8 +733,9 @@ function layoutChart(component: ChartComponent, options: LayoutBandOptions): Ren
     width: component.width,
     height: component.height,
     chartType: component.chartType,
-    variant: component.variant,
     data,
+    rawData: sortedRows,
+    binding: component.binding ?? { dimensions: [], measures: [], aggregate: 'none', sort: [] },
     title: component.appearance?.title,
     subtitle: component.appearance?.subtitle,
     showLegend: component.appearance?.showLegend ?? true,
@@ -744,12 +743,12 @@ function layoutChart(component: ChartComponent, options: LayoutBandOptions): Ren
     showAxes: component.appearance?.showAxes ?? true,
     showGrid: component.appearance?.showGrid ?? true,
     showLabels: component.appearance?.showLabels ?? false,
-    palette: component.appearance?.palette?.length ? [...component.appearance.palette] : ['#2f6fed', '#16a34a', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4'],
-    valueFormat: component.appearance?.valueFormat,
-    categoryFormat: component.appearance?.categoryFormat,
-    labelFormat: component.appearance?.labelFormat,
+    labelType: component.appearance?.labelType,
     axisTitleX: component.appearance?.axisTitleX,
     axisTitleY: component.appearance?.axisTitleY,
+    axisLabelRotation: component.appearance?.axisLabelRotation,
+    theme: component.appearance?.theme,
+    markStyle: component.appearance?.markStyle,
     aggregate,
     emptyMessage: component.emptyMessage ?? 'No data',
     style: buildBaseRenderStyle(component),
@@ -787,43 +786,52 @@ function applyChartSort(rows: Record<string, unknown>[], sort: Array<{ field: st
   });
 }
 
-function buildChartPoint(component: ChartComponent, row: Record<string, unknown>, options: LayoutBandOptions): ChartDataPoint {
-  if (component.chartType === 'point') {
-    const x = resolveNumber(resolveChartExpressionValue(component.binding?.xExpression ?? '', row, options.context));
-    const y = resolveNumber(resolveChartExpressionValue(component.binding?.yExpression ?? '', row, options.context));
-    const series = resolveChartExpressionValue(component.binding?.seriesExpression ?? '', row, options.context);
-    const label = resolveChartExpressionValue(component.binding?.labelExpression ?? '', row, options.context);
+function buildChartData(component: ChartComponent, rows: Record<string, unknown>[], aggregate: ChartAggregateMode, options: LayoutBandOptions): ChartDataPoint[] {
+  const dimField = component.binding?.dimensions?.[0]?.field;
+  const meaField = component.binding?.measures?.[0]?.field;
+  const seriesField = component.binding?.seriesField;
+  const labelField = component.binding?.labelField;
+  const isScatter = component.chartType === 'scatter';
+
+  const points: ChartDataPoint[] = rows.map((row) => {
+    if (isScatter) {
+      const xDim = component.binding?.dimensions?.[0]?.field;
+      const yMea = component.binding?.measures?.[0]?.field;
+      const x = resolveNumber(row[xDim ?? '']);
+      const y = resolveNumber(row[yMea ?? '']);
+      const series = seriesField ? String(row[seriesField] ?? '') : undefined;
+      return {
+        category: x == null ? '' : String(x),
+        value: y,
+        series: series || undefined,
+        label: labelField ? String(row[labelField] ?? '') : (x == null ? undefined : String(x)),
+        x, y,
+        raw: row,
+      };
+    }
+    const category = dimField ? row[dimField] : undefined;
+    const value = meaField ? resolveNumber(row[meaField]) : null;
+    const series = seriesField ? String(row[seriesField] ?? '') : undefined;
+    const label = labelField ? String(row[labelField] ?? '') : (category == null ? undefined : String(category));
     return {
-      category: x == null ? '' : String(x),
-      value: y,
-      series: series == null || series === '' ? undefined : String(series),
-      label: label == null || label === '' ? (x == null ? undefined : String(x)) : String(label),
-      x,
-      y,
+      category: category == null ? '' : String(category),
+      value,
+      series: series || undefined,
+      label,
+      x: null,
+      y: value,
       raw: row,
     };
-  }
+  });
 
-  const category = resolveChartExpressionValue(component.binding?.categoryExpression ?? '', row, options.context);
-  const value = resolveNumber(resolveChartExpressionValue(component.binding?.valueExpression ?? '', row, options.context));
-  const series = resolveChartExpressionValue(component.binding?.seriesExpression ?? '', row, options.context);
-  const label = resolveChartExpressionValue(component.binding?.labelExpression ?? '', row, options.context);
-  return {
-    category: category == null ? '' : String(category),
-    value,
-    series: series == null || series === '' ? undefined : String(series),
-    label: label == null || label === '' ? (category == null ? undefined : String(category)) : String(label),
-    x: null,
-    y: value,
-    raw: row,
-  };
+  if (aggregate === 'none') return points;
+  return aggregateChartPoints(points, isScatter, aggregate);
 }
 
-function aggregateChartPoints(component: ChartComponent, rows: Record<string, unknown>[], aggregate: ChartAggregateMode, options: LayoutBandOptions): ChartDataPoint[] {
+function aggregateChartPoints(points: ChartDataPoint[], isScatter: boolean, aggregate: ChartAggregateMode): ChartDataPoint[] {
   const grouped = new Map<string, { point: ChartDataPoint; values: number[]; count: number }>();
-  for (const row of rows) {
-    const point = buildChartPoint(component, row, options);
-    const key = component.chartType === 'point'
+  for (const point of points) {
+    const key = isScatter
       ? `${point.x ?? point.category}::${point.series ?? ''}`
       : `${point.category}::${point.series ?? ''}`;
     const entry = grouped.get(key);
@@ -832,19 +840,11 @@ function aggregateChartPoints(component: ChartComponent, rows: Record<string, un
       continue;
     }
     entry.count += 1;
-    if (point.value != null) {
-      entry.values.push(point.value);
-    }
+    if (point.value != null) entry.values.push(point.value);
   }
-
   return Array.from(grouped.values()).map(({ point, values, count }) => {
     const value = aggregateValues(values, count, aggregate);
-    return {
-      ...point,
-      value,
-      y: point.x == null ? value : point.y ?? value,
-      x: point.x ?? null,
-    };
+    return { ...point, value, y: point.x == null ? value : (point.y ?? value), x: point.x ?? null };
   });
 }
 

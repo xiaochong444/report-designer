@@ -1,4 +1,4 @@
-import type { BorderConfig, ChartAggregateMode, ChartDataPoint, ChartLegendPosition, ChartType, ChartVariant, FontConfig, Padding, PageBorder, PageWatermark, ReportFont, TableColumn, TextFormatConfig } from '../template-model/types';
+import type { BorderConfig, ChartAggregateMode, ChartBinding, ChartDataPoint, ChartLegendPosition, ChartMarkStyle, ChartThemeConfig, ChartType, FontConfig, Padding, PageBorder, PageWatermark, ReportFont, TableColumn, TextFormatConfig } from '../template-model/types';
 import type { EventLogEntry } from '../event-engine/types';
 
 export interface RenderDocument {
@@ -73,8 +73,9 @@ export interface RenderImage extends RenderComponentBase {
 export interface RenderChart extends RenderComponentBase {
   type: 'chart';
   chartType: ChartType;
-  variant: ChartVariant;
   data: ChartDataPoint[];
+  rawData: Record<string, unknown>[];
+  binding: ChartBinding;
   title?: string;
   subtitle?: string;
   showLegend: boolean;
@@ -82,12 +83,12 @@ export interface RenderChart extends RenderComponentBase {
   showAxes: boolean;
   showGrid: boolean;
   showLabels: boolean;
-  palette: string[];
-  valueFormat?: TextFormatConfig;
-  categoryFormat?: TextFormatConfig;
-  labelFormat?: TextFormatConfig;
+  labelType?: 'name' | 'value' | 'percent' | 'name-value';
   axisTitleX?: string;
   axisTitleY?: string;
+  axisLabelRotation?: number;
+  theme?: ChartThemeConfig;
+  markStyle?: ChartMarkStyle;
   aggregate: ChartAggregateMode;
   imageDataUrl?: string;
   emptyMessage?: string;
