@@ -22,6 +22,15 @@ function chart(
 ): ChartComponent {
   const isPieLike = chartType === 'pie' || chartType === 'donut' || chartType === 'rose';
   const isScatter = chartType === 'scatter';
+  const showLegend = Boolean(options.seriesField) || isPieLike;
+  const showAxes = !isPieLike;
+  const showLabels = isPieLike;
+  const plotOptions: ChartComponent['plotOptions'] = {};
+
+  if (chartType === 'donut') {
+    plotOptions.pie = { innerRadius: 0.55 };
+  }
+
   return {
     id,
     type: 'chart',
@@ -44,13 +53,59 @@ function chart(
       sort: [{ field: options.dimField ?? options.xField ?? '', direction: 'asc' }],
       aggregate: options.aggregate ?? 'sum',
     },
+    title: {
+      visible: true,
+      text: options.title,
+      color: '#111827',
+      font: { size: 14, bold: true },
+    },
+    legend: {
+      visible: showLegend,
+      position: 'bottom',
+      color: '#475569',
+      font: { size: 10 },
+    },
+    axes: {
+      x: {
+        visible: showAxes,
+        title: options.axisTitleX ?? '',
+        gridVisible: false,
+        labelColor: '#475569',
+        titleColor: '#334155',
+      },
+      y: {
+        visible: showAxes,
+        title: options.axisTitleY ?? '',
+        gridVisible: showAxes,
+        gridColor: '#e2e8f0',
+        labelColor: '#475569',
+        titleColor: '#334155',
+      },
+    },
+    labels: {
+      visible: showLabels,
+      content: showLabels ? 'name' : 'value',
+      color: '#1f2937',
+      font: { size: 10 },
+    },
+    theme: {
+      baseTheme: 'light',
+      palettePresetId: 'business',
+      axisLabelColor: '#475569',
+      axisTitleColor: '#334155',
+      axisGridColor: '#e2e8f0',
+      labelColor: '#1f2937',
+      legendLabelColor: '#475569',
+      titleColor: '#111827',
+    },
+    plotOptions,
     appearance: {
       title: options.title,
-      showLegend: Boolean(options.seriesField) || isPieLike,
+      showLegend,
       legendPosition: 'bottom',
-      showAxes: !isPieLike,
-      showGrid: !isPieLike,
-      showLabels: isPieLike,
+      showAxes,
+      showGrid: showAxes,
+      showLabels,
       theme: { baseTheme: 'light' },
       axisTitleX: options.axisTitleX ?? '',
       axisTitleY: options.axisTitleY ?? '',
