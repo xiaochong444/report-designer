@@ -147,7 +147,8 @@ export interface ChartDimension {
 export interface ChartMeasure {
   field: string;
   alias?: string;
-  aggregation?: 'sum' | 'avg' | 'count' | 'min' | 'max';
+  aggregation?: ChartAggregateMode;
+  axis?: 'left' | 'right';
 }
 
 export interface ChartBinding {
@@ -164,15 +165,176 @@ export interface ChartBinding {
 
 export interface ChartThemeConfig {
   baseTheme: 'light' | 'dark';
+  palettePresetId?: string;
   customPalette?: string[];
+  linearPalette?: [string, string];
   backgroundColor?: string;
   titleColor?: string;
   subtitleColor?: string;
   axisLabelColor?: string;
+  axisTitleColor?: string;
   axisLineColor?: string;
+  axisGridColor?: string;
   gridColor?: string;
   labelColor?: string;
+  legendLabelColor?: string;
   fontFamily?: string;
+  textPrimary?: string;
+  textSecondary?: string;
+}
+
+export interface ChartFontConfig {
+  family?: string;
+  size?: number;
+  bold?: boolean;
+  italic?: boolean;
+  color?: string;
+}
+
+export interface ChartTitleConfig {
+  visible: boolean;
+  text?: string;
+  subtitle?: string;
+  position?: 'top' | 'bottom';
+  align?: 'left' | 'center' | 'right';
+  font?: ChartFontConfig;
+  color?: string;
+  subtitleFont?: ChartFontConfig;
+  subtitleColor?: string;
+  padding?: Partial<Padding>;
+}
+
+export interface ChartLegendConfig {
+  visible: boolean;
+  position: ChartLegendPosition;
+  align?: 'start' | 'center' | 'end';
+  layout?: 'horizontal' | 'vertical';
+  font?: ChartFontConfig;
+  color?: string;
+  markerShape?: 'circle' | 'square' | 'rect' | 'line' | 'diamond';
+  maxRows?: number;
+  maxColumns?: number;
+}
+
+export interface ChartAxesConfig {
+  x?: ChartAxisConfig;
+  y?: ChartAxisConfig;
+  rightY?: ChartAxisConfig;
+}
+
+export interface ChartAxisConfig {
+  visible: boolean;
+  title?: string;
+  titleFont?: ChartFontConfig;
+  titleColor?: string;
+  labelFont?: ChartFontConfig;
+  labelColor?: string;
+  labelRotate?: number;
+  lineVisible?: boolean;
+  lineColor?: string;
+  tickVisible?: boolean;
+  tickColor?: string;
+  gridVisible?: boolean;
+  gridColor?: string;
+  gridDash?: number[];
+  min?: number;
+  max?: number;
+  nice?: boolean;
+  format?: TextFormatConfig;
+}
+
+export interface ChartLabelConfig {
+  visible: boolean;
+  content: 'name' | 'value' | 'percent' | 'name-value' | 'custom';
+  customTemplate?: string;
+  position?: 'auto' | 'inside' | 'outside' | 'top' | 'bottom' | 'left' | 'right' | 'spider';
+  font?: ChartFontConfig;
+  color?: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  borderRadius?: number;
+  showLeaderLine?: boolean;
+  overlapStrategy?: 'hide' | 'shift' | 'none';
+}
+
+export interface ChartBarOptions {
+  barWidth?: number;
+  cornerRadius?: number;
+  fillOpacity?: number;
+  borderColor?: string;
+  borderWidth?: number;
+  labelPosition?: 'inside' | 'top' | 'outside';
+}
+
+export interface ChartLineOptions {
+  curveType?: 'linear' | 'monotone' | 'step';
+  lineWidth?: number;
+  showPoint?: boolean;
+  pointSize?: number;
+  pointShape?: 'circle' | 'square' | 'triangle' | 'diamond';
+  connectNulls?: boolean;
+}
+
+export interface ChartAreaOptions {
+  showArea?: boolean;
+  areaOpacity?: number;
+}
+
+export interface ChartPieOptions {
+  innerRadius?: number;
+  outerRadius?: number;
+  startAngle?: number;
+  padAngle?: number;
+  roseType?: 'radius' | 'area';
+}
+
+export interface ChartScatterOptions {
+  pointSize?: number;
+  pointShape?: 'circle' | 'square' | 'triangle' | 'diamond';
+  fillOpacity?: number;
+  showTrendLine?: boolean;
+  trendLineType?: 'linear' | 'polynomial' | 'exponential';
+}
+
+export interface ChartRadarOptions {
+  shape?: 'polygon' | 'circle';
+  showArea?: boolean;
+  areaOpacity?: number;
+  lineWidth?: number;
+  showPoint?: boolean;
+  pointSize?: number;
+  axisCount?: number;
+}
+
+export interface ChartFunnelOptions {
+  direction?: 'vertical' | 'horizontal';
+  shape?: 'trapezoid' | 'triangle' | 'rect';
+  showConversionRate?: boolean;
+  gap?: number;
+  minSize?: number;
+  maxSize?: number;
+}
+
+export interface ChartDualAxisOptions {
+  primaryType?: 'bar' | 'line';
+  secondaryType?: 'bar' | 'line';
+}
+
+export interface ChartHeatmapOptions {
+  cellGap?: number;
+  colorRange?: [string, string];
+}
+
+export interface ChartPlotOptions {
+  bar?: ChartBarOptions;
+  line?: ChartLineOptions;
+  area?: ChartAreaOptions;
+  pie?: ChartPieOptions;
+  scatter?: ChartScatterOptions;
+  radar?: ChartRadarOptions;
+  funnel?: ChartFunnelOptions;
+  dualAxis?: ChartDualAxisOptions;
+  heatmap?: ChartHeatmapOptions;
 }
 
 export interface ChartMarkStyle {
@@ -377,7 +539,13 @@ export interface ChartComponent extends ReportComponent {
   type: 'chart';
   chartType: ChartType;
   binding: ChartBinding;
-  appearance: ChartAppearance;
+  appearance?: ChartAppearance;
+  title?: ChartTitleConfig;
+  legend?: ChartLegendConfig;
+  axes?: ChartAxesConfig;
+  labels?: ChartLabelConfig;
+  theme?: ChartThemeConfig;
+  plotOptions?: ChartPlotOptions;
   data?: ChartDataPoint[];
   emptyMessage?: string;
 }

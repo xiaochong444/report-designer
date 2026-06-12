@@ -1,4 +1,25 @@
-import type { BorderConfig, ChartAggregateMode, ChartBinding, ChartDataPoint, ChartLegendPosition, ChartMarkStyle, ChartThemeConfig, ChartType, FontConfig, Padding, PageBorder, PageWatermark, ReportFont, TableColumn, TextFormatConfig } from '../template-model/types';
+import type {
+  BorderConfig,
+  ChartAggregateMode,
+  ChartAxesConfig,
+  ChartBinding,
+  ChartDataPoint,
+  ChartLabelConfig,
+  ChartLegendConfig,
+  ChartLegendPosition,
+  ChartMarkStyle,
+  ChartPlotOptions,
+  ChartThemeConfig,
+  ChartTitleConfig,
+  ChartType,
+  FontConfig,
+  Padding,
+  PageBorder,
+  PageWatermark,
+  ReportFont,
+  TableColumn,
+  TextFormatConfig,
+} from '../template-model/types';
 import type { EventLogEntry } from '../event-engine/types';
 
 export interface RenderDocument {
@@ -87,8 +108,13 @@ export interface RenderChart extends RenderComponentBase {
   axisTitleX?: string;
   axisTitleY?: string;
   axisLabelRotation?: number;
+  titleConfig?: ChartTitleConfig;
+  legendConfig?: ChartLegendConfig;
+  axesConfig?: ChartAxesConfig;
+  labelsConfig?: ChartLabelConfig;
   theme?: ChartThemeConfig;
   markStyle?: ChartMarkStyle;
+  plotOptions?: ChartPlotOptions;
   aggregate: ChartAggregateMode;
   imageDataUrl?: string;
   emptyMessage?: string;

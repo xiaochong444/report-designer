@@ -1,4 +1,23 @@
-import type { Band, ChartAppearance, ChartBinding, ChartComponent, DataField, DataSource, Page, PageBorder, PageWatermark, PanelComponent, ReportComponent, ReportTemplate, TableComponent } from './types';
+import type {
+  Band,
+  ChartAppearance,
+  ChartAxesConfig,
+  ChartBinding,
+  ChartComponent,
+  ChartLabelConfig,
+  ChartLegendConfig,
+  ChartPlotOptions,
+  ChartTitleConfig,
+  DataField,
+  DataSource,
+  Page,
+  PageBorder,
+  PageWatermark,
+  PanelComponent,
+  ReportComponent,
+  ReportTemplate,
+  TableComponent,
+} from './types';
 import { normalizeReportFonts } from '../fonts';
 import { isRepeatOnEveryPageBandType, mapDataField } from './types';
 import { createDefaultPageBorder, createDefaultPageWatermark } from './template';
@@ -124,11 +143,18 @@ function normalizeComponent(component: ReportComponent): ReportComponent {
 
   if (component.type === 'chart') {
     const chart = component as ChartComponent;
+    const appearance = normalizeChartAppearance(chart.appearance);
     return {
       ...chart,
       chartType: chart.chartType ?? 'column',
       binding: normalizeChartBinding(chart.binding),
-      appearance: normalizeChartAppearance(chart.appearance),
+      appearance,
+      title: chart.title ?? normalizeChartTitle(appearance),
+      legend: chart.legend ?? normalizeChartLegend(appearance),
+      axes: chart.axes ?? normalizeChartAxes(appearance),
+      labels: chart.labels ?? normalizeChartLabels(appearance),
+      theme: chart.theme ?? appearance.theme ?? { baseTheme: 'light' },
+      plotOptions: chart.plotOptions ?? normalizeChartPlotOptions(appearance.markStyle),
     } as ChartComponent;
   }
 
@@ -156,13 +182,131 @@ function normalizeChartAppearance(appearance: ChartAppearance | undefined): Char
     showLegend: appearance?.showLegend ?? true,
     legendPosition: appearance?.legendPosition ?? 'bottom',
     showLabels: appearance?.showLabels ?? false,
+    labelType: appearance?.labelType ?? 'name',
     showAxes: appearance?.showAxes ?? true,
     showGrid: appearance?.showGrid ?? true,
     axisTitleX: appearance?.axisTitleX ?? '',
     axisTitleY: appearance?.axisTitleY ?? '',
+    axisLabelRotation: appearance?.axisLabelRotation,
     theme: appearance?.theme ?? { baseTheme: 'light' },
     markStyle: appearance?.markStyle,
     backgroundColor: appearance?.backgroundColor,
     padding: appearance?.padding,
+  };
+}
+
+function normalizeChartTitle(appearance: ChartAppearance): ChartTitleConfig {
+  return {
+    visible: Boolean(appearance.title || appearance.subtitle),
+    text: appearance.title,
+    subtitle: appearance.subtitle,
+    color: appearance.theme?.titleColor,
+    subtitleColor: appearance.theme?.subtitleColor,
+    font: appearance.theme?.fontFamily ? { family: appearance.theme.fontFamily } : undefined,
+  };
+}
+
+function normalizeChartLegend(appearance: ChartAppearance): ChartLegendConfig {
+  return {
+    visible: appearance.showLegend ?? true,
+    position: appearance.legendPosition ?? 'bottom',
+    color: appearance.theme?.legendLabelColor,
+    font: appearance.theme?.fontFamily ? { family: appearance.theme.fontFamily } : undefined,
+  };
+}
+
+function normalizeChartAxes(appearance: ChartAppearance): ChartAxesConfig {
+  const visible = appearance.showAxes ?? true;
+  const gridVisible = appearance.showGrid ?? true;
+  return {
+    x: {
+      visible,
+      title: appearance.axisTitleX ?? '',
+      labelRotate: appearance.axisLabelRotation,
+      labelColor: appearance.theme?.axisLabelColor,
+      titleColor: appearance.theme?.axisTitleColor,
+      lineColor: appearance.theme?.axisLineColor,
+      gridVisible,
+      gridColor: appearance.theme?.axisGridColor ?? appearance.theme?.gridColor,
+    },
+    y: {
+      visible,
+      title: appearance.axisTitleY ?? '',
+      labelColor: appearance.theme?.axisLabelColor,
+      titleColor: appearance.theme?.axisTitleColor,
+      lineColor: appearance.theme?.axisLineColor,
+      gridVisible,
+      gridColor: appearance.theme?.axisGridColor ?? appearance.theme?.gridColor,
+    },
+  };
+}
+
+function normalizeChartLabels(appearance: ChartAppearance): ChartLabelConfig {
+  return {
+    visible: appearance.showLabels ?? false,
+    content: appearance.labelType ?? 'name',
+    color: appearance.theme?.labelColor,
+    font: appearance.theme?.fontFamily ? { family: appearance.theme.fontFamily } : undefined,
+  };
+}
+
+function normalizeChartPlotOptions(markStyle: ChartAppearance['markStyle']): ChartPlotOptions {
+  if (!markStyle) return {};
+  return {
+    bar: {
+      barWidth: markStyle.barWidth,
+      cornerRadius: markStyle.cornerRadius,
+      fillOpacity: markStyle.fillOpacity,
+      borderColor: markStyle.stroke,
+      borderWidth: markStyle.lineWidth,
+      labelPosition: markStyle.barLabelPosition,
+    },
+    line: {
+      curveType: markStyle.curveType,
+      lineWidth: markStyle.lineWidth,
+      showPoint: markStyle.showPoint,
+      pointSize: markStyle.pointSize,
+      pointShape: markStyle.pointShape,
+      connectNulls: markStyle.connectNulls,
+    },
+    area: {
+      showArea: markStyle.showArea,
+      areaOpacity: markStyle.areaOpacity,
+    },
+    pie: {
+      innerRadius: markStyle.innerRadius,
+      outerRadius: markStyle.outerRadius,
+      startAngle: markStyle.startAngle,
+      padAngle: markStyle.padAngle,
+      roseType: markStyle.roseType,
+    },
+    scatter: {
+      pointSize: markStyle.pointSize,
+      pointShape: markStyle.pointShape,
+      fillOpacity: markStyle.fillOpacity,
+      showTrendLine: markStyle.showTrendLine,
+      trendLineType: markStyle.trendLineType,
+    },
+    radar: {
+      shape: markStyle.radarShape,
+      showArea: markStyle.showRadarArea,
+      areaOpacity: markStyle.radarAreaOpacity,
+      lineWidth: markStyle.lineWidth,
+      showPoint: markStyle.showPoint,
+      pointSize: markStyle.pointSize,
+      axisCount: markStyle.axisCount,
+    },
+    funnel: {
+      direction: markStyle.funnelDirection,
+      shape: markStyle.funnelShape,
+      showConversionRate: markStyle.showConversionRate,
+      gap: markStyle.funnelGap,
+      minSize: markStyle.funnelMinSize,
+      maxSize: markStyle.funnelMaxSize,
+    },
+    dualAxis: {
+      primaryType: markStyle.primaryType,
+      secondaryType: markStyle.secondaryType,
+    },
   };
 }

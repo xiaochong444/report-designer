@@ -79,6 +79,20 @@ describe('phase 41 chart rendering', () => {
         showGrid: true,
         showLabels: false,
       },
+      title: {
+        visible: false,
+      },
+      legend: {
+        visible: true,
+        position: 'bottom',
+      },
+      labels: {
+        visible: false,
+        content: 'name',
+      },
+      theme: {
+        baseTheme: 'light',
+      },
     });
   });
 
@@ -102,6 +116,17 @@ describe('phase 41 chart rendering', () => {
       showAxes: true,
       showGrid: true,
       showLabels: true,
+      titleConfig: {
+        visible: true,
+        text: 'Sales by Region',
+      },
+      legendConfig: {
+        visible: true,
+        position: 'right',
+      },
+      labelsConfig: {
+        visible: true,
+      },
     });
     expect(('data' in chart ? chart.data : []).map(({ category, series, value, label, x, y }) => ({ category, series, value, label, x, y }))).toEqual([
       { category: 'East', series: 'Online', value: 25, label: 'East', x: null, y: 25 },
