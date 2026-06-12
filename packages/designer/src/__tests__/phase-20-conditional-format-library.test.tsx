@@ -162,7 +162,7 @@ describe('Phase 20 conditional format library', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: '应用到选中项' }));
 
     await waitFor(() => expect(selectedText().conditionalFormat).toBe('cf_warn'));
-  }, 10000);
+  });
 
   it('shows every supported value condition type and operation in the settings window', async () => {
     loadTemplate();

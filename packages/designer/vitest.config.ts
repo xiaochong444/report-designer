@@ -5,6 +5,9 @@ export default defineConfig({
   resolve: {
     alias: {
       '@report-designer/core': path.resolve(__dirname, '../core/src'),
+      '@visactor/vchart': path.resolve(__dirname, 'src/__tests__/stubs/vchart.ts'),
+      '@visactor/vdataset': path.resolve(__dirname, 'src/__tests__/stubs/vdataset.ts'),
+      '@visactor/vseed': path.resolve(__dirname, 'src/__tests__/stubs/vseed.ts'),
     },
   },
   test: {
