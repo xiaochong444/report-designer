@@ -528,6 +528,7 @@ export interface ImageComponent extends ReportComponent {
 export interface ChartDataPoint {
   category: string;
   value: number | null;
+  measureValues?: Record<string, number | null>;
   series?: string;
   label?: string;
   x?: number | null;

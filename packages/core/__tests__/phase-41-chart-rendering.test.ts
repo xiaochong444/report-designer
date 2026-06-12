@@ -158,4 +158,33 @@ describe('phase 41 chart rendering', () => {
       { category: '20', series: 'Retail', value: 9, label: '20', x: 20, y: 9 },
     ]);
   });
+
+  it('renders dual axis aggregate values for every measure field', () => {
+    const document = renderReport(chartTemplate({
+      chartType: 'dualAxis',
+      binding: {
+        dataSourceId: 'sales',
+        dimensions: [{ field: 'Region' }],
+        measures: [{ field: 'Amount' }, { field: 'Margin' }],
+        aggregate: 'sum',
+        sort: [],
+      },
+    }), {
+      sales: [
+        { Region: 'East', Amount: 10, Margin: 3 },
+        { Region: 'East', Amount: 15, Margin: 4 },
+      ],
+    });
+
+    const chart = document.pages[0].items[0].components[0];
+    expect(chart.type).toBe('chart');
+    expect(('data' in chart ? chart.data : []).map(point => ({
+      category: point.category,
+      value: point.value,
+      y: point.y,
+      measureValues: (point as { measureValues?: Record<string, number | null> }).measureValues,
+    }))).toEqual([
+      { category: 'East', value: 25, y: 25, measureValues: { Amount: 25, Margin: 7 } },
+    ]);
+  });
 });

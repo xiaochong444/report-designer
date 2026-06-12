@@ -900,6 +900,7 @@ function applyChartSort(rows: Record<string, unknown>[], sort: Array<{ field: st
 function buildChartData(component: ChartComponent, rows: Record<string, unknown>[], aggregate: ChartAggregateMode, options: LayoutBandOptions): ChartDataPoint[] {
   const dimField = component.binding?.dimensions?.[0]?.field;
   const meaField = component.binding?.measures?.[0]?.field;
+  const measureFields = component.binding?.measures?.map(measure => measure.field).filter(Boolean) ?? [];
   const seriesField = component.binding?.seriesField;
   const labelField = component.binding?.labelField;
   const isScatter = component.chartType === 'scatter';
@@ -914,6 +915,7 @@ function buildChartData(component: ChartComponent, rows: Record<string, unknown>
       return {
         category: x == null ? '' : String(x),
         value: y,
+        measureValues: resolveMeasureValues(row, measureFields),
         series: series || undefined,
         label: labelField ? String(row[labelField] ?? '') : (x == null ? undefined : String(x)),
         x, y,
@@ -927,6 +929,7 @@ function buildChartData(component: ChartComponent, rows: Record<string, unknown>
     return {
       category: category == null ? '' : String(category),
       value,
+      measureValues: resolveMeasureValues(row, measureFields),
       series: series || undefined,
       label,
       x: null,
@@ -940,23 +943,63 @@ function buildChartData(component: ChartComponent, rows: Record<string, unknown>
 }
 
 function aggregateChartPoints(points: ChartDataPoint[], isScatter: boolean, aggregate: ChartAggregateMode): ChartDataPoint[] {
-  const grouped = new Map<string, { point: ChartDataPoint; values: number[]; count: number }>();
+  const grouped = new Map<string, { point: ChartDataPoint; values: number[]; measureValues: Record<string, number[]>; count: number }>();
   for (const point of points) {
     const key = isScatter
       ? `${point.x ?? point.category}::${point.series ?? ''}`
       : `${point.category}::${point.series ?? ''}`;
     const entry = grouped.get(key);
     if (!entry) {
-      grouped.set(key, { point, values: point.value == null ? [] : [point.value], count: 1 });
+      grouped.set(key, {
+        point,
+        values: point.value == null ? [] : [point.value],
+        measureValues: collectMeasureValues(point),
+        count: 1,
+      });
       continue;
     }
     entry.count += 1;
     if (point.value != null) entry.values.push(point.value);
+    mergeMeasureValues(entry.measureValues, point);
   }
-  return Array.from(grouped.values()).map(({ point, values, count }) => {
+  return Array.from(grouped.values()).map(({ point, values, measureValues, count }) => {
     const value = aggregateValues(values, count, aggregate);
-    return { ...point, value, y: point.x == null ? value : (point.y ?? value), x: point.x ?? null };
+    return {
+      ...point,
+      value,
+      measureValues: aggregateMeasureValues(measureValues, count, aggregate),
+      y: point.x == null ? value : (point.y ?? value),
+      x: point.x ?? null,
+    };
   });
+}
+
+function resolveMeasureValues(row: Record<string, unknown>, fields: string[]): Record<string, number | null> | undefined {
+  if (fields.length === 0) return undefined;
+  return Object.fromEntries(fields.map(field => [field, resolveNumber(row[field])]));
+}
+
+function collectMeasureValues(point: ChartDataPoint): Record<string, number[]> {
+  const values: Record<string, number[]> = {};
+  mergeMeasureValues(values, point);
+  return values;
+}
+
+function mergeMeasureValues(target: Record<string, number[]>, point: ChartDataPoint): void {
+  for (const [field, value] of Object.entries(point.measureValues ?? {})) {
+    if (value == null) continue;
+    target[field] = [...(target[field] ?? []), value];
+  }
+}
+
+function aggregateMeasureValues(
+  values: Record<string, number[]>,
+  count: number,
+  aggregate: ChartAggregateMode,
+): Record<string, number | null> | undefined {
+  const entries = Object.entries(values);
+  if (entries.length === 0) return undefined;
+  return Object.fromEntries(entries.map(([field, fieldValues]) => [field, aggregateValues(fieldValues, count, aggregate)]));
 }
 
 function aggregateValues(values: number[], count: number, aggregate: ChartAggregateMode): number | null {

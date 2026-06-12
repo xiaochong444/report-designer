@@ -189,8 +189,17 @@ describe('phase 48 chart compiler', () => {
     const dualAxisInput = buildVSeedInput(chart({
       chartType: 'dualAxis',
       data: [
-        { category: 'Jan', series: undefined, value: 100, label: 'Jan', x: null, y: 100, raw: { month: 'Jan', revenue: 100, margin: 0.34 } },
-      ],
+        {
+          category: 'Jan',
+          series: undefined,
+          value: 250,
+          label: 'Jan',
+          x: null,
+          y: 250,
+          measureValues: { revenue: 250, margin: 0.3 },
+          raw: { month: 'Jan', revenue: 100, margin: 0.12 },
+        },
+      ] as any,
       binding: {
         dimensions: [{ field: 'month' }],
         measures: [{ field: 'revenue' }, { field: 'margin' }],
@@ -204,7 +213,7 @@ describe('phase 48 chart compiler', () => {
       yField: 'revenue',
       yField2: 'margin',
     });
-    expect(dualAxisInput.dataset[0]).toEqual({ month: 'Jan', revenue: 100, margin: 0.34 });
+    expect(dualAxisInput.dataset[0]).toEqual({ month: 'Jan', revenue: 250, margin: 0.3 });
   });
 
   it('resolves a deterministic token theme name and palette', () => {

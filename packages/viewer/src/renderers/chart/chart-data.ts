@@ -55,6 +55,9 @@ function readMeasureField(
   field: string,
   fallback: unknown,
 ): unknown {
+  if (point.measureValues && Object.prototype.hasOwnProperty.call(point.measureValues, field)) {
+    return point.measureValues[field];
+  }
   if (fallback !== undefined) return fallback;
   if (point.raw && Object.prototype.hasOwnProperty.call(point.raw, field)) {
     return point.raw[field];
