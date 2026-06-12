@@ -2,7 +2,7 @@
 import React from 'react';
 import { act, fireEvent, render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { ChartComponent, ReportComponent } from '@report-designer/core';
 import { createDefaultTemplate } from '@report-designer/core';
 import { Canvas } from '../components/Canvas';
@@ -10,6 +10,12 @@ import { LeftPanel } from '../components/LeftPanel';
 import { PropertyEditor } from '../components/PropertyEditor';
 import { DesignerI18nProvider } from '../i18n';
 import { useDesignerStore } from '../store/designer-store';
+
+vi.mock('@report-designer/viewer', () => ({
+  BARCODE_FORMATS: ['CODE128'],
+  QR_CODE_FORMATS: ['QR_CODE'],
+  renderCodeSymbolSvg: () => '<svg />',
+}));
 
 function chartComponent(overrides: Partial<ChartComponent> = {}): ChartComponent {
   return {
@@ -83,6 +89,7 @@ describe('phase 41 chart component designer integration', () => {
     expect(screen.getByLabelText('图表类型')).toBeInTheDocument();
     expect(screen.getByLabelText('数据源')).toBeInTheDocument();
     expect(screen.getByLabelText('图表标题')).toHaveValue('Sales');
+    expect(screen.queryByPlaceholderText('逗号分隔，例如 #2f6fed,#16a34a')).not.toBeInTheDocument();
   });
 
   it('renders a lightweight chart preview on the design canvas', () => {
