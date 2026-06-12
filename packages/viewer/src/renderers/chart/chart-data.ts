@@ -10,13 +10,13 @@ export function buildChartDataset(chart: RenderChart): Record<string, unknown>[]
 
   return chart.data.map(point => {
     const row: Record<string, unknown> = {};
-    row[xField] = readPointField(point, xField, chart.chartType === 'scatter' ? point.x : point.category);
-    row[yField] = readPointField(point, yField, chart.chartType === 'scatter' ? point.y : point.value);
+    row[xField] = readDimensionField(point, xField, chart.chartType === 'scatter' ? point.x : point.category);
+    row[yField] = readMeasureField(point, yField, chart.chartType === 'scatter' ? point.y : point.value);
     if (chart.chartType === 'heatmap') {
-      row[secondDimensionField] = readPointField(point, secondDimensionField, point.series);
+      row[secondDimensionField] = readDimensionField(point, secondDimensionField, point.series);
     }
     if (chart.chartType === 'dualAxis') {
-      row[secondMeasureField] = readPointField(point, secondMeasureField, undefined);
+      row[secondMeasureField] = readMeasureField(point, secondMeasureField, undefined);
     }
     if (point.series && (explicitSeriesField || chart.chartType !== 'heatmap')) row[seriesField] = point.series;
     return row;
@@ -39,11 +39,23 @@ export function getSecondMeasureField(chart: RenderChart, fallback: string): str
   return chart.binding?.measures?.[1]?.field || fallback;
 }
 
-function readPointField(
+function readDimensionField(
   point: RenderChart['data'][number],
   field: string,
   fallback: unknown,
 ): unknown {
+  if (point.raw && Object.prototype.hasOwnProperty.call(point.raw, field)) {
+    return point.raw[field];
+  }
+  return fallback;
+}
+
+function readMeasureField(
+  point: RenderChart['data'][number],
+  field: string,
+  fallback: unknown,
+): unknown {
+  if (fallback !== undefined) return fallback;
   if (point.raw && Object.prototype.hasOwnProperty.call(point.raw, field)) {
     return point.raw[field];
   }

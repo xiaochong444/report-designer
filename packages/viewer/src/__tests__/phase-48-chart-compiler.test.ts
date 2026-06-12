@@ -105,6 +105,22 @@ describe('phase 48 chart compiler', () => {
     ]);
   });
 
+  it('uses processed aggregate values instead of first raw measure values', () => {
+    expect(buildChartDataset(chart({
+      data: [
+        { category: 'East', series: undefined, value: 30, label: 'East', x: null, y: 30, raw: { Region: 'East', Amount: 10 } },
+      ],
+      binding: {
+        dimensions: [{ field: 'Region' }],
+        measures: [{ field: 'Amount' }],
+        aggregate: 'sum',
+        sort: [],
+      },
+    }))).toEqual([
+      { Region: 'East', Amount: 30 },
+    ]);
+  });
+
   it('builds VSeed input with verified field mappings', () => {
     const input = buildVSeedInput(chart(), { width: 320, height: 180 });
     expect(input).toMatchObject({
