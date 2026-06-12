@@ -170,21 +170,35 @@ function applyLabels(spec: Record<string, any>, chart: RenderChart): void {
   };
 }
 
-function buildLabelFormatMethod(chart: RenderChart, content: RenderChart['labelType'] | 'custom' | undefined): ((datum: Record<string, any>) => unknown) | undefined {
+type LabelFormatMethod = (textOrDatum: unknown, datum?: Record<string, any>, ctx?: unknown) => unknown;
+
+function buildLabelFormatMethod(chart: RenderChart, content: RenderChart['labelType'] | 'custom' | undefined): LabelFormatMethod | undefined {
   const nameField = getLabelNameField(chart);
   const valueField = getLabelValueField(chart);
   switch (content) {
     case 'value':
-      return datum => readDatumValue(datum, [valueField, 'value', 'y']);
+      return (textOrDatum, datum) => {
+        const resolvedDatum = resolveFormatDatum(textOrDatum, datum);
+        return readDatumValue(resolvedDatum, [valueField, 'value', 'y'], textOrDatum);
+      };
     case 'percent':
-      return datum => {
-        const percent = datum?.percent;
-        return percent != null ? `${(percent * 100).toFixed(1)}%` : '';
+      return (textOrDatum, datum) => {
+        const resolvedDatum = resolveFormatDatum(textOrDatum, datum);
+        const percent = resolvedDatum?.percent;
+        return percent != null ? `${(percent * 100).toFixed(1)}%` : formatTextFallback(textOrDatum);
       };
     case 'name-value':
-      return datum => `${readDatumValue(datum, [nameField, 'category', 'name', 'label'])}: ${readDatumValue(datum, [valueField, 'value', 'y'])}`;
+      return (textOrDatum, datum) => {
+        const resolvedDatum = resolveFormatDatum(textOrDatum, datum);
+        const name = readDatumValue(resolvedDatum, [nameField, 'category', 'name', 'label'], '');
+        const value = readDatumValue(resolvedDatum, [valueField, 'value', 'y'], textOrDatum);
+        return `${name}: ${value}`;
+      };
     case 'name':
-      return datum => readDatumValue(datum, [nameField, 'category', 'name', 'label']);
+      return (textOrDatum, datum) => {
+        const resolvedDatum = resolveFormatDatum(textOrDatum, datum);
+        return readDatumValue(resolvedDatum, [nameField, 'category', 'name', 'label'], textOrDatum);
+      };
     default:
       return undefined;
   }
@@ -200,11 +214,21 @@ function getLabelValueField(chart: RenderChart): string {
   return getMeasureField(chart, chart.chartType === 'scatter' ? 'y' : 'value');
 }
 
-function readDatumValue(datum: Record<string, any>, fields: string[]): unknown {
+function resolveFormatDatum(textOrDatum: unknown, datum?: Record<string, any>): Record<string, any> | undefined {
+  if (datum && typeof datum === 'object') return datum;
+  if (textOrDatum && typeof textOrDatum === 'object') return textOrDatum as Record<string, any>;
+  return undefined;
+}
+
+function readDatumValue(datum: Record<string, any> | undefined, fields: string[], fallback: unknown): unknown {
   for (const field of fields) {
     if (datum?.[field] != null) return datum[field];
   }
-  return '';
+  return formatTextFallback(fallback);
+}
+
+function formatTextFallback(text: unknown): unknown {
+  return text ?? '';
 }
 
 function applyPaletteFallback(spec: Record<string, any>, chart: RenderChart): void {

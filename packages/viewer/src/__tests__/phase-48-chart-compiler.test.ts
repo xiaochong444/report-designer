@@ -254,6 +254,40 @@ describe('phase 48 chart compiler', () => {
     expect(nameValueSpec.label.formatMethod({ region: 'East', sales: 25 })).toBe('East: 25');
   });
 
+  it('supports VChart label formatter text and datum arguments', () => {
+    const customBindingChart = chart({
+      data: [
+        { category: 'East', series: undefined, value: 25, label: 'East', x: null, y: 25, raw: { region: 'East', sales: 25 } },
+      ],
+      binding: {
+        dimensions: [{ field: 'region' }],
+        measures: [{ field: 'sales' }],
+        aggregate: 'sum',
+        sort: [],
+      },
+    });
+
+    const valueSpec = buildVChartSpec(chart({
+      ...customBindingChart,
+      labelsConfig: { visible: true, content: 'value' },
+    })) as Record<string, any>;
+    expect(valueSpec.label.formatMethod('25', { region: 'East', sales: 25 })).toBe(25);
+    expect(valueSpec.label.formatMethod('25', undefined)).toBe('25');
+
+    const nameValueSpec = buildVChartSpec(chart({
+      ...customBindingChart,
+      labelsConfig: { visible: true, content: 'name-value' },
+    })) as Record<string, any>;
+    expect(nameValueSpec.label.formatMethod('25', { region: 'East', sales: 25 })).toBe('East: 25');
+
+    const percentSpec = buildVChartSpec(chart({
+      ...customBindingChart,
+      labelsConfig: { visible: true, content: 'percent' },
+    })) as Record<string, any>;
+    expect(percentSpec.label.formatMethod('12.5%', { percent: 0.125 })).toBe('12.5%');
+    expect(percentSpec.label.formatMethod('25', undefined)).toBe('25');
+  });
+
   it('exposes chart type capability metadata for field requirements', () => {
     expect(getChartTypeCapability('column')).toMatchObject({
       type: 'column',
