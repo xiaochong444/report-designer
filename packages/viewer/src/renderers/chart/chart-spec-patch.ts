@@ -1,4 +1,5 @@
 import type { ChartMarkStyle, ChartPlotOptions, RenderChart } from '@report-designer/core';
+import { getDimensionField, getMeasureField } from './chart-data';
 import { resolveChartTheme } from './chart-theme';
 import { isBarLikeChart, isLineLikeChart, isPieLikeChart } from './chart-type-capabilities';
 
@@ -156,7 +157,7 @@ function applyLabels(spec: Record<string, any>, chart: RenderChart): void {
   spec.label = {
     ...(spec.label ?? {}),
     visible: true,
-    formatMethod: buildLabelFormatMethod(labels?.content ?? chart.labelType),
+    formatMethod: buildLabelFormatMethod(chart, labels?.content ?? chart.labelType),
     position: labels?.position === 'auto' ? undefined : labels?.position,
     style: {
       ...(spec.label?.style ?? {}),
@@ -169,22 +170,41 @@ function applyLabels(spec: Record<string, any>, chart: RenderChart): void {
   };
 }
 
-function buildLabelFormatMethod(content: RenderChart['labelType'] | 'custom' | undefined): ((datum: Record<string, any>) => unknown) | undefined {
+function buildLabelFormatMethod(chart: RenderChart, content: RenderChart['labelType'] | 'custom' | undefined): ((datum: Record<string, any>) => unknown) | undefined {
+  const nameField = getLabelNameField(chart);
+  const valueField = getLabelValueField(chart);
   switch (content) {
     case 'value':
-      return datum => datum?.value ?? '';
+      return datum => readDatumValue(datum, [valueField, 'value', 'y']);
     case 'percent':
       return datum => {
         const percent = datum?.percent;
         return percent != null ? `${(percent * 100).toFixed(1)}%` : '';
       };
     case 'name-value':
-      return datum => `${datum?.category ?? datum?.name ?? datum?.label ?? ''}: ${datum?.value ?? ''}`;
+      return datum => `${readDatumValue(datum, [nameField, 'category', 'name', 'label'])}: ${readDatumValue(datum, [valueField, 'value', 'y'])}`;
     case 'name':
-      return datum => datum?.category ?? datum?.name ?? datum?.label ?? '';
+      return datum => readDatumValue(datum, [nameField, 'category', 'name', 'label']);
     default:
       return undefined;
   }
+}
+
+function getLabelNameField(chart: RenderChart): string {
+  if (chart.chartType === 'scatter') return getDimensionField(chart, 'x');
+  if (chart.chartType === 'heatmap') return getDimensionField(chart, 'category');
+  return getDimensionField(chart, 'category');
+}
+
+function getLabelValueField(chart: RenderChart): string {
+  return getMeasureField(chart, chart.chartType === 'scatter' ? 'y' : 'value');
+}
+
+function readDatumValue(datum: Record<string, any>, fields: string[]): unknown {
+  for (const field of fields) {
+    if (datum?.[field] != null) return datum[field];
+  }
+  return '';
 }
 
 function applyPaletteFallback(spec: Record<string, any>, chart: RenderChart): void {

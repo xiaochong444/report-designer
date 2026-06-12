@@ -228,6 +228,32 @@ describe('phase 48 chart compiler', () => {
     expect(percentSpec.label.formatMethod({ percent: 0.125 })).toBe('12.5%');
   });
 
+  it('maps label formatters to custom binding fields from compiled datasets', () => {
+    const customBindingChart = chart({
+      data: [
+        { category: 'East', series: undefined, value: 25, label: 'East', x: null, y: 25, raw: { region: 'East', sales: 25 } },
+      ],
+      binding: {
+        dimensions: [{ field: 'region' }],
+        measures: [{ field: 'sales' }],
+        aggregate: 'sum',
+        sort: [],
+      },
+    });
+
+    const valueSpec = buildVChartSpec(chart({
+      ...customBindingChart,
+      labelsConfig: { visible: true, content: 'value' },
+    })) as Record<string, any>;
+    expect(valueSpec.label.formatMethod({ region: 'East', sales: 25 })).toBe(25);
+
+    const nameValueSpec = buildVChartSpec(chart({
+      ...customBindingChart,
+      labelsConfig: { visible: true, content: 'name-value' },
+    })) as Record<string, any>;
+    expect(nameValueSpec.label.formatMethod({ region: 'East', sales: 25 })).toBe('East: 25');
+  });
+
   it('exposes chart type capability metadata for field requirements', () => {
     expect(getChartTypeCapability('column')).toMatchObject({
       type: 'column',
