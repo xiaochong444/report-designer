@@ -34,7 +34,7 @@ export const ChartThemePanel: React.FC<{
           t={t}
           presetId={value.palettePresetId}
           colors={value.customPalette ?? []}
-          onPresetChange={palettePresetId => update({ palettePresetId })}
+          onPresetChange={palettePresetId => update({ palettePresetId, customPalette: undefined })}
           onColorsChange={customPalette => update({ customPalette })}
         />
       </Form.Item>

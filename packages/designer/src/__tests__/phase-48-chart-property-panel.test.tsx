@@ -102,7 +102,7 @@ describe('phase 48 chart property panel', () => {
     expect(screen.queryByPlaceholderText('Comma separated, for example #2f6fed,#16a34a')).not.toBeInTheDocument();
   });
 
-  it('writes title, legend, axes, labels, and theme edits to structured chart fields', () => {
+  it('writes title, legend, axes, labels, plot options, and theme edits to structured chart fields', () => {
     loadSelectedComponent(chartComponent());
 
     renderEditor();
@@ -110,27 +110,36 @@ describe('phase 48 chart property panel', () => {
     expect(screen.getByLabelText('Title text')).toHaveValue('Legacy Sales');
     fireEvent.change(screen.getByLabelText('Title text'), { target: { value: 'Quarterly Sales' } });
     fireEvent.change(screen.getByLabelText('Title font size'), { target: { value: '18' } });
+    fireEvent.change(screen.getByLabelText('Legend font size'), { target: { value: '13' } });
     fireEvent.change(screen.getByLabelText('X axis title'), { target: { value: 'Customer' } });
+    expect(screen.getByLabelText('X title color')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('X title font size'), { target: { value: '13' } });
+    fireEvent.change(screen.getByLabelText('X label font size'), { target: { value: '11' } });
     fireEvent.change(screen.getByLabelText('Y axis title'), { target: { value: 'Amount' } });
+    expect(screen.getByLabelText('Y title color')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Y title font size'), { target: { value: '14' } });
+    fireEvent.change(screen.getByLabelText('Y label font size'), { target: { value: '12' } });
     fireEvent.click(screen.getByLabelText('Labels visible'));
     selectOption('Label content', 'Value');
+    fireEvent.change(screen.getByLabelText('Corner radius'), { target: { value: '6' } });
     selectOption('Base theme', 'Dark');
 
     const chart = selectedChart();
     expect(chart.title).toMatchObject({ visible: true, text: 'Quarterly Sales', font: { size: 18 } });
-    expect(chart.legend).toMatchObject({ visible: true, position: 'bottom' });
+    expect(chart.legend).toMatchObject({ visible: true, position: 'bottom', font: { size: 13 } });
     expect(chart.axes).toMatchObject({
-      x: { visible: true, title: 'Customer' },
-      y: { visible: true, title: 'Amount' },
+      x: { visible: true, title: 'Customer', titleFont: { size: 13 }, labelFont: { size: 11 } },
+      y: { visible: true, title: 'Amount', titleFont: { size: 14 }, labelFont: { size: 12 } },
     });
     expect(chart.labels).toMatchObject({ visible: true, content: 'value' });
+    expect(chart.plotOptions).toMatchObject({ bar: { cornerRadius: 6 } });
     expect(chart.theme).toMatchObject({ baseTheme: 'dark' });
     expect(chart.appearance?.title).toBe('Quarterly Sales');
   });
 
   it('edits palette through preset and swatch controls', () => {
     loadSelectedComponent(chartComponent({
-      theme: { baseTheme: 'light', palettePresetId: 'classic', customPalette: ['#111111', '#222222'] },
+      theme: { baseTheme: 'light', palettePresetId: 'business', customPalette: ['#111111', '#222222'] },
     }));
 
     renderEditor();
@@ -141,12 +150,13 @@ describe('phase 48 chart property panel', () => {
 
     selectOption('Palette preset', 'Vivid');
     expect(selectedChart().theme).toMatchObject({ palettePresetId: 'vivid' });
+    expect(selectedChart().theme?.customPalette).toBeUndefined();
 
     fireEvent.click(screen.getByRole('button', { name: 'Add color' }));
-    expect(selectedChart().theme?.customPalette).toHaveLength(3);
+    expect(selectedChart().theme?.customPalette).toHaveLength(7);
 
     const paletteEditor = screen.getByTestId('chart-palette-editor');
     fireEvent.click(within(paletteEditor).getByRole('button', { name: 'Delete color 1' }));
-    expect(selectedChart().theme?.customPalette).toEqual(['#222222', '#2f6fed']);
+    expect(selectedChart().theme?.customPalette).toEqual(['#5AD8A6', '#F6BD16', '#E8684A', '#6DC8EC', '#9270CA', '#2f6fed']);
   });
 });

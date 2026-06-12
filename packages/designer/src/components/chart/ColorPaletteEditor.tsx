@@ -11,7 +11,8 @@ export const ColorPaletteEditor: React.FC<{
   t: ChartPanelT;
 }> = ({ colors, onColorsChange, onPresetChange, presetId, t }) => {
   const ui = chartUiText(t);
-  const palette = colors.length ? colors : [DEFAULT_PALETTE_COLOR];
+  const presetPalette = CHART_PALETTE_PRESETS.find(preset => preset.id === presetId)?.colors;
+  const palette = colors.length ? colors : presetPalette ?? [DEFAULT_PALETTE_COLOR];
 
   const updateColor = (index: number, color: string) => {
     onColorsChange(palette.map((item, itemIndex) => itemIndex === index ? color : item));
