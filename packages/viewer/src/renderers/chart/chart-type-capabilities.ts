@@ -39,7 +39,7 @@ export const ADVANCED_CHART_TYPES: readonly ChartType[] = [
 
 const CATEGORY_VALUE_FIELDS: ChartTypeCapability['fields'] = {
   category: { role: 'dimension', required: true, max: 1 },
-  value: { role: 'measure', required: true, min: 1 },
+  value: { role: 'measure', required: true, min: 1, max: 1 },
   series: { role: 'series', required: false, max: 1 },
 };
 

@@ -293,7 +293,7 @@ describe('phase 48 chart compiler', () => {
       type: 'column',
       fields: {
         category: { role: 'dimension', required: true, max: 1 },
-        value: { role: 'measure', required: true, min: 1 },
+        value: { role: 'measure', required: true, min: 1, max: 1 },
         series: { role: 'series', required: false, max: 1 },
       },
     });
