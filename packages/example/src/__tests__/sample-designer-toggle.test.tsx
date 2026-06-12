@@ -75,7 +75,7 @@ describe('example sample designer toggle', () => {
       root.render(<App />);
     });
 
-    expect(container.textContent).toContain('Grouped Employees');
+    expect(container.textContent).toContain('采购入库单');
     expect(container.querySelector('[data-testid="designer-quick-access"]')).toBeNull();
 
     const openDesigner = Array.from(container.querySelectorAll('button'))
@@ -90,29 +90,27 @@ describe('example sample designer toggle', () => {
 
     expect(container.querySelector('[data-testid="designer-quick-access"]')).toBeTruthy();
     expect(container.querySelector('[data-testid="designer-canvas-frame"]')).toBeTruthy();
-    expect(container.textContent).toContain('Grouped Employees');
+    expect(container.textContent).toContain('采购入库单');
     expect(styleIds).toEqual(expect.arrayContaining([
       commonTextStyleIds.title,
       commonTextStyleIds.pageHeader,
       commonTextStyleIds.header,
       commonTextStyleIds.data,
       commonTextStyleIds.footer,
-      commonTextStyleIds.group,
     ]));
     expect(new Set(styleIds).size).toBe(styleIds.length);
-    expect(findTextComponent('ge-title-text')).toMatchObject({
-      style: commonTextStyleIds.title,
+    expect(findTextComponent('pr-title-text')).toMatchObject({
+      style: 'purchase-receipt-title',
       textAlign: 'center',
       font: expect.objectContaining({
-        size: 15,
+        size: 17,
         bold: true,
       }),
     });
-    expect(findTextComponent('ge-page-header-text')).toMatchObject({
-      style: commonTextStyleIds.pageHeader,
+    expect(findTextComponent('pr-no-label')).toMatchObject({
+      style: commonTextStyleIds.header,
       font: expect.objectContaining({
-        size: 8,
-        color: '#4b5563',
+        bold: true,
       }),
     });
   });
@@ -142,7 +140,7 @@ describe('example sample designer toggle', () => {
           bands: page.bands.map(band => ({
             ...band,
             components: band.components.map(component => (
-              component.id === 'ge-title-text'
+              component.id === 'pr-title-text'
                 ? { ...component, text: 'Designer Draft Title', textAlign: 'center' }
                 : component
             )),

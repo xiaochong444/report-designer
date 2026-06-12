@@ -67,7 +67,7 @@ describe('example silent print smoke entry', () => {
       adapter: 'chrome-extension',
       chromeExtension: {
         backend: 'nativeMessaging',
-        jobName: 'Grouped Employees',
+        jobName: '采购入库单',
         silent: true,
       },
     });
@@ -95,7 +95,7 @@ describe('example silent print smoke entry', () => {
       adapter: 'chrome-extension',
       chromeExtension: {
         backend: 'nativeMessaging',
-        jobName: 'Grouped Employees',
+        jobName: '采购入库单',
         printerId: 'Microsoft Print to PDF',
         silent: false,
       },

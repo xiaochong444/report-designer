@@ -1,5 +1,5 @@
 import type { BorderConfig, Padding, ReportStyle, TableCell, TableComponent, TableRow } from '@report-designer/core';
-import { band, commonTextStyleIds, template, text } from './common';
+import { band, commonTextStyleIds, documentHeaderBarcode, template, text } from './common';
 
 const fullBorder: BorderConfig = {
   style: 'solid',
@@ -344,10 +344,11 @@ const orderSummaryTable = orderTable('clothing-order-summary-table', 'OrderSumma
 export const clothingOrderDynamicSizeTemplate = {
   ...template('clothing-order-dynamic-size', '服装订单动态尺码打印', [
     band('clothing-order-title-band', 'reportTitle', 34, [
-      text('clothing-order-title-text', '服装订单动态尺码打印', 0, 0, 190, 10, {
+      text('clothing-order-title-text', '服装订单动态尺码打印', 0, 0, 130, 10, {
         style: 'clothing-order-title',
         textAlign: 'center',
       }),
+      documentHeaderBarcode('clothing-order-barcode', 'orderNo'),
       text('clothing-order-no-label', '订单号', 0, 15, 14, 6, { style: commonTextStyleIds.header }),
       text('clothing-order-no', '{orderNo}', 16, 15, 44, 6, { style: commonTextStyleIds.dataBottomBorder }),
       text('clothing-order-customer-label', '客户', 64, 15, 12, 6, { style: commonTextStyleIds.header }),

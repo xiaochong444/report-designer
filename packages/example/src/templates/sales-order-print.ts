@@ -1,5 +1,5 @@
 import type { BorderConfig, Padding, ReportStyle, TableCell, TableComponent, TableRow } from '@report-designer/core';
-import { band, commonTextStyleIds, template, text } from './common';
+import { band, commonTextStyleIds, documentHeaderBarcode, template, text } from './common';
 
 const fullBorder: BorderConfig = {
   style: 'solid',
@@ -231,9 +231,10 @@ const salesFooterTable = salesTable('sop-footer-table', 0, 16, [
   }),
 ], fullBorder);
 
-export const salesOrderPrintTemplate = template('sales-order-print', 'Sales Order Print', [
+export const salesOrderPrintTemplate = template('sales-order-print', '销售订单打印', [
   band('sop-title', 'reportTitle', 56, [
-    text('sop-title-text', '销售订单', 0, 0, 190, 10, { style: 'sales-order-title', textAlign: 'center' }),
+    text('sop-title-text', '销售订单', 0, 0, 130, 10, { style: 'sales-order-title', textAlign: 'center' }),
+    documentHeaderBarcode('sop-barcode', 'orderNo'),
     text('sop-approved', '已审核', 151, 1, 28, 8, {
       style: 'sales-order-stamp',
       textAlign: 'center',

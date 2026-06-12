@@ -1,6 +1,6 @@
 import { renderReport } from '../src/pagination/paginate';
 import { createDefaultTemplate } from '../src/template-model/template';
-import type { TableComponent } from '../src/template-model/types';
+import type { Band, TableComponent } from '../src/template-model/types';
 
 describe('phase 34 table rendering', () => {
   it('uses selected top-level table style for table and inherited cell rendering', () => {
@@ -259,6 +259,60 @@ describe('phase 34 table rendering', () => {
       .map(table => table?.type === 'table' ? table.rows[1]?.[0]?.content : undefined);
 
     expect(tableContents).toEqual(['10', '20']);
+  });
+
+  it('honors explicit sparse cell columns when merged footer rows contain expressions', () => {
+    const template = createDefaultTemplate('Sparse Table Footer Columns');
+    template.dataSources = [{
+      id: 'items',
+      name: 'items',
+      type: 'json',
+      schema: [{ name: 'amount', type: 'number' }],
+    }];
+    const dataBand = template.pages[0].bands.find(band => band.type === 'data');
+    if (!dataBand) throw new Error('Missing data band');
+    dataBand.dataBand = { dataSourceId: 'items' };
+    dataBand.components = [];
+
+    const footerBand: Band = {
+      id: 'sparse-footer',
+      type: 'footer',
+      height: 8,
+      behavior: { enabled: true, printOn: 'allPages', printIfEmpty: true, printOnAllPages: false, keepTogether: false, canBreak: false, printAtBottom: false },
+      components: [],
+    };
+    const dataBandIndex = template.pages[0].bands.findIndex(band => band.type === 'data');
+    template.pages[0].bands.splice(dataBandIndex + 1, 0, footerBand);
+    footerBand.components = [{
+      id: 'footer-table',
+      type: 'table',
+      x: 0,
+      y: 0,
+      width: 90,
+      height: 8,
+      columnCount: 3,
+      rows: [{
+        id: 'total-row',
+        height: 8,
+        cells: [
+          { id: 'total-label', column: 0, text: '合计', colSpan: 2 },
+          { id: 'total-value', column: 2, text: 'FORMAT("N2", SUM({items.amount}))' },
+        ],
+      }],
+    } as TableComponent];
+
+    const document = renderReport(template, { items: [{ amount: 10 }, { amount: 20 }] });
+    const table = document.pages[0].items
+      .flatMap(item => item.components)
+      .find(component => component.id === 'footer-table');
+
+    expect(table).toMatchObject({
+      type: 'table',
+      rows: [[
+        { column: 0, colSpan: 2, content: '合计' },
+        { column: 2, colSpan: 1, content: '30.00' },
+      ]],
+    });
   });
 
   it('splits tall tables across pages without repeating internal table rows', () => {

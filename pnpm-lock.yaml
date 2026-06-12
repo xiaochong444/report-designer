@@ -185,6 +185,9 @@ importers:
       '@visactor/vchart':
         specifier: ^2.0.22
         version: 2.0.22
+      '@visactor/vseed':
+        specifier: ^0.5.6
+        version: 0.5.6
       antd:
         specifier: ^6.0.0
         version: 6.3.7(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
@@ -1418,6 +1421,9 @@ packages:
   '@visactor/vscale@1.0.23':
     resolution: {integrity: sha512-XePhYuRoNAp+8MeSMuEOOvhVAlOwvM1sDT2yFxE6zdwVB2GjZk8mH+5N2xQGQWk75YmGJjlJASFtgwjlb1yWxw==}
 
+  '@visactor/vseed@0.5.6':
+    resolution: {integrity: sha512-5s28Zf1rejN7eNjqHA3b2uyl4psBZRsgwk/vf3whF8qYZ3Cpy2C6l9BKjOC5GrUbUcKAc/xPDwyPDMeHjgj3jA==}
+
   '@visactor/vutils-extension@2.0.22':
     resolution: {integrity: sha512-PRxjplZF1/Qdsflb1hYh9DGGJdblq91yIG7CCC6MIlMMSlDYEAMJzJ9y2clnR1MgWa2AsAtMtuu+MSdG3DctUA==}
 
@@ -1977,6 +1983,9 @@ packages:
     resolution: {integrity: sha512-6tDA8g98We0zd0GvVeMT9arEOnTw9qM03L9cJXaCjrip1OO764RDBLBfrB4cwzNGDj5OA5ioymC9GkizgWJDUg==}
     engines: {node: '>=8'}
 
+  remeda@2.28.0:
+    resolution: {integrity: sha512-943nIauNk4xBh/2DNcsZCc3DRpKncNXnNjtWlqfhM72FvD4bKuOXWSfuY0+k7yf8/Ob3+QzXtxLeobLoMn/INA==}
+
   resolve-protobuf-schema@2.1.0:
     resolution: {integrity: sha512-kI5ffTiZWmJaS/huM8wZfEMer1eRd7oJQhDuxeCLe3t7N7mX3z94CN0xPxBQxFYQTSNz9T0i+v6inKqSdK8xrQ==}
 
@@ -2086,6 +2095,9 @@ packages:
   tinybench@2.9.0:
     resolution: {integrity: sha512-0+DUvqWMValLmha6lr4kD8iAMK1HzV0/aKnCtWb9v9641TnP/MFb7Pc2bxoxQjTXAErryXVgUOfv2YqNllqGeg==}
 
+  tinycolor2@1.4.2:
+    resolution: {integrity: sha512-vJhccZPs965sV/L2sU4oRQVAos0pQXwsvTLkWYdqJ+a8Q5kPFzJTuOFwy7UniPli44NKQGAglksjvOcpo95aZA==}
+
   tinyexec@0.3.2:
     resolution: {integrity: sha512-KQQR9yN7R5+OSwaK0XQoj22pwHoTlgYqmUscPYoknOoWCWfj/5/ABTMRi69FrKU5ffPVh5QcFikpWJI/P1ocHA==}
 
@@ -2137,6 +2149,10 @@ packages:
   turbo@2.9.8:
     resolution: {integrity: sha512-REEB2rVTVDTf4hav1gJ5dIsGylWZrNonvjXFtk1dCi8gND3PhZtnYkyry1bra/Fo+iP6ctTEZbg6vWfdfHq/1A==}
     hasBin: true
+
+  type-fest@4.41.0:
+    resolution: {integrity: sha512-TeTSQ6H5YHvpqVwBRcnLDCBnDOHWYu7IvGbHT6N8AOymcr9PJGjc1GTtiWZTYg0NCgYwvnYWEkVChQAr9bjfwA==}
+    engines: {node: '>=16'}
 
   typedarray@0.0.6:
     resolution: {integrity: sha512-/aCDEGatGvZ2BIk+HmLf4ifCJFwvKFNb9/JeZPMulfgFracn9QFcAf5GO8B/mweUjSoblS5In0cWhqpfs/5PQA==}
@@ -2286,6 +2302,9 @@ packages:
 
   yallist@3.1.1:
     resolution: {integrity: sha512-a4UGQaWPH59mOXUYnAG2ewncQS4i4F43Tv3JoAM+s2VDAmS9NsK8GpDMLrCHPksFT7h3K6TOoUNn2pb7RoXx4g==}
+
+  zod@4.1.8:
+    resolution: {integrity: sha512-5R1P+WwQqmmMIEACyzSvo4JXHY5WiAFHRMg+zBZKgKS+Q1viRa0C1hmUKtHltoIFKtIdki3pRxkmpP74jnNYHQ==}
 
   zustand@5.0.12:
     resolution: {integrity: sha512-i77ae3aZq4dhMlRhJVCYgMLKuSiZAaUPAct2AksxQ+gOtimhGMdXljRT21P5BNpeT4kXlLIckvkPM029OljD7g==}
@@ -3529,6 +3548,14 @@ snapshots:
     dependencies:
       '@visactor/vutils': 1.0.23
 
+  '@visactor/vseed@0.5.6':
+    dependencies:
+      '@visactor/vdataset': 1.0.23
+      '@visactor/vutils': 1.0.23
+      remeda: 2.28.0
+      tinycolor2: 1.4.2
+      zod: 4.1.8
+
   '@visactor/vutils-extension@2.0.22':
     dependencies:
       '@visactor/vdataset': 1.0.23
@@ -4166,6 +4193,10 @@ snapshots:
       indent-string: 4.0.0
       strip-indent: 3.0.0
 
+  remeda@2.28.0:
+    dependencies:
+      type-fest: 4.41.0
+
   resolve-protobuf-schema@2.1.0:
     dependencies:
       protocol-buffers-schema: 3.6.1
@@ -4289,6 +4320,8 @@ snapshots:
 
   tinybench@2.9.0: {}
 
+  tinycolor2@1.4.2: {}
+
   tinyexec@0.3.2: {}
 
   tinyglobby@0.2.16:
@@ -4336,6 +4369,8 @@ snapshots:
       '@turbo/linux-arm64': 2.9.8
       '@turbo/windows-64': 2.9.8
       '@turbo/windows-arm64': 2.9.8
+
+  type-fest@4.41.0: {}
 
   typedarray@0.0.6: {}
 
@@ -4459,6 +4494,8 @@ snapshots:
   xmlchars@2.2.0: {}
 
   yallist@3.1.1: {}
+
+  zod@4.1.8: {}
 
   zustand@5.0.12(@types/react@19.2.14)(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5)):
     optionalDependencies:

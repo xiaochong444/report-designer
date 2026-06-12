@@ -576,15 +576,40 @@ function normalizeRenderableTableRows(component: TableComponent): TableRow[] {
   const sourceRows = component.rows?.length
     ? component.rows
     : legacyRenderableTableRows(component);
-  const columnCount = Math.max(1, sourceRows.reduce((count, row) => Math.max(count, row.cells.length), 0), component.columnCount ?? 0);
+  const columnCount = Math.max(
+    1,
+    sourceRows.reduce((count, row) => Math.max(count, renderableColumnCount(row)), 0),
+    component.columnCount ?? 0,
+  );
   return sourceRows.map((row, rowIndex) => ({
     ...row,
     id: row.id || `row_${rowIndex + 1}`,
     height: Math.max(0.1, row.height ?? component.rowHeight ?? 8),
-    cells: Array.from({ length: columnCount }, (_, columnIndex) => ({
-      id: row.cells[columnIndex]?.id ?? `cell_${rowIndex + 1}_${columnIndex + 1}`,
-      ...row.cells[columnIndex],
-    })),
+    cells: normalizeRowCells(row, rowIndex, columnCount),
+  }));
+}
+
+function renderableColumnCount(row: TableRow): number {
+  return row.cells.reduce((count, cell, sourceIndex) => {
+    const columnIndex = Number.isInteger(cell.column) && cell.column != null && cell.column >= 0
+      ? cell.column
+      : sourceIndex;
+    return Math.max(count, columnIndex + Math.max(1, cell.colSpan ?? 1));
+  }, row.cells.length);
+}
+
+function normalizeRowCells(row: TableRow, rowIndex: number, columnCount: number): TableCell[] {
+  const positioned = new Map<number, TableCell>();
+  row.cells.forEach((cell, sourceIndex) => {
+    const columnIndex = Number.isInteger(cell.column) && cell.column != null && cell.column >= 0
+      ? Math.min(cell.column, columnCount - 1)
+      : sourceIndex;
+    positioned.set(columnIndex, cell);
+  });
+
+  return Array.from({ length: columnCount }, (_, columnIndex) => ({
+    id: positioned.get(columnIndex)?.id ?? `cell_${rowIndex + 1}_${columnIndex + 1}`,
+    ...positioned.get(columnIndex),
   }));
 }
 
@@ -1091,20 +1116,38 @@ function resolveTemplateValue(
     return value;
   }
 
+  const runtime = new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand, pageRowsByBand, defaultDataSourceId: context.dataSourceId });
+  const evaluateTextExpression = (expression: string): string => {
+    const result = evalExpression(
+      expression,
+      (source, field) => resolveField(context, source, field),
+      context.rowIndex,
+      expressionVariables(context),
+      runtime,
+      context.expressionFunctions,
+    );
+    return result == null ? '' : String(result);
+  };
+
   const placeholderPattern = /\{([^{}]+)\}/g;
   const isSinglePlaceholder = value.trim().match(/^\{([^{}]+)\}$/);
+
+  const withFunctions = replaceEmbeddedFunctionCalls(value, (expression) => {
+    try {
+      return evaluateTextExpression(expression);
+    } catch {
+      return expression;
+    }
+  });
+
+  if (withFunctions !== value) {
+    return resolveTemplateValue(withFunctions, context, rowsByBand, pageRowsByBand);
+  }
+
   if (!isSinglePlaceholder && placeholderPattern.test(value)) {
     return value.replace(/\{([^{}]+)\}/g, (match, expressionBody) => {
       try {
-        const result = evalExpression(
-          `{${expressionBody}}`,
-          (source, field) => resolveField(context, source, field),
-          context.rowIndex,
-          expressionVariables(context),
-          new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand, pageRowsByBand, defaultDataSourceId: context.dataSourceId }),
-          context.expressionFunctions,
-        );
-        return result == null ? '' : String(result);
+        return evaluateTextExpression(`{${expressionBody}}`);
       } catch {
         return match;
       }
@@ -1112,18 +1155,119 @@ function resolveTemplateValue(
   }
 
   try {
-    const result = evalExpression(
-      value,
-      (source, field) => resolveField(context, source, field),
-      context.rowIndex,
-      expressionVariables(context),
-      new AggregateRuntime({ rowsByBand: context.rowsByBand ?? rowsByBand, pageRowsByBand, defaultDataSourceId: context.dataSourceId }),
-      context.expressionFunctions,
-    );
-    return result == null ? '' : String(result);
+    return evaluateTextExpression(value);
   } catch {
     return value;
   }
+}
+
+function replaceEmbeddedFunctionCalls(value: string, replace: (expression: string) => string): string {
+  let output = '';
+  let index = 0;
+
+  while (index < value.length) {
+    const start = findNextFunctionStart(value, index);
+    if (start < 0) {
+      output += value.slice(index);
+      break;
+    }
+
+    const end = findFunctionCallEnd(value, start);
+    if (end < 0) {
+      output += value.slice(index);
+      break;
+    }
+
+    output += value.slice(index, start);
+    output += replace(value.slice(start, end));
+    index = end;
+  }
+
+  return output;
+}
+
+function findNextFunctionStart(value: string, from: number): number {
+  for (let index = from; index < value.length; index += 1) {
+    if (!isIdentifierStart(value[index])) {
+      continue;
+    }
+
+    const previous = index > 0 ? value[index - 1] : '';
+    if (isIdentifierPart(previous)) {
+      continue;
+    }
+
+    let cursor = index + 1;
+    while (cursor < value.length && isIdentifierPart(value[cursor])) {
+      cursor += 1;
+    }
+
+    if (value[cursor] === '(') {
+      return index;
+    }
+  }
+
+  return -1;
+}
+
+function findFunctionCallEnd(value: string, start: number): number {
+  const open = value.indexOf('(', start);
+  if (open < 0) return -1;
+
+  let depth = 0;
+  let inString = false;
+  let inFieldRef = false;
+
+  for (let index = open; index < value.length; index += 1) {
+    const char = value[index];
+    const previous = index > 0 ? value[index - 1] : '';
+
+    if (inString) {
+      if (char === '"' && previous !== '\\') {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (inFieldRef) {
+      if (char === '}') {
+        inFieldRef = false;
+      }
+      continue;
+    }
+
+    if (char === '"') {
+      inString = true;
+      continue;
+    }
+
+    if (char === '{') {
+      inFieldRef = true;
+      continue;
+    }
+
+    if (char === '(') {
+      depth += 1;
+      continue;
+    }
+
+    if (char === ')') {
+      depth -= 1;
+      if (depth === 0) {
+        return index + 1;
+      }
+    }
+  }
+
+  return -1;
+}
+
+function isIdentifierStart(char: string | undefined): boolean {
+  return Boolean(char && /[A-Za-z_]/.test(char));
+}
+
+function isIdentifierPart(char: string | undefined): boolean {
+  return Boolean(char && /[A-Za-z0-9_.]/.test(char));
 }
 
 function resolveTextComponentStyle(component: TextComponent, styles: ReportStyle[]): TextComponent {

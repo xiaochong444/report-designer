@@ -13,7 +13,7 @@ export const expressionExtensions: ExpressionCatalogExtensions = {
         'zh-CN': '按折扣率计算折后金额。',
         'en-US': 'Calculates a discounted amount by rate.',
       },
-      examples: ['DISCOUNT({invoiceLines.lineTotal}, 0.9)'],
+      examples: ['DISCOUNT({items.salesAmount}, 0.9)'],
       evaluate: ([price, rate]) => Number(price) * Number(rate),
     },
     {

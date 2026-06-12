@@ -32,7 +32,7 @@ function chart(
     height,
     chartType,
     binding: {
-      dataSourceId: 'chartSales',
+      dataSourceId: 'salesAnalytics',
       dimensions: isScatter
         ? (options.xField ? [{ field: options.xField }] : [])
         : (options.dimField ? [{ field: options.dimField }] : []),
@@ -55,74 +55,67 @@ function chart(
       axisTitleX: options.axisTitleX ?? '',
       axisTitleY: options.axisTitleY ?? '',
     },
-    emptyMessage: 'No chart data',
+    emptyMessage: '暂无图表数据',
   };
 }
 
-export const chartsTemplate = template('charts', '销售图表', [
-  band('charts-title', 'reportTitle', 16, [
-    text('charts-title-text', '销售数据分析', 0, 2, 80, 8, { style: commonTextStyleIds.title }),
-    text('charts-subtitle', '基于销售数据的柱状图、折线图、面积图、饼图、散点图、雷达图和漏斗图', 92, 3, 92, 6, { style: commonTextStyleIds.pageHeader }),
+export const businessDashboardTemplate = template('business-dashboard', '经营分析看板', [
+  band('bd-title', 'reportTitle', 16, [
+    text('bd-title-text', '经营分析看板', 0, 2, 80, 8, { style: commonTextStyleIds.title }),
+    text('bd-subtitle', '柱状图、折线图、面积图、环图、散点图、漏斗图、雷达图', 92, 3, 92, 6, { style: commonTextStyleIds.pageHeader }),
   ]),
-  band('charts-body', 'reportTitle', 210, [
-    // 按产品类型统计销售额（柱状图）
-    chart('chart-sales-product', 'column', 0, 0, 88, 44, {
-      title: '产品类型销售额',
-      dimField: 'productType',
+  band('bd-body', 'reportTitle', 210, [
+    chart('bd-sales-category', 'column', 0, 0, 88, 44, {
+      title: '品类销售额',
+      dimField: 'category',
       meaField: 'amount',
       aggregate: 'sum',
       axisTitleY: '销售额',
     }),
-    // 按年月统计销售额趋势（折线图）
-    chart('chart-sales-trend', 'line', 96, 0, 88, 44, {
+    chart('bd-sales-trend', 'line', 96, 0, 88, 44, {
       title: '月度销售趋势',
       dimField: 'yearMonth',
       meaField: 'amount',
       aggregate: 'sum',
       axisTitleY: '销售额',
     }),
-    // 按年月统计各产品类型销售数量（面积图 + 系列）
-    chart('chart-qty-trend', 'area', 0, 52, 88, 44, {
-      title: '各产品类型月度销售数量',
+    chart('bd-qty-trend', 'area', 0, 52, 88, 44, {
+      title: '各品类月度销量',
       dimField: 'yearMonth',
       meaField: 'quantity',
-      seriesField: 'productType',
+      seriesField: 'category',
       aggregate: 'sum',
-      axisTitleY: '销售数量',
+      axisTitleY: '销量',
     }),
-    // 产品类型销售额占比（环图）
-    chart('chart-sales-share', 'donut', 96, 52, 88, 44, {
-      title: '产品类型销售占比',
-      dimField: 'productType',
+    chart('bd-channel-share', 'donut', 96, 52, 88, 44, {
+      title: '渠道销售占比',
+      dimField: 'channel',
       meaField: 'amount',
       aggregate: 'sum',
     }),
-    // 销售数量 vs 销售额散点图
-    chart('chart-qty-amount', 'scatter', 48, 104, 88, 38, {
-      title: '销售数量与销售额关系',
-      xField: 'quantity',
-      yField: 'amount',
-      seriesField: 'productType',
+    chart('bd-scatter', 'scatter', 48, 104, 88, 38, {
+      title: '客单价与连带率',
+      xField: 'avgOrderValue',
+      yField: 'attachRate',
+      seriesField: 'storeName',
       aggregate: 'none',
-      axisTitleX: '销售数量',
-      axisTitleY: '销售额',
+      axisTitleX: '客单价',
+      axisTitleY: '连带率',
     }),
-    // 产品类型销售漏斗
-    chart('chart-product-funnel', 'funnel', 0, 152, 88, 44, {
-      title: '产品类型销售漏斗',
-      dimField: 'productType',
-      meaField: 'amount',
+    chart('bd-funnel', 'funnel', 0, 152, 88, 44, {
+      title: '会员转化漏斗',
+      dimField: 'funnelStage',
+      meaField: 'count',
       aggregate: 'sum',
     }),
-    // 产品类型雷达图
-    chart('chart-product-radar', 'radar', 96, 152, 88, 44, {
-      title: '产品类型综合评估',
-      dimField: 'productType',
-      meaField: 'amount',
+    chart('bd-radar', 'radar', 96, 152, 88, 44, {
+      title: '区域 KPI 雷达',
+      dimField: 'region',
+      meaField: 'kpiScore',
       aggregate: 'sum',
     }),
   ]),
-  band('charts-footer', 'pageFooter', 8, [
-    text('charts-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
+  band('bd-footer', 'pageFooter', 8, [
+    text('bd-page-number', '{PageNumber}/{TotalPages}', 70, 1, 50, 6, { style: commonTextStyleIds.footerCenter }),
   ]),
 ]);

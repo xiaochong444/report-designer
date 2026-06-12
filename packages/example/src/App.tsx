@@ -4,7 +4,7 @@ import { renderReport, type EventLogEntry, type ReportTemplate } from '@report-d
 import { Designer, type DesignerEventNavigationTarget, type DesignerLocale } from '@report-designer/designer';
 import { printReport, Viewer } from '@report-designer/viewer';
 import { expressionExtensions, expressionFunctions, expressionVariables } from './expression-extensions';
-import { sampleReports } from './templates';
+import { sampleReports, sampleSelectOptions } from './templates';
 
 const { Content, Header } = Layout;
 type ViewMode = 'preview' | 'designer';
@@ -60,10 +60,6 @@ function App() {
     () => sampleReports.find(report => report.key === sampleKey) ?? sampleReports[0],
     [sampleKey],
   );
-  const selectedSubreports = useMemo(
-    () => ('subreports' in selected ? selected.subreports as Record<string, ReportTemplate> : undefined),
-    [selected],
-  );
   const previewTemplate = previewDrafts[selected.key] ?? selected.template;
   const designerTemplate = useMemo(() => designerDrafts[selected.key] ?? previewTemplate, [designerDrafts, previewTemplate, selected.key]);
   const handleDesignerTemplateChange = useCallback((next: ReportTemplate) => {
@@ -91,7 +87,6 @@ function App() {
     setSilentPrintStatus('');
     try {
       const printDocument = renderReport(previewTemplate, selected.data, {
-        subreports: selectedSubreports,
         expressionFunctions,
         expressionVariables,
         mode: 'print',
@@ -111,13 +106,12 @@ function App() {
     } finally {
       setSilentPrintLoading(false);
     }
-  }, [labels.silentPrintFailed, labels.silentPrintSent, previewTemplate, selected, selectedSubreports]);
+  }, [labels.silentPrintFailed, labels.silentPrintSent, previewTemplate, selected]);
   const handlePdfPrintValidation = useCallback(async () => {
     setPdfPrintLoading(true);
     setPdfPrintStatus('');
     try {
       const printDocument = renderReport(previewTemplate, selected.data, {
-        subreports: selectedSubreports,
         expressionFunctions,
         expressionVariables,
         mode: 'print',
@@ -138,7 +132,7 @@ function App() {
     } finally {
       setPdfPrintLoading(false);
     }
-  }, [labels.pdfPrintValidationFailed, labels.pdfPrintValidationSent, previewTemplate, selected, selectedSubreports]);
+  }, [labels.pdfPrintValidationFailed, labels.pdfPrintValidationSent, previewTemplate, selected]);
 
   return (
     <Layout style={{ height: '100vh', minWidth: 900, background: '#eef1f5' }}>
@@ -159,7 +153,7 @@ function App() {
           value={sampleKey}
           onChange={setSampleKey}
           style={{ width: 260 }}
-          options={sampleReports.map(report => ({ value: report.key, label: report.label }))}
+          options={sampleSelectOptions}
         />
         <Typography.Text type="secondary">{previewTemplate.name}</Typography.Text>
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 8 }}>
@@ -229,7 +223,6 @@ function App() {
           <Viewer
             template={previewTemplate}
             data={selected.data}
-            subreports={selectedSubreports}
             expressionFunctions={expressionFunctions}
             expressionVariables={expressionVariables}
             locale={locale}
@@ -240,7 +233,6 @@ function App() {
             key={selected.key}
             template={designerTemplate}
             data={selected.data}
-            subreports={selectedSubreports}
             expressionExtensions={expressionExtensions}
             locale={locale}
             eventNavigationTarget={eventNavigationTarget}

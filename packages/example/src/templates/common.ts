@@ -1,4 +1,4 @@
-import { isRepeatOnEveryPageBandType, resolveTextStyle, type BorderConfig, type FontConfig, type Band, type ReportComponentUnion, type ReportStyle, type ReportTemplate, type TextComponent } from '@report-designer/core';
+import { isRepeatOnEveryPageBandType, resolveTextStyle, type BarcodeComponent, type BorderConfig, type FontConfig, type Band, type QRCodeComponent, type ReportComponentUnion, type ReportStyle, type ReportTemplate, type TextComponent } from '@report-designer/core';
 
 type TextOptions = Omit<Partial<TextComponent>, 'font' | 'border'> & {
   font?: Partial<FontConfig>;
@@ -218,6 +218,56 @@ export function text(id: string, content: string, x: number, y: number, width: n
 
 export function moneyExpression(source: string, fieldName: string): string {
   return `FORMAT("N2", {${source}.${fieldName}})`;
+}
+
+export function barcode(
+  id: string,
+  value: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  options: Partial<Omit<BarcodeComponent, 'id' | 'type' | 'x' | 'y' | 'width' | 'height' | 'value'>> = {},
+): BarcodeComponent {
+  return {
+    id,
+    type: 'barcode',
+    x,
+    y,
+    width,
+    height,
+    value,
+    format: 'CODE128',
+    showText: true,
+    ...options,
+  };
+}
+
+export function qrcode(
+  id: string,
+  value: string,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  options: Partial<Omit<QRCodeComponent, 'id' | 'type' | 'x' | 'y' | 'width' | 'height' | 'value'>> = {},
+): QRCodeComponent {
+  return {
+    id,
+    type: 'qrcode',
+    x,
+    y,
+    width,
+    height,
+    value,
+    format: 'QR_CODE',
+    ...options,
+  };
+}
+
+/** 单据报表头右上角条码，绑定单号字段 */
+export function documentHeaderBarcode(id: string, orderNoField: string): BarcodeComponent {
+  return barcode(id, `{${orderNoField}}`, 138, 0, 52, 16);
 }
 
 function cloneStyles(styles: ReportStyle[]): ReportStyle[] {
