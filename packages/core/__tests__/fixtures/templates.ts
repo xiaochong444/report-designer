@@ -1,10 +1,8 @@
 export {
-  employeesData,
-  groupedEmployeesTemplate,
-  invoiceLinesData,
-  invoiceTemplate,
-  longTextPaginationTemplate,
-  masterDetailOrdersTemplate,
-  orderLinesData,
-  sampleReportData,
+  contractTermsData,
+  contractTermsTemplate,
+  salesOrderPrintData,
+  salesOrderPrintTemplate,
+  storeDailySalesData,
+  storeDailySalesTemplate,
 } from '../../../example/src/templates';
