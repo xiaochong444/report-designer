@@ -32,6 +32,7 @@ import type {
   TextComponent,
   ChartDataPoint,
   ChartAggregateMode,
+  ChartMarkStyle,
 } from '../template-model/types';
 import { isRepeatOnEveryPageBandType } from '../template-model/types';
 import { formatValue } from '../text-format';
@@ -749,6 +750,80 @@ function layoutChart(component: ChartComponent, options: LayoutBandOptions): Ren
   const sortedRows = applyChartSort(rows, component.binding?.sort ?? [], options.context);
   const aggregate = component.binding?.aggregate ?? 'none';
   const data = buildChartData(component, sortedRows, aggregate, options);
+  const legacyMarkStyle = {
+    ...component.appearance?.markStyle,
+    ...(component.plotOptions?.bar
+      ? compactChartMarkStyle({
+          barWidth: component.plotOptions.bar.barWidth,
+          cornerRadius: component.plotOptions.bar.cornerRadius,
+          fillOpacity: component.plotOptions.bar.fillOpacity,
+          stroke: component.plotOptions.bar.borderColor,
+          lineWidth: component.plotOptions.bar.borderWidth,
+          barLabelPosition: component.plotOptions.bar.labelPosition,
+        })
+      : {}),
+    ...(component.plotOptions?.line
+      ? compactChartMarkStyle({
+          curveType: component.plotOptions.line.curveType,
+          lineWidth: component.plotOptions.line.lineWidth,
+          showPoint: component.plotOptions.line.showPoint,
+          pointSize: component.plotOptions.line.pointSize,
+          pointShape: component.plotOptions.line.pointShape,
+          connectNulls: component.plotOptions.line.connectNulls,
+        })
+      : {}),
+    ...(component.plotOptions?.area
+      ? compactChartMarkStyle({
+          showArea: component.plotOptions.area.showArea,
+          areaOpacity: component.plotOptions.area.areaOpacity,
+        })
+      : {}),
+    ...(component.plotOptions?.pie
+      ? compactChartMarkStyle({
+          innerRadius: component.plotOptions.pie.innerRadius,
+          outerRadius: component.plotOptions.pie.outerRadius,
+          startAngle: component.plotOptions.pie.startAngle,
+          padAngle: component.plotOptions.pie.padAngle,
+          roseType: component.plotOptions.pie.roseType,
+        })
+      : {}),
+    ...(component.plotOptions?.scatter
+      ? compactChartMarkStyle({
+          pointSize: component.plotOptions.scatter.pointSize,
+          pointShape: component.plotOptions.scatter.pointShape,
+          fillOpacity: component.plotOptions.scatter.fillOpacity,
+          showTrendLine: component.plotOptions.scatter.showTrendLine,
+          trendLineType: component.plotOptions.scatter.trendLineType,
+        })
+      : {}),
+    ...(component.plotOptions?.radar
+      ? compactChartMarkStyle({
+          radarShape: component.plotOptions.radar.shape,
+          showRadarArea: component.plotOptions.radar.showArea,
+          radarAreaOpacity: component.plotOptions.radar.areaOpacity,
+          lineWidth: component.plotOptions.radar.lineWidth,
+          showPoint: component.plotOptions.radar.showPoint,
+          pointSize: component.plotOptions.radar.pointSize,
+          axisCount: component.plotOptions.radar.axisCount,
+        })
+      : {}),
+    ...(component.plotOptions?.funnel
+      ? compactChartMarkStyle({
+          funnelDirection: component.plotOptions.funnel.direction,
+          funnelShape: component.plotOptions.funnel.shape,
+          showConversionRate: component.plotOptions.funnel.showConversionRate,
+          funnelGap: component.plotOptions.funnel.gap,
+          funnelMinSize: component.plotOptions.funnel.minSize,
+          funnelMaxSize: component.plotOptions.funnel.maxSize,
+        })
+      : {}),
+    ...(component.plotOptions?.dualAxis
+      ? compactChartMarkStyle({
+          primaryType: component.plotOptions.dualAxis.primaryType,
+          secondaryType: component.plotOptions.dualAxis.secondaryType,
+        })
+      : {}),
+  };
 
   return {
     id: component.id,
@@ -761,28 +836,34 @@ function layoutChart(component: ChartComponent, options: LayoutBandOptions): Ren
     data,
     rawData: sortedRows,
     binding: component.binding ?? { dimensions: [], measures: [], aggregate: 'none', sort: [] },
-    title: component.appearance?.title,
-    subtitle: component.appearance?.subtitle,
-    showLegend: component.appearance?.showLegend ?? true,
-    legendPosition: component.appearance?.legendPosition ?? 'bottom',
-    showAxes: component.appearance?.showAxes ?? true,
-    showGrid: component.appearance?.showGrid ?? true,
-    showLabels: component.appearance?.showLabels ?? false,
-    labelType: component.appearance?.labelType,
-    axisTitleX: component.appearance?.axisTitleX,
-    axisTitleY: component.appearance?.axisTitleY,
-    axisLabelRotation: component.appearance?.axisLabelRotation,
+    title: component.title?.text ?? component.appearance?.title,
+    subtitle: component.title?.subtitle ?? component.appearance?.subtitle,
+    showLegend: component.legend?.visible ?? component.appearance?.showLegend ?? true,
+    legendPosition: component.legend?.position ?? component.appearance?.legendPosition ?? 'bottom',
+    showAxes: component.axes?.x?.visible ?? component.axes?.y?.visible ?? component.appearance?.showAxes ?? true,
+    showGrid: component.axes?.x?.gridVisible ?? component.axes?.y?.gridVisible ?? component.appearance?.showGrid ?? true,
+    showLabels: component.labels?.visible ?? component.appearance?.showLabels ?? false,
+    labelType: component.labels?.content === 'custom'
+      ? component.appearance?.labelType
+      : (component.labels?.content ?? component.appearance?.labelType),
+    axisTitleX: component.axes?.x?.title ?? component.appearance?.axisTitleX,
+    axisTitleY: component.axes?.y?.title ?? component.appearance?.axisTitleY,
+    axisLabelRotation: component.axes?.x?.labelRotate ?? component.appearance?.axisLabelRotation,
     titleConfig: component.title,
     legendConfig: component.legend,
     axesConfig: component.axes,
     labelsConfig: component.labels,
     theme: component.theme ?? component.appearance?.theme,
-    markStyle: component.appearance?.markStyle,
+    markStyle: Object.values(legacyMarkStyle).some(value => value !== undefined) ? legacyMarkStyle : undefined,
     plotOptions: component.plotOptions,
     aggregate,
     emptyMessage: component.emptyMessage ?? 'No data',
     style: buildBaseRenderStyle(component),
   };
+}
+
+function compactChartMarkStyle(markStyle: ChartMarkStyle): ChartMarkStyle {
+  return Object.fromEntries(Object.entries(markStyle).filter(([, value]) => value !== undefined)) as ChartMarkStyle;
 }
 
 function resolveChartRows(component: ChartComponent, options: LayoutBandOptions): Record<string, unknown>[] {

@@ -184,4 +184,89 @@ describe('phase 48 chart config normalization', () => {
       },
     });
   });
+
+  it('uses structured chart config before legacy appearance for render legacy fields', () => {
+    const document = renderReport(makeChartTemplate(makeChart({
+      appearance: {
+        title: 'Legacy Title',
+        subtitle: 'Legacy Subtitle',
+        showLegend: true,
+        legendPosition: 'right',
+        showAxes: true,
+        showGrid: true,
+        showLabels: true,
+        labelType: 'name-value',
+        axisTitleX: 'Legacy X',
+        axisTitleY: 'Legacy Y',
+        axisLabelRotation: -30,
+        theme: { baseTheme: 'dark' },
+        markStyle: {
+          cornerRadius: 4,
+          fillOpacity: 0.8,
+        },
+      },
+      title: {
+        visible: true,
+        text: 'Structured Title',
+        subtitle: 'Structured Subtitle',
+      },
+      legend: {
+        visible: false,
+        position: 'bottom',
+      },
+      axes: {
+        x: {
+          visible: true,
+          title: 'Structured X',
+          labelRotate: 15,
+          gridVisible: false,
+        },
+        y: {
+          visible: true,
+          title: 'Structured Y',
+          gridVisible: false,
+        },
+      },
+      labels: {
+        visible: false,
+        content: 'percent',
+      },
+      plotOptions: {
+        bar: {
+          cornerRadius: 9,
+          fillOpacity: 0.4,
+        },
+      },
+    })), {
+      sales: [
+        { Region: 'East', Channel: 'Online', Amount: 10 },
+      ],
+    });
+    const chart = document.pages[0].items[0].components[0];
+
+    expect(chart.type).toBe('chart');
+    expect(chart).toMatchObject({
+      title: 'Structured Title',
+      subtitle: 'Structured Subtitle',
+      showLegend: false,
+      legendPosition: 'bottom',
+      showAxes: true,
+      showGrid: false,
+      showLabels: false,
+      labelType: 'percent',
+      axisTitleX: 'Structured X',
+      axisTitleY: 'Structured Y',
+      axisLabelRotation: 15,
+      markStyle: {
+        cornerRadius: 9,
+        fillOpacity: 0.4,
+      },
+      plotOptions: {
+        bar: {
+          cornerRadius: 9,
+          fillOpacity: 0.4,
+        },
+      },
+    });
+  });
 });
