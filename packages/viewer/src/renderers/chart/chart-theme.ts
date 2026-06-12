@@ -53,7 +53,7 @@ export function resolveChartTheme(theme?: ChartThemeConfig): ResolvedChartTheme 
 
 function getRegisterTokenTheme(): ((themeName: string, tokens: Record<string, unknown>, options?: Record<string, unknown>) => void) | undefined {
   try {
-    return (vseed as { registerTokenTheme?: (themeName: string, tokens: Record<string, unknown>, options?: Record<string, unknown>) => void }).registerTokenTheme;
+    return (vseed as unknown as { registerTokenTheme?: (themeName: string, tokens: Record<string, unknown>, options?: Record<string, unknown>) => void }).registerTokenTheme;
   } catch {
     return undefined;
   }

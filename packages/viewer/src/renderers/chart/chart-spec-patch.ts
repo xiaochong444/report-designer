@@ -156,6 +156,7 @@ function applyLabels(spec: Record<string, any>, chart: RenderChart): void {
   spec.label = {
     ...(spec.label ?? {}),
     visible: true,
+    formatMethod: buildLabelFormatMethod(labels?.content ?? chart.labelType),
     position: labels?.position === 'auto' ? undefined : labels?.position,
     style: {
       ...(spec.label?.style ?? {}),
@@ -166,6 +167,24 @@ function applyLabels(spec: Record<string, any>, chart: RenderChart): void {
       fontStyle: labels?.font?.italic ? 'italic' : undefined,
     },
   };
+}
+
+function buildLabelFormatMethod(content: RenderChart['labelType'] | 'custom' | undefined): ((datum: Record<string, any>) => unknown) | undefined {
+  switch (content) {
+    case 'value':
+      return datum => datum?.value ?? '';
+    case 'percent':
+      return datum => {
+        const percent = datum?.percent;
+        return percent != null ? `${(percent * 100).toFixed(1)}%` : '';
+      };
+    case 'name-value':
+      return datum => `${datum?.category ?? datum?.name ?? datum?.label ?? ''}: ${datum?.value ?? ''}`;
+    case 'name':
+      return datum => datum?.category ?? datum?.name ?? datum?.label ?? '';
+    default:
+      return undefined;
+  }
 }
 
 function applyPaletteFallback(spec: Record<string, any>, chart: RenderChart): void {

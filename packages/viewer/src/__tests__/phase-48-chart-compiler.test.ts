@@ -4,6 +4,7 @@ import { buildChartDataset } from '../renderers/chart/chart-data';
 import { buildVSeedInput } from '../renderers/chart/chart-vseed';
 import { resolveChartTheme } from '../renderers/chart/chart-theme';
 import { buildVChartSpec } from '../renderers/chart/chart-spec';
+import { getChartTypeCapability } from '../renderers/chart/chart-type-capabilities';
 
 function chart(overrides: Partial<RenderChart> = {}): RenderChart {
   return {
@@ -117,6 +118,79 @@ describe('phase 48 chart compiler', () => {
     expect(input.dataset).toHaveLength(2);
   });
 
+  it('builds pie and scatter field mappings from chart data', () => {
+    const pieInput = buildVSeedInput(chart({ chartType: 'pie' }));
+    expect(pieInput).toMatchObject({
+      chartType: 'pie',
+      categoryField: 'category',
+      angleField: 'value',
+    });
+    expect(pieInput.dataset[0]).toEqual({ category: 'East', value: 25, series: 'Online' });
+
+    const scatterInput = buildVSeedInput(chart({
+      chartType: 'scatter',
+      data: [
+        { category: 'A', series: 'Online', value: 0, label: 'A', x: 10, y: 25, raw: {} },
+      ],
+      binding: {
+        dimensions: [{ field: 'x' }],
+        measures: [{ field: 'y' }],
+        seriesField: 'series',
+        aggregate: 'none',
+        sort: [],
+      },
+    }));
+    expect(scatterInput).toMatchObject({
+      chartType: 'scatter',
+      xField: 'x',
+      yField: 'y',
+      colorField: 'series',
+    });
+    expect(scatterInput.dataset[0]).toEqual({ x: 10, y: 25, series: 'Online' });
+  });
+
+  it('builds heatmap and dualAxis datasets with every mapped field present', () => {
+    const heatmapInput = buildVSeedInput(chart({
+      chartType: 'heatmap',
+      data: [
+        { category: 'Mon', series: 'Morning', value: 7, label: 'Mon', x: null, y: 7, raw: { weekday: 'Mon', shift: 'Morning', incidents: 7 } },
+      ],
+      binding: {
+        dimensions: [{ field: 'weekday' }, { field: 'shift' }],
+        measures: [{ field: 'incidents' }],
+        aggregate: 'sum',
+        sort: [],
+      },
+    }));
+    expect(heatmapInput).toMatchObject({
+      chartType: 'heatmap',
+      xField: 'weekday',
+      yField: 'shift',
+      valueField: 'incidents',
+    });
+    expect(heatmapInput.dataset[0]).toEqual({ weekday: 'Mon', shift: 'Morning', incidents: 7 });
+
+    const dualAxisInput = buildVSeedInput(chart({
+      chartType: 'dualAxis',
+      data: [
+        { category: 'Jan', series: undefined, value: 100, label: 'Jan', x: null, y: 100, raw: { month: 'Jan', revenue: 100, margin: 0.34 } },
+      ],
+      binding: {
+        dimensions: [{ field: 'month' }],
+        measures: [{ field: 'revenue' }, { field: 'margin' }],
+        aggregate: 'sum',
+        sort: [],
+      },
+    }));
+    expect(dualAxisInput).toMatchObject({
+      chartType: 'dualAxis',
+      xField: 'month',
+      yField: 'revenue',
+      yField2: 'margin',
+    });
+    expect(dualAxisInput.dataset[0]).toEqual({ month: 'Jan', revenue: 100, margin: 0.34 });
+  });
+
   it('resolves a deterministic token theme name and palette', () => {
     const resolved = resolveChartTheme(chart().theme);
     expect(resolved.themeName).toMatch(/^rd-chart-light-/);
@@ -134,5 +208,48 @@ describe('phase 48 chart compiler', () => {
     expect(JSON.stringify(spec)).toContain('#475569');
     expect(JSON.stringify(spec)).toContain('#1f2937');
     expect(JSON.stringify(spec)).toContain('cornerRadius');
+  });
+
+  it('maps label content settings to VChart label formatters', () => {
+    const nameValueSpec = buildVChartSpec(chart({
+      labelsConfig: { visible: true, content: 'name-value' },
+    })) as Record<string, any>;
+    expect(nameValueSpec.label.formatMethod({ category: 'East', value: 25 })).toBe('East: 25');
+
+    const valueSpec = buildVChartSpec(chart({
+      labelsConfig: { visible: true, content: 'value' },
+    })) as Record<string, any>;
+    expect(valueSpec.label.formatMethod({ value: 25 })).toBe(25);
+
+    const percentSpec = buildVChartSpec(chart({
+      labelsConfig: undefined,
+      labelType: 'percent',
+    })) as Record<string, any>;
+    expect(percentSpec.label.formatMethod({ percent: 0.125 })).toBe('12.5%');
+  });
+
+  it('exposes chart type capability metadata for field requirements', () => {
+    expect(getChartTypeCapability('column')).toMatchObject({
+      type: 'column',
+      fields: {
+        category: { role: 'dimension', required: true, max: 1 },
+        value: { role: 'measure', required: true, min: 1 },
+        series: { role: 'series', required: false, max: 1 },
+      },
+    });
+    expect(getChartTypeCapability('heatmap')).toMatchObject({
+      fields: {
+        x: { role: 'dimension', required: true, max: 1 },
+        y: { role: 'dimension', required: true, max: 1 },
+        value: { role: 'measure', required: true, max: 1 },
+      },
+    });
+    expect(getChartTypeCapability('dualAxis')).toMatchObject({
+      fields: {
+        category: { role: 'dimension', required: true, max: 1 },
+        value: { role: 'measure', required: true, max: 1 },
+        secondaryMeasure: { role: 'measure', required: true, max: 1 },
+      },
+    });
   });
 });
