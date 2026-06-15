@@ -59,24 +59,26 @@
 
 ### 阶段四：设计器面板与画布（chart-options 清理 + Canvas）
 
-- [ ] **T12** designer `chart-options.ts`：删 `getChartXxx` appearance 兜底(164-217)，简化为直接读结构化字段；删 `markStyleToPlotOptions`(219-278)、`plotOptionsToMarkStyle`(280-315)。
-- [ ] **T13** designer `Canvas.tsx:2754-2941`：palette 改读 `chart.theme?.customPalette`、title 改读 `chart.title?.text`、showGrid 改读 `chart.axes?.x?.gridVisible ?? true`。
+- [x] **T12** designer `chart-options.ts`：删 getChartXxx 兜底+双向转换+旧 isXxxLike，改用 core（commit 72a682e）。✅
+- [x] **T13** designer `Canvas.tsx`：palette/title/showGrid 改读结构化字段（commit 72a682e）。✅
 
 ### 阶段五：主面板重组（规格第 3 章）
 
-- [ ] **T14** `ChartPropertyPanel.tsx`：改为返回 `CollapseProps['items']` 数组（不再渲染自己的 Collapse），按能力矩阵 filter 生成 8 组（chartBasic/chartData/chartTitle/chartTheme/chartAxes/chartLegend/chartLabels/chartStyle），默认只展开 chartBasic+chartData。
-- [ ] **T15** `PropertyEditor.tsx`：取消 `key:'chart'` 包装组(363)，把图表 items 数组 spread 进外层 Collapse.items；删 StructuredChartPropertyPanel 的内层 Collapse。
-- [ ] **T16** `ChartThemePanel.tsx`：移除 emptyMessage（去重，仅保留在 chartBasic）。
+- [x] **T14** `ChartPropertyPanel.tsx`：改为 `buildChartPropertyItems()` 函数返回 items 数组，按能力矩阵 filter（commit 72a682e）。✅
+- [x] **T15** `PropertyEditor.tsx`：取消 chart 包装组，spread chart items（commit 72a682e）。✅
+- [x] **T16** `ChartThemePanel.tsx`：移除 emptyMessage（commit 72a682e）。✅
 
 ### 阶段六：子面板字段补齐（规格第 4 章）
 
-- [ ] **T17** `ChartDataPanel.tsx`：按 dimensions/measures 能力适配槽位（single/multi/dualAxis/hierarchical），多度量列表，删 seriesField/labelField UI，层级维度编辑器。
-- [ ] **T18** `ChartAxesPanel.tsx`：按 axes 形态分支（xy/radial/rightY/false），补 min/max/format/labelRotate，rightY 渲染，字体接 FontEditor。
-- [ ] **T19** `ChartLegendPanel.tsx`：按 legend 形态分支（categorical/continuous/false），补 markerShape/layout/maxRows/maxColumns，字体接 FontEditor。
-- [ ] **T20** `ChartLabelPanel.tsx`：content 下拉按 capabilities.labelContent 过滤，补 position/showLeaderLine/overlapStrategy，字体接 FontEditor。
-- [ ] **T21** `ChartTypeStylePanel.tsx`：遍历 capabilities.styleOptions 渲染字段组，补 radar/funnel/dualAxis 家族。
-- [ ] **T22** `ChartTitlePanel.tsx`：补 subtitleFont/subtitleColor，主标题字体接 FontEditor。
-- [ ] **T23** `ChartThemePanel.tsx`：补 linearPalette（heatmap 用），customPalette 保留。
+> 进度：T17-T23 的 props 接入 capabilities 已完成（commit 72a682e），ChartDataPanel 完整重写。**字段补齐与 FontEditor 接入留后续任务**（见下方"剩余任务"）。
+
+- [x] **T17** `ChartDataPanel.tsx`：按 dimensions/measures 能力适配槽位，删 seriesField/labelField/aggregate，多度量列表+层级维度编辑器。✅
+- [x] **T18** `ChartAxesPanel.tsx`：props 加 capabilities，disabled 改用 axes===false。**字段补齐（min/max/format/labelRotate/rightY/radial）+ FontEditor 留后续**。
+- [x] **T19** `ChartLegendPanel.tsx`：props 加 chartType+capabilities。**continuous 分支+markerShape 等留后续**。
+- [x] **T20** `ChartLabelPanel.tsx`：content 按 capabilities.labelContent 过滤。**position/showLeaderLine/overlapStrategy 留后续**。
+- [x] **T21** `ChartTypeStylePanel.tsx`：props 加 capabilities。**radar/funnel/dualAxis 字段组留后续**。
+- [x] **T22** `ChartTitlePanel.tsx`：**subtitleFont/subtitleColor+FontEditor 留后续**。
+- [x] **T23** `ChartThemePanel.tsx`：**linearPalette 留后续**。
 
 ### 阶段七：FontEditor 全项目迁移（非图表处）
 
@@ -93,15 +95,39 @@
 
 ### 阶段九：示例与测试收口
 
-- [ ] **T31** 全项目搜索示例模板中的 chart 组件，从 `appearance:{...}` 改为结构化字段（title/legend/axes/theme/plotOptions）。搜索方式：`rg "appearance" --glob "!**/dist/**" -g "*.ts" -g "*.tsx"`。
-- [ ] **T32** `phase-48-chart-property-panel.test.tsx`：appearance.title 断言改 title.text，删"双写"测试用例(140 行)。
-- [ ] **T33** `phase-48-chart-config-normalization.test.ts`：markStyle 规范化测试删除或重写为 plotOptions 默认值测试。
+- [x] **T31** 示例模板 `business-dashboard.ts` 从 appearance/seriesField/aggregate 改为结构化字段（commit 72a682e）。✅
+- [x] **T32** `phase-48-chart-property-panel.test.tsx`：工厂改结构化，删 appearance 断言与"双写"测试（commit 72a682e）。✅
+- [x] **T33** `phase-48-chart-config-normalization.test.ts` 重写为结构化字段断言（通过）；`phase-41-chart-rendering.test.ts` 重写适配新 reshape（core 端通过）。✅
 
 ### 阶段十：全量验证
 
-- [ ] **T34** `pnpm -w build`（turbo build）通过，tsc 无错。
-- [ ] **T35** `pnpm -w test`（turbo test）通过，vitest 全绿。
-- [ ] **T36** 提交（按用户要求，完成的工作标记完成；commit message 用 `refactor(chart):` 前缀）。
+- [x] **T34** 三端 tsc 编译通过（core/viewer/designer，含测试）。✅
+- [~] **T35** 测试：core 全绿（324 通过）；**designer/viewer 的 .tsx 测试因预存 `React.act is not a function` 环境问题（@testing-library/react 与 React 19 的 act 导入不兼容）全部失败——非本次重构引入，phase-22/32 等非图表测试同样失败**。修复需升级 @testing-library/react 或调整 test setup，属独立环境任务。
+- [x] **T36** 已提交 3 个检查点（616458d 规格、7cc6e7c core+viewer 归一、72a682e designer 面板重组）。✅
+
+## 剩余任务（后续代理接手）
+
+### 优先级高
+
+1. **修复 React.act 环境问题**：designer/viewer 的所有 .tsx 测试因 `React.act is not a function` 失败。根因是 @testing-library/react 在 React 19 下需要从 `react` 而非 `react-dom/test-utils` 导入 act。修复方案：升级 @testing-library/react 到兼容 React 19 的版本，或在 test setup 里 polyfill。修复后需重跑 designer/viewer 图表测试确认逻辑断言正确。
+
+### 优先级中（功能补齐）
+
+2. **子面板字段补齐**（规格第 4 章，本轮只做了 props 接入与 DataPanel 完整重写）：
+   - ChartAxesPanel：补 min/max/format/labelRotate 字段、rightY 渲染分支、radial 分支；字体接 FontEditor
+   - ChartLegendPanel：continuous（heatmap 色带）分支、补 markerShape/layout/maxRows/maxColumns；字体接 FontEditor
+   - ChartLabelPanel：补 position/showLeaderLine/overlapStrategy；字体接 FontEditor
+   - ChartTypeStylePanel：补 radar/funnel/dualAxis 字段组（遍历 capabilities.styleOptions）
+   - ChartTitlePanel：补 subtitleFont/subtitleColor；主标题字体接 FontEditor
+   - ChartThemePanel：补 linearPalette（heatmap 用）
+3. **FontEditor 全项目迁移**（T24-T28）：PropertyEditor text 组件字体组、表格单元格/行、样式库、水印 4+1 处替换为 FontEditor。
+4. **性能优化**（T29-T30）：ChartPropertyPanel 各 group 改 store selector 按字段切片订阅（对策 A）；完善 phase-49 性能测试。
+
+### 已知限制
+
+- ChartDataPanel 多度量编辑器使用了 chartValueField/chartAggregate 等现有 i18n 键，未新增"系列名/轴"专用键；dualAxis 的 axis 切换 UI 本轮未做（仅保留 left/right 默认分配）。
+- 示例 business-dashboard.ts 把原 seriesField='category'/'storeName' 的多系列图降级为单度量（新模型多系列由多度量推导，需数据层配合）；如需还原多系列效果，改为多度量绑定。
+- viewer chart-data.ts 的 buildChartDataset 仍按旧字段名（category/value/series）输出，依赖 layout-band reshape 后的 point；sankey/hierarchical 的新字段（source/target/path）尚未在 VSeed 映射中消费（chart-vseed.ts 未加 sankey/hierarchical 分支）。
 
 ## 接手说明
 
