@@ -1,6 +1,5 @@
 import type {
   ChartAggregateMode,
-  ChartAppearance,
   ChartAxesConfig,
   ChartComponent,
   ChartLabelConfig,
@@ -10,6 +9,10 @@ import type {
   ChartTitleConfig,
   ChartType,
 } from '@report-designer/core';
+import { isBarLike, isLineLike, isPieLike } from '@report-designer/core';
+
+// 重新导出，供本目录内其它面板文件沿用同源判断（单一事实来源已迁入 core）。
+export { isBarLike, isLineLike, isPieLike };
 
 export type ChartPanelT = (key: any, values?: Record<string, string | number>) => string;
 
@@ -162,166 +165,25 @@ export function chartAggregateOptions(t: ChartPanelT): Array<{ value: ChartAggre
 }
 
 export function getChartTheme(chart: ChartComponent): ChartThemeConfig {
-  return chart.theme ?? chart.appearance?.theme ?? { baseTheme: 'light' };
+  return chart.theme ?? { baseTheme: 'light' };
 }
 
 export function getChartTitle(chart: ChartComponent): ChartTitleConfig {
-  return {
-    visible: true,
-    text: chart.appearance?.title ?? '',
-    subtitle: chart.appearance?.subtitle ?? '',
-    ...chart.title,
-  };
+  return { visible: true, text: '', subtitle: '', ...chart.title };
 }
 
 export function getChartLegend(chart: ChartComponent): ChartLegendConfig {
-  return {
-    visible: chart.appearance?.showLegend ?? true,
-    position: chart.appearance?.legendPosition ?? 'bottom',
-    ...chart.legend,
-  };
+  return { visible: true, position: 'bottom', ...chart.legend };
 }
 
 export function getChartAxes(chart: ChartComponent): ChartAxesConfig {
-  const appearance = chart.appearance ?? {};
-  return {
-    x: {
-      visible: appearance.showAxes ?? true,
-      title: appearance.axisTitleX ?? '',
-      labelRotate: appearance.axisLabelRotation ?? 0,
-      gridVisible: appearance.showGrid ?? true,
-      ...chart.axes?.x,
-    },
-    y: {
-      visible: appearance.showAxes ?? true,
-      title: appearance.axisTitleY ?? '',
-      gridVisible: appearance.showGrid ?? true,
-      ...chart.axes?.y,
-    },
-    rightY: chart.axes?.rightY,
-  };
+  return chart.axes ?? {};
 }
 
 export function getChartLabels(chart: ChartComponent): ChartLabelConfig {
-  return {
-    visible: chart.appearance?.showLabels ?? false,
-    content: chart.appearance?.labelType ?? 'name',
-    position: 'auto',
-    ...chart.labels,
-  };
+  return { visible: false, content: 'name', position: 'auto', ...chart.labels };
 }
 
 export function getChartPlotOptions(chart: ChartComponent): ChartPlotOptions {
-  if (chart.plotOptions) return chart.plotOptions;
-  return markStyleToPlotOptions(chart.appearance?.markStyle);
-}
-
-export function markStyleToPlotOptions(markStyle?: ChartAppearance['markStyle']): ChartPlotOptions {
-  if (!markStyle) return {};
-  return {
-    bar: {
-      barWidth: markStyle.barWidth,
-      cornerRadius: markStyle.cornerRadius,
-      fillOpacity: markStyle.fillOpacity,
-      borderColor: markStyle.stroke,
-      borderWidth: markStyle.lineWidth,
-      labelPosition: markStyle.barLabelPosition,
-    },
-    line: {
-      curveType: markStyle.curveType,
-      lineWidth: markStyle.lineWidth,
-      showPoint: markStyle.showPoint,
-      pointSize: markStyle.pointSize,
-      pointShape: markStyle.pointShape,
-      connectNulls: markStyle.connectNulls,
-    },
-    area: {
-      showArea: markStyle.showArea,
-      areaOpacity: markStyle.areaOpacity,
-    },
-    pie: {
-      innerRadius: markStyle.innerRadius,
-      outerRadius: markStyle.outerRadius,
-      startAngle: markStyle.startAngle,
-      padAngle: markStyle.padAngle,
-      roseType: markStyle.roseType,
-    },
-    scatter: {
-      pointSize: markStyle.pointSize,
-      pointShape: markStyle.pointShape,
-      fillOpacity: markStyle.fillOpacity,
-      showTrendLine: markStyle.showTrendLine,
-      trendLineType: markStyle.trendLineType,
-    },
-    radar: {
-      shape: markStyle.radarShape,
-      showArea: markStyle.showRadarArea,
-      areaOpacity: markStyle.radarAreaOpacity,
-      lineWidth: markStyle.lineWidth,
-      showPoint: markStyle.showPoint,
-      pointSize: markStyle.pointSize,
-      axisCount: markStyle.axisCount,
-    },
-    funnel: {
-      direction: markStyle.funnelDirection,
-      shape: markStyle.funnelShape,
-      showConversionRate: markStyle.showConversionRate,
-      gap: markStyle.funnelGap,
-      minSize: markStyle.funnelMinSize,
-      maxSize: markStyle.funnelMaxSize,
-    },
-    dualAxis: {
-      primaryType: markStyle.primaryType,
-      secondaryType: markStyle.secondaryType,
-    },
-  };
-}
-
-export function plotOptionsToMarkStyle(plotOptions: ChartPlotOptions): ChartAppearance['markStyle'] {
-  return {
-    barWidth: plotOptions.bar?.barWidth,
-    cornerRadius: plotOptions.bar?.cornerRadius,
-    fillOpacity: plotOptions.bar?.fillOpacity ?? plotOptions.scatter?.fillOpacity,
-    stroke: plotOptions.bar?.borderColor,
-    lineWidth: plotOptions.bar?.borderWidth ?? plotOptions.line?.lineWidth ?? plotOptions.radar?.lineWidth,
-    barLabelPosition: plotOptions.bar?.labelPosition,
-    curveType: plotOptions.line?.curveType,
-    showPoint: plotOptions.line?.showPoint ?? plotOptions.radar?.showPoint,
-    pointSize: plotOptions.line?.pointSize ?? plotOptions.scatter?.pointSize ?? plotOptions.radar?.pointSize,
-    pointShape: plotOptions.line?.pointShape ?? plotOptions.scatter?.pointShape,
-    connectNulls: plotOptions.line?.connectNulls,
-    showArea: plotOptions.area?.showArea,
-    areaOpacity: plotOptions.area?.areaOpacity,
-    innerRadius: plotOptions.pie?.innerRadius,
-    outerRadius: plotOptions.pie?.outerRadius,
-    startAngle: plotOptions.pie?.startAngle,
-    padAngle: plotOptions.pie?.padAngle,
-    roseType: plotOptions.pie?.roseType,
-    showTrendLine: plotOptions.scatter?.showTrendLine,
-    trendLineType: plotOptions.scatter?.trendLineType,
-    radarShape: plotOptions.radar?.shape,
-    showRadarArea: plotOptions.radar?.showArea,
-    radarAreaOpacity: plotOptions.radar?.areaOpacity,
-    axisCount: plotOptions.radar?.axisCount,
-    funnelDirection: plotOptions.funnel?.direction,
-    funnelShape: plotOptions.funnel?.shape,
-    showConversionRate: plotOptions.funnel?.showConversionRate,
-    funnelGap: plotOptions.funnel?.gap,
-    funnelMinSize: plotOptions.funnel?.minSize,
-    funnelMaxSize: plotOptions.funnel?.maxSize,
-    primaryType: plotOptions.dualAxis?.primaryType,
-    secondaryType: plotOptions.dualAxis?.secondaryType,
-  };
-}
-
-export function isBarLike(chartType: ChartType) {
-  return chartType === 'column' || chartType === 'columnParallel' || chartType === 'columnPercent' || chartType === 'bar' || chartType === 'barParallel' || chartType === 'barPercent';
-}
-
-export function isLineLike(chartType: ChartType) {
-  return chartType === 'line' || chartType === 'area' || chartType === 'areaPercent';
-}
-
-export function isPieLike(chartType: ChartType) {
-  return chartType === 'pie' || chartType === 'donut' || chartType === 'rose';
+  return chart.plotOptions ?? {};
 }

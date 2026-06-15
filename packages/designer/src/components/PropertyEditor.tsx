@@ -28,7 +28,7 @@ import { BorderEditor, PaddingEditor } from './properties/BoxStyleEditors';
 import { BARCODE_FORMATS, QR_CODE_FORMATS } from '@report-designer/viewer';
 import { isComponentNameAvailable, normalizeComponentName } from '../report-structure';
 import { createArrayPathOptions } from '../data-source-paths';
-import { ChartPropertyPanel as StructuredChartPropertyPanel } from './chart/ChartPropertyPanel';
+import { buildChartPropertyItems } from './chart/ChartPropertyPanel';
 
 const NO_CONDITIONAL_FORMAT = '__none__';
 
@@ -357,11 +357,11 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
             ),
           },
 
-          // ---- 文本内容 ----
-          {
-            key: 'text',
-            label: component.type === 'chart' ? t('chart') : t('text'),
-            children: component.type === 'text' ? (
+          // ---- 文本内容（图表不走此组，由下方 chartItems spread）----
+          component.type !== 'chart' ? {
+          key: 'text',
+          label: t('text'),
+          children: component.type === 'text' ? (
               <Form size="small" labelCol={{ span: 6 }} wrapperCol={{ span: 18 }}>
                 <Form.Item label={t('textContent')}>
                   <Space.Compact style={{ width: '100%' }}>
@@ -474,7 +474,17 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
                 dataSourceDefinitions={template.dataSources}
               />
             ),
-          },
+          } : null,
+
+          // ---- 图表属性（扁平展开，取消原 chart 包装层）----
+          ...(component.type === 'chart' ? buildChartPropertyItems({
+            chart: comp as ChartComponent,
+            dataSourceOptions,
+            dataSourceDefinitions: template.dataSources,
+            onChange: handleChange,
+            onChangeMany: handleChangeMany,
+            t,
+          }) : []),
 
           // ---- 字体 ----
           supportsFontProperties ? {
@@ -923,16 +933,9 @@ const ComponentContentProperties: React.FC<{
 }> = ({ component, comp, dataSourceDefinitions, dataSourceOptions, onChange, onChangeMany, onOpenExpressionEditor, t }) => {
   switch (component.type) {
     case 'chart':
-      return (
-        <StructuredChartPropertyPanel
-          chart={comp as ChartComponent}
-          dataSourceOptions={dataSourceOptions}
-          dataSourceDefinitions={dataSourceDefinitions}
-          onChange={onChange}
-          onChangeMany={onChangeMany}
-          t={t}
-        />
-      );
+      // 图表属性由主组件通过 buildChartPropertyItems 直接展开到外层 Collapse，
+      // 不再走 text 包装组，避免折叠面板嵌套。
+      return null;
     case 'image': {
       const uploadInputId = `rd-image-upload-${comp.id ?? 'selected'}`;
       const handleImageFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ColorPicker, Form, InputNumber, Select, Switch } from 'antd';
-import type { ChartLabelConfig } from '@report-designer/core';
+import type { ChartCapabilities, ChartLabelConfig, ChartType } from '@report-designer/core';
 import { chartUiText, type ChartPanelT } from './chart-options';
 
 const FORM_LABEL_COL = { span: 8 };
@@ -15,16 +15,24 @@ const LABEL_OPTIONS = [
 ] as const;
 
 export const ChartLabelPanel: React.FC<{
+  chartType: ChartType;
+  capabilities: ChartCapabilities;
   value: ChartLabelConfig;
   onChange: (value: ChartLabelConfig) => void;
   t: ChartPanelT;
-}> = React.memo(({ onChange, t, value }) => {
+}> = React.memo(({ capabilities, onChange, t, value }) => {
   const ui = React.useMemo(() => chartUiText(t), [t]);
+  const allowedContent = capabilities.labelContent;
   const update = React.useCallback((updates: Partial<ChartLabelConfig>) => onChange({ ...value, ...updates }), [onChange, value]);
   const updateFont = React.useCallback((updates: Partial<NonNullable<ChartLabelConfig['font']>>) => {
     update({ font: { ...(value.font ?? {}), ...updates } });
   }, [update, value.font]);
-  const labelOptions = React.useMemo(() => LABEL_OPTIONS.map(option => ({ value: option.value, label: t(option.label) })), [t]);
+  const labelOptions = React.useMemo(
+    () => LABEL_OPTIONS
+      .filter(option => allowedContent.includes(option.value))
+      .map(option => ({ value: option.value, label: t(option.label) })),
+    [allowedContent, t],
+  );
 
   return (
     <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL}>

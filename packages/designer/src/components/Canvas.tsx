@@ -2751,13 +2751,13 @@ const PanelChildrenPreview: React.FC<{ panel: ReportComponent & { components?: R
 };
 
 const DesignerChartPreview: React.FC<{ chart: ChartComponent }> = ({ chart }) => {
-  const palette = chart.appearance?.theme?.customPalette?.length
-    ? chart.appearance.theme.customPalette
+  const palette = chart.theme?.customPalette?.length
+    ? chart.theme.customPalette
     : ['#2f6fed', '#16a34a', '#f59e0b', '#ef4444', '#8b5cf6'];
   const points = chart.data?.length ? chart.data : createFallbackChartPoints(chart);
   const values = points.map(point => Number(point.value ?? point.y ?? 0)).filter(Number.isFinite);
   const max = Math.max(1, ...values.map(value => Math.abs(value)));
-  const title = chart.appearance?.title;
+  const title = chart.title?.text;
   const ct = chart.chartType;
 
   return (
@@ -2887,7 +2887,7 @@ const CartesianChartPreview: React.FC<{
   if (chart.chartType === 'scatter') {
     return (
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
-        <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
+        <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.axes?.x?.gridVisible ?? chart.axes?.y?.gridVisible ?? true} />
         {points.map((point, index) => (
           <circle key={index} cx={xFor(index)} cy={yFor(point.value)} r={3} fill={palette[index % palette.length]} />
         ))}
@@ -2899,7 +2899,7 @@ const CartesianChartPreview: React.FC<{
     const rowHeight = plotHeight / Math.max(1, points.length);
     return (
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
-        <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
+        <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.axes?.x?.gridVisible ?? chart.axes?.y?.gridVisible ?? true} />
         {points.map((point, index) => (
           <rect
             key={index}
@@ -2917,7 +2917,7 @@ const CartesianChartPreview: React.FC<{
   if (chart.chartType === 'column' || chart.chartType === 'columnParallel' || chart.chartType === 'columnPercent') {
     return (
       <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
-        <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
+        <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.axes?.x?.gridVisible ?? chart.axes?.y?.gridVisible ?? true} />
         {points.map((point, index) => {
           const barHeight = (Number(point.value ?? 0) / max) * plotHeight;
           return (
@@ -2938,7 +2938,7 @@ const CartesianChartPreview: React.FC<{
 
   return (
     <svg viewBox={`0 0 ${width} ${height}`} width="100%" height="100%" preserveAspectRatio="none">
-      <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.appearance?.showGrid ?? true} />
+      <ChartAxes left={left} top={top} plotWidth={plotWidth} plotHeight={plotHeight} showGrid={chart.axes?.x?.gridVisible ?? chart.axes?.y?.gridVisible ?? true} />
       {chart.chartType === 'area' ? <polygon points={areaPoints} fill={palette[0]} opacity={0.22} /> : null}
       <polyline points={linePoints} fill="none" stroke={palette[0]} strokeWidth={2} strokeLinejoin="round" strokeLinecap="round" />
       {points.map((point, index) => <circle key={index} cx={xFor(index)} cy={yFor(point.value)} r={2.2} fill={palette[index % palette.length]} />)}

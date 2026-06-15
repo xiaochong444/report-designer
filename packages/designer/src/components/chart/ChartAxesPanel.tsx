@@ -1,8 +1,7 @@
 import React from 'react';
 import { ColorPicker, Form, Input, InputNumber, Switch } from 'antd';
-import type { ChartAxesConfig } from '@report-designer/core';
-import { chartUiText, isPieLike, type ChartPanelT } from './chart-options';
-import type { ChartType } from '@report-designer/core';
+import type { ChartAxesConfig, ChartCapabilities, ChartType } from '@report-designer/core';
+import { chartUiText, type ChartPanelT } from './chart-options';
 
 const FORM_LABEL_COL = { span: 8 };
 const FORM_WRAPPER_COL = { span: 16 };
@@ -15,12 +14,14 @@ const DEFAULT_AXIS: NonNullable<ChartAxesConfig['x']> = { visible: true, gridVis
 
 export const ChartAxesPanel: React.FC<{
   chartType: ChartType;
+  capabilities: ChartCapabilities;
   value: ChartAxesConfig;
   onChange: (value: ChartAxesConfig) => void;
   t: ChartPanelT;
-}> = React.memo(({ chartType, onChange, t, value }) => {
+}> = React.memo(({ chartType, capabilities, onChange, t, value }) => {
   const ui = React.useMemo(() => chartUiText(t), [t]);
-  const disabled = isPieLike(chartType);
+  const isRadial = capabilities.axes === 'radial';
+  const showRightY = capabilities.axes === 'rightY';
   const x = value.x ?? DEFAULT_AXIS;
   const y = value.y ?? DEFAULT_AXIS;
   const updateX = React.useCallback((updates: Partial<NonNullable<ChartAxesConfig['x']>>) => onChange({ ...value, x: { ...x, ...updates } }), [onChange, value, x]);
@@ -33,52 +34,52 @@ export const ChartAxesPanel: React.FC<{
   return (
     <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL}>
       <Form.Item label={ui.xAxisVisible}>
-        <Switch aria-label={ui.xAxisVisible} size="small" checked={x.visible} onChange={checked => updateX({ visible: checked })} disabled={disabled} />
+        <Switch aria-label={ui.xAxisVisible} size="small" checked={x.visible} onChange={checked => updateX({ visible: checked })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.xAxisTitle}>
-        <Input aria-label={ui.xAxisTitle} value={x.title ?? ''} onChange={event => updateX({ title: event.target.value })} size="small" disabled={disabled} />
+        <Input aria-label={ui.xAxisTitle} value={x.title ?? ''} onChange={event => updateX({ title: event.target.value })} size="small" disabled={false} />
       </Form.Item>
       <Form.Item label={ui.xTitleColor}>
-        <ColorPicker aria-label={ui.xTitleColor} size="small" value={x.titleColor ?? x.titleFont?.color ?? DEFAULT_AXIS_TITLE_COLOR} onChange={color => updateX({ titleColor: color.toHexString() })} disabled={disabled} />
+        <ColorPicker aria-label={ui.xTitleColor} size="small" value={x.titleColor ?? x.titleFont?.color ?? DEFAULT_AXIS_TITLE_COLOR} onChange={color => updateX({ titleColor: color.toHexString() })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.xTitleFontSize}>
-        <InputNumber aria-label={ui.xTitleFontSize} value={x.titleFont?.size ?? DEFAULT_AXIS_TITLE_FONT_SIZE} min={6} max={48} size="small" style={{ width: '100%' }} onChange={size => updateXTitleFont({ size: size ?? DEFAULT_AXIS_TITLE_FONT_SIZE })} disabled={disabled} />
+        <InputNumber aria-label={ui.xTitleFontSize} value={x.titleFont?.size ?? DEFAULT_AXIS_TITLE_FONT_SIZE} min={6} max={48} size="small" style={{ width: '100%' }} onChange={size => updateXTitleFont({ size: size ?? DEFAULT_AXIS_TITLE_FONT_SIZE })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.xLabelColor}>
-        <ColorPicker aria-label={ui.xLabelColor} size="small" value={x.labelColor ?? DEFAULT_AXIS_LABEL_COLOR} onChange={color => updateX({ labelColor: color.toHexString() })} disabled={disabled} />
+        <ColorPicker aria-label={ui.xLabelColor} size="small" value={x.labelColor ?? DEFAULT_AXIS_LABEL_COLOR} onChange={color => updateX({ labelColor: color.toHexString() })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.xLabelFontSize}>
-        <InputNumber aria-label={ui.xLabelFontSize} value={x.labelFont?.size ?? DEFAULT_AXIS_LABEL_FONT_SIZE} min={6} max={48} size="small" style={{ width: '100%' }} onChange={size => updateXLabelFont({ size: size ?? DEFAULT_AXIS_LABEL_FONT_SIZE })} disabled={disabled} />
+        <InputNumber aria-label={ui.xLabelFontSize} value={x.labelFont?.size ?? DEFAULT_AXIS_LABEL_FONT_SIZE} min={6} max={48} size="small" style={{ width: '100%' }} onChange={size => updateXLabelFont({ size: size ?? DEFAULT_AXIS_LABEL_FONT_SIZE })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.xGridVisible}>
-        <Switch aria-label={ui.xGridVisible} size="small" checked={x.gridVisible ?? true} onChange={checked => updateX({ gridVisible: checked })} disabled={disabled} />
+        <Switch aria-label={ui.xGridVisible} size="small" checked={x.gridVisible ?? true} onChange={checked => updateX({ gridVisible: checked })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.xGridColor}>
-        <ColorPicker aria-label={ui.xGridColor} size="small" value={x.gridColor ?? DEFAULT_AXIS_GRID_COLOR} onChange={color => updateX({ gridColor: color.toHexString() })} disabled={disabled} />
+        <ColorPicker aria-label={ui.xGridColor} size="small" value={x.gridColor ?? DEFAULT_AXIS_GRID_COLOR} onChange={color => updateX({ gridColor: color.toHexString() })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.yAxisVisible}>
-        <Switch aria-label={ui.yAxisVisible} size="small" checked={y.visible} onChange={checked => updateY({ visible: checked })} disabled={disabled} />
+        <Switch aria-label={ui.yAxisVisible} size="small" checked={y.visible} onChange={checked => updateY({ visible: checked })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.yAxisTitle}>
-        <Input aria-label={ui.yAxisTitle} value={y.title ?? ''} onChange={event => updateY({ title: event.target.value })} size="small" disabled={disabled} />
+        <Input aria-label={ui.yAxisTitle} value={y.title ?? ''} onChange={event => updateY({ title: event.target.value })} size="small" disabled={false} />
       </Form.Item>
       <Form.Item label={ui.yTitleColor}>
-        <ColorPicker aria-label={ui.yTitleColor} size="small" value={y.titleColor ?? y.titleFont?.color ?? DEFAULT_AXIS_TITLE_COLOR} onChange={color => updateY({ titleColor: color.toHexString() })} disabled={disabled} />
+        <ColorPicker aria-label={ui.yTitleColor} size="small" value={y.titleColor ?? y.titleFont?.color ?? DEFAULT_AXIS_TITLE_COLOR} onChange={color => updateY({ titleColor: color.toHexString() })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.yTitleFontSize}>
-        <InputNumber aria-label={ui.yTitleFontSize} value={y.titleFont?.size ?? DEFAULT_AXIS_TITLE_FONT_SIZE} min={6} max={48} size="small" style={{ width: '100%' }} onChange={size => updateYTitleFont({ size: size ?? DEFAULT_AXIS_TITLE_FONT_SIZE })} disabled={disabled} />
+        <InputNumber aria-label={ui.yTitleFontSize} value={y.titleFont?.size ?? DEFAULT_AXIS_TITLE_FONT_SIZE} min={6} max={48} size="small" style={{ width: '100%' }} onChange={size => updateYTitleFont({ size: size ?? DEFAULT_AXIS_TITLE_FONT_SIZE })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.yLabelColor}>
-        <ColorPicker aria-label={ui.yLabelColor} size="small" value={y.labelColor ?? DEFAULT_AXIS_LABEL_COLOR} onChange={color => updateY({ labelColor: color.toHexString() })} disabled={disabled} />
+        <ColorPicker aria-label={ui.yLabelColor} size="small" value={y.labelColor ?? DEFAULT_AXIS_LABEL_COLOR} onChange={color => updateY({ labelColor: color.toHexString() })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.yLabelFontSize}>
-        <InputNumber aria-label={ui.yLabelFontSize} value={y.labelFont?.size ?? DEFAULT_AXIS_LABEL_FONT_SIZE} min={6} max={48} size="small" style={{ width: '100%' }} onChange={size => updateYLabelFont({ size: size ?? DEFAULT_AXIS_LABEL_FONT_SIZE })} disabled={disabled} />
+        <InputNumber aria-label={ui.yLabelFontSize} value={y.labelFont?.size ?? DEFAULT_AXIS_LABEL_FONT_SIZE} min={6} max={48} size="small" style={{ width: '100%' }} onChange={size => updateYLabelFont({ size: size ?? DEFAULT_AXIS_LABEL_FONT_SIZE })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.yGridVisible}>
-        <Switch aria-label={ui.yGridVisible} size="small" checked={y.gridVisible ?? true} onChange={checked => updateY({ gridVisible: checked })} disabled={disabled} />
+        <Switch aria-label={ui.yGridVisible} size="small" checked={y.gridVisible ?? true} onChange={checked => updateY({ gridVisible: checked })} disabled={false} />
       </Form.Item>
       <Form.Item label={ui.yGridColor}>
-        <ColorPicker aria-label={ui.yGridColor} size="small" value={y.gridColor ?? DEFAULT_AXIS_GRID_COLOR} onChange={color => updateY({ gridColor: color.toHexString() })} disabled={disabled} />
+        <ColorPicker aria-label={ui.yGridColor} size="small" value={y.gridColor ?? DEFAULT_AXIS_GRID_COLOR} onChange={color => updateY({ gridColor: color.toHexString() })} disabled={false} />
       </Form.Item>
     </Form>
   );

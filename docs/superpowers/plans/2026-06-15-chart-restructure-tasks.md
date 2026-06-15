@@ -36,18 +36,26 @@
 
 ### 阶段二：数据模型归一（core → viewer → designer，四端联动）
 
-- [ ] **T3** core `types.ts`：删除 `ChartAppearance`(383-399)、`ChartMarkStyle`(340-381)；删除 `ChartComponent.appearance` 字段(543)；删除 `ChartBinding.seriesField/labelField/aggregate`；`ChartDataPoint` 补 `measureKey/axis/source/target/path` 字段（按规格 4.1.2）。
-- [ ] **T4** core `normalize-template.ts`：删 `normalizeChartAppearance`/`normalizeChartTitle/Legend/Axes/Labels`/`normalizeChartPlotOptions`(178-312)；chart 规范化简化为只校验 chartType + 填默认值；binding 规范化删 seriesField/labelField/aggregate，按能力矩阵裁剪维度/度量数量（注意：此步依赖能力矩阵存在，可与 T8 并行/前置 T8）。
-- [ ] **T5** core `layout-band.ts`：`layoutChart`(746-863) 改纯读结构化字段，删所有 `?? appearance.xxx` 兜底与 legacyMarkStyle 拼装(753-826)、`compactChartMarkStyle`(865-867)；`buildChartData`(900-943) 删 seriesField/labelField/aggregate 读取，按规格 4.1.2 reshape；聚合改由 measure.aggregation 决定。
-- [ ] **T6** core `render-document/types.ts:116`：删 `RenderChart.markStyle` 字段。
-- [ ] **T7** viewer：删 `chart-spec-patch.ts` convertMarkStyle(312-369)，248 行改 `chart.plotOptions ?? {}`；`chart-data.ts` 删 seriesField 分支，按规格 4.1.3 用固定临时字段名；`chart-vseed.ts` 删 seriesField 分支与 colorField 旧逻辑。
+> 进度：core（T3-T6）+ viewer（T7）已完成并提交（commit 7cc6e7c）。designer 端（T12/T13）待做。
+
+- [x] **T3** core `types.ts`：删除 `ChartAppearance`(383-399)、`ChartMarkStyle`(340-381)；删除 `ChartComponent.appearance` 字段(543)；删除 `ChartBinding.seriesField/labelField/aggregate`；`ChartDataPoint` 补 `measureKey/axis/source/target/path` 字段（按规格 4.1.2）。✅
+- [x] **T4** core `normalize-template.ts`：删 `normalizeChartAppearance`/`normalizeChartTitle/Legend/Axes/Labels`/`normalizeChartPlotOptions`(178-312)；chart 规范化简化为只校验 chartType + 填默认值；binding 规范化删 seriesField/labelField/aggregate，按能力矩阵裁剪维度/度量数量。✅
+- [x] **T5** core `layout-band.ts`：`layoutChart`(746-863) 改纯读结构化字段，删所有 `?? appearance.xxx` 兜底与 legacyMarkStyle 拼装(753-826)、`compactChartMarkStyle`(865-867)；`buildChartData`(900-943) 删 seriesField/labelField/aggregate 读取，按规格 4.1.2 reshape（flatMap 多度量展开，scatter/heatmap/sankey/hierarchical 分支）；聚合改由 resolveChartAggregate 从 measure.aggregation 推导。✅（附修了 applyChartSort 传 options→options.context 的预存类型错误）
+- [x] **T6** core `render-document/types.ts:116`：删 `RenderChart.markStyle` 字段，清理 import。✅
+- [x] **T7** viewer：删 `chart-spec-patch.ts` convertMarkStyle(312-369)，248 行改 `chart.plotOptions ?? {}`；`chart-data.ts` 删 seriesField 分支；`chart-vseed.ts` 删 seriesField→colorField 分支，改为按 point.series 判断。✅
+- [x] **T1** core `ChartFontConfig` 改为 `type ChartFontConfig = FontConfig` 别名（随 T3 完成）。✅
+
+### 阶段四：设计器面板与画布（chart-options 清理 + Canvas）
+
+- [ ] **T12** designer `chart-options.ts`：删 `getChartXxx` appearance 兜底(164-217)，简化为直接读结构化字段；删 `markStyleToPlotOptions`(219-278)、`plotOptionsToMarkStyle`(280-315)；删旧 isBarLike/isLineLike/isPieLike(317-327) 改用 core（T10 并入）。
+- [ ] **T13** designer `Canvas.tsx:2754-2941`：palette 改读 `chart.theme?.customPalette`、title 改读 `chart.title?.text`、showGrid 改读 `chart.axes?.x?.gridVisible ?? true`。
 
 ### 阶段三：能力矩阵（归 core）
 
 - [x] **T8** 新建 `packages/core/src/chart/chart-capabilities.ts`（注意：core 可能无 chart 目录，需新建），按规格第 1 章 23 种类型填充 `CHART_CAPABILITIES` + `getChartCapabilities` + `isBarLike/isLineLike/isPieLike/isCartesianChart` 派生函数（9 维度：axes/legend/labelContent/styleOptions/series/dimensions/measures/grid/stability）。
 - [x] **T9** core 导出 chart-capabilities（确认 `packages/core/src/index.ts` 或 template-model index 有 re-export）。
-- [ ] **T10** designer 迁移：删 `chart-options.ts:317-327` 旧 isBarLike/isLineLike/isPieLike，引用改从 core 导入。
-- [ ] **T11** viewer 迁移：删 `chart-type-capabilities.ts`（或改为仅 re-export core），更新所有引用（chart-data/chart-vseed/chart-spec 等）改用 core 能力函数。
+- [x] **T10** designer 迁移：删 `chart-options.ts:317-327` 旧 isBarLike/isLineLike/isPieLike，引用改从 core 导入。（注：designer chart-options 整体在 T12 重写，T10 并入 T12）
+- [x] **T11** viewer 迁移：`chart-type-capabilities.ts` 改为 re-export core 的 isXxxLike/isCartesianChart/mapVSeedChartType（加 Chart 后缀别名），保留 CHART_TYPE_CAPABILITIES/getChartTypeCapability（字段槽位矩阵，compiler 用）；chart-spec-patch/chart-vseed 已改用 core。
 
 ### 阶段四：设计器面板与画布（chart-options 清理 + Canvas）
 

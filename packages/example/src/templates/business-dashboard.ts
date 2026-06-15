@@ -1,4 +1,4 @@
-import type { ChartAggregateMode, ChartComponent, ChartType } from '@report-designer/core';
+import type { ChartComponent, ChartType } from '@report-designer/core';
 import { band, commonTextStyleIds, template, text } from './common';
 
 function chart(
@@ -14,15 +14,13 @@ function chart(
     meaField?: string;
     xField?: string;
     yField?: string;
-    seriesField?: string;
-    aggregate?: ChartAggregateMode;
     axisTitleX?: string;
     axisTitleY?: string;
   },
 ): ChartComponent {
   const isPieLike = chartType === 'pie' || chartType === 'donut' || chartType === 'rose';
   const isScatter = chartType === 'scatter';
-  const showLegend = Boolean(options.seriesField) || isPieLike;
+  const showLegend = isPieLike;
   const showAxes = !isPieLike;
   const showLabels = isPieLike;
   const plotOptions: ChartComponent['plotOptions'] = {};
@@ -46,12 +44,9 @@ function chart(
         ? (options.xField ? [{ field: options.xField }] : [])
         : (options.dimField ? [{ field: options.dimField }] : []),
       measures: isScatter
-        ? (options.yField ? [{ field: options.yField }] : [])
-        : (options.meaField ? [{ field: options.meaField }] : []),
-      seriesField: options.seriesField ?? '',
-      labelField: isPieLike ? (options.dimField ?? '') : '',
+        ? (options.yField ? [{ field: options.yField, aggregation: 'none' }] : [])
+        : (options.meaField ? [{ field: options.meaField, aggregation: 'sum' }] : []),
       sort: [{ field: options.dimField ?? options.xField ?? '', direction: 'asc' }],
-      aggregate: options.aggregate ?? 'sum',
     },
     title: {
       visible: true,
@@ -99,17 +94,6 @@ function chart(
       titleColor: '#111827',
     },
     plotOptions,
-    appearance: {
-      title: options.title,
-      showLegend,
-      legendPosition: 'bottom',
-      showAxes,
-      showGrid: showAxes,
-      showLabels,
-      theme: { baseTheme: 'light' },
-      axisTitleX: options.axisTitleX ?? '',
-      axisTitleY: options.axisTitleY ?? '',
-    },
     emptyMessage: '暂无图表数据',
   };
 }
@@ -124,36 +108,29 @@ export const businessDashboardTemplate = template('business-dashboard', '经营�
       title: '品类销售额',
       dimField: 'category',
       meaField: 'amount',
-      aggregate: 'sum',
       axisTitleY: '销售额',
     }),
     chart('bd-sales-trend', 'line', 96, 0, 88, 44, {
       title: '月度销售趋势',
       dimField: 'yearMonth',
       meaField: 'amount',
-      aggregate: 'sum',
       axisTitleY: '销售额',
     }),
     chart('bd-qty-trend', 'area', 0, 52, 88, 44, {
       title: '各品类月度销量',
       dimField: 'yearMonth',
       meaField: 'quantity',
-      seriesField: 'category',
-      aggregate: 'sum',
       axisTitleY: '销量',
     }),
     chart('bd-channel-share', 'donut', 96, 52, 88, 44, {
       title: '渠道销售占比',
       dimField: 'channel',
       meaField: 'amount',
-      aggregate: 'sum',
     }),
     chart('bd-scatter', 'scatter', 48, 104, 88, 38, {
       title: '客单价与连带率',
       xField: 'avgOrderValue',
       yField: 'attachRate',
-      seriesField: 'storeName',
-      aggregate: 'none',
       axisTitleX: '客单价',
       axisTitleY: '连带率',
     }),
@@ -161,13 +138,11 @@ export const businessDashboardTemplate = template('business-dashboard', '经营�
       title: '会员转化漏斗',
       dimField: 'funnelStage',
       meaField: 'count',
-      aggregate: 'sum',
     }),
     chart('bd-radar', 'radar', 96, 152, 88, 44, {
       title: '区域 KPI 雷达',
       dimField: 'region',
       meaField: 'kpiScore',
-      aggregate: 'sum',
     }),
   ]),
   band('bd-footer', 'pageFooter', 8, [

@@ -16,20 +16,14 @@ function chartTemplate(component: Partial<ChartComponent> = {}): ReportTemplate 
     binding: {
       dataSourceId: 'sales',
       dimensions: [{ field: 'Region' }],
-      measures: [{ field: 'Amount' }],
-      seriesField: 'Channel',
-      aggregate: 'sum',
+      measures: [{ field: 'Amount', aggregation: 'sum' }],
       sort: [{ field: 'Region', direction: 'asc' }],
     },
-    appearance: {
-      title: 'Sales by Region',
-      showLegend: true,
-      legendPosition: 'right',
-      showAxes: true,
-      showGrid: true,
-      showLabels: true,
-      theme: { baseTheme: 'light', customPalette: ['#2f6fed', '#f59e0b'] },
-    },
+    title: { visible: true, text: 'Sales by Region' },
+    legend: { visible: true, position: 'right' },
+    axes: { x: { visible: true, gridVisible: true }, y: { visible: true, gridVisible: true } },
+    labels: { visible: true, content: 'name' },
+    theme: { baseTheme: 'light', customPalette: ['#2f6fed', '#f59e0b'] },
     ...component,
   };
 
@@ -60,7 +54,6 @@ describe('phase 41 chart rendering', () => {
         dimensions: [{ field: 'Region' }],
         measures: [{ field: 'Amount' }],
       },
-      appearance: undefined,
     }));
 
     const chart = normalized.pages[0].bands[0].components[0] as ChartComponent;
@@ -71,24 +64,6 @@ describe('phase 41 chart rendering', () => {
         dataSourceId: 'sales',
         dimensions: [{ field: 'Region' }],
         measures: [{ field: 'Amount' }],
-        aggregate: 'none',
-      },
-      appearance: {
-        showLegend: true,
-        showAxes: true,
-        showGrid: true,
-        showLabels: false,
-      },
-      title: {
-        visible: false,
-      },
-      legend: {
-        visible: true,
-        position: 'bottom',
-      },
-      labels: {
-        visible: false,
-        content: 'name',
       },
       theme: {
         baseTheme: 'light',
@@ -128,10 +103,10 @@ describe('phase 41 chart rendering', () => {
         visible: true,
       },
     });
-    expect(('data' in chart ? chart.data : []).map(({ category, series, value, label, x, y }) => ({ category, series, value, label, x, y }))).toEqual([
-      { category: 'East', series: 'Online', value: 25, label: 'East', x: null, y: 25 },
-      { category: 'East', series: 'Retail', value: 20, label: 'East', x: null, y: 20 },
-      { category: 'West', series: 'Online', value: 8, label: 'West', x: null, y: 8 },
+    // 单维度单度量（sum 聚合）：East=45, West=8
+    expect(('data' in chart ? chart.data : []).map(({ category, value, label, x, y }) => ({ category, value, label, x, y }))).toEqual([
+      { category: 'East', value: 45, label: 'East', x: null, y: 45 },
+      { category: 'West', value: 8, label: 'West', x: null, y: 8 },
     ]);
   });
 
@@ -141,8 +116,7 @@ describe('phase 41 chart rendering', () => {
       binding: {
         dataSourceId: 'sales',
         dimensions: [{ field: 'Amount' }],
-        measures: [{ field: 'Margin' }],
-        seriesField: 'Channel',
+        measures: [{ field: 'Margin', aggregation: 'none' }],
       },
     }), {
       sales: [
@@ -153,9 +127,10 @@ describe('phase 41 chart rendering', () => {
 
     const chart = document.pages[0].items[0].components[0];
     expect(chart.type).toBe('chart');
+    // scatter 删除 seriesField 后 series 为 undefined
     expect(('data' in chart ? chart.data : []).map(({ category, series, value, label, x, y }) => ({ category, series, value, label, x, y }))).toEqual([
-      { category: '10', series: 'Online', value: 3, label: '10', x: 10, y: 3 },
-      { category: '20', series: 'Retail', value: 9, label: '20', x: 20, y: 9 },
+      { category: '10', series: undefined, value: 3, label: '10', x: 10, y: 3 },
+      { category: '20', series: undefined, value: 9, label: '20', x: 20, y: 9 },
     ]);
   });
 
@@ -165,8 +140,10 @@ describe('phase 41 chart rendering', () => {
       binding: {
         dataSourceId: 'sales',
         dimensions: [{ field: 'Region' }],
-        measures: [{ field: 'Amount' }, { field: 'Margin' }],
-        aggregate: 'sum',
+        measures: [
+          { field: 'Amount', aggregation: 'sum', axis: 'left' },
+          { field: 'Margin', aggregation: 'sum', axis: 'right' },
+        ],
         sort: [],
       },
     }), {
@@ -178,13 +155,16 @@ describe('phase 41 chart rendering', () => {
 
     const chart = document.pages[0].items[0].components[0];
     expect(chart.type).toBe('chart');
+    // dualAxis 多度量展开：每行按 measure 展开为 point，sum 聚合后按 category::series 分组
     expect(('data' in chart ? chart.data : []).map(point => ({
       category: point.category,
+      series: point.series,
       value: point.value,
       y: point.y,
       measureValues: (point as { measureValues?: Record<string, number | null> }).measureValues,
     }))).toEqual([
-      { category: 'East', value: 25, y: 25, measureValues: { Amount: 25, Margin: 7 } },
+      { category: 'East', series: 'Amount', value: 25, y: 25, measureValues: { Amount: 25, Margin: 7 } },
+      { category: 'East', series: 'Margin', value: 7, y: 7, measureValues: { Amount: 25, Margin: 7 } },
     ]);
   });
 });

@@ -1,6 +1,6 @@
 import React from 'react';
 import { ColorPicker, Form, InputNumber, Select, Switch } from 'antd';
-import type { ChartLegendConfig } from '@report-designer/core';
+import type { ChartCapabilities, ChartLegendConfig, ChartType } from '@report-designer/core';
 import { chartUiText, type ChartPanelT } from './chart-options';
 
 const FORM_LABEL_COL = { span: 8 };
@@ -9,6 +9,8 @@ const DEFAULT_LEGEND_COLOR = '#374151';
 const DEFAULT_LEGEND_FONT_SIZE = 12;
 
 export const ChartLegendPanel: React.FC<{
+  chartType: ChartType;
+  capabilities: ChartCapabilities;
   value: ChartLegendConfig;
   onChange: (value: ChartLegendConfig) => void;
   t: ChartPanelT;

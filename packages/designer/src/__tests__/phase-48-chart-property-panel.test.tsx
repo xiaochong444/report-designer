@@ -27,23 +27,13 @@ function chartComponent(overrides: Partial<ChartComponent> = {}): ChartComponent
     binding: {
       dataSourceId: 'orders',
       dimensions: [{ field: 'customer' }],
-      measures: [{ field: 'amount' }],
-      seriesField: '',
-      labelField: '',
+      measures: [{ field: 'amount', aggregation: 'sum' }],
       sort: [],
-      aggregate: 'sum',
     },
-    appearance: {
-      title: 'Legacy Sales',
-      showLegend: true,
-      legendPosition: 'bottom',
-      showAxes: true,
-      showGrid: true,
-      showLabels: false,
-      theme: { baseTheme: 'light', customPalette: ['#111111', '#222222'] },
-      axisTitleX: 'Legacy Customer',
-      axisTitleY: 'Legacy Amount',
-    },
+    title: { visible: true, text: 'Legacy Sales' },
+    legend: { visible: true, position: 'bottom' },
+    axes: { x: { visible: true, title: 'Legacy Customer', gridVisible: true }, y: { visible: true, title: 'Legacy Amount', gridVisible: true } },
+    theme: { baseTheme: 'light', customPalette: ['#111111', '#222222'] },
     ...overrides,
   };
 }
@@ -134,24 +124,7 @@ describe('phase 48 chart property panel', () => {
     expect(chart.labels).toMatchObject({ visible: true, content: 'value' });
     expect(chart.plotOptions).toMatchObject({ bar: { cornerRadius: 6 } });
     expect(chart.theme).toMatchObject({ baseTheme: 'dark' });
-    expect(chart.appearance?.title).toBe('Quarterly Sales');
-  });
-
-  it('updates title and legacy appearance title in a single store write', () => {
-    loadSelectedComponent(chartComponent());
-    renderEditor();
-
-    let templateUpdates = 0;
-    const unsubscribe = useDesignerStore.subscribe(() => {
-      templateUpdates += 1;
-    });
-
-    fireEvent.change(screen.getByLabelText('Title text'), { target: { value: 'Single Write Title' } });
-    unsubscribe();
-
-    expect(templateUpdates).toBe(1);
-    expect(selectedChart().title?.text).toBe('Single Write Title');
-    expect(selectedChart().appearance?.title).toBe('Single Write Title');
+    expect(chart.title?.text).toBe('Quarterly Sales');
   });
 
   it('edits palette through preset and swatch controls', () => {

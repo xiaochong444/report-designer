@@ -1,6 +1,6 @@
 import React from 'react';
 import { ColorPicker, Form, InputNumber, Switch } from 'antd';
-import type { ChartPlotOptions, ChartType } from '@report-designer/core';
+import type { ChartCapabilities, ChartPlotOptions, ChartType } from '@report-designer/core';
 import { chartUiText, isBarLike, isLineLike, isPieLike, type ChartPanelT } from './chart-options';
 
 const FORM_LABEL_COL = { span: 8 };
@@ -10,6 +10,7 @@ const DEFAULT_HEATMAP_END_COLOR = '#1d4ed8';
 
 export const ChartTypeStylePanel: React.FC<{
   chartType: ChartType;
+  capabilities: ChartCapabilities;
   value: ChartPlotOptions;
   onChange: (value: ChartPlotOptions) => void;
   t: ChartPanelT;
