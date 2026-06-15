@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Dropdown, Popover, Select, Tooltip } from 'antd';
 import {
   AlignCenterOutlined,
@@ -65,51 +65,57 @@ export const DesignerRibbon: React.FC = () => {
   const { t } = useDesignerI18n();
   const [activeTab, setActiveTab] = useState<RibbonTab>('home');
   const [pageDialogOpen, setPageDialogOpen] = useState(false);
-  const {
-    undo,
-    redo,
-    canUndo,
-    canRedo,
-    deleteSelected,
-    copySelected,
-    cutSelected,
-    duplicateSelected,
-    pasteClipboard,
-    getClipboard,
-    setFontBold,
-    setFontSize,
-    setTextAlign,
-    setBorderAll,
-    alignComponents,
-    sizeComponents,
-    bringToFront,
-    sendToBack,
-    getSelectedFont,
-    getSelectedTextAlign,
-    openTextStyleLibrary,
-    openConditionalFormatLibrary,
-    setMode,
-    beginBandInsert,
-  } = useDesignerStore();
-
+  const undo = useDesignerStore(s => s.undo);
+  const redo = useDesignerStore(s => s.redo);
+  const canUndo = useDesignerStore(s => s.canUndo);
+  const canRedo = useDesignerStore(s => s.canRedo);
+  const deleteSelected = useDesignerStore(s => s.deleteSelected);
+  const copySelected = useDesignerStore(s => s.copySelected);
+  const cutSelected = useDesignerStore(s => s.cutSelected);
+  const duplicateSelected = useDesignerStore(s => s.duplicateSelected);
+  const pasteClipboard = useDesignerStore(s => s.pasteClipboard);
+  const setFontBold = useDesignerStore(s => s.setFontBold);
+  const setFontSize = useDesignerStore(s => s.setFontSize);
+  const setTextAlign = useDesignerStore(s => s.setTextAlign);
+  const setBorderAll = useDesignerStore(s => s.setBorderAll);
+  const alignComponents = useDesignerStore(s => s.alignComponents);
+  const sizeComponents = useDesignerStore(s => s.sizeComponents);
+  const bringToFront = useDesignerStore(s => s.bringToFront);
+  const sendToBack = useDesignerStore(s => s.sendToBack);
+  const getSelectedFont = useDesignerStore(s => s.getSelectedFont);
+  const getSelectedTextAlign = useDesignerStore(s => s.getSelectedTextAlign);
+  const openTextStyleLibrary = useDesignerStore(s => s.openTextStyleLibrary);
+  const openConditionalFormatLibrary = useDesignerStore(s => s.openConditionalFormatLibrary);
+  const setMode = useDesignerStore(s => s.setMode);
+  const beginBandInsert = useDesignerStore(s => s.beginBandInsert);
   const selectedCount = useDesignerStore(s => s.selectedComponentIds.length);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
+  const currentPageId = useDesignerStore(s => s.currentPageId);
+  const clipboardCount = useDesignerStore(s => s.clipboard.length);
   const template = useDesignerStore(s => s.template);
   const mode = useDesignerStore(s => s.mode);
-  const fontInfo = getSelectedFont();
-  const textAlign = getSelectedTextAlign();
+  const fontInfo = useMemo(
+    () => getSelectedFont(),
+    [currentPageId, getSelectedFont, selectedComponentIds, template],
+  );
+  const textAlign = useMemo(
+    () => getSelectedTextAlign(),
+    [currentPageId, getSelectedTextAlign, selectedComponentIds, template],
+  );
   const hasSelection = selectedCount > 0;
   const hasMultiSelection = selectedCount >= 2;
   const hasDistributableSelection = selectedCount >= 3;
-  const hasClipboard = getClipboard().length > 0;
-  const selectedTextComponents = selectedCount > 0
-    ? template.pages
+  const hasClipboard = clipboardCount > 0;
+  const selectedTextComponents = useMemo(() => {
+    if (selectedCount === 0) return [];
+    const selectedIds = new Set(selectedComponentIds);
+    return template.pages
       .flatMap(page => page.bands)
       .flatMap(band => band.components)
       .filter((component): component is TextComponent => (
-        selectedComponentIds.includes(component.id) && component.type === 'text'
-      ))
-    : [];
+        selectedIds.has(component.id) && component.type === 'text'
+      ));
+  }, [selectedComponentIds, selectedCount, template]);
   const isTextStyleLocked = (pathOrPrefix: string) => selectedTextComponents.some(component => isTextStylePropertyLocked(component, pathOrPrefix));
   const fontSizeDisabled = !fontInfo || isTextStyleLocked('font.size');
   const fontBoldDisabled = !fontInfo || isTextStyleLocked('font.bold');

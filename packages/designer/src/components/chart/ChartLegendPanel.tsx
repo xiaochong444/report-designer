@@ -3,19 +3,28 @@ import { ColorPicker, Form, InputNumber, Select, Switch } from 'antd';
 import type { ChartLegendConfig } from '@report-designer/core';
 import { chartUiText, type ChartPanelT } from './chart-options';
 
+const FORM_LABEL_COL = { span: 8 };
+const FORM_WRAPPER_COL = { span: 16 };
+const DEFAULT_LEGEND_COLOR = '#374151';
+const DEFAULT_LEGEND_FONT_SIZE = 12;
+
 export const ChartLegendPanel: React.FC<{
   value: ChartLegendConfig;
   onChange: (value: ChartLegendConfig) => void;
   t: ChartPanelT;
-}> = ({ onChange, t, value }) => {
-  const ui = chartUiText(t);
-  const update = (updates: Partial<ChartLegendConfig>) => onChange({ ...value, ...updates });
-  const updateFont = (updates: Partial<NonNullable<ChartLegendConfig['font']>>) => {
+}> = React.memo(({ onChange, t, value }) => {
+  const ui = React.useMemo(() => chartUiText(t), [t]);
+  const update = React.useCallback((updates: Partial<ChartLegendConfig>) => onChange({ ...value, ...updates }), [onChange, value]);
+  const updateFont = React.useCallback((updates: Partial<NonNullable<ChartLegendConfig['font']>>) => {
     update({ font: { ...(value.font ?? {}), ...updates } });
-  };
+  }, [update, value.font]);
+  const positionOptions = React.useMemo(() => ['top', 'right', 'bottom', 'left'].map(position => ({
+    value: position,
+    label: t(position),
+  })), [t]);
 
   return (
-    <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+    <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL}>
       <Form.Item label={ui.visible}>
         <Switch aria-label={ui.legendVisible} size="small" checked={value.visible} onChange={checked => update({ visible: checked })} />
       </Form.Item>
@@ -26,20 +35,17 @@ export const ChartLegendPanel: React.FC<{
           onChange={position => update({ position })}
           size="small"
           virtual={false}
-          options={['top', 'right', 'bottom', 'left'].map(position => ({
-            value: position,
-            label: t(position),
-          }))}
+          options={positionOptions}
         />
       </Form.Item>
       <Form.Item label={ui.legendColor}>
-        <ColorPicker aria-label={ui.legendColor} size="small" value={value.color ?? '#374151'} onChange={color => update({ color: color.toHexString() })} />
+        <ColorPicker aria-label={ui.legendColor} size="small" value={value.color ?? DEFAULT_LEGEND_COLOR} onChange={color => update({ color: color.toHexString() })} />
       </Form.Item>
       <Form.Item label={ui.legendFontSize}>
         <InputNumber
           aria-label={ui.legendFontSize}
-          value={value.font?.size ?? 12}
-          onChange={size => updateFont({ size: size ?? 12 })}
+          value={value.font?.size ?? DEFAULT_LEGEND_FONT_SIZE}
+          onChange={size => updateFont({ size: size ?? DEFAULT_LEGEND_FONT_SIZE })}
           size="small"
           min={6}
           max={48}
@@ -48,4 +54,4 @@ export const ChartLegendPanel: React.FC<{
       </Form.Item>
     </Form>
   );
-};
+});

@@ -9,14 +9,20 @@ export const ColorPaletteEditor: React.FC<{
   onPresetChange: (presetId?: string) => void;
   onColorsChange: (colors: string[]) => void;
   t: ChartPanelT;
-}> = ({ colors, onColorsChange, onPresetChange, presetId, t }) => {
-  const ui = chartUiText(t);
-  const presetPalette = CHART_PALETTE_PRESETS.find(preset => preset.id === presetId)?.colors;
-  const palette = colors.length ? colors : presetPalette ?? [DEFAULT_PALETTE_COLOR];
+}> = React.memo(({ colors, onColorsChange, onPresetChange, presetId, t }) => {
+  const ui = React.useMemo(() => chartUiText(t), [t]);
+  const presetPalette = React.useMemo(
+    () => CHART_PALETTE_PRESETS.find(preset => preset.id === presetId)?.colors,
+    [presetId],
+  );
+  const palette = React.useMemo(
+    () => colors.length ? colors : presetPalette ?? [DEFAULT_PALETTE_COLOR],
+    [colors, presetPalette],
+  );
 
-  const updateColor = (index: number, color: string) => {
+  const updateColor = React.useCallback((index: number, color: string) => {
     onColorsChange(palette.map((item, itemIndex) => itemIndex === index ? color : item));
-  };
+  }, [onColorsChange, palette]);
 
   return (
     <Space data-testid="chart-palette-editor" orientation="vertical" size={8} style={{ width: '100%' }}>
@@ -35,7 +41,7 @@ export const ColorPaletteEditor: React.FC<{
       />
       <Space size={6} wrap>
         {palette.map((color, index) => (
-          <Space.Compact key={`${index}-${color}`} data-testid={`chart-palette-swatch-${index}`}>
+          <Space.Compact key={`swatch-${index}`} data-testid={`chart-palette-swatch-${index}`}>
             <ColorPicker
               aria-label={ui.swatch(index + 1)}
               size="small"
@@ -63,4 +69,4 @@ export const ColorPaletteEditor: React.FC<{
       </Space>
     </Space>
   );
-};
+});

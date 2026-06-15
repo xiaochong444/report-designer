@@ -1,8 +1,8 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
-import { createDefaultTemplate } from '@report-designer/core';
+import { createDefaultTemplate, type ReportComponent } from '@report-designer/core';
 import { Designer } from '../components/Designer';
 import { ExpressionEditor } from '../components/ExpressionEditor';
 import { DesignerI18nProvider } from '../i18n';
@@ -93,6 +93,55 @@ describe('phase 46 automatic designer data sources', () => {
         }),
       }));
     });
+  });
+
+  it('does not recompute runtime data sources for every property edit', async () => {
+    const template = createDefaultTemplate('Designer Data Source Stability');
+    template.dataSources = [];
+    const text: ReportComponent = {
+      id: 'text-1',
+      type: 'text',
+      name: 'Text1',
+      x: 10,
+      y: 8,
+      width: 50,
+      height: 10,
+      text: 'Original',
+      font: { family: 'Arial', size: 10, bold: false, italic: false, underline: false, strikethrough: false, color: '#000000' },
+      textAlign: 'left',
+      verticalAlign: 'top',
+    } as ReportComponent;
+    template.pages[0].bands.find(band => band.type === 'data')!.components = [text];
+
+    render(
+      <Designer
+        template={template}
+        data={{ customer: 'Acme' } as any}
+        locale="en-US"
+      />,
+    );
+
+    await waitFor(() => {
+      expect(useDesignerStore.getState().template.dataSources.map(source => source.id)).toEqual(['root']);
+    });
+
+    act(() => {
+      useDesignerStore.getState().selectComponents(['text-1']);
+    });
+
+    let dataSourceWrites = 0;
+    let previousDataSources = useDesignerStore.getState().dataSources;
+    const unsubscribe = useDesignerStore.subscribe((state) => {
+      if (state.dataSources !== previousDataSources) {
+        dataSourceWrites += 1;
+        previousDataSources = state.dataSources;
+      }
+    });
+
+    fireEvent.change(await screen.findByLabelText('Text content'), { target: { value: 'Edited' } });
+    unsubscribe();
+
+    expect(dataSourceWrites).toBe(0);
   });
 
   it('inserts fully qualified nested item fields from the expression editor tree', async () => {

@@ -704,22 +704,24 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
     const { template, dispatcher } = get();
     const band = findBand(template, pageId, bandId);
     const comp = band ? findComponentInTree(band.components, componentId) : undefined;
+    if (!comp) return;
     const normalizedUpdates = comp && isTextComponent(comp)
       ? normalizeLocalTextComponentUpdates(comp, updates)
       : updates;
     const sanitizedUpdates = sanitizeComponentUpdates(template, componentId, normalizedUpdates);
-    if (Object.keys(sanitizedUpdates).length === 0) return;
+    const changedUpdates = getChangedComponentUpdates(comp, sanitizedUpdates);
+    if (Object.keys(changedUpdates).length === 0) return;
     const prevData = previous || (comp ? { ...comp } : undefined);
     const newTemplate = dispatcher.execute(template, {
       type: UPDATE_COMPONENTS_COMMAND,
       payload: {
-        updates: [{ pageId, bandId, componentId, updates: sanitizedUpdates }],
+        updates: [{ pageId, bandId, componentId, updates: changedUpdates }],
         previous: prevData ? [{ pageId, bandId, componentId, updates: prevData }] : [],
       },
       execute: () => template,
       undo: () => template,
     });
-    set({ template: newTemplate });
+    if (newTemplate !== template) set({ template: newTemplate });
   },
 
   moveComponent: (pageId, bandId, componentId, x, y, prevX, prevY) => {
@@ -759,26 +761,8 @@ export const useDesignerStore = create<DesignerState>((set, get) => {
 
   updateComponentSilent: (pageId, bandId, componentId, updates) => {
     const { template } = get();
-    const newTemplate = {
-      ...template,
-      pages: template.pages.map(p => {
-        if (p.id !== pageId) return p;
-        return {
-          ...p,
-          bands: p.bands.map(b => {
-            if (b.id !== bandId) return b;
-            return {
-              ...b,
-              components: b.components.map(c => {
-                if (c.id !== componentId) return c;
-                return { ...c, ...updates };
-              }),
-            };
-          }),
-        };
-      }),
-    };
-    set({ template: newTemplate });
+    const newTemplate = applyComponentUpdates(template, [{ pageId, bandId, componentId, updates }]);
+    if (newTemplate !== template) set({ template: newTemplate });
   },
 
   moveComponentSilent: (pageId, bandId, componentId, x, y) => {
@@ -1912,39 +1896,81 @@ interface ComponentUpdatePayload {
 
 function applyComponentUpdates(template: ReportTemplate, updates: ComponentUpdatePayload[]): ReportTemplate {
   if (updates.length === 0) return template;
-  const updatesByComponent = new Map(
-    updates.map(update => [`${update.pageId}/${update.bandId}/${update.componentId}`, update]),
-  );
+  const updatesByBand = new Map<string, Map<string, ComponentUpdatePayload[]>>();
+  for (const update of updates) {
+    let bandUpdates = updatesByBand.get(update.pageId);
+    if (!bandUpdates) {
+      bandUpdates = new Map();
+      updatesByBand.set(update.pageId, bandUpdates);
+    }
+    const componentUpdates = bandUpdates.get(update.bandId) ?? [];
+    componentUpdates.push(update);
+    bandUpdates.set(update.bandId, componentUpdates);
+  }
 
-  return {
-    ...template,
-    pages: template.pages.map(page => ({
-      ...page,
-      bands: page.bands.map(band => ({
-        ...band,
-        components: applyComponentUpdatesInTree(page.id, band.id, band.components, updatesByComponent),
-      })),
-    })),
-  };
+  let nextPages = template.pages;
+  for (const [pageId, bandUpdates] of updatesByBand) {
+    const pageIndex = nextPages.findIndex(page => page.id === pageId);
+    if (pageIndex < 0) continue;
+
+    const page = nextPages[pageIndex];
+    let nextBands = page.bands;
+    for (const [bandId, componentUpdates] of bandUpdates) {
+      const bandIndex = nextBands.findIndex(band => band.id === bandId);
+      if (bandIndex < 0) continue;
+
+      const band = nextBands[bandIndex];
+      const updatesByComponent = new Map(componentUpdates.map(update => [update.componentId, update]));
+      const nextComponents = applyComponentUpdatesInTree(band.components, updatesByComponent);
+      if (nextComponents === band.components) continue;
+
+      if (nextBands === page.bands) nextBands = page.bands.slice();
+      nextBands[bandIndex] = { ...band, components: nextComponents };
+    }
+
+    if (nextBands === page.bands) continue;
+    if (nextPages === template.pages) nextPages = template.pages.slice();
+    nextPages[pageIndex] = { ...page, bands: nextBands };
+  }
+
+  return nextPages === template.pages ? template : { ...template, pages: nextPages };
 }
 
 function applyComponentUpdatesInTree(
-  pageId: string,
-  bandId: string,
   components: ReportComponent[],
   updatesByComponent: Map<string, ComponentUpdatePayload>,
 ): ReportComponent[] {
-  return components.map(component => {
-    const update = updatesByComponent.get(`${pageId}/${bandId}/${component.id}`);
-    let nextComponent = update ? { ...component, ...update.updates } as ReportComponent : component;
+  let componentsChanged = false;
+  const nextComponents = components.map(component => {
+    const update = updatesByComponent.get(component.id);
+    let nextComponent = component;
+    if (update) {
+      const changedUpdates = getChangedComponentUpdates(component, update.updates);
+      if (Object.keys(changedUpdates).length > 0) {
+        nextComponent = { ...component, ...changedUpdates } as ReportComponent;
+        componentsChanged = true;
+      }
+    }
     const children = getNestedComponents(nextComponent);
     if (!children) return nextComponent;
-    const nextChildren = applyComponentUpdatesInTree(pageId, bandId, children, updatesByComponent);
-    if (nextChildren.some((child, index) => child !== children[index])) {
+    const nextChildren = applyComponentUpdatesInTree(children, updatesByComponent);
+    if (nextChildren !== children) {
       nextComponent = withNestedComponents(nextComponent, nextChildren);
+      componentsChanged = true;
     }
     return nextComponent;
   });
+  return componentsChanged ? nextComponents : components;
+}
+
+function getChangedComponentUpdates(component: ReportComponent, updates: Record<string, any>): Record<string, any> {
+  const changed: Record<string, any> = {};
+  for (const [field, value] of Object.entries(updates)) {
+    if (!Object.is((component as Record<string, any>)[field], value)) {
+      changed[field] = value;
+    }
+  }
+  return changed;
 }
 
 function cleanEventMap<TName extends string>(events: EventMap<TName>): EventMap<TName> | undefined {

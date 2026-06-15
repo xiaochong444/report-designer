@@ -93,25 +93,45 @@ const ChartComponent: React.FC<{ component: RenderChart; style: React.CSSPropert
   );
 };
 
+type VChartInstance = {
+  renderAsync: () => Promise<unknown>;
+  updateSpec?: (spec: ReturnType<typeof buildVChartSpec>, forceMerge?: boolean) => Promise<unknown>;
+  release: () => void;
+};
+
 const AsyncVChart: React.FC<{ spec: ReturnType<typeof buildVChartSpec> }> = ({ spec }) => {
-  const chartRef = useRef<{ release: () => void } | null>(null);
+  const chartRef = useRef<VChartInstance | null>(null);
   const containerRef = useRef<HTMLDivElement | null>(null);
+  const chartHostRef = useRef<HTMLDivElement | null>(null);
+  const latestSpecRef = useRef(spec);
   const [failed, setFailed] = useState(false);
+
+  latestSpecRef.current = spec;
 
   useEffect(() => {
     let canceled = false;
     const container = containerRef.current;
     if (!container) return undefined;
     setFailed(false);
-    container.innerHTML = '';
+    const chartHost = document.createElement('div');
+    chartHost.setAttribute('data-testid', 'render-component-chart-vchart');
+    chartHost.style.width = '100%';
+    chartHost.style.height = '100%';
+    container.appendChild(chartHost);
+    chartHostRef.current = chartHost;
 
     import('@visactor/vchart')
-      .then(module => {
-        if (canceled || !containerRef.current) return undefined;
+      .then(async module => {
+        if (canceled || chartHostRef.current !== chartHost) return undefined;
         const VChart = module.default;
-        const instance = new VChart(spec as any, { dom: containerRef.current });
+        const initialSpec = latestSpecRef.current;
+        const instance = new VChart(initialSpec as any, { dom: chartHost }) as VChartInstance;
         chartRef.current = instance;
-        return instance.renderAsync();
+        await instance.renderAsync();
+        if (!canceled && chartRef.current === instance && latestSpecRef.current !== initialSpec) {
+          await instance.updateSpec?.(latestSpecRef.current);
+        }
+        return undefined;
       })
       .catch(() => {
         if (!canceled) {
@@ -120,18 +140,66 @@ const AsyncVChart: React.FC<{ spec: ReturnType<typeof buildVChartSpec> }> = ({ s
       });
     return () => {
       canceled = true;
-      chartRef.current?.release();
+      releaseChartInstance(chartRef.current);
       chartRef.current = null;
-      container.innerHTML = '';
+      if (chartHostRef.current === chartHost) {
+        chartHostRef.current = null;
+      }
+      removeChartHost(container, chartHost);
+    };
+  }, []);
+
+  useEffect(() => {
+    const instance = chartRef.current;
+    if (!instance) return undefined;
+
+    let canceled = false;
+    setFailed(false);
+    Promise.resolve(instance.updateSpec?.(spec))
+      .catch(() => {
+        if (!canceled && chartRef.current === instance) {
+          setFailed(true);
+        }
+      });
+
+    return () => {
+      canceled = true;
     };
   }, [spec]);
 
   return (
-    <div ref={containerRef} data-testid="render-component-chart-vchart" style={{ width: '100%', height: '100%' }}>
-      {failed ? <div style={{ width: '100%', height: '100%' }} /> : null}
+    <div ref={containerRef} style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {failed ? <div style={{ position: 'absolute', inset: 0 }} /> : null}
     </div>
   );
 };
+
+function releaseChartInstance(instance: VChartInstance | null): void {
+  if (!instance) return;
+  try {
+    instance.release();
+  } catch (error) {
+    if (!isDomNotFoundError(error)) {
+      throw error;
+    }
+  }
+}
+
+function isDomNotFoundError(error: unknown): boolean {
+  return (error instanceof DOMException && error.name === 'NotFoundError')
+    || (error instanceof Error && (error.name === 'NotFoundError' || error.message.includes('not a child of this node')));
+}
+
+function removeChartHost(container: HTMLDivElement, chartHost: HTMLDivElement): void {
+  if (chartHost.parentNode !== container) return;
+  try {
+    container.removeChild(chartHost);
+  } catch (error) {
+    if (!isDomNotFoundError(error)) {
+      throw error;
+    }
+  }
+}
 
 function imageFitMode(component: RenderImage): React.CSSProperties['objectFit'] {
   return component.fitMode === 'stretch' || component.fitMode === 'fill'

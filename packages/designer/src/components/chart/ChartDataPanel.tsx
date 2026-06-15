@@ -4,31 +4,48 @@ import type { ChartAggregateMode, ChartBinding, DataSource } from '@report-desig
 import { chartAggregateOptions, type ChartPanelT } from './chart-options';
 import { getFieldsForPath } from '../../data-source-paths';
 
+const FORM_LABEL_COL = { span: 8 };
+const FORM_WRAPPER_COL = { span: 16 };
+const EMPTY_BINDING: ChartBinding = {
+  dataSourceId: '',
+  dimensions: [],
+  measures: [],
+  seriesField: '',
+  labelField: '',
+  sort: [],
+  aggregate: 'none',
+};
+
 export const ChartDataPanel: React.FC<{
   binding?: ChartBinding;
   dataSourceOptions: Array<{ value: string; label: string }>;
   dataSourceDefinitions: DataSource[];
   onChange: (binding: ChartBinding) => void;
   t: ChartPanelT;
-}> = ({ binding = {}, dataSourceDefinitions, dataSourceOptions, onChange, t }) => {
-  const fields = getFieldsForPath(dataSourceDefinitions, binding.dataSourceId);
-  const fieldOptions = fields.map(field => ({ value: field.name, label: field.label || field.name }));
-  const numberFieldOptions = fields.filter(field => field.type === 'number').map(field => ({ value: field.name, label: field.label || field.name }));
-  const update = (updates: Partial<ChartBinding>) => {
+}> = React.memo(({ binding = EMPTY_BINDING, dataSourceDefinitions, dataSourceOptions, onChange, t }) => {
+  const fields = React.useMemo(
+    () => getFieldsForPath(dataSourceDefinitions, binding.dataSourceId),
+    [binding.dataSourceId, dataSourceDefinitions],
+  );
+  const fieldOptions = React.useMemo(
+    () => fields.map(field => ({ value: field.name, label: field.label || field.name })),
+    [fields],
+  );
+  const numberFieldOptions = React.useMemo(
+    () => fields.filter(field => field.type === 'number').map(field => ({ value: field.name, label: field.label || field.name })),
+    [fields],
+  );
+  const aggregateOptions = React.useMemo(() => chartAggregateOptions(t), [t]);
+  const valueFieldOptions = numberFieldOptions.length ? numberFieldOptions : fieldOptions;
+  const update = React.useCallback((updates: Partial<ChartBinding>) => {
     onChange({
-      dataSourceId: '',
-      dimensions: [],
-      measures: [],
-      seriesField: '',
-      labelField: '',
-      sort: [],
-      aggregate: 'none',
+      ...EMPTY_BINDING,
       ...binding,
       ...updates,
     });
-  };
+  }, [binding, onChange]);
 
-  const handleDataSourceChange = (dataSourceId?: string) => {
+  const handleDataSourceChange = React.useCallback((dataSourceId?: string) => {
     const dsFields = getFieldsForPath(dataSourceDefinitions, dataSourceId);
     const dimension = dsFields.find(field => field.type !== 'number') ?? dsFields[0];
     const measure = dsFields.find(field => field.type === 'number') ?? dsFields[1] ?? dsFields[0];
@@ -40,10 +57,10 @@ export const ChartDataPanel: React.FC<{
       seriesField: '',
       labelField: '',
     });
-  };
+  }, [dataSourceDefinitions, update]);
 
   return (
-    <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+    <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL}>
       <Form.Item label={t('chartDataSource')}>
         <Select
           aria-label={t('chartDataSource')}
@@ -83,7 +100,7 @@ export const ChartDataPanel: React.FC<{
           value={binding.measures?.[0]?.field}
           onChange={field => update({ measures: field ? [{ field }] : [] })}
           size="small"
-          options={numberFieldOptions.length ? numberFieldOptions : fieldOptions}
+          options={valueFieldOptions}
           allowClear
           virtual={false}
         />
@@ -116,10 +133,10 @@ export const ChartDataPanel: React.FC<{
           value={binding.aggregate ?? 'none'}
           onChange={aggregate => update({ aggregate: aggregate as ChartAggregateMode })}
           size="small"
-          options={chartAggregateOptions(t)}
+          options={aggregateOptions}
           virtual={false}
         />
       </Form.Item>
     </Form>
   );
-};
+});

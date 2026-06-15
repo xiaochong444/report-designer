@@ -1,8 +1,8 @@
 /* @vitest-environment jsdom */
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RenderChart, RenderDocument } from '@report-designer/core';
 import { buildVChartSpec } from '../renderers/chart/chart-spec';
 import { RenderDocumentView } from '../renderers/dom/RenderDocumentView';
@@ -10,19 +10,47 @@ import { buildPrintHtml } from '../print/print-frame';
 import { exportRenderDocumentToPDF } from '../export/pdf/export-render-document';
 import { makeRenderDocument } from './phase-4-helpers';
 
+const vchartMockState = vi.hoisted(() => ({
+  construct: vi.fn(),
+  renderAsync: vi.fn(),
+  updateSpec: vi.fn(),
+  release: vi.fn(),
+  detachDomOnUpdate: false,
+}));
+
 vi.mock('@visactor/vchart', () => ({
   default: class MockVChart {
     private readonly dom: HTMLElement;
-    private readonly spec: Record<string, unknown>;
+    private spec: Record<string, unknown>;
+    private readonly canvas: HTMLDivElement;
+    static instances: MockVChart[] = [];
 
     constructor(spec: Record<string, unknown>, options: { dom: HTMLElement }) {
       this.spec = spec;
       this.dom = options.dom;
+      vchartMockState.construct(spec);
       this.dom.setAttribute('data-chart-type', String(this.spec.type));
+      this.canvas = document.createElement('div');
+      this.canvas.dataset.mockChartCanvas = 'true';
+      this.dom.appendChild(this.canvas);
+      MockVChart.instances.push(this);
     }
 
-    async renderAsync() {}
-    release() {}
+    async renderAsync() {
+      vchartMockState.renderAsync(this.spec);
+    }
+    async updateSpec(spec: Record<string, unknown>) {
+      this.spec = spec;
+      vchartMockState.updateSpec(spec);
+      this.dom.setAttribute('data-chart-type', String(this.spec.type));
+      if (vchartMockState.detachDomOnUpdate && this.dom.parentElement) {
+        this.dom.parentElement.removeChild(this.dom);
+      }
+    }
+    release() {
+      vchartMockState.release();
+      this.dom.removeChild(this.canvas);
+    }
     async getDataURL() {
       return 'data:image/png;base64,iVBORw0KGgo=';
     }
@@ -73,6 +101,14 @@ function documentWithChart(component = chart()): RenderDocument {
 }
 
 describe('phase 41 chart rendering viewer', () => {
+  beforeEach(() => {
+    vchartMockState.construct.mockClear();
+    vchartMockState.renderAsync.mockClear();
+    vchartMockState.updateSpec.mockClear();
+    vchartMockState.release.mockClear();
+    vchartMockState.detachDomOnUpdate = false;
+  });
+
   it('builds VChart specs using VSeed pipeline for various chart types', () => {
     // Column chart builds through VSeed
     const columnSpec = buildVChartSpec(chart());
@@ -114,6 +150,38 @@ describe('phase 41 chart rendering viewer', () => {
 
     expect(screen.getByTestId('render-component-chart')).toBeInTheDocument();
     expect(await screen.findByTestId('render-component-chart-vchart')).toHaveAttribute('data-chart-type', 'bar');
+  });
+
+  it('updates the mounted chart spec without clearing VChart-owned DOM nodes', async () => {
+    const initialDocument = documentWithChart(chart());
+    const updatedDocument = documentWithChart(chart({
+      theme: { baseTheme: 'light', palettePresetId: 'soft' },
+    }));
+    const { rerender } = render(<RenderDocumentView document={initialDocument} zoom={100} />);
+    await screen.findByTestId('render-component-chart-vchart');
+
+    expect(vchartMockState.construct).toHaveBeenCalledTimes(1);
+    rerender(<RenderDocumentView document={updatedDocument} zoom={100} />);
+
+    await waitFor(() => expect(vchartMockState.updateSpec).toHaveBeenCalledTimes(1));
+    expect(vchartMockState.construct).toHaveBeenCalledTimes(1);
+    expect(vchartMockState.release).not.toHaveBeenCalled();
+  });
+
+  it('does not give VChart a React-owned DOM node that can break chart unmounts', async () => {
+    const initialDocument = documentWithChart(chart());
+    const updatedDocument = documentWithChart(chart({
+      theme: { baseTheme: 'dark', palettePresetId: 'soft' },
+    }));
+    const emptyDocument = makeRenderDocument();
+    const { rerender } = render(<RenderDocumentView document={initialDocument} zoom={100} />);
+    await screen.findByTestId('render-component-chart-vchart');
+
+    vchartMockState.detachDomOnUpdate = true;
+    rerender(<RenderDocumentView document={updatedDocument} zoom={100} />);
+
+    await waitFor(() => expect(vchartMockState.updateSpec).toHaveBeenCalledTimes(1));
+    expect(() => rerender(<RenderDocumentView document={emptyDocument} zoom={100} />)).not.toThrow();
   });
 
   it('prints chart snapshots as static images and falls back to a visible placeholder', () => {

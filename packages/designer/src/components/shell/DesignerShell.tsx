@@ -37,7 +37,7 @@ interface DesignerShellProps {
 
 export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subreports, expressionExtensions }) => {
   const { t } = useDesignerI18n();
-  const template = useDesignerStore(s => s.template);
+  const templateName = useDesignerStore(s => s.template.name);
   const undo = useDesignerStore(s => s.undo);
   const redo = useDesignerStore(s => s.redo);
   const canUndo = useDesignerStore(s => s.canUndo);
@@ -62,7 +62,7 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subrepo
 
   return (
     <div className={className ? `rd-designer-shell ${className}` : 'rd-designer-shell'}>
-      <QuickAccess template={template} undo={undo} redo={redo} canUndo={canUndo()} canRedo={canRedo()} />
+      <QuickAccess templateName={templateName} undo={undo} redo={redo} canUndo={canUndo()} canRedo={canRedo()} />
       <DesignerRibbon />
       <div
         className="rd-designer-body"
@@ -256,22 +256,23 @@ function readDockMode(storageKey: string): DockMode {
 }
 
 interface QuickAccessProps {
-  template: ReportTemplate;
+  templateName: string;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
 }
 
-const QuickAccess: React.FC<QuickAccessProps> = ({ template, undo, redo, canUndo, canRedo }) => {
+const QuickAccess: React.FC<QuickAccessProps> = ({ templateName, undo, redo, canUndo, canRedo }) => {
   const { t } = useDesignerI18n();
   const saveTemplate = () => {
-    const json = JSON.stringify(useDesignerStore.getState().template, null, 2);
+    const currentTemplate = useDesignerStore.getState().template;
+    const json = JSON.stringify(currentTemplate, null, 2);
     const blob = new Blob([json], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `${template.name || 'report'}.json`;
+    link.download = `${currentTemplate.name || 'report'}.json`;
     link.click();
     URL.revokeObjectURL(url);
   };
@@ -290,7 +291,7 @@ const QuickAccess: React.FC<QuickAccessProps> = ({ template, undo, redo, canUndo
           <Button size="small" type="text" icon={<RedoOutlined />} disabled={!canRedo} onClick={redo} />
         </Tooltip>
       </div>
-      <div className="rd-quick-access-title">{template.name || t('shell.untitledReport')}</div>
+      <div className="rd-quick-access-title">{templateName || t('shell.untitledReport')}</div>
       <div className="rd-quick-access-meta">{t('shell.designerName')}</div>
     </header>
   );

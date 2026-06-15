@@ -4,18 +4,27 @@ import type { ChartThemeConfig } from '@report-designer/core';
 import { chartUiText, type ChartPanelT } from './chart-options';
 import { ColorPaletteEditor } from './ColorPaletteEditor';
 
+const FORM_LABEL_COL = { span: 8 };
+const FORM_WRAPPER_COL = { span: 16 };
+const THEME_OPTIONS = [
+  { value: 'light', label: 'chartThemeLight' },
+  { value: 'dark', label: 'chartThemeDark' },
+] as const;
+
 export const ChartThemePanel: React.FC<{
   value: ChartThemeConfig;
   emptyMessage?: string;
   onChange: (value: ChartThemeConfig) => void;
   onEmptyMessageChange: (value: string) => void;
   t: ChartPanelT;
-}> = ({ emptyMessage, onChange, onEmptyMessageChange, t, value }) => {
-  const ui = chartUiText(t);
-  const update = (updates: Partial<ChartThemeConfig>) => onChange({ ...value, ...updates });
+}> = React.memo(({ emptyMessage, onChange, onEmptyMessageChange, t, value }) => {
+  const ui = React.useMemo(() => chartUiText(t), [t]);
+  const themeOptions = React.useMemo(() => THEME_OPTIONS.map(item => ({ value: item.value, label: t(item.label) })), [t]);
+  const update = React.useCallback((updates: Partial<ChartThemeConfig>) => onChange({ ...value, ...updates }), [onChange, value]);
+  const handleEmptyMessageChange = React.useCallback((event: React.ChangeEvent<HTMLInputElement>) => onEmptyMessageChange(event.target.value), [onEmptyMessageChange]);
 
   return (
-    <Form size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
+    <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL}>
       <Form.Item label={ui.baseTheme}>
         <Select
           aria-label={ui.baseTheme}
@@ -23,10 +32,7 @@ export const ChartThemePanel: React.FC<{
           onChange={baseTheme => update({ baseTheme })}
           size="small"
           virtual={false}
-          options={[
-            { value: 'light', label: t('chartThemeLight') },
-            { value: 'dark', label: t('chartThemeDark') },
-          ]}
+          options={themeOptions}
         />
       </Form.Item>
       <Form.Item label={ui.customPalette}>
@@ -39,8 +45,8 @@ export const ChartThemePanel: React.FC<{
         />
       </Form.Item>
       <Form.Item label={t('chartEmptyMessage')}>
-        <Input aria-label={t('chartEmptyMessage')} value={emptyMessage ?? ''} onChange={event => onEmptyMessageChange(event.target.value)} size="small" />
+        <Input aria-label={t('chartEmptyMessage')} value={emptyMessage ?? ''} onChange={handleEmptyMessageChange} size="small" />
       </Form.Item>
     </Form>
   );
-};
+});

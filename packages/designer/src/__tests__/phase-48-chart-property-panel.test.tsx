@@ -137,6 +137,23 @@ describe('phase 48 chart property panel', () => {
     expect(chart.appearance?.title).toBe('Quarterly Sales');
   });
 
+  it('updates title and legacy appearance title in a single store write', () => {
+    loadSelectedComponent(chartComponent());
+    renderEditor();
+
+    let templateUpdates = 0;
+    const unsubscribe = useDesignerStore.subscribe(() => {
+      templateUpdates += 1;
+    });
+
+    fireEvent.change(screen.getByLabelText('Title text'), { target: { value: 'Single Write Title' } });
+    unsubscribe();
+
+    expect(templateUpdates).toBe(1);
+    expect(selectedChart().title?.text).toBe('Single Write Title');
+    expect(selectedChart().appearance?.title).toBe('Single Write Title');
+  });
+
   it('edits palette through preset and swatch controls', () => {
     loadSelectedComponent(chartComponent({
       theme: { baseTheme: 'light', palettePresetId: 'business', customPalette: ['#111111', '#222222'] },
@@ -158,5 +175,19 @@ describe('phase 48 chart property panel', () => {
     const paletteEditor = screen.getByTestId('chart-palette-editor');
     fireEvent.click(within(paletteEditor).getByRole('button', { name: 'Delete color 1' }));
     expect(selectedChart().theme?.customPalette).toEqual(['#5AD8A6', '#F6BD16', '#E8684A', '#6DC8EC', '#9270CA', '#2f6fed']);
+  });
+
+  it('keeps palette swatch controls mounted when switching presets', () => {
+    loadSelectedComponent(chartComponent({
+      theme: { baseTheme: 'light', palettePresetId: 'business' },
+    }));
+
+    renderEditor();
+
+    const firstSwatch = screen.getByTestId('chart-palette-swatch-0');
+    selectOption('Palette preset', 'Soft');
+
+    expect(screen.getByTestId('chart-palette-swatch-0')).toBe(firstSwatch);
+    expect(selectedChart().theme).toMatchObject({ palettePresetId: 'soft' });
   });
 });

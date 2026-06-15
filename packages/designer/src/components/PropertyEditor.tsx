@@ -48,6 +48,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   const reportUnit = useDesignerStore(s => s.reportUnit);
   const pendingEventEditorTarget = useDesignerStore(s => s.pendingEventEditorTarget);
   const consumeEventEditorTarget = useDesignerStore(s => s.consumeEventEditorTarget);
+  const [eventEditorDataTemplate, setEventEditorDataTemplate] = React.useState<ReportTemplate | null>(null);
 
   const { component, bandId } = useMemo(() => {
     if (selectedComponentIds.length !== 1) return { component: null, bandId: null };
@@ -81,6 +82,20 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
     setComponentNameError(null);
   }, [component?.id]);
 
+  React.useEffect(() => {
+    if (!eventEditorOpen) return;
+    setEventEditorDataTemplate(template);
+  }, [eventEditorOpen, template]);
+
+  const dictionaryItems = React.useMemo(
+    () => (eventEditorOpen && eventEditorDataTemplate ? buildDictionaryEventItems(eventEditorDataTemplate) : []),
+    [eventEditorDataTemplate, eventEditorOpen],
+  );
+  const componentItems = React.useMemo(
+    () => (eventEditorOpen && eventEditorDataTemplate ? buildComponentEventItems(eventEditorDataTemplate) : []),
+    [eventEditorDataTemplate, eventEditorOpen],
+  );
+
   if (selectedComponentIds.length === 0) {
     return (
       <div style={{ padding: 16, textAlign: 'center', color: '#999', fontSize: 13 }}>
@@ -111,6 +126,14 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   const handleChange = (field: string, value: any) => {
     if (!component || !bandId || !currentPageId) return;
     updateComponent(currentPageId, bandId, component.id, { [field]: value }, { [field]: (component as any)[field] });
+  };
+
+  const handleChangeMany = (updates: Record<string, any>) => {
+    if (!component || !bandId || !currentPageId) return;
+    const previous = Object.fromEntries(
+      Object.keys(updates).map(field => [field, (component as any)[field]]),
+    );
+    updateComponent(currentPageId, bandId, component.id, updates, previous);
   };
 
   const handleNameChange = (value: string) => {
@@ -157,8 +180,6 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
     supportsSharedStyle ? isTextStylePropertyLocked(component as { style?: string }, pathOrPrefix) : false
   );
   const backgroundLocked = isTextStyleLocked('backgroundColor');
-  const dictionaryItems = buildDictionaryEventItems(template);
-  const componentItems = buildComponentEventItems(template);
 
   return (
     <div style={{ padding: 8 }}>
@@ -446,6 +467,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
                 component={component}
                 comp={comp}
                 onChange={handleChange}
+                onChangeMany={handleChangeMany}
                 onOpenExpressionEditor={openFieldExpressionEditor}
                 t={t}
                 dataSourceOptions={dataSourceOptions}
@@ -893,11 +915,12 @@ const ComponentContentProperties: React.FC<{
   component: { type: string };
   comp: any;
   onChange: (field: string, value: any) => void;
+  onChangeMany: (updates: Record<string, any>) => void;
   onOpenExpressionEditor: (field: string, label: string) => void;
   t: ReturnType<typeof createPropertyT>;
   dataSourceOptions: Array<{ value: string; label: string }>;
   dataSourceDefinitions: DataSource[];
-}> = ({ component, comp, dataSourceDefinitions, dataSourceOptions, onChange, onOpenExpressionEditor, t }) => {
+}> = ({ component, comp, dataSourceDefinitions, dataSourceOptions, onChange, onChangeMany, onOpenExpressionEditor, t }) => {
   switch (component.type) {
     case 'chart':
       return (
@@ -906,6 +929,7 @@ const ComponentContentProperties: React.FC<{
           dataSourceOptions={dataSourceOptions}
           dataSourceDefinitions={dataSourceDefinitions}
           onChange={onChange}
+          onChangeMany={onChangeMany}
           t={t}
         />
       );

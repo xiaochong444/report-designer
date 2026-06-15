@@ -2285,7 +2285,7 @@ const BandResizeHandle: React.FC<{ bandId: string }> = ({ bandId }) => (
 
 // ---- Component View ----
 
-const ComponentView: React.FC<{
+interface ComponentViewProps {
   component: ReportComponent; bandId: string;
   selected: boolean; editing: boolean; editText: string;
   selectedTableCell: TableCellSelection | null;
@@ -2296,7 +2296,9 @@ const ComponentView: React.FC<{
   onFinishEdit: (text: string) => void;
   onFinishTableCellEdit: (text: string) => void;
   onEditTextChange: (t: string) => void;
-}> = ({
+}
+
+const ComponentView = React.memo(function ComponentView({
   component,
   bandId,
   selected,
@@ -2311,7 +2313,7 @@ const ComponentView: React.FC<{
   onFinishEdit,
   onFinishTableCellEdit,
   onEditTextChange,
-}) => {
+}: ComponentViewProps) {
   const { t } = useDesignerI18n();
   const inputRef = useRef<HTMLInputElement>(null);
   React.useEffect(() => { if (editing && editingKind === 'text') setTimeout(() => inputRef.current?.focus(), 0); }, [editing, editingKind]);
@@ -2412,7 +2414,18 @@ const ComponentView: React.FC<{
       ) : null}
     </div>
   );
-};
+}, areComponentViewPropsEqual);
+
+function areComponentViewPropsEqual(previous: ComponentViewProps, next: ComponentViewProps): boolean {
+  return previous.component === next.component
+    && previous.bandId === next.bandId
+    && previous.selected === next.selected
+    && previous.editing === next.editing
+    && previous.editText === next.editText
+    && previous.selectedTableCell === next.selectedTableCell
+    && previous.editingKind === next.editingKind
+    && previous.editingCell === next.editingCell;
+}
 
 const ComponentBorderOverlay: React.FC<{ component: ReportComponent; zIndex: number }> = ({ component, zIndex }) => {
   const style = componentBorderToCss(component);

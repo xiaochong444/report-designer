@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef } from 'react';
 import { expandJsonDataBySources, mergeInferredDataSources, type ReportTemplate } from '@report-designer/core';
 import { DesignerShell } from './shell/DesignerShell';
 import { useDesignerStore, type DesignerEventNavigationTarget } from '../store/designer-store';
@@ -23,7 +23,7 @@ interface DesignerProps {
 export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, onTemplateChange, locale = 'zh-CN', expressionExtensions, eventNavigationTarget, className }) => {
   const loadTemplate = useDesignerStore(s => s.loadTemplate);
   const setDataSources = useDesignerStore(s => s.setDataSources);
-  const currentTemplate = useDesignerStore(s => s.template);
+  const currentDataSourceDefinitions = useDesignerStore(s => template?.dataSources ?? s.template.dataSources);
   const setCurrentPage = useDesignerStore(s => s.setCurrentPage);
   const selectBand = useDesignerStore(s => s.selectBand);
   const selectComponents = useDesignerStore(s => s.selectComponents);
@@ -38,32 +38,44 @@ export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, 
       : typeof data === 'object'
         ? Object.keys(data as Record<string, unknown>).join('|')
         : typeof data;
+  const runtimeDataSources = useMemo(
+    () => mergeInferredDataSources({ dataSources: currentDataSourceDefinitions } as ReportTemplate, data).dataSources,
+    [data, currentDataSourceDefinitions],
+  );
 
   useEffect(() => {
     if (template && (loadedTemplateIdRef.current !== template.id || loadedDataSignatureRef.current !== dataSignature)) {
       loadedTemplateIdRef.current = template.id;
       loadedDataSignatureRef.current = dataSignature;
-      loadTemplate(mergeInferredDataSources(template, data));
+      loadTemplate({ ...template, dataSources: runtimeDataSources });
     }
-  }, [data, dataSignature, template, loadTemplate]);
+  }, [data, dataSignature, runtimeDataSources, template, loadTemplate]);
 
   useEffect(() => {
-    if (data) {
-      const sources = mergeInferredDataSources(template ?? currentTemplate, data).dataSources;
-      setDataSources(expandJsonDataBySources(data, sources));
-    }
-  }, [currentTemplate, data, setDataSources, template]);
+    if (!data) return;
+    setDataSources(expandJsonDataBySources(data, runtimeDataSources));
+  }, [data, runtimeDataSources, setDataSources]);
 
   useEffect(() => {
     if (!onTemplateChange) return;
-    if (template && currentTemplate.id !== template.id) return;
-    onTemplateChange(currentTemplate);
-  }, [currentTemplate, onTemplateChange, template?.id]);
+    const currentTemplate = useDesignerStore.getState().template;
+    if (!template || currentTemplate.id === template.id) {
+      onTemplateChange(currentTemplate);
+    }
+    let previousTemplate = currentTemplate;
+    return useDesignerStore.subscribe((state) => {
+      if (state.template === previousTemplate) return;
+      previousTemplate = state.template;
+      if (template && state.template.id !== template.id) return;
+      onTemplateChange(state.template);
+    });
+  }, [onTemplateChange, template?.id]);
 
   useEffect(() => {
     if (!eventNavigationTarget) return;
     const navigationKey = buildNavigationKey(eventNavigationTarget);
     if (handledNavigationKeyRef.current === navigationKey) return;
+    const currentTemplate = useDesignerStore.getState().template;
     if (template && currentTemplate.id !== template.id) return;
 
     const located = locateEventTarget(currentTemplate, eventNavigationTarget);
@@ -82,7 +94,7 @@ export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, 
     }
     openEventEditorTarget(eventNavigationTarget);
     handledNavigationKeyRef.current = navigationKey;
-  }, [currentTemplate, eventNavigationTarget, openEventEditorTarget, selectBand, selectComponents, setCurrentPage]);
+  }, [eventNavigationTarget, openEventEditorTarget, selectBand, selectComponents, setCurrentPage, template?.id]);
 
   return (
     <DesignerI18nProvider locale={locale}>
