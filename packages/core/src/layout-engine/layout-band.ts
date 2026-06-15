@@ -32,9 +32,9 @@ import type {
   TextComponent,
   ChartDataPoint,
   ChartAggregateMode,
-  ChartMarkStyle,
 } from '../template-model/types';
 import { isRepeatOnEveryPageBandType } from '../template-model/types';
+import { getChartCapabilities } from '../chart';
 import { formatValue } from '../text-format';
 import { resolveComponentStyle, resolveTextStyle } from '../text-style';
 import { measureTextBox } from './measure';
@@ -748,82 +748,8 @@ function layoutChart(component: ChartComponent, options: LayoutBandOptions): Ren
   const chartY = options.y + component.y;
   const rows = resolveChartRows(component, options);
   const sortedRows = applyChartSort(rows, component.binding?.sort ?? [], options.context);
-  const aggregate = component.binding?.aggregate ?? 'none';
+  const aggregate = resolveChartAggregate(component);
   const data = buildChartData(component, sortedRows, aggregate, options);
-  const legacyMarkStyle = {
-    ...component.appearance?.markStyle,
-    ...(component.plotOptions?.bar
-      ? compactChartMarkStyle({
-          barWidth: component.plotOptions.bar.barWidth,
-          cornerRadius: component.plotOptions.bar.cornerRadius,
-          fillOpacity: component.plotOptions.bar.fillOpacity,
-          stroke: component.plotOptions.bar.borderColor,
-          lineWidth: component.plotOptions.bar.borderWidth,
-          barLabelPosition: component.plotOptions.bar.labelPosition,
-        })
-      : {}),
-    ...(component.plotOptions?.line
-      ? compactChartMarkStyle({
-          curveType: component.plotOptions.line.curveType,
-          lineWidth: component.plotOptions.line.lineWidth,
-          showPoint: component.plotOptions.line.showPoint,
-          pointSize: component.plotOptions.line.pointSize,
-          pointShape: component.plotOptions.line.pointShape,
-          connectNulls: component.plotOptions.line.connectNulls,
-        })
-      : {}),
-    ...(component.plotOptions?.area
-      ? compactChartMarkStyle({
-          showArea: component.plotOptions.area.showArea,
-          areaOpacity: component.plotOptions.area.areaOpacity,
-        })
-      : {}),
-    ...(component.plotOptions?.pie
-      ? compactChartMarkStyle({
-          innerRadius: component.plotOptions.pie.innerRadius,
-          outerRadius: component.plotOptions.pie.outerRadius,
-          startAngle: component.plotOptions.pie.startAngle,
-          padAngle: component.plotOptions.pie.padAngle,
-          roseType: component.plotOptions.pie.roseType,
-        })
-      : {}),
-    ...(component.plotOptions?.scatter
-      ? compactChartMarkStyle({
-          pointSize: component.plotOptions.scatter.pointSize,
-          pointShape: component.plotOptions.scatter.pointShape,
-          fillOpacity: component.plotOptions.scatter.fillOpacity,
-          showTrendLine: component.plotOptions.scatter.showTrendLine,
-          trendLineType: component.plotOptions.scatter.trendLineType,
-        })
-      : {}),
-    ...(component.plotOptions?.radar
-      ? compactChartMarkStyle({
-          radarShape: component.plotOptions.radar.shape,
-          showRadarArea: component.plotOptions.radar.showArea,
-          radarAreaOpacity: component.plotOptions.radar.areaOpacity,
-          lineWidth: component.plotOptions.radar.lineWidth,
-          showPoint: component.plotOptions.radar.showPoint,
-          pointSize: component.plotOptions.radar.pointSize,
-          axisCount: component.plotOptions.radar.axisCount,
-        })
-      : {}),
-    ...(component.plotOptions?.funnel
-      ? compactChartMarkStyle({
-          funnelDirection: component.plotOptions.funnel.direction,
-          funnelShape: component.plotOptions.funnel.shape,
-          showConversionRate: component.plotOptions.funnel.showConversionRate,
-          funnelGap: component.plotOptions.funnel.gap,
-          funnelMinSize: component.plotOptions.funnel.minSize,
-          funnelMaxSize: component.plotOptions.funnel.maxSize,
-        })
-      : {}),
-    ...(component.plotOptions?.dualAxis
-      ? compactChartMarkStyle({
-          primaryType: component.plotOptions.dualAxis.primaryType,
-          secondaryType: component.plotOptions.dualAxis.secondaryType,
-        })
-      : {}),
-  };
 
   return {
     id: component.id,
@@ -835,26 +761,23 @@ function layoutChart(component: ChartComponent, options: LayoutBandOptions): Ren
     chartType: component.chartType,
     data,
     rawData: sortedRows,
-    binding: component.binding ?? { dimensions: [], measures: [], aggregate: 'none', sort: [] },
-    title: component.title?.text ?? component.appearance?.title,
-    subtitle: component.title?.subtitle ?? component.appearance?.subtitle,
-    showLegend: component.legend?.visible ?? component.appearance?.showLegend ?? true,
-    legendPosition: component.legend?.position ?? component.appearance?.legendPosition ?? 'bottom',
-    showAxes: component.axes?.x?.visible ?? component.axes?.y?.visible ?? component.appearance?.showAxes ?? true,
-    showGrid: component.axes?.x?.gridVisible ?? component.axes?.y?.gridVisible ?? component.appearance?.showGrid ?? true,
-    showLabels: component.labels?.visible ?? component.appearance?.showLabels ?? false,
-    labelType: component.labels?.content === 'custom'
-      ? component.appearance?.labelType
-      : (component.labels?.content ?? component.appearance?.labelType),
-    axisTitleX: component.axes?.x?.title ?? component.appearance?.axisTitleX,
-    axisTitleY: component.axes?.y?.title ?? component.appearance?.axisTitleY,
-    axisLabelRotation: component.axes?.x?.labelRotate ?? component.appearance?.axisLabelRotation,
+    binding: component.binding ?? { dimensions: [], measures: [], sort: [] },
+    title: component.title?.text,
+    subtitle: component.title?.subtitle,
+    showLegend: component.legend?.visible ?? true,
+    legendPosition: component.legend?.position ?? 'bottom',
+    showAxes: component.axes?.x?.visible ?? component.axes?.y?.visible ?? true,
+    showGrid: component.axes?.x?.gridVisible ?? component.axes?.y?.gridVisible ?? true,
+    showLabels: component.labels?.visible ?? false,
+    labelType: component.labels?.content === 'custom' ? undefined : component.labels?.content,
+    axisTitleX: component.axes?.x?.title,
+    axisTitleY: component.axes?.y?.title,
+    axisLabelRotation: component.axes?.x?.labelRotate,
     titleConfig: component.title,
     legendConfig: component.legend,
     axesConfig: component.axes,
     labelsConfig: component.labels,
-    theme: component.theme ?? component.appearance?.theme,
-    markStyle: Object.values(legacyMarkStyle).some(value => value !== undefined) ? legacyMarkStyle : undefined,
+    theme: component.theme,
     plotOptions: component.plotOptions,
     aggregate,
     emptyMessage: component.emptyMessage ?? 'No data',
@@ -862,8 +785,16 @@ function layoutChart(component: ChartComponent, options: LayoutBandOptions): Ren
   };
 }
 
-function compactChartMarkStyle(markStyle: ChartMarkStyle): ChartMarkStyle {
-  return Object.fromEntries(Object.entries(markStyle).filter(([, value]) => value !== undefined)) as ChartMarkStyle;
+/**
+ * 聚合模式：binding.aggregate 已删除，改由 measure.aggregation 推导。
+ * 取第一个度量（或 dualAxis 的 left 度量）的 aggregation，缺省为 'none'。
+ */
+function resolveChartAggregate(component: ChartComponent): ChartAggregateMode {
+  const measures = component.binding?.measures ?? [];
+  const caps = getChartCapabilities(component.chartType);
+  const index = caps.measures === 'dualAxis' ? measures.findIndex(m => m.axis !== 'right') : 0;
+  const measure = measures[index < 0 ? 0 : index];
+  return measure?.aggregation ?? 'none';
 }
 
 function resolveChartRows(component: ChartComponent, options: LayoutBandOptions): Record<string, unknown>[] {
@@ -898,48 +829,129 @@ function applyChartSort(rows: Record<string, unknown>[], sort: Array<{ field: st
 }
 
 function buildChartData(component: ChartComponent, rows: Record<string, unknown>[], aggregate: ChartAggregateMode, options: LayoutBandOptions): ChartDataPoint[] {
-  const dimField = component.binding?.dimensions?.[0]?.field;
-  const meaField = component.binding?.measures?.[0]?.field;
-  const measureFields = component.binding?.measures?.map(measure => measure.field).filter(Boolean) ?? [];
-  const seriesField = component.binding?.seriesField;
-  const labelField = component.binding?.labelField;
+  const caps = getChartCapabilities(component.chartType);
+  const binding = component.binding ?? {};
+  const dimensions = binding.dimensions ?? [];
+  const measures = binding.measures ?? [];
+  const measureFields = measures.map(measure => measure.field).filter(Boolean);
   const isScatter = component.chartType === 'scatter';
+  const isHeatmap = component.chartType === 'heatmap';
+  const isSankey = component.chartType === 'sankey';
+  const isHierarchical = caps.dimensions === 'hierarchical';
 
-  const points: ChartDataPoint[] = rows.map((row) => {
+  const points: ChartDataPoint[] = rows.flatMap((row): ChartDataPoint | ChartDataPoint[] => {
+    const measureValues = resolveMeasureValues(row, measureFields);
+    const measureKey = measures[0]?.field;
+
     if (isScatter) {
-      const xDim = component.binding?.dimensions?.[0]?.field;
-      const yMea = component.binding?.measures?.[0]?.field;
-      const x = resolveNumber(row[xDim ?? '']);
-      const y = resolveNumber(row[yMea ?? '']);
-      const series = seriesField ? String(row[seriesField] ?? '') : undefined;
+      const x = resolveNumber(row[dimensions[0]?.field ?? '']);
+      const y = resolveNumber(row[measures[0]?.field ?? '']);
       return {
         category: x == null ? '' : String(x),
         value: y,
-        measureValues: resolveMeasureValues(row, measureFields),
-        series: series || undefined,
-        label: labelField ? String(row[labelField] ?? '') : (x == null ? undefined : String(x)),
+        measureValues,
+        measureKey,
+        label: x == null ? undefined : String(x),
         x, y,
         raw: row,
       };
     }
-    const category = dimField ? row[dimField] : undefined;
-    const value = meaField ? resolveNumber(row[meaField]) : null;
-    const series = seriesField ? String(row[seriesField] ?? '') : undefined;
-    const label = labelField ? String(row[labelField] ?? '') : (category == null ? undefined : String(category));
-    return {
+
+    if (isHeatmap) {
+      const category = readField(row, dimensions[0]?.field);
+      const series = readField(row, dimensions[1]?.field);
+      const value = resolveNumber(row[measures[0]?.field ?? '']);
+      return {
+        category: category == null ? '' : String(category),
+        value,
+        measureValues,
+        measureKey,
+        series: series == null ? undefined : String(series),
+        label: category == null ? undefined : String(category),
+        x: null,
+        y: value,
+        raw: row,
+      };
+    }
+
+    if (isSankey) {
+      const source = readField(row, dimensions[0]?.field);
+      const target = readField(row, dimensions[1]?.field);
+      const value = resolveNumber(row[measures[0]?.field ?? '']);
+      return {
+        category: source == null ? '' : String(source),
+        value,
+        measureValues,
+        measureKey,
+        source: source == null ? undefined : String(source),
+        target: target == null ? undefined : String(target),
+        label: source == null ? undefined : String(source),
+        x: null,
+        y: value,
+        raw: row,
+      };
+    }
+
+    if (isHierarchical) {
+      const path = dimensions.map(d => readField(row, d.field)).filter(v => v != null).map(String);
+      const value = resolveNumber(row[measures[0]?.field ?? '']);
+      return {
+        category: path[0] ?? '',
+        value,
+        measureValues,
+        measureKey,
+        path: path.length > 0 ? path : undefined,
+        label: path[path.length - 1],
+        x: null,
+        y: value,
+        raw: row,
+      };
+    }
+
+    // 笛卡尔分类图（single 维度）：按 measure 展开。
+    const category = readField(row, dimensions[0]?.field);
+    const basePoint: ChartDataPoint = {
       category: category == null ? '' : String(category),
-      value,
-      measureValues: resolveMeasureValues(row, measureFields),
-      series: series || undefined,
-      label,
+      value: null,
+      measureValues,
+      measureKey,
+      label: category == null ? undefined : String(category),
       x: null,
-      y: value,
+      y: null,
       raw: row,
+    };
+
+    if (caps.measures === 'multi' || caps.measures === 'dualAxis') {
+      // 每个度量展开为一个 point（即一个系列）
+      return measures.map(measure => {
+        const value = resolveNumber(row[measure.field]);
+        return {
+          ...basePoint,
+          value,
+          y: value,
+          measureKey: measure.field,
+          series: measure.alias || measure.field,
+          axis: caps.measures === 'dualAxis' ? (measure.axis ?? 'left') : undefined,
+        } as ChartDataPoint;
+      });
+    }
+
+    // 单度量
+    const value = resolveNumber(row[measures[0]?.field ?? '']);
+    return {
+      ...basePoint,
+      value,
+      y: value,
     };
   });
 
   if (aggregate === 'none') return points;
   return aggregateChartPoints(points, isScatter, aggregate);
+}
+
+function readField(row: Record<string, unknown>, field: string | undefined): unknown {
+  if (!field) return undefined;
+  return row[field];
 }
 
 function aggregateChartPoints(points: ChartDataPoint[], isScatter: boolean, aggregate: ChartAggregateMode): ChartDataPoint[] {

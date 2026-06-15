@@ -156,9 +156,6 @@ export interface ChartBinding {
   arrayPath?: Expression;
   dimensions?: ChartDimension[];
   measures?: ChartMeasure[];
-  seriesField?: string;
-  labelField?: string;
-  aggregate?: ChartAggregateMode;
   sort?: Array<{ field: string; direction: ChartSortDirection }>;
   filterExpression?: Expression;
 }
@@ -183,13 +180,7 @@ export interface ChartThemeConfig {
   textSecondary?: string;
 }
 
-export interface ChartFontConfig {
-  family?: string;
-  size?: number;
-  bold?: boolean;
-  italic?: boolean;
-  color?: string;
-}
+export type ChartFontConfig = FontConfig;
 
 export interface ChartTitleConfig {
   visible: boolean;
@@ -337,67 +328,6 @@ export interface ChartPlotOptions {
   heatmap?: ChartHeatmapOptions;
 }
 
-export interface ChartMarkStyle {
-  // 柱状图
-  barWidth?: number;
-  cornerRadius?: number;
-  barLabelPosition?: 'inside' | 'top' | 'outside';
-  fillOpacity?: number;
-  lineWidth?: number;
-  stroke?: string;
-  // 折线图
-  curveType?: 'linear' | 'monotone' | 'step';
-  showPoint?: boolean;
-  pointSize?: number;
-  pointShape?: 'circle' | 'square' | 'triangle' | 'diamond';
-  showArea?: boolean;
-  areaOpacity?: number;
-  connectNulls?: boolean;
-  // 饼/环/玫瑰
-  innerRadius?: number;
-  outerRadius?: number;
-  startAngle?: number;
-  padAngle?: number;
-  roseType?: 'radius' | 'area';
-  // 散点图
-  showTrendLine?: boolean;
-  trendLineType?: 'linear' | 'polynomial' | 'exponential';
-  // 雷达图
-  radarShape?: 'polygon' | 'circle';
-  showRadarArea?: boolean;
-  radarAreaOpacity?: number;
-  axisCount?: number;
-  // 漏斗图
-  funnelDirection?: 'vertical' | 'horizontal';
-  funnelShape?: 'trapezoid' | 'triangle' | 'rect';
-  showConversionRate?: boolean;
-  funnelGap?: number;
-  funnelMinSize?: number;
-  funnelMaxSize?: number;
-  // 双轴图
-  primaryType?: 'bar' | 'line';
-  secondaryType?: 'bar' | 'line';
-  yAxisRightTitle?: string;
-}
-
-export interface ChartAppearance {
-  title?: string;
-  subtitle?: string;
-  showLegend?: boolean;
-  legendPosition?: ChartLegendPosition;
-  showLabels?: boolean;
-  labelType?: 'name' | 'value' | 'percent' | 'name-value';
-  showAxes?: boolean;
-  showGrid?: boolean;
-  axisTitleX?: string;
-  axisTitleY?: string;
-  axisLabelRotation?: number;
-  theme?: ChartThemeConfig;
-  markStyle?: ChartMarkStyle;
-  backgroundColor?: string;
-  padding?: Partial<Padding>;
-}
-
 export type TextAlign = 'left' | 'center' | 'right';
 export type VerticalAlign = 'top' | 'middle' | 'bottom';
 
@@ -529,10 +459,15 @@ export interface ChartDataPoint {
   category: string;
   value: number | null;
   measureValues?: Record<string, number | null>;
+  measureKey?: string;
   series?: string;
+  axis?: 'left' | 'right';
   label?: string;
   x?: number | null;
   y?: number | null;
+  source?: string;
+  target?: string;
+  path?: string[];
   raw: Record<string, unknown>;
 }
 
@@ -540,7 +475,6 @@ export interface ChartComponent extends ReportComponent {
   type: 'chart';
   chartType: ChartType;
   binding: ChartBinding;
-  appearance?: ChartAppearance;
   title?: ChartTitleConfig;
   legend?: ChartLegendConfig;
   axes?: ChartAxesConfig;

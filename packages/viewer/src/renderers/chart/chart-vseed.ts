@@ -1,6 +1,6 @@
 import type { RenderChart } from '@report-designer/core';
+import { isPieLike, mapVSeedChartType } from '@report-designer/core';
 import { buildChartDataset, getDimensionField, getMeasureField, getSecondDimensionField, getSecondMeasureField } from './chart-data';
-import { isPieLikeChart, mapVSeedChartType } from './chart-type-capabilities';
 import { resolveChartTheme } from './chart-theme';
 import type { ChartSpecSize } from './chart-spec';
 
@@ -14,7 +14,7 @@ export function buildVSeedInput(chart: RenderChart, size?: ChartSpecSize): Recor
     theme: resolveChartTheme(chart.theme).themeName,
   };
 
-  if (isPieLikeChart(chart.chartType)) {
+  if (isPieLike(chart.chartType)) {
     input.categoryField = xField;
     input.angleField = yField;
   } else if (chart.chartType === 'heatmap') {
@@ -30,7 +30,8 @@ export function buildVSeedInput(chart: RenderChart, size?: ChartSpecSize): Recor
     input.yField = chart.chartType === 'scatter' ? getMeasureField(chart, 'y') : yField;
   }
 
-  if (chart.binding?.seriesField) input.colorField = chart.binding.seriesField;
+  // 多度量图（series:'measureNames'）的系列已展开到 dataset 的 'series' 字段，固定 colorField。
+  if (chart.data.some(point => point.series)) input.colorField = 'series';
   if (chart.labelsConfig?.visible || chart.showLabels) input.label = { enable: true };
   if (size?.width) input.width = size.width;
   if (size?.height) input.height = size.height;

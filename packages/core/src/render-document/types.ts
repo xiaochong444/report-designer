@@ -7,7 +7,6 @@ import type {
   ChartLabelConfig,
   ChartLegendConfig,
   ChartLegendPosition,
-  ChartMarkStyle,
   ChartPlotOptions,
   ChartThemeConfig,
   ChartTitleConfig,
@@ -113,7 +112,6 @@ export interface RenderChart extends RenderComponentBase {
   axesConfig?: ChartAxesConfig;
   labelsConfig?: ChartLabelConfig;
   theme?: ChartThemeConfig;
-  markStyle?: ChartMarkStyle;
   plotOptions?: ChartPlotOptions;
   aggregate: ChartAggregateMode;
   imageDataUrl?: string;

@@ -1,7 +1,7 @@
-import type { ChartMarkStyle, ChartPlotOptions, RenderChart } from '@report-designer/core';
+import type { ChartPlotOptions, RenderChart } from '@report-designer/core';
+import { isBarLike, isLineLike, isPieLike } from '@report-designer/core';
 import { getDimensionField, getMeasureField } from './chart-data';
 import { resolveChartTheme } from './chart-theme';
-import { isBarLikeChart, isLineLikeChart, isPieLikeChart } from './chart-type-capabilities';
 
 export function applyReportChartSpecPatch(spec: Record<string, any>, chart: RenderChart): void {
   applyDimensions(spec, chart);
@@ -245,8 +245,8 @@ function applyPaletteFallback(spec: Record<string, any>, chart: RenderChart): vo
 }
 
 function applyPlotOptions(spec: Record<string, any>, chart: RenderChart): void {
-  const plotOptions = chart.plotOptions ?? convertMarkStyle(chart.markStyle);
-  if (isBarLikeChart(chart.chartType)) {
+  const plotOptions: ChartPlotOptions = chart.plotOptions ?? {};
+  if (isBarLike(chart.chartType)) {
     const bar = plotOptions.bar;
     if (!bar) return;
     if (bar.barWidth != null) spec.barMaxWidth = bar.barWidth;
@@ -259,7 +259,7 @@ function applyPlotOptions(spec: Record<string, any>, chart: RenderChart): void {
     }];
   }
 
-  if (isLineLikeChart(chart.chartType)) {
+  if (isLineLike(chart.chartType)) {
     const line = plotOptions.line;
     const area = plotOptions.area;
     if (line) {
@@ -280,7 +280,7 @@ function applyPlotOptions(spec: Record<string, any>, chart: RenderChart): void {
     }
   }
 
-  if (isPieLikeChart(chart.chartType)) {
+  if (isPieLike(chart.chartType)) {
     const pie = plotOptions.pie;
     if (!pie && chart.chartType !== 'donut') return;
     if (pie?.innerRadius != null) spec.innerRadius = pie.innerRadius;
@@ -307,65 +307,4 @@ function applyPlotOptions(spec: Record<string, any>, chart: RenderChart): void {
     if (plotOptions.funnel.minSize != null) spec.funnelMinSize = plotOptions.funnel.minSize;
     if (plotOptions.funnel.maxSize != null) spec.funnelMaxSize = plotOptions.funnel.maxSize;
   }
-}
-
-function convertMarkStyle(markStyle?: ChartMarkStyle): ChartPlotOptions {
-  if (!markStyle) return {};
-  return {
-    bar: {
-      barWidth: markStyle.barWidth,
-      cornerRadius: markStyle.cornerRadius,
-      fillOpacity: markStyle.fillOpacity,
-      borderColor: markStyle.stroke,
-      borderWidth: markStyle.lineWidth,
-      labelPosition: markStyle.barLabelPosition,
-    },
-    line: {
-      curveType: markStyle.curveType,
-      lineWidth: markStyle.lineWidth,
-      showPoint: markStyle.showPoint,
-      pointSize: markStyle.pointSize,
-      pointShape: markStyle.pointShape,
-      connectNulls: markStyle.connectNulls,
-    },
-    area: {
-      showArea: markStyle.showArea,
-      areaOpacity: markStyle.areaOpacity,
-    },
-    pie: {
-      innerRadius: markStyle.innerRadius,
-      outerRadius: markStyle.outerRadius,
-      startAngle: markStyle.startAngle,
-      padAngle: markStyle.padAngle,
-      roseType: markStyle.roseType,
-    },
-    scatter: {
-      pointSize: markStyle.pointSize,
-      pointShape: markStyle.pointShape,
-      fillOpacity: markStyle.fillOpacity,
-      showTrendLine: markStyle.showTrendLine,
-      trendLineType: markStyle.trendLineType,
-    },
-    radar: {
-      shape: markStyle.radarShape,
-      showArea: markStyle.showRadarArea,
-      areaOpacity: markStyle.radarAreaOpacity,
-      lineWidth: markStyle.lineWidth,
-      showPoint: markStyle.showPoint,
-      pointSize: markStyle.pointSize,
-      axisCount: markStyle.axisCount,
-    },
-    funnel: {
-      direction: markStyle.funnelDirection,
-      shape: markStyle.funnelShape,
-      showConversionRate: markStyle.showConversionRate,
-      gap: markStyle.funnelGap,
-      minSize: markStyle.funnelMinSize,
-      maxSize: markStyle.funnelMaxSize,
-    },
-    dualAxis: {
-      primaryType: markStyle.primaryType,
-      secondaryType: markStyle.secondaryType,
-    },
-  };
 }

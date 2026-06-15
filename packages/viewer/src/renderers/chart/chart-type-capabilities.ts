@@ -1,5 +1,18 @@
 import type { ChartType } from '@report-designer/core';
 
+// 从 core re-export 能力判断与映射函数（单一事实来源）。
+export {
+  isBarLike as isBarLikeChart,
+  isLineLike as isLineLikeChart,
+  isPieLike as isPieLikeChart,
+  isCartesianChart,
+  mapVSeedChartType,
+} from '@report-designer/core';
+
+/**
+ * 字段槽位矩阵。仅保留给 chart-compiler 的字段需求查询使用，
+ * 不再作为图表类型能力的单一事实来源（后者已迁入 core 的 chart-capabilities）。
+ */
 export type ChartFieldKey =
   | 'category'
   | 'dimension'
@@ -24,18 +37,6 @@ export interface ChartTypeCapability {
   stable: boolean;
   fields: Partial<Record<ChartFieldKey, ChartFieldRequirement>>;
 }
-
-export const STABLE_CHART_TYPES: readonly ChartType[] = [
-  'column', 'columnParallel', 'columnPercent',
-  'bar', 'barParallel', 'barPercent',
-  'line', 'area', 'areaPercent',
-  'pie', 'donut', 'rose',
-  'scatter', 'radar', 'funnel', 'dualAxis', 'heatmap',
-];
-
-export const ADVANCED_CHART_TYPES: readonly ChartType[] = [
-  'histogram', 'boxPlot', 'sankey', 'treeMap', 'sunburst', 'circlePacking',
-];
 
 const CATEGORY_VALUE_FIELDS: ChartTypeCapability['fields'] = {
   category: { role: 'dimension', required: true, max: 1 },
@@ -109,25 +110,4 @@ export const CHART_TYPE_CAPABILITIES: Record<ChartType, ChartTypeCapability> = {
 
 export function getChartTypeCapability(type: ChartType): ChartTypeCapability {
   return CHART_TYPE_CAPABILITIES[type] ?? CHART_TYPE_CAPABILITIES.column;
-}
-
-export function isPieLikeChart(type: ChartType): boolean {
-  return type === 'pie' || type === 'donut' || type === 'rose';
-}
-
-export function isBarLikeChart(type: ChartType): boolean {
-  return type === 'column' || type === 'columnParallel' || type === 'columnPercent'
-    || type === 'bar' || type === 'barParallel' || type === 'barPercent';
-}
-
-export function isLineLikeChart(type: ChartType): boolean {
-  return type === 'line' || type === 'area' || type === 'areaPercent';
-}
-
-export function isCartesianChart(type: ChartType): boolean {
-  return !isPieLikeChart(type) && type !== 'funnel' && type !== 'radar';
-}
-
-export function mapVSeedChartType(type: ChartType): string {
-  return STABLE_CHART_TYPES.includes(type) || ADVANCED_CHART_TYPES.includes(type) ? type : 'column';
 }

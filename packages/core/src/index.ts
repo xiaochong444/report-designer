@@ -1,4 +1,5 @@
 export * from './template-model';
+export * from './chart';
 export * from './data-dictionary';
 export * from './band-planner';
 export * from './aggregate-engine';

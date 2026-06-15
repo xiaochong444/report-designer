@@ -1,13 +1,7 @@
 import type {
   Band,
-  ChartAppearance,
-  ChartAxesConfig,
   ChartBinding,
   ChartComponent,
-  ChartLabelConfig,
-  ChartLegendConfig,
-  ChartPlotOptions,
-  ChartTitleConfig,
   DataField,
   DataSource,
   Page,
@@ -21,6 +15,7 @@ import type {
 import { normalizeReportFonts } from '../fonts';
 import { isRepeatOnEveryPageBandType, mapDataField } from './types';
 import { createDefaultPageBorder, createDefaultPageWatermark } from './template';
+import { getChartCapabilities } from '../chart';
 
 export function normalizeTemplate(template: ReportTemplate): ReportTemplate {
   return {
@@ -143,170 +138,57 @@ function normalizeComponent(component: ReportComponent): ReportComponent {
 
   if (component.type === 'chart') {
     const chart = component as ChartComponent;
-    const appearance = normalizeChartAppearance(chart.appearance);
     return {
       ...chart,
       chartType: chart.chartType ?? 'column',
-      binding: normalizeChartBinding(chart.binding),
-      appearance,
-      title: chart.title ?? normalizeChartTitle(appearance),
-      legend: chart.legend ?? normalizeChartLegend(appearance),
-      axes: chart.axes ?? normalizeChartAxes(appearance),
-      labels: chart.labels ?? normalizeChartLabels(appearance),
-      theme: chart.theme ?? appearance.theme ?? { baseTheme: 'light' },
-      plotOptions: chart.plotOptions ?? normalizeChartPlotOptions(appearance.markStyle),
+      binding: normalizeChartBinding(chart.binding, chart.chartType ?? 'column'),
+      title: chart.title,
+      legend: chart.legend,
+      axes: chart.axes,
+      labels: chart.labels,
+      theme: chart.theme ?? { baseTheme: 'light' },
+      plotOptions: chart.plotOptions,
     } as ChartComponent;
   }
 
   return { ...component };
 }
 
-function normalizeChartBinding(binding: ChartBinding | undefined): ChartBinding {
+function normalizeChartBinding(binding: ChartBinding | undefined, chartType: ChartComponent['chartType']): ChartBinding {
+  const caps = getChartCapabilities(chartType);
+  const dimensions = binding?.dimensions ?? [];
+  const measures = binding?.measures ?? [];
+
+  // 维度裁剪：single 保留 1 个，dual 保留 2 个，hierarchical 保留全部有序维度
+  const trimmedDimensions = caps.dimensions === 'hierarchical'
+    ? dimensions
+    : caps.dimensions === 'dual'
+      ? dimensions.slice(0, 2)
+      : dimensions.slice(0, 1);
+
+  // 度量裁剪：single 保留 1 个，multi 保留 1-N 个，dualAxis 至少补齐 left/right
+  let trimmedMeasures = measures;
+  if (caps.measures === 'single') {
+    trimmedMeasures = measures.slice(0, 1);
+  } else if (caps.measures === 'dualAxis') {
+    trimmedMeasures = measures.slice(0, 2);
+    if (trimmedMeasures.length < 2) {
+      const first = trimmedMeasures[0];
+      if (first) {
+        trimmedMeasures = [first, { ...first, axis: 'right' }];
+      }
+    }
+    // 保证一个 left 一个 right
+    if (trimmedMeasures[0] && !trimmedMeasures[0].axis) trimmedMeasures[0] = { ...trimmedMeasures[0], axis: 'left' };
+    if (trimmedMeasures[1] && !trimmedMeasures[1].axis) trimmedMeasures[1] = { ...trimmedMeasures[1], axis: 'right' };
+  }
+
   return {
     dataSourceId: binding?.dataSourceId,
     arrayPath: binding?.arrayPath,
-    dimensions: binding?.dimensions ?? [],
-    measures: binding?.measures ?? [],
-    seriesField: binding?.seriesField,
-    labelField: binding?.labelField,
-    aggregate: binding?.aggregate ?? 'none',
+    dimensions: trimmedDimensions,
+    measures: trimmedMeasures,
     sort: binding?.sort ?? [],
     filterExpression: binding?.filterExpression,
-  };
-}
-
-function normalizeChartAppearance(appearance: ChartAppearance | undefined): ChartAppearance {
-  return {
-    title: appearance?.title ?? '',
-    subtitle: appearance?.subtitle ?? '',
-    showLegend: appearance?.showLegend ?? true,
-    legendPosition: appearance?.legendPosition ?? 'bottom',
-    showLabels: appearance?.showLabels ?? false,
-    labelType: appearance?.labelType ?? 'name',
-    showAxes: appearance?.showAxes ?? true,
-    showGrid: appearance?.showGrid ?? true,
-    axisTitleX: appearance?.axisTitleX ?? '',
-    axisTitleY: appearance?.axisTitleY ?? '',
-    axisLabelRotation: appearance?.axisLabelRotation,
-    theme: appearance?.theme ?? { baseTheme: 'light' },
-    markStyle: appearance?.markStyle,
-    backgroundColor: appearance?.backgroundColor,
-    padding: appearance?.padding,
-  };
-}
-
-function normalizeChartTitle(appearance: ChartAppearance): ChartTitleConfig {
-  return {
-    visible: Boolean(appearance.title || appearance.subtitle),
-    text: appearance.title,
-    subtitle: appearance.subtitle,
-    color: appearance.theme?.titleColor,
-    subtitleColor: appearance.theme?.subtitleColor,
-    font: appearance.theme?.fontFamily ? { family: appearance.theme.fontFamily } : undefined,
-  };
-}
-
-function normalizeChartLegend(appearance: ChartAppearance): ChartLegendConfig {
-  return {
-    visible: appearance.showLegend ?? true,
-    position: appearance.legendPosition ?? 'bottom',
-    color: appearance.theme?.legendLabelColor,
-    font: appearance.theme?.fontFamily ? { family: appearance.theme.fontFamily } : undefined,
-  };
-}
-
-function normalizeChartAxes(appearance: ChartAppearance): ChartAxesConfig {
-  const visible = appearance.showAxes ?? true;
-  const gridVisible = appearance.showGrid ?? true;
-  return {
-    x: {
-      visible,
-      title: appearance.axisTitleX ?? '',
-      labelRotate: appearance.axisLabelRotation,
-      labelColor: appearance.theme?.axisLabelColor,
-      titleColor: appearance.theme?.axisTitleColor,
-      lineColor: appearance.theme?.axisLineColor,
-      gridVisible,
-      gridColor: appearance.theme?.axisGridColor ?? appearance.theme?.gridColor,
-    },
-    y: {
-      visible,
-      title: appearance.axisTitleY ?? '',
-      labelColor: appearance.theme?.axisLabelColor,
-      titleColor: appearance.theme?.axisTitleColor,
-      lineColor: appearance.theme?.axisLineColor,
-      gridVisible,
-      gridColor: appearance.theme?.axisGridColor ?? appearance.theme?.gridColor,
-    },
-  };
-}
-
-function normalizeChartLabels(appearance: ChartAppearance): ChartLabelConfig {
-  return {
-    visible: appearance.showLabels ?? false,
-    content: appearance.labelType ?? 'name',
-    color: appearance.theme?.labelColor,
-    font: appearance.theme?.fontFamily ? { family: appearance.theme.fontFamily } : undefined,
-  };
-}
-
-function normalizeChartPlotOptions(markStyle: ChartAppearance['markStyle']): ChartPlotOptions {
-  if (!markStyle) return {};
-  return {
-    bar: {
-      barWidth: markStyle.barWidth,
-      cornerRadius: markStyle.cornerRadius,
-      fillOpacity: markStyle.fillOpacity,
-      borderColor: markStyle.stroke,
-      borderWidth: markStyle.lineWidth,
-      labelPosition: markStyle.barLabelPosition,
-    },
-    line: {
-      curveType: markStyle.curveType,
-      lineWidth: markStyle.lineWidth,
-      showPoint: markStyle.showPoint,
-      pointSize: markStyle.pointSize,
-      pointShape: markStyle.pointShape,
-      connectNulls: markStyle.connectNulls,
-    },
-    area: {
-      showArea: markStyle.showArea,
-      areaOpacity: markStyle.areaOpacity,
-    },
-    pie: {
-      innerRadius: markStyle.innerRadius,
-      outerRadius: markStyle.outerRadius,
-      startAngle: markStyle.startAngle,
-      padAngle: markStyle.padAngle,
-      roseType: markStyle.roseType,
-    },
-    scatter: {
-      pointSize: markStyle.pointSize,
-      pointShape: markStyle.pointShape,
-      fillOpacity: markStyle.fillOpacity,
-      showTrendLine: markStyle.showTrendLine,
-      trendLineType: markStyle.trendLineType,
-    },
-    radar: {
-      shape: markStyle.radarShape,
-      showArea: markStyle.showRadarArea,
-      areaOpacity: markStyle.radarAreaOpacity,
-      lineWidth: markStyle.lineWidth,
-      showPoint: markStyle.showPoint,
-      pointSize: markStyle.pointSize,
-      axisCount: markStyle.axisCount,
-    },
-    funnel: {
-      direction: markStyle.funnelDirection,
-      shape: markStyle.funnelShape,
-      showConversionRate: markStyle.showConversionRate,
-      gap: markStyle.funnelGap,
-      minSize: markStyle.funnelMinSize,
-      maxSize: markStyle.funnelMaxSize,
-    },
-    dualAxis: {
-      primaryType: markStyle.primaryType,
-      secondaryType: markStyle.secondaryType,
-    },
   };
 }

@@ -1,12 +1,16 @@
 import type { RenderChart } from '@report-designer/core';
 
+/**
+ * 将 RenderChart.data 映射为 VSeed 所需的 dataset 行。
+ * 数据已在 layout-band 的 buildChartData 中按能力矩阵 reshape（含 series/measureKey/axis/source/target/path），
+ * 这里只做字段名归一化，不再读 seriesField（已删除）。
+ */
 export function buildChartDataset(chart: RenderChart): Record<string, unknown>[] {
-  const xField = chart.chartType === 'scatter' ? getDimensionField(chart, 'x') : getDimensionField(chart, 'category');
-  const yField = chart.chartType === 'scatter' ? getMeasureField(chart, 'y') : getMeasureField(chart, 'value');
+  const xField = getDimensionField(chart, 'category');
+  const yField = getMeasureField(chart, 'value');
   const secondDimensionField = getSecondDimensionField(chart, 'series');
   const secondMeasureField = getSecondMeasureField(chart, 'value2');
-  const explicitSeriesField = chart.binding?.seriesField;
-  const seriesField = explicitSeriesField || 'series';
+  const seriesField = 'series';
 
   return chart.data.map(point => {
     const row: Record<string, unknown> = {};
@@ -18,7 +22,7 @@ export function buildChartDataset(chart: RenderChart): Record<string, unknown>[]
     if (chart.chartType === 'dualAxis') {
       row[secondMeasureField] = readMeasureField(point, secondMeasureField, undefined);
     }
-    if (point.series && (explicitSeriesField || chart.chartType !== 'heatmap')) row[seriesField] = point.series;
+    if (point.series && chart.chartType !== 'heatmap') row[seriesField] = point.series;
     return row;
   });
 }
