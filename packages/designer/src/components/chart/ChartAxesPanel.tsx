@@ -58,6 +58,9 @@ export const ChartAxesPanel: React.FC<{
       <Form.Item label={ui.xGridColor}>
         <ColorPicker aria-label={ui.xGridColor} size="small" value={x.gridColor ?? DEFAULT_AXIS_GRID_COLOR} onChange={color => updateX({ gridColor: color.toHexString() })} disabled={false} />
       </Form.Item>
+      <Form.Item label={t('chartAxisLabelRotation')}>
+        <InputNumber aria-label={t('chartAxisLabelRotation')} value={x.labelRotate ?? 0} min={-90} max={90} size="small" style={{ width: '100%' }} onChange={rotate => updateX({ labelRotate: rotate ?? 0 })} disabled={false} />
+      </Form.Item>
       <Form.Item label={ui.yAxisVisible}>
         <Switch aria-label={ui.yAxisVisible} size="small" checked={y.visible} onChange={checked => updateY({ visible: checked })} disabled={false} />
       </Form.Item>
@@ -82,6 +85,22 @@ export const ChartAxesPanel: React.FC<{
       <Form.Item label={ui.yGridColor}>
         <ColorPicker aria-label={ui.yGridColor} size="small" value={y.gridColor ?? DEFAULT_AXIS_GRID_COLOR} onChange={color => updateY({ gridColor: color.toHexString() })} disabled={false} />
       </Form.Item>
+      <Form.Item label="min">
+        <InputNumber aria-label="Y axis min" value={y.min ?? undefined} size="small" style={{ width: '100%' }} placeholder="min" onChange={min => updateY({ min: min ?? undefined })} disabled={false} />
+      </Form.Item>
+      <Form.Item label="max">
+        <InputNumber aria-label="Y axis max" value={y.max ?? undefined} size="small" style={{ width: '100%' }} placeholder="max" onChange={max => updateY({ max: max ?? undefined })} disabled={false} />
+      </Form.Item>
+      {showRightY ? (
+        <>
+          <Form.Item label={t('chartAxisTitleY')}>
+            <Input aria-label={`${t('chartAxisTitleY')} right`} value={value.rightY?.title ?? ''} onChange={event => onChange({ ...value, rightY: { ...DEFAULT_AXIS, ...value.rightY, title: event.target.value } })} size="small" disabled={false} />
+          </Form.Item>
+          <Form.Item label={ui.yAxisVisible}>
+            <Switch aria-label={`${ui.yAxisVisible} right`} size="small" checked={value.rightY?.visible ?? true} onChange={checked => onChange({ ...value, rightY: { ...DEFAULT_AXIS, ...value.rightY, visible: checked } })} disabled={false} />
+          </Form.Item>
+        </>
+      ) : null}
     </Form>
   );
 });

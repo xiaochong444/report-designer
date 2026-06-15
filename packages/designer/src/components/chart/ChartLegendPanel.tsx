@@ -15,14 +15,23 @@ export const ChartLegendPanel: React.FC<{
   reportFontOptions: ReportFontOption[];
   onChange: (value: ChartLegendConfig) => void;
   t: ChartPanelT;
-}> = React.memo(({ onChange, reportFontOptions, t, value }) => {
+}> = React.memo(({ capabilities, onChange, reportFontOptions, t, value }) => {
   const ui = React.useMemo(() => chartUiText(t), [t]);
+  const isContinuous = capabilities.legend === 'continuous';
   const update = React.useCallback((updates: Partial<ChartLegendConfig>) => onChange({ ...value, ...updates }), [onChange, value]);
   const updateFont = React.useCallback((next: ChartLegendConfig['font']) => update({ font: next }), [update]);
   const positionOptions = React.useMemo(() => ['top', 'right', 'bottom', 'left'].map(position => ({
     value: position,
     label: t(position),
   })), [t]);
+  const markerShapeOptions = React.useMemo(() => (['circle', 'square', 'rect', 'line', 'diamond'] as const).map(shape => ({
+    value: shape,
+    label: shape,
+  })), []);
+  const layoutOptions = React.useMemo(() => (['horizontal', 'vertical'] as const).map(layout => ({
+    value: layout,
+    label: layout,
+  })), []);
 
   const fontLabels = React.useMemo(() => ({
     fontFamily: t('fontFamily'),
@@ -49,6 +58,38 @@ export const ChartLegendPanel: React.FC<{
           options={positionOptions}
         />
       </Form.Item>
+      {isContinuous ? (
+        <Form.Item label={t('chartPalette')}>
+          <Select
+            aria-label={t('chartPalette')}
+            size="small"
+            value={value.layout ?? 'vertical'}
+            onChange={(layout: 'horizontal' | 'vertical') => update({ layout })}
+            options={layoutOptions}
+          />
+        </Form.Item>
+      ) : (
+        <>
+          <Form.Item label={t('chartLegendPosition')}>
+            <Select
+              aria-label="legend marker shape"
+              size="small"
+              value={value.markerShape ?? 'square'}
+              onChange={(markerShape: NonNullable<ChartLegendConfig['markerShape']>) => update({ markerShape })}
+              options={markerShapeOptions}
+            />
+          </Form.Item>
+          <Form.Item label={t('chartLegendPosition')}>
+            <Select
+              aria-label="legend layout"
+              size="small"
+              value={value.layout ?? 'horizontal'}
+              onChange={(layout: 'horizontal' | 'vertical') => update({ layout })}
+              options={layoutOptions}
+            />
+          </Form.Item>
+        </>
+      )}
       <FontEditor
         value={{ ...DEFAULT_LEGEND_FONT, ...value.font, color: value.color ?? value.font?.color }}
         onChange={next => updateFont({ ...next, color: next.color })}

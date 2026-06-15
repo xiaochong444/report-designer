@@ -58,6 +58,27 @@ export const ChartLabelPanel: React.FC<{
           options={labelOptions}
         />
       </Form.Item>
+      <Form.Item label={t('chartLabelType')}>
+        <Select
+          aria-label="label position"
+          size="small"
+          value={value.position ?? 'auto'}
+          onChange={(position: NonNullable<ChartLabelConfig['position']>) => update({ position })}
+          options={['auto', 'inside', 'outside', 'top', 'bottom', 'left', 'right', 'spider'].map(p => ({ value: p, label: p }))}
+        />
+      </Form.Item>
+      <Form.Item label={t('chartShowLabels')}>
+        <Switch aria-label="label leader line" size="small" checked={value.showLeaderLine ?? false} onChange={showLeaderLine => update({ showLeaderLine })} />
+      </Form.Item>
+      <Form.Item label={t('chartLabelType')}>
+        <Select
+          aria-label="label overlap strategy"
+          size="small"
+          value={value.overlapStrategy ?? 'none'}
+          onChange={(overlapStrategy: NonNullable<ChartLabelConfig['overlapStrategy']>) => update({ overlapStrategy })}
+          options={['hide', 'shift', 'none'].map(s => ({ value: s, label: s }))}
+        />
+      </Form.Item>
       <FontEditor
         value={{ ...DEFAULT_LABEL_FONT, ...value.font, color: value.color ?? value.font?.color }}
         onChange={next => updateFont({ ...next, color: next.color })}
