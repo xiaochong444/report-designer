@@ -1,5 +1,5 @@
 import React from 'react';
-import { Form, Select, Switch } from 'antd';
+import { Form, InputNumber, Select, Switch } from 'antd';
 import type { ChartCapabilities, ChartLegendConfig, ChartType, ReportFontOption } from '@report-designer/core';
 import { chartUiText, type ChartPanelT } from './chart-options';
 import { FontEditor } from '../properties/FontEditor';
@@ -24,33 +24,44 @@ export const ChartLegendPanel: React.FC<{
     value: position,
     label: t(position),
   })), [t]);
-  const markerShapeOptions = React.useMemo(() => (['circle', 'square', 'rect', 'line', 'diamond'] as const).map(shape => ({
-    value: shape,
-    label: shape,
-  })), []);
-  const layoutOptions = React.useMemo(() => (['horizontal', 'vertical'] as const).map(layout => ({
-    value: layout,
-    label: layout,
-  })), []);
+  const markerShapeOptions = React.useMemo(() => {
+    const isEn = t('chartType') === 'Chart type';
+    const labels: Record<string, string> = isEn
+      ? { circle: 'Circle', square: 'Square', rect: 'Rectangle', line: 'Line', diamond: 'Diamond' }
+      : { circle: '圆形', square: '方形', rect: '矩形', line: '线条', diamond: '菱形' };
+    return (['circle', 'square', 'rect', 'line', 'diamond'] as const).map(shape => ({ value: shape, label: labels[shape] }));
+  }, [t]);
+  const layoutOptions = React.useMemo(() => {
+    const isEn = t('chartType') === 'Chart type';
+    return (['horizontal', 'vertical'] as const).map(layout => ({
+      value: layout,
+      label: isEn ? (layout === 'horizontal' ? 'Horizontal' : 'Vertical') : (layout === 'horizontal' ? '水平' : '垂直'),
+    }));
+  }, [t]);
 
   const fontLabels = React.useMemo(() => ({
     fontFamily: t('fontFamily'),
-    fontSize: ui.legendFontSize,
-    textColor: ui.legendColor,
+    fontSize: ui.sizeShort,
+    textColor: ui.colorShort,
     bold: t('bold'),
     italic: t('italic'),
     underline: t('underline'),
     strike: t('strike'),
   }), [t, ui]);
+  const fontAriaLabels = React.useMemo(() => ({
+    ...fontLabels,
+    fontSize: ui.legendFontSize,
+    textColor: ui.legendColor,
+  }), [fontLabels, ui]);
 
   return (
     <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL}>
       <Form.Item label={ui.visible}>
         <Switch aria-label={ui.legendVisible} size="small" checked={value.visible} onChange={checked => update({ visible: checked })} />
       </Form.Item>
-      <Form.Item label={t('chartLegendPosition')}>
+      <Form.Item label={ui.legendPositionShort}>
         <Select
-          aria-label={t('chartLegendPosition')}
+          aria-label={ui.legendPositionShort}
           value={value.position}
           onChange={position => update({ position })}
           size="small"
@@ -59,9 +70,9 @@ export const ChartLegendPanel: React.FC<{
         />
       </Form.Item>
       {isContinuous ? (
-        <Form.Item label={t('chartPalette')}>
+        <Form.Item label={ui.legendLayout}>
           <Select
-            aria-label={t('chartPalette')}
+            aria-label={ui.legendLayout}
             size="small"
             value={value.layout ?? 'vertical'}
             onChange={(layout: 'horizontal' | 'vertical') => update({ layout })}
@@ -70,18 +81,18 @@ export const ChartLegendPanel: React.FC<{
         </Form.Item>
       ) : (
         <>
-          <Form.Item label={t('chartLegendPosition')}>
+          <Form.Item label={ui.legendMarkerShape}>
             <Select
-              aria-label="legend marker shape"
+              aria-label={ui.legendMarkerShape}
               size="small"
               value={value.markerShape ?? 'square'}
               onChange={(markerShape: NonNullable<ChartLegendConfig['markerShape']>) => update({ markerShape })}
               options={markerShapeOptions}
             />
           </Form.Item>
-          <Form.Item label={t('chartLegendPosition')}>
+          <Form.Item label={ui.legendLayout}>
             <Select
-              aria-label="legend layout"
+              aria-label={ui.legendLayout}
               size="small"
               value={value.layout ?? 'horizontal'}
               onChange={(layout: 'horizontal' | 'vertical') => update({ layout })}
@@ -90,6 +101,28 @@ export const ChartLegendPanel: React.FC<{
           </Form.Item>
         </>
       )}
+      <Form.Item label={ui.legendMaxRows}>
+        <InputNumber
+          aria-label={ui.legendMaxRows}
+          size="small"
+          value={value.maxRows}
+          min={1}
+          max={20}
+          style={{ width: '100%' }}
+          onChange={maxRows => update({ maxRows: maxRows ?? undefined })}
+        />
+      </Form.Item>
+      <Form.Item label={ui.legendMaxColumns}>
+        <InputNumber
+          aria-label={ui.legendMaxColumns}
+          size="small"
+          value={value.maxColumns}
+          min={1}
+          max={20}
+          style={{ width: '100%' }}
+          onChange={maxColumns => update({ maxColumns: maxColumns ?? undefined })}
+        />
+      </Form.Item>
       <FontEditor
         value={{ ...DEFAULT_LEGEND_FONT, ...value.font, color: value.color ?? value.font?.color }}
         onChange={next => updateFont({ ...next, color: next.color })}
@@ -97,6 +130,7 @@ export const ChartLegendPanel: React.FC<{
         fields={['size', 'color']}
         sizeRange={[6, 48]}
         labels={fontLabels}
+        ariaLabels={fontAriaLabels}
       />
     </Form>
   );

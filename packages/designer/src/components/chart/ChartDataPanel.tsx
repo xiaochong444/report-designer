@@ -111,15 +111,6 @@ export const ChartDataPanel: React.FC<{
           virtual={false}
         />
       </Form.Item>
-      <Form.Item label={t('chartArrayPath')} tooltip={t('chartArrayPathTooltip')}>
-        <Input
-          aria-label={t('chartArrayPath')}
-          value={binding.arrayPath ?? ''}
-          onChange={event => update({ arrayPath: event.target.value })}
-          size="small"
-          placeholder={t('chartArrayPathPlaceholder')}
-        />
-      </Form.Item>
 
       {/* 维度槽：single 1 个；dual 2 个（X/Y）；hierarchical 可增删的有序列表 */}
       <Form.Item label={dimensionLabel}>
