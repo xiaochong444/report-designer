@@ -1,6 +1,6 @@
 import React from 'react';
 import { ColorPicker, Form, Input, InputNumber, Switch } from 'antd';
-import type { ChartAxesConfig, ChartCapabilities, ChartType } from '@report-designer/core';
+import type { ChartAxesConfig, ChartCapabilities, ChartType, ReportFontOption } from '@report-designer/core';
 import { chartUiText, type ChartPanelT } from './chart-options';
 
 const FORM_LABEL_COL = { span: 8 };
@@ -16,9 +16,10 @@ export const ChartAxesPanel: React.FC<{
   chartType: ChartType;
   capabilities: ChartCapabilities;
   value: ChartAxesConfig;
+  reportFontOptions: ReportFontOption[];
   onChange: (value: ChartAxesConfig) => void;
   t: ChartPanelT;
-}> = React.memo(({ chartType, capabilities, onChange, t, value }) => {
+}> = React.memo(({ capabilities, onChange, t, value }) => {
   const ui = React.useMemo(() => chartUiText(t), [t]);
   const isRadial = capabilities.axes === 'radial';
   const showRightY = capabilities.axes === 'rightY';

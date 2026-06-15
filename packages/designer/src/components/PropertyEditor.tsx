@@ -25,6 +25,7 @@ import { EventEditorDialog, type EventTreeItem } from './events/EventEditorDialo
 import { buildEventEditorDataContext } from './events/event-editor-utils';
 import type { ExpressionCatalogExtensions } from '../expression/expression-catalog';
 import { BorderEditor, PaddingEditor } from './properties/BoxStyleEditors';
+import { FontEditor } from './properties/FontEditor';
 import { BARCODE_FORMATS, QR_CODE_FORMATS } from '@report-designer/viewer';
 import { isComponentNameAvailable, normalizeComponentName } from '../report-structure';
 import { createArrayPathOptions } from '../data-source-paths';
@@ -481,6 +482,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
             chart: comp as ChartComponent,
             dataSourceOptions,
             dataSourceDefinitions: template.dataSources,
+            reportFontOptions,
             onChange: handleChange,
             onChangeMany: handleChangeMany,
             t,
@@ -491,91 +493,22 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
             key: 'font',
             label: t('font'),
             children: (
-              <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-                <Form.Item label={t('fontFamily')}>
-                  <Select
-                    aria-label={t('fontFamily')}
-                    value={font.family || ''}
-                    onChange={(v) => handleFontField('family', v)}
-                    size="small"
-                    disabled={isTextStyleLocked('font.family')}
-                    style={{ width: '100%' }}
-                    showSearch
-                    allowClear
-                    options={[
-                      ...reportFontOptions.map(fontOption => ({
-                        value: fontOption.value,
-                        label: <span style={{ fontFamily: fontOption.fontFamily }}>{fontOption.label}</span>,
-                      })),
-                    ]}
-                  />
-                </Form.Item>
-                <Form.Item label={t('fontSize')}>
-                  <InputNumber
-                    aria-label={t('fontSize')}
-                    value={font.size}
-                    onChange={(v) => handleFontField('size', v)}
-                    size="small"
-                    disabled={isTextStyleLocked('font.size')}
-                    style={{ width: '100%' }}
-                    min={6}
-                    max={72}
-                  />
-                </Form.Item>
-                <Form.Item label={t('textColor')}>
-                  <ColorPicker
-                    aria-label={t('textColor')}
-                    size="small"
-                    value={font.color || '#000000'}
-                    onChange={(color) => handleFontField('color', color.toHexString())}
-                    disabled={isTextStyleLocked('font.color')}
-                  />
-                </Form.Item>
-                <Form.Item>
-                  <Space>
-                    <Button
-                      aria-label={t('bold')}
-                      title={t('bold')}
-                      icon={<BoldOutlined />}
-                      size="small"
-                      type={font.bold ? 'primary' : 'default'}
-                      style={{ minWidth: 32 }}
-                      onClick={() => handleFontField('bold', !font.bold)}
-                      disabled={isTextStyleLocked('font.bold')}
-                    />
-                    <Button
-                      aria-label={t('italic')}
-                      title={t('italic')}
-                      icon={<ItalicOutlined />}
-                      size="small"
-                      type={font.italic ? 'primary' : 'default'}
-                      style={{ minWidth: 32 }}
-                      onClick={() => handleFontField('italic', !font.italic)}
-                      disabled={isTextStyleLocked('font.italic')}
-                    />
-                    <Button
-                      aria-label={t('underline')}
-                      title={t('underline')}
-                      icon={<UnderlineOutlined />}
-                      size="small"
-                      type={font.underline ? 'primary' : 'default'}
-                      style={{ minWidth: 32 }}
-                      onClick={() => handleFontField('underline', !font.underline)}
-                      disabled={isTextStyleLocked('font.underline')}
-                    />
-                    <Button
-                      aria-label={t('strike')}
-                      title={t('strike')}
-                      icon={<StrikethroughOutlined />}
-                      size="small"
-                      type={font.strikethrough ? 'primary' : 'default'}
-                      style={{ minWidth: 32 }}
-                      onClick={() => handleFontField('strikethrough', !font.strikethrough)}
-                      disabled={isTextStyleLocked('font.strikethrough')}
-                    />
-                  </Space>
-                </Form.Item>
-              </Form>
+              <FontEditor
+                value={font}
+                onChange={(next) => handleChange('font', next)}
+                reportFontOptions={reportFontOptions}
+                sizeRange={[6, 72]}
+                disabled={(field) => isTextStyleLocked(`font.${field}`)}
+                labels={{
+                  fontFamily: t('fontFamily'),
+                  fontSize: t('fontSize'),
+                  textColor: t('textColor'),
+                  bold: t('bold'),
+                  italic: t('italic'),
+                  underline: t('underline'),
+                  strike: t('strike'),
+                }}
+              />
             ),
           } : null,
 

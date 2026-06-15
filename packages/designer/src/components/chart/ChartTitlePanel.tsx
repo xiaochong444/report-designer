@@ -1,23 +1,32 @@
 import React from 'react';
-import { ColorPicker, Form, Input, InputNumber, Switch } from 'antd';
-import type { ChartTitleConfig } from '@report-designer/core';
+import { Form, Input, Switch } from 'antd';
+import type { ChartTitleConfig, ReportFontOption } from '@report-designer/core';
 import { chartUiText, type ChartPanelT } from './chart-options';
+import { FontEditor } from '../properties/FontEditor';
 
 const FORM_LABEL_COL = { span: 8 };
 const FORM_WRAPPER_COL = { span: 16 };
-const DEFAULT_TITLE_COLOR = '#111827';
-const DEFAULT_TITLE_FONT_SIZE = 14;
+const DEFAULT_TITLE_FONT: ChartTitleConfig['font'] = { size: 14, color: '#111827' };
 
 export const ChartTitlePanel: React.FC<{
   value: ChartTitleConfig;
+  reportFontOptions: ReportFontOption[];
   onChange: (value: ChartTitleConfig) => void;
   t: ChartPanelT;
-}> = React.memo(({ onChange, t, value }) => {
+}> = React.memo(({ onChange, reportFontOptions, t, value }) => {
   const ui = React.useMemo(() => chartUiText(t), [t]);
   const update = React.useCallback((updates: Partial<ChartTitleConfig>) => onChange({ ...value, ...updates }), [onChange, value]);
-  const updateFont = React.useCallback((updates: Partial<NonNullable<ChartTitleConfig['font']>>) => {
-    update({ font: { ...(value.font ?? {}), ...updates } });
-  }, [update, value.font]);
+  const updateFont = React.useCallback((next: ChartTitleConfig['font']) => update({ font: next }), [update]);
+
+  const fontLabels = React.useMemo(() => ({
+    fontFamily: t('fontFamily'),
+    fontSize: ui.titleFontSize,
+    textColor: ui.titleColor,
+    bold: t('bold'),
+    italic: t('italic'),
+    underline: t('underline'),
+    strike: t('strike'),
+  }), [t, ui]);
 
   return (
     <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL}>
@@ -31,19 +40,15 @@ export const ChartTitlePanel: React.FC<{
         <Input aria-label={t('chartSubtitle')} value={value.subtitle ?? ''} onChange={event => update({ subtitle: event.target.value })} size="small" />
       </Form.Item>
       <Form.Item label={ui.titleColor}>
-        <ColorPicker aria-label={ui.titleColor} size="small" value={value.color ?? value.font?.color ?? DEFAULT_TITLE_COLOR} onChange={color => update({ color: color.toHexString() })} />
+        <Input aria-label={ui.titleColor} value={value.subtitleColor ?? value.color ?? ''} onChange={event => update({ subtitleColor: event.target.value, color: event.target.value })} size="small" />
       </Form.Item>
-      <Form.Item label={ui.titleFontSize}>
-        <InputNumber
-          aria-label={ui.titleFontSize}
-          value={value.font?.size ?? DEFAULT_TITLE_FONT_SIZE}
-          onChange={size => updateFont({ size: size ?? DEFAULT_TITLE_FONT_SIZE })}
-          size="small"
-          min={6}
-          max={72}
-          style={{ width: '100%' }}
-        />
-      </Form.Item>
+      <FontEditor
+        value={{ ...DEFAULT_TITLE_FONT, ...value.font }}
+        onChange={updateFont}
+        reportFontOptions={reportFontOptions}
+        sizeRange={[6, 72]}
+        labels={fontLabels}
+      />
     </Form>
   );
 });

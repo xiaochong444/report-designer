@@ -1,7 +1,7 @@
 import React from 'react';
 import type { CollapseProps } from 'antd';
 import { Form, Input, Select } from 'antd';
-import type { ChartComponent, DataSource } from '@report-designer/core';
+import type { ChartComponent, DataSource, ReportFontOption } from '@report-designer/core';
 import { getChartCapabilities } from '@report-designer/core';
 import { ChartAxesPanel } from './ChartAxesPanel';
 import { ChartDataPanel } from './ChartDataPanel';
@@ -29,6 +29,7 @@ export interface BuildChartPropertyItemsArgs {
   chart: ChartComponent;
   dataSourceOptions: Array<{ value: string; label: string }>;
   dataSourceDefinitions: DataSource[];
+  reportFontOptions: ReportFontOption[];
   onChange: (field: string, value: any) => void;
   onChangeMany: (updates: Partial<ChartComponent>) => void;
   t: ChartPanelT;
@@ -47,6 +48,7 @@ export function buildChartPropertyItems({
   chart,
   dataSourceDefinitions,
   dataSourceOptions,
+  reportFontOptions,
   onChange,
   onChangeMany,
   t,
@@ -102,7 +104,7 @@ export function buildChartPropertyItems({
     {
       key: 'chartTitle',
       label: ui.title,
-      children: <ChartTitlePanel value={titleValue} onChange={updateTitle} t={t} />,
+      children: <ChartTitlePanel value={titleValue} reportFontOptions={reportFontOptions} onChange={updateTitle} t={t} />,
     },
     {
       key: 'chartTheme',
@@ -115,21 +117,21 @@ export function buildChartPropertyItems({
     items.push({
       key: 'chartAxes',
       label: ui.axes,
-      children: <ChartAxesPanel chartType={chart.chartType} capabilities={caps} value={axesValue} onChange={updateAxes} t={t} />,
+      children: <ChartAxesPanel chartType={chart.chartType} capabilities={caps} value={axesValue} reportFontOptions={reportFontOptions} onChange={updateAxes} t={t} />,
     });
   }
   if (caps.legend !== false) {
     items.push({
       key: 'chartLegend',
       label: ui.legend,
-      children: <ChartLegendPanel chartType={chart.chartType} capabilities={caps} value={legendValue} onChange={updateLegend} t={t} />,
+      children: <ChartLegendPanel chartType={chart.chartType} capabilities={caps} value={legendValue} reportFontOptions={reportFontOptions} onChange={updateLegend} t={t} />,
     });
   }
   if (caps.labelContent.length > 0) {
     items.push({
       key: 'chartLabels',
       label: ui.labels,
-      children: <ChartLabelPanel chartType={chart.chartType} capabilities={caps} value={labelsValue} onChange={updateLabels} t={t} />,
+      children: <ChartLabelPanel chartType={chart.chartType} capabilities={caps} value={labelsValue} reportFontOptions={reportFontOptions} onChange={updateLabels} t={t} />,
     });
   }
   if (caps.styleOptions.length > 0) {
