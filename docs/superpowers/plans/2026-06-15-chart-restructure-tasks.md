@@ -103,25 +103,34 @@
 
 - [x] **T34** 三端 tsc 编译通过（core/viewer/designer，含测试）。✅
 - [~] **T35** 测试：core 全绿（324 通过）；**designer/viewer 的 .tsx 测试因预存 `React.act is not a function` 环境问题（@testing-library/react 与 React 19 的 act 导入不兼容）全部失败——非本次重构引入，phase-22/32 等非图表测试同样失败**。修复需升级 @testing-library/react 或调整 test setup，属独立环境任务。
-- [x] **T36** 已提交 3 个检查点（616458d 规格、7cc6e7c core+viewer 归一、72a682e designer 面板重组）。✅
+- [x] **T36** 已提交多个检查点（616458d 规格、7cc6e7c core+viewer 归一、72a682e designer 面板重组、71be976 FontEditor 接入图表+text 字体组）。✅
 
 ## 剩余任务（后续代理接手）
 
+> 更新于 commit 71be976 之后。已完成项见上方各阶段 ✅。此处仅列尚未完成的工作。
+
 ### 优先级高
 
-1. **修复 React.act 环境问题**：designer/viewer 的所有 .tsx 测试因 `React.act is not a function` 失败。根因是 @testing-library/react 在 React 19 下需要从 `react` 而非 `react-dom/test-utils` 导入 act。修复方案：升级 @testing-library/react 到兼容 React 19 的版本，或在 test setup 里 polyfill。修复后需重跑 designer/viewer 图表测试确认逻辑断言正确。
+1. **修复 React.act 环境问题**：designer/viewer 的所有 .tsx 测试因 `React.act is not a function` 失败。根因是 @testing-library/react 在 React 19 下需要从 `react` 而非 `react-dom/test-utils` 导入 act。修复方案：升级 @testing-library/react 到兼容 React 19 的版本，或在 test setup 里 polyfill。修复后需重跑 designer/viewer 图表测试确认逻辑断言正确（注意：core 图表测试已全绿）。
 
 ### 优先级中（功能补齐）
 
-2. **子面板字段补齐**（规格第 4 章，本轮只做了 props 接入与 DataPanel 完整重写）：
-   - ChartAxesPanel：补 min/max/format/labelRotate 字段、rightY 渲染分支、radial 分支；字体接 FontEditor
-   - ChartLegendPanel：continuous（heatmap 色带）分支、补 markerShape/layout/maxRows/maxColumns；字体接 FontEditor
-   - ChartLabelPanel：补 position/showLeaderLine/overlapStrategy；字体接 FontEditor
-   - ChartTypeStylePanel：补 radar/funnel/dualAxis 字段组（遍历 capabilities.styleOptions）
-   - ChartTitlePanel：补 subtitleFont/subtitleColor；主标题字体接 FontEditor
-   - ChartThemePanel：补 linearPalette（heatmap 用）
-3. **FontEditor 全项目迁移**（T24-T28）：PropertyEditor text 组件字体组、表格单元格/行、样式库、水印 4+1 处替换为 FontEditor。
-4. **性能优化**（T29-T30）：ChartPropertyPanel 各 group 改 store selector 按字段切片订阅（对策 A）；完善 phase-49 性能测试。
+2. **ChartAxesPanel 字段补齐**（进行中，未提交）：当前已接 reportFontOptions prop 但内部仍用零散 size/color 控件。待做：
+   - X/Y 轴补 `min`/`max`（刻度范围，ChartAxisConfig 已有字段）、`labelRotate`（标签旋转）
+   - `rightY` 渲染分支（dualAxis：capabilities.axes==='rightY' 时渲染右 Y 轴配置，value.rightY）
+   - `radial` 分支（radar：capabilities.axes==='radial'，渲染 axisCount/shape，不渲染笛卡尔 min/max）
+   - 字体接 FontEditor：把 X/Y 的 titleFont+labelFont 共 4 处零散控件替换为 FontEditor（fields:['size','color','bold']）
+3. **ChartLegendPanel 补齐**：continuous（heatmap 色带，capabilities.legend==='continuous'）分支；补 markerShape/layout/maxRows/maxColumns（ChartLegendConfig 已有字段）。字体已接 FontEditor。
+4. **ChartLabelPanel 补齐**：补 position（含 spider）/showLeaderLine/overlapStrategy（ChartLabelConfig 已有字段）。字体已接 FontEditor，content 已按 capabilities 过滤。
+5. **FontEditor 全项目迁移剩余处**：PropertyEditor text 字体组已完成。待做：DesignerPropertyPanel 表格单元格（169-228）、表格行（355-391）、TextStyleLibraryDialog 样式库（541-544）、PageSetupDialog 水印（195-204）。
+6. **性能优化**（T29-T30）：ChartPropertyPanel 各 group 改 store selector 按字段切片订阅（对策 A）；完善 phase-49 性能测试。
+
+### 已完成（本轮新增，供参考）
+
+- ChartTypeStylePanel：已补 radar/funnel/dualAxis 字段组（未单独提交，随下个检查点提交）。
+- ChartThemePanel：已补 linearPalette（线性渐变起止色）。
+- ChartTitlePanel：已接 FontEditor（全家桶）。
+- ChartLegendPanel/ChartLabelPanel：已接 FontEditor（size/color[/bold]）。
 
 ### 已知限制
 
