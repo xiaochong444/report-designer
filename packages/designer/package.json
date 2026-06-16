@@ -17,6 +17,7 @@
   "publishConfig": {
     "access": "public"
   },
+  "license": "MIT",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "dev": "tsc -p tsconfig.json --watch",
@@ -61,5 +62,10 @@
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "zustand": "^5.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/xiaochong444/report-designer.git",
+    "directory": "packages/designer"
   }
 }

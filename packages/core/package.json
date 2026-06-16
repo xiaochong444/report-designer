@@ -17,6 +17,7 @@
   "publishConfig": {
     "access": "public"
   },
+  "license": "MIT",
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "test": "vitest run",
@@ -29,5 +30,10 @@
     "typescript": "^5.8.0",
     "vitest": "^3.1.0",
     "@types/lodash-es": "^4.17.12"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/xiaochong444/report-designer.git",
+    "directory": "packages/core"
   }
 }
