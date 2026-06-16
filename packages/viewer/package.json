@@ -1,6 +1,6 @@
 {
   "name": "@report-designer/viewer",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,6 +9,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -22,7 +29,6 @@
     "@report-designer/core": "workspace:*",
     "@visactor/vchart": "^2.0.22",
     "@visactor/vseed": "^0.5.6",
-    "antd": "^6.0.0",
     "bwip-js": "^4.11.1",
     "lodash-es": "^4.17.21",
     "pdf-lib": "^1.17.1",

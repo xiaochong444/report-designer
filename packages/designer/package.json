@@ -1,6 +1,6 @@
 {
   "name": "@report-designer/designer",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -9,6 +9,13 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     }
+  },
+  "files": [
+    "dist",
+    "LICENSE"
+  ],
+  "publishConfig": {
+    "access": "public"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
@@ -34,13 +41,11 @@
     "@tiptap/extension-underline": "3.23.5",
     "@tiptap/react": "3.23.5",
     "@tiptap/starter-kit": "3.23.5",
-    "antd": "^6.0.0",
     "lodash-es": "^4.17.21",
     "monaco-editor": "^0.55.1",
     "nanoid": "^5.1.0",
     "react": "^19.1.0",
-    "react-dom": "^19.1.0",
-    "zustand": "^5.0.0"
+    "react-dom": "^19.1.0"
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^6.6.0",
@@ -54,6 +59,7 @@
   "peerDependencies": {
     "antd": "^6.0.0",
     "react": "^19.0.0",
-    "react-dom": "^19.0.0"
+    "react-dom": "^19.0.0",
+    "zustand": "^5.0.0"
   }
 }

@@ -4,9 +4,10 @@
     "composite": true,
     "outDir": "dist",
     "rootDir": "src",
-    "tsBuildInfoFile": "dist/tsconfig.tsbuildinfo"
+    "tsBuildInfoFile": ".tsbuildinfo"
   },
   "include": ["src"],
+  "exclude": ["src/__tests__"],
   "references": [
     { "path": "../core" },
     { "path": "../viewer" }
