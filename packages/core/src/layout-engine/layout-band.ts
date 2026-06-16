@@ -108,7 +108,7 @@ export function layoutBand(band: Band, options: LayoutBandOptions): RenderBandBo
   const finalHeight = behavior.autoShrink && contentHeight < resolvedHeight ? contentHeight : resolvedHeight;
 
   return {
-    id: `${band.id}-${options.y}`,
+    id: `${band.id}-${options.x}-${options.y}`,
     bandId: band.id,
     bandType: band.type,
     x: options.x,
@@ -833,6 +833,8 @@ function buildChartData(component: ChartComponent, rows: Record<string, unknown>
   const binding = component.binding ?? {};
   const dimensions = binding.dimensions ?? [];
   const measures = binding.measures ?? [];
+  const supportsSeriesField = caps.series === 'fieldOrMeasureNames';
+  const seriesField = supportsSeriesField ? binding.seriesField : undefined;
   const measureFields = measures.map(measure => measure.field).filter(Boolean);
   const isScatter = component.chartType === 'scatter';
   const isHeatmap = component.chartType === 'heatmap';
@@ -910,11 +912,14 @@ function buildChartData(component: ChartComponent, rows: Record<string, unknown>
 
     // 笛卡尔分类图（single 维度）：按 measure 展开。
     const category = readField(row, dimensions[0]?.field);
+    const boundSeries = readField(row, seriesField);
+    const series = boundSeries == null ? undefined : String(boundSeries);
     const basePoint: ChartDataPoint = {
       category: category == null ? '' : String(category),
       value: null,
       measureValues,
       measureKey,
+      series,
       label: category == null ? undefined : String(category),
       x: null,
       y: null,
@@ -922,7 +927,18 @@ function buildChartData(component: ChartComponent, rows: Record<string, unknown>
     };
 
     if (caps.measures === 'multi' || caps.measures === 'dualAxis') {
-      // 每个度量展开为一个 point（即一个系列）
+      if (seriesField && measures[0]) {
+        const value = resolveNumber(row[measures[0].field]);
+        return {
+          ...basePoint,
+          value,
+          y: value,
+          measureKey: measures[0].field,
+          axis: caps.measures === 'dualAxis' ? (measures[0].axis ?? 'left') : undefined,
+        } as ChartDataPoint;
+      }
+
+      // 未绑定系列字段时，每个度量展开为一个 point（即一个系列）。
       return measures.map(measure => {
         const value = resolveNumber(row[measure.field]);
         return {

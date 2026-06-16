@@ -1,6 +1,6 @@
 import React from 'react';
 import { Button, Checkbox, Collapse, ColorPicker, Form, Input, InputNumber, Segmented, Select, Space, Switch, Typography } from 'antd';
-import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, BoldOutlined, EditOutlined, ItalicOutlined, StrikethroughOutlined, UnderlineOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
+import { AlignCenterOutlined, AlignLeftOutlined, AlignRightOutlined, EditOutlined, VerticalAlignBottomOutlined, VerticalAlignMiddleOutlined, VerticalAlignTopOutlined } from '@ant-design/icons';
 import { createDefaultPageBorder, createDefaultPageWatermark, getReportFontOptions, normalizeReportFonts } from '@report-designer/core';
 import type { EventMap, Margins, Page, PageBorder, PageEventName, PageWatermark, ReportComponent, ReportFontOption, TableCell, TableComponent, TableRow, TextFormatConfig } from '@report-designer/core';
 import { useDesignerStore } from '../../store/designer-store';
@@ -19,6 +19,7 @@ import { PropertyEditor } from '../PropertyEditor';
 import { EventEditorDialog, type EventTreeItem } from '../events/EventEditorDialog';
 import { buildEventEditorDataContext } from '../events/event-editor-utils';
 import { TextFormatEditor } from '../TextFormatEditor';
+import { FontEditor } from '../properties/FontEditor';
 import type { ExpressionCatalogExtensions } from '../../expression/expression-catalog';
 import { normalizeTable } from '../../table/table-structure';
 import { BorderEditor, PaddingEditor } from '../properties/BoxStyleEditors';
@@ -165,71 +166,21 @@ const TableCellProperties: React.FC<{ expressionExtensions?: ExpressionCatalogEx
           key: 'font',
           label: t('tableCell.font'),
           children: (
-            <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-              <Form.Item label={t('tableCell.fontFamily')}>
-                <Select
-                  aria-label={t('tableCell.fontFamily')}
-                  value={font?.family}
-                  options={reportFontOptions}
-                  showSearch
-                  allowClear
-                  onChange={family => updateFont({ family })}
-                />
-              </Form.Item>
-              <Form.Item label={t('tableCell.fontSize')}>
-                <InputNumber
-                  aria-label={t('tableCell.fontSize')}
-                  value={font?.size}
-                  min={1}
-                  max={200}
-                  step={1}
-                  style={{ width: '100%' }}
-                  onChange={size => updateFont({ size: size == null ? undefined : Number(size) })}
-                />
-              </Form.Item>
-              <Form.Item label={t('tableCell.textColor')}>
-                <Space.Compact style={{ width: '100%' }}>
-                  <ColorPicker value={font?.color} allowClear onChange={color => updateFont({ color: color.toHexString() })} onClear={() => updateFont({ color: undefined })} />
-                  <Input
-                    aria-label={t('tableCell.textColor')}
-                    value={font?.color ?? ''}
-                    onChange={event => updateFont({ color: event.target.value })}
-                  />
-                </Space.Compact>
-              </Form.Item>
-              <Form.Item label="">
-                <Space size={4} wrap>
-                  <Button
-                    aria-label={t('tableCell.bold')}
-                    title={t('tableCell.bold')}
-                    icon={<BoldOutlined />}
-                    type={font?.bold ? 'primary' : 'default'}
-                    onClick={() => updateFont({ bold: font?.bold ? undefined : true })}
-                  />
-                  <Button
-                    aria-label={t('tableCell.italic')}
-                    title={t('tableCell.italic')}
-                    icon={<ItalicOutlined />}
-                    type={font?.italic ? 'primary' : 'default'}
-                    onClick={() => updateFont({ italic: font?.italic ? undefined : true })}
-                  />
-                  <Button
-                    aria-label={t('tableCell.underline')}
-                    title={t('tableCell.underline')}
-                    icon={<UnderlineOutlined />}
-                    type={font?.underline ? 'primary' : 'default'}
-                    onClick={() => updateFont({ underline: font?.underline ? undefined : true })}
-                  />
-                  <Button
-                    aria-label={t('tableCell.strikethrough')}
-                    title={t('tableCell.strikethrough')}
-                    icon={<StrikethroughOutlined />}
-                    type={font?.strikethrough ? 'primary' : 'default'}
-                    onClick={() => updateFont({ strikethrough: font?.strikethrough ? undefined : true })}
-                  />
-                </Space>
-              </Form.Item>
-            </Form>
+            <FontEditor
+              value={font ?? {}}
+              onChange={next => updateFont(next as Partial<NonNullable<TableCell['font']>>)}
+              reportFontOptions={reportFontOptions}
+              sizeRange={[1, 200]}
+              labels={{
+                fontFamily: t('tableCell.fontFamily'),
+                fontSize: t('tableCell.fontSize'),
+                textColor: t('tableCell.textColor'),
+                bold: t('tableCell.bold'),
+                italic: t('tableCell.italic'),
+                underline: t('tableCell.underline'),
+                strike: t('tableCell.strikethrough'),
+              }}
+            />
           ),
         }, {
           key: 'appearance',
@@ -351,47 +302,21 @@ const TableRowProperties: React.FC = () => {
           key: 'font',
           label: t('tableCell.font'),
           children: (
-            <Form layout="horizontal" size="small" labelCol={{ span: 8 }} wrapperCol={{ span: 16 }}>
-              <Form.Item label={t('tableCell.fontFamily')}>
-                <Select
-                  aria-label={t('tableCell.fontFamily')}
-                  value={font?.family}
-                  options={reportFontOptions}
-                  showSearch
-                  allowClear
-                  onChange={family => updateFont({ family })}
-                />
-              </Form.Item>
-              <Form.Item label={t('tableCell.fontSize')}>
-                <InputNumber
-                  aria-label={t('tableCell.fontSize')}
-                  value={font?.size}
-                  min={1}
-                  max={200}
-                  step={1}
-                  style={{ width: '100%' }}
-                  onChange={size => updateFont({ size: size == null ? undefined : Number(size) })}
-                />
-              </Form.Item>
-              <Form.Item label={t('tableCell.textColor')}>
-                <Space.Compact style={{ width: '100%' }}>
-                  <ColorPicker value={font?.color} allowClear onChange={color => updateFont({ color: color.toHexString() })} onClear={() => updateFont({ color: undefined })} />
-                  <Input
-                    aria-label={t('tableCell.textColor')}
-                    value={font?.color ?? ''}
-                    onChange={event => updateFont({ color: event.target.value })}
-                  />
-                </Space.Compact>
-              </Form.Item>
-              <Form.Item label="">
-                <Space size={4} wrap>
-                  <Button aria-label={t('tableCell.bold')} title={t('tableCell.bold')} icon={<BoldOutlined />} type={font?.bold ? 'primary' : 'default'} onClick={() => updateFont({ bold: font?.bold ? undefined : true })} />
-                  <Button aria-label={t('tableCell.italic')} title={t('tableCell.italic')} icon={<ItalicOutlined />} type={font?.italic ? 'primary' : 'default'} onClick={() => updateFont({ italic: font?.italic ? undefined : true })} />
-                  <Button aria-label={t('tableCell.underline')} title={t('tableCell.underline')} icon={<UnderlineOutlined />} type={font?.underline ? 'primary' : 'default'} onClick={() => updateFont({ underline: font?.underline ? undefined : true })} />
-                  <Button aria-label={t('tableCell.strikethrough')} title={t('tableCell.strikethrough')} icon={<StrikethroughOutlined />} type={font?.strikethrough ? 'primary' : 'default'} onClick={() => updateFont({ strikethrough: font?.strikethrough ? undefined : true })} />
-                </Space>
-              </Form.Item>
-            </Form>
+            <FontEditor
+              value={font ?? {}}
+              onChange={next => updateFont(next as Partial<NonNullable<TableRow['font']>>)}
+              reportFontOptions={reportFontOptions}
+              sizeRange={[1, 200]}
+              labels={{
+                fontFamily: t('tableCell.fontFamily'),
+                fontSize: t('tableCell.fontSize'),
+                textColor: t('tableCell.textColor'),
+                bold: t('tableCell.bold'),
+                italic: t('tableCell.italic'),
+                underline: t('tableCell.underline'),
+                strike: t('tableCell.strikethrough'),
+              }}
+            />
           ),
         }, {
           key: 'appearance',
@@ -843,32 +768,22 @@ const PageWatermarkControls: React.FC<{
           />
         </Space.Compact>
       </Form.Item>
-      <Form.Item label={t('pageSettings.watermarkFontSize')}>
-        <InputNumber
-          aria-label={t('pageSettings.watermarkFontSize')}
-          value={watermark.fontSize}
-          min={8}
-          max={240}
-          step={1}
-          style={{ width: '100%' }}
-          onChange={value => onWatermarkChange({ fontSize: Number(value ?? watermark.fontSize) })}
-        />
-      </Form.Item>
-      <Form.Item label={t('pageSettings.watermarkFontFamily')}>
-        <Select
-          aria-label={t('pageSettings.watermarkFontFamily')}
-          value={watermark.fontFamily ?? undefined}
-          allowClear
-          showSearch
-          virtual={false}
-          style={{ width: '100%' }}
-          options={reportFontOptions.map(font => ({
-            value: font.value,
-            label: <span style={{ fontFamily: font.fontFamily }}>{font.label}</span>,
-          }))}
-          onChange={fontFamily => onWatermarkChange({ fontFamily })}
-        />
-      </Form.Item>
+      <FontEditor
+        value={{ family: watermark.fontFamily, size: watermark.fontSize }}
+        onChange={next => onWatermarkChange({ fontFamily: next.family, fontSize: Number(next.size ?? watermark.fontSize) })}
+        reportFontOptions={reportFontOptions}
+        fields={['family', 'size']}
+        sizeRange={[8, 240]}
+        labels={{
+          fontFamily: t('pageSettings.watermarkFontFamily'),
+          fontSize: t('pageSettings.watermarkFontSize'),
+          textColor: t('pageSettings.watermarkColor'),
+          bold: t('tableCell.bold'),
+          italic: t('tableCell.italic'),
+          underline: t('tableCell.underline'),
+          strike: t('tableCell.strikethrough'),
+        }}
+      />
       <Form.Item label={t('pageSettings.watermarkOpacity')}>
         <InputNumber
           aria-label={t('pageSettings.watermarkOpacity')}

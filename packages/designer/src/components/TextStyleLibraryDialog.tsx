@@ -4,15 +4,11 @@ import {
   AlignLeftOutlined,
   AlignRightOutlined,
   BgColorsOutlined,
-  BoldOutlined,
   CheckOutlined,
   CopyOutlined,
   DeleteOutlined,
   FontColorsOutlined,
-  ItalicOutlined,
   PlusOutlined,
-  StrikethroughOutlined,
-  UnderlineOutlined,
 } from '@ant-design/icons';
 import {
   Button,
@@ -32,6 +28,7 @@ import type { BorderConfig, FontConfig, ReportStyle, TextFormatConfig } from '@r
 import { useDesignerStore } from '../store/designer-store';
 import { useDesignerI18n } from '../i18n';
 import { TextFormatEditor } from './TextFormatEditor';
+import { FontEditor } from './properties/FontEditor';
 
 interface TextStyleLibraryDialogProps {
   open: boolean;
@@ -246,10 +243,6 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
   const previewPadding = mergePadding(padding);
   const format = selectedStyle?.format ?? EMPTY_FORMAT;
   const hasBackgroundColor = Boolean(selectedStyle?.backgroundColor && selectedStyle.backgroundColor !== 'transparent');
-
-  const setFontFlag = (field: 'bold' | 'italic' | 'underline' | 'strikethrough', nextValue: boolean) => {
-    updateSelectedStyle({ font: { ...font, [field]: nextValue } });
-  };
 
   const setBorderSide = (field: 'top' | 'right' | 'bottom' | 'left', nextValue: boolean) => {
     updateSelectedStyle({
@@ -535,16 +528,21 @@ export const TextStyleLibraryDialog: React.FC<TextStyleLibraryDialogProps> = ({ 
                       />
                     </Space.Compact>
                   </div>
-                  <IconRow label={t('styleLibrary.style')}>
-                    <IconToggleGroup
-                      items={[
-                        { label: t('styleLibrary.bold'), active: Boolean(font.bold), icon: <BoldOutlined />, onClick: () => setFontFlag('bold', !font.bold) },
-                        { label: t('styleLibrary.italic'), active: Boolean(font.italic), icon: <ItalicOutlined />, onClick: () => setFontFlag('italic', !font.italic) },
-                        { label: t('styleLibrary.underline'), active: Boolean(font.underline), icon: <UnderlineOutlined />, onClick: () => setFontFlag('underline', !font.underline) },
-                        { label: t('styleLibrary.strike'), active: Boolean(font.strikethrough), icon: <StrikethroughOutlined />, onClick: () => setFontFlag('strikethrough', !font.strikethrough) },
-                      ]}
-                    />
-                  </IconRow>
+                  <FontEditor
+                    value={font}
+                    onChange={next => updateSelectedStyle({ font: { ...font, ...next } })}
+                    reportFontOptions={[]}
+                    fields={['bold', 'italic', 'underline', 'strikethrough']}
+                    labels={{
+                      fontFamily: t('styleLibrary.fontFamily'),
+                      fontSize: t('styleLibrary.fontSize'),
+                      textColor: t('styleLibrary.textColor'),
+                      bold: t('styleLibrary.bold'),
+                      italic: t('styleLibrary.italic'),
+                      underline: t('styleLibrary.underline'),
+                      strike: t('styleLibrary.strike'),
+                    }}
+                  />
                 </div>
               </PanelCard>
 

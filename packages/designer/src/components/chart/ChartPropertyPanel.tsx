@@ -1,7 +1,17 @@
 import React from 'react';
 import type { CollapseProps } from 'antd';
 import { Form, Input, Select } from 'antd';
-import type { ChartComponent, DataSource, ReportFontOption } from '@report-designer/core';
+import type {
+  ChartAxesConfig,
+  ChartComponent,
+  ChartLabelConfig,
+  ChartLegendConfig,
+  ChartPlotOptions,
+  ChartThemeConfig,
+  ChartTitleConfig,
+  DataSource,
+  ReportFontOption,
+} from '@report-designer/core';
 import { getChartCapabilities } from '@report-designer/core';
 import { ChartAxesPanel } from './ChartAxesPanel';
 import { ChartDataPanel } from './ChartDataPanel';
@@ -24,6 +34,12 @@ import {
 
 const FORM_LABEL_COL = { span: 8 };
 const FORM_WRAPPER_COL = { span: 16 };
+const DEFAULT_CHART_TITLE: ChartTitleConfig = { visible: true, text: '', subtitle: '' };
+const DEFAULT_CHART_THEME: ChartThemeConfig = { baseTheme: 'light' };
+const DEFAULT_CHART_LEGEND: ChartLegendConfig = { visible: true, position: 'bottom' };
+const DEFAULT_CHART_AXES: ChartAxesConfig = {};
+const DEFAULT_CHART_LABELS: ChartLabelConfig = { visible: false, content: 'name', position: 'auto' };
+const DEFAULT_CHART_PLOT_OPTIONS: ChartPlotOptions = {};
 
 export interface BuildChartPropertyItemsArgs {
   chart: ChartComponent;
@@ -34,6 +50,161 @@ export interface BuildChartPropertyItemsArgs {
   onChangeMany: (updates: Partial<ChartComponent>) => void;
   t: ChartPanelT;
 }
+
+const ChartBasicGroup = React.memo(function ChartBasicGroup({
+  chartType,
+  emptyMessage,
+  onChange,
+  t,
+}: {
+  chartType: ChartComponent['chartType'];
+  emptyMessage?: string;
+  onChange: (field: string, value: any) => void;
+  t: ChartPanelT;
+}) {
+  const chartTypeSelectOptions = React.useMemo(() => chartTypeOptions(t), [t]);
+  const updateChartType = React.useCallback((nextChartType: ChartComponent['chartType']) => onChange('chartType', nextChartType), [onChange]);
+  const updateEmptyMessage = React.useCallback((nextEmptyMessage: string) => onChange('emptyMessage', nextEmptyMessage), [onChange]);
+
+  return (
+    <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL}>
+      <Form.Item label={t('chartType')}>
+        <Select
+          aria-label={t('chartType')}
+          value={chartType}
+          onChange={updateChartType}
+          size="small"
+          options={chartTypeSelectOptions}
+          virtual={false}
+        />
+      </Form.Item>
+      <Form.Item label={t('chartEmptyMessage')}>
+        <Input aria-label={t('chartEmptyMessage')} value={emptyMessage ?? ''} onChange={event => updateEmptyMessage(event.target.value)} size="small" />
+      </Form.Item>
+    </Form>
+  );
+});
+
+const ChartDataGroup = React.memo(function ChartDataGroup({
+  binding,
+  capabilities,
+  dataSourceDefinitions,
+  dataSourceOptions,
+  onChange,
+  t,
+}: {
+  binding: ChartComponent['binding'];
+  capabilities: ReturnType<typeof getChartCapabilities>;
+  dataSourceDefinitions: DataSource[];
+  dataSourceOptions: Array<{ value: string; label: string }>;
+  onChange: (field: string, value: any) => void;
+  t: ChartPanelT;
+}) {
+  const updateBinding = React.useCallback((nextBinding: ChartComponent['binding']) => onChange('binding', nextBinding), [onChange]);
+  return <ChartDataPanel binding={binding} capabilities={capabilities} dataSourceOptions={dataSourceOptions} dataSourceDefinitions={dataSourceDefinitions} onChange={updateBinding} t={t} />;
+});
+
+const ChartTitleGroup = React.memo(function ChartTitleGroup({
+  value,
+  reportFontOptions,
+  onChangeMany,
+  t,
+}: {
+  value?: ChartTitleConfig;
+  reportFontOptions: ReportFontOption[];
+  onChangeMany: (updates: Partial<ChartComponent>) => void;
+  t: ChartPanelT;
+}) {
+  const updateTitle = React.useCallback((title: ChartTitleConfig) => onChangeMany({ title }), [onChangeMany]);
+  return <ChartTitlePanel value={value ?? DEFAULT_CHART_TITLE} reportFontOptions={reportFontOptions} onChange={updateTitle} t={t} />;
+});
+
+const ChartThemeGroup = React.memo(function ChartThemeGroup({
+  value,
+  onChange,
+  t,
+}: {
+  value?: ChartThemeConfig;
+  onChange: (field: string, value: any) => void;
+  t: ChartPanelT;
+}) {
+  const updateTheme = React.useCallback((theme: ChartThemeConfig) => onChange('theme', theme), [onChange]);
+  return <ChartThemePanel value={value ?? DEFAULT_CHART_THEME} onChange={updateTheme} t={t} />;
+});
+
+const ChartAxesGroup = React.memo(function ChartAxesGroup({
+  chartType,
+  capabilities,
+  value,
+  reportFontOptions,
+  onChange,
+  t,
+}: {
+  chartType: ChartComponent['chartType'];
+  capabilities: ReturnType<typeof getChartCapabilities>;
+  value?: ChartAxesConfig;
+  reportFontOptions: ReportFontOption[];
+  onChange: (field: string, value: any) => void;
+  t: ChartPanelT;
+}) {
+  const updateAxes = React.useCallback((axes: ChartAxesConfig) => onChange('axes', axes), [onChange]);
+  return <ChartAxesPanel chartType={chartType} capabilities={capabilities} value={value ?? DEFAULT_CHART_AXES} reportFontOptions={reportFontOptions} onChange={updateAxes} t={t} />;
+});
+
+const ChartLegendGroup = React.memo(function ChartLegendGroup({
+  chartType,
+  capabilities,
+  value,
+  reportFontOptions,
+  onChange,
+  t,
+}: {
+  chartType: ChartComponent['chartType'];
+  capabilities: ReturnType<typeof getChartCapabilities>;
+  value?: ChartLegendConfig;
+  reportFontOptions: ReportFontOption[];
+  onChange: (field: string, value: any) => void;
+  t: ChartPanelT;
+}) {
+  const updateLegend = React.useCallback((legend: ChartLegendConfig) => onChange('legend', legend), [onChange]);
+  return <ChartLegendPanel chartType={chartType} capabilities={capabilities} value={value ?? DEFAULT_CHART_LEGEND} reportFontOptions={reportFontOptions} onChange={updateLegend} t={t} />;
+});
+
+const ChartLabelsGroup = React.memo(function ChartLabelsGroup({
+  chartType,
+  capabilities,
+  value,
+  reportFontOptions,
+  onChange,
+  t,
+}: {
+  chartType: ChartComponent['chartType'];
+  capabilities: ReturnType<typeof getChartCapabilities>;
+  value?: ChartLabelConfig;
+  reportFontOptions: ReportFontOption[];
+  onChange: (field: string, value: any) => void;
+  t: ChartPanelT;
+}) {
+  const updateLabels = React.useCallback((labels: ChartLabelConfig) => onChange('labels', labels), [onChange]);
+  return <ChartLabelPanel chartType={chartType} capabilities={capabilities} value={value ?? DEFAULT_CHART_LABELS} reportFontOptions={reportFontOptions} onChange={updateLabels} t={t} />;
+});
+
+const ChartStyleGroup = React.memo(function ChartStyleGroup({
+  chartType,
+  capabilities,
+  value,
+  onChange,
+  t,
+}: {
+  chartType: ChartComponent['chartType'];
+  capabilities: ReturnType<typeof getChartCapabilities>;
+  value?: ChartPlotOptions;
+  onChange: (field: string, value: any) => void;
+  t: ChartPanelT;
+}) {
+  const updatePlotOptions = React.useCallback((plotOptions: ChartPlotOptions) => onChange('plotOptions', plotOptions), [onChange]);
+  return <ChartTypeStylePanel chartType={chartType} capabilities={capabilities} value={value ?? DEFAULT_CHART_PLOT_OPTIONS} onChange={updatePlotOptions} t={t} />;
+});
 
 /**
  * 构建图表属性面板的 Collapse items 数组。
@@ -54,62 +225,28 @@ export function buildChartPropertyItems({
   t,
 }: BuildChartPropertyItemsArgs): NonNullable<CollapseProps['items']> {
   const ui = chartUiText(t);
-  const chartTypeSelectOptions = chartTypeOptions(t);
   const caps = getChartCapabilities(chart.chartType);
-
-  const titleValue = getChartTitle(chart);
-  const themeValue = getChartTheme(chart);
-  const legendValue = getChartLegend(chart);
-  const axesValue = getChartAxes(chart);
-  const labelsValue = getChartLabels(chart);
-  const plotOptionsValue = getChartPlotOptions(chart);
-
-  const updateChartType = (chartType: ChartComponent['chartType']) => onChange('chartType', chartType);
-  const updateEmptyMessage = (emptyMessage: string) => onChange('emptyMessage', emptyMessage);
-  const updateBinding = (binding: ChartComponent['binding']) => onChange('binding', binding);
-  const updateTheme = (theme: ChartComponent['theme']) => onChange('theme', theme);
-  const updateLegend = (legend: ChartComponent['legend']) => onChange('legend', legend);
-  const updateAxes = (axes: ChartComponent['axes']) => onChange('axes', axes);
-  const updateLabels = (labels: ChartComponent['labels']) => onChange('labels', labels);
-  const updatePlotOptions = (plotOptions: ChartComponent['plotOptions']) => onChange('plotOptions', plotOptions);
-  const updateTitle = (title: ChartComponent['title']) => onChangeMany({ title });
 
   const items: NonNullable<CollapseProps['items']> = [
     {
       key: 'chartBasic',
       label: ui.basic,
-      children: (
-        <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL}>
-          <Form.Item label={t('chartType')}>
-            <Select
-              aria-label={t('chartType')}
-              value={chart.chartType}
-              onChange={updateChartType}
-              size="small"
-              options={chartTypeSelectOptions}
-              virtual={false}
-            />
-          </Form.Item>
-          <Form.Item label={t('chartEmptyMessage')}>
-            <Input aria-label={t('chartEmptyMessage')} value={chart.emptyMessage ?? ''} onChange={event => updateEmptyMessage(event.target.value)} size="small" />
-          </Form.Item>
-        </Form>
-      ),
+      children: <ChartBasicGroup chartType={chart.chartType} emptyMessage={chart.emptyMessage} onChange={onChange} t={t} />,
     },
     {
       key: 'chartData',
       label: ui.data,
-      children: <ChartDataPanel binding={chart.binding} capabilities={caps} dataSourceOptions={dataSourceOptions} dataSourceDefinitions={dataSourceDefinitions} onChange={updateBinding} t={t} />,
+      children: <ChartDataGroup binding={chart.binding} capabilities={caps} dataSourceOptions={dataSourceOptions} dataSourceDefinitions={dataSourceDefinitions} onChange={onChange} t={t} />,
     },
     {
       key: 'chartTitle',
       label: ui.title,
-      children: <ChartTitlePanel value={titleValue} reportFontOptions={reportFontOptions} onChange={updateTitle} t={t} />,
+      children: <ChartTitleGroup value={chart.title} reportFontOptions={reportFontOptions} onChangeMany={onChangeMany} t={t} />,
     },
     {
       key: 'chartTheme',
       label: ui.theme,
-      children: <ChartThemePanel value={themeValue} onChange={updateTheme} t={t} />,
+      children: <ChartThemeGroup value={chart.theme} onChange={onChange} t={t} />,
     },
   ];
 
@@ -117,31 +254,30 @@ export function buildChartPropertyItems({
     items.push({
       key: 'chartAxes',
       label: ui.axes,
-      children: <ChartAxesPanel chartType={chart.chartType} capabilities={caps} value={axesValue} reportFontOptions={reportFontOptions} onChange={updateAxes} t={t} />,
+      children: <ChartAxesGroup chartType={chart.chartType} capabilities={caps} value={chart.axes} reportFontOptions={reportFontOptions} onChange={onChange} t={t} />,
     });
   }
   if (caps.legend !== false) {
     items.push({
       key: 'chartLegend',
       label: ui.legend,
-      children: <ChartLegendPanel chartType={chart.chartType} capabilities={caps} value={legendValue} reportFontOptions={reportFontOptions} onChange={updateLegend} t={t} />,
+      children: <ChartLegendGroup chartType={chart.chartType} capabilities={caps} value={chart.legend} reportFontOptions={reportFontOptions} onChange={onChange} t={t} />,
     });
   }
   if (caps.labelContent.length > 0) {
     items.push({
       key: 'chartLabels',
       label: ui.labels,
-      children: <ChartLabelPanel chartType={chart.chartType} capabilities={caps} value={labelsValue} reportFontOptions={reportFontOptions} onChange={updateLabels} t={t} />,
+      children: <ChartLabelsGroup chartType={chart.chartType} capabilities={caps} value={chart.labels} reportFontOptions={reportFontOptions} onChange={onChange} t={t} />,
     });
   }
   if (caps.styleOptions.length > 0) {
     items.push({
       key: 'chartStyle',
       label: ui.typeStyle,
-      children: <ChartTypeStylePanel chartType={chart.chartType} capabilities={caps} value={plotOptionsValue} onChange={updatePlotOptions} t={t} />,
+      children: <ChartStyleGroup chartType={chart.chartType} capabilities={caps} value={chart.plotOptions} onChange={onChange} t={t} />,
     });
   }
 
   return items;
 }
-

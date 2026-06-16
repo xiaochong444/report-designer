@@ -11,7 +11,7 @@ import type { ChartPlotOptions, ChartType } from '../template-model/types';
  * - legend：图例形态，决定 ChartLegendPanel 是否出现及形态
  * - labelContent：可选标签内容，过滤 ChartLabelPanel 的 content 下拉；空数组隐藏面板
  * - styleOptions：适用样式组，过滤 ChartTypeStylePanel 渲染哪些字段组；空数组隐藏面板
- * - series：系列来源；删除 seriesField 后表示 renderer 是否需要从多度量生成系列名
+ * - series：系列来源；fieldOrMeasureNames 表示可显式绑定系列字段，也可由多度量生成系列名
  * - dimensions：维度结构，控制 ChartDataPanel 的维度槽位数量与提示
  * - measures：度量槽位数量与 axis 字段
  * - grid：仅 cartesian 图表显示网格开关
@@ -22,7 +22,7 @@ export interface ChartCapabilities {
   legend: false | 'categorical' | 'continuous';
   labelContent: Array<'name' | 'value' | 'percent' | 'name-value'>;
   styleOptions: Array<keyof ChartPlotOptions>;
-  series: false | 'measureNames';
+  series: false | 'measureNames' | 'fieldOrMeasureNames';
   dimensions: 'single' | 'dual' | 'hierarchical';
   measures: 'single' | 'multi' | 'dualAxis';
   grid: boolean;
@@ -31,17 +31,17 @@ export interface ChartCapabilities {
 
 export const CHART_CAPABILITIES: Record<ChartType, ChartCapabilities> = {
   // 柱状/条形家族
-  column:         { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value', 'percent', 'name-value'], styleOptions: ['bar'],       series: 'measureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
-  columnParallel: { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value', 'name-value'],           styleOptions: ['bar'],       series: 'measureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
-  columnPercent:  { axes: 'xy', legend: 'categorical', labelContent: ['name', 'percent', 'name-value'],         styleOptions: ['bar'],       series: 'measureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
-  bar:            { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value', 'percent', 'name-value'], styleOptions: ['bar'],      series: 'measureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
-  barParallel:    { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value', 'name-value'],           styleOptions: ['bar'],       series: 'measureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
-  barPercent:     { axes: 'xy', legend: 'categorical', labelContent: ['name', 'percent', 'name-value'],         styleOptions: ['bar'],       series: 'measureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
+  column:         { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value', 'percent', 'name-value'], styleOptions: ['bar'],       series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
+  columnParallel: { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value', 'name-value'],           styleOptions: ['bar'],       series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
+  columnPercent:  { axes: 'xy', legend: 'categorical', labelContent: ['name', 'percent', 'name-value'],         styleOptions: ['bar'],       series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
+  bar:            { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value', 'percent', 'name-value'], styleOptions: ['bar'],      series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
+  barParallel:    { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value', 'name-value'],           styleOptions: ['bar'],       series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
+  barPercent:     { axes: 'xy', legend: 'categorical', labelContent: ['name', 'percent', 'name-value'],         styleOptions: ['bar'],       series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
 
   // 折线/面积家族
-  line:        { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value'],   styleOptions: ['line', 'area'], series: 'measureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
-  area:        { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value'],   styleOptions: ['line', 'area'], series: 'measureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
-  areaPercent: { axes: 'xy', legend: 'categorical', labelContent: ['name', 'percent'], styleOptions: ['line', 'area'], series: 'measureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
+  line:        { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value'],   styleOptions: ['line', 'area'], series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
+  area:        { axes: 'xy', legend: 'categorical', labelContent: ['name', 'value'],   styleOptions: ['line', 'area'], series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
+  areaPercent: { axes: 'xy', legend: 'categorical', labelContent: ['name', 'percent'], styleOptions: ['line', 'area'], series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'multi', grid: true, stability: 'stable' },
 
   // 饼/环/玫瑰家族（无坐标轴、无网格）
   pie:   { axes: false, legend: 'categorical', labelContent: ['name', 'value', 'percent', 'name-value'], styleOptions: ['pie'], series: false, dimensions: 'single', measures: 'single', grid: false, stability: 'stable' },
@@ -52,13 +52,13 @@ export const CHART_CAPABILITIES: Record<ChartType, ChartCapabilities> = {
   scatter: { axes: 'xy', legend: false, labelContent: ['name', 'value'], styleOptions: ['scatter'], series: false, dimensions: 'dual', measures: 'single', grid: true, stability: 'stable' },
 
   // 雷达（径向轴）
-  radar: { axes: 'radial', legend: 'categorical', labelContent: ['name', 'value'], styleOptions: ['radar'], series: 'measureNames', dimensions: 'single', measures: 'multi', grid: false, stability: 'stable' },
+  radar: { axes: 'radial', legend: 'categorical', labelContent: ['name', 'value'], styleOptions: ['radar'], series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'multi', grid: false, stability: 'stable' },
 
   // 漏斗（无坐标轴）
   funnel: { axes: false, legend: 'categorical', labelContent: ['name', 'value', 'percent'], styleOptions: ['funnel'], series: false, dimensions: 'single', measures: 'single', grid: false, stability: 'stable' },
 
   // 双轴（右轴）
-  dualAxis: { axes: 'rightY', legend: 'categorical', labelContent: ['name', 'value'], styleOptions: ['dualAxis'], series: 'measureNames', dimensions: 'single', measures: 'dualAxis', grid: true, stability: 'stable' },
+  dualAxis: { axes: 'rightY', legend: 'categorical', labelContent: ['name', 'value'], styleOptions: ['dualAxis'], series: 'fieldOrMeasureNames', dimensions: 'single', measures: 'dualAxis', grid: true, stability: 'stable' },
 
   // 热力（连续色带图例、双维度）
   heatmap: { axes: false, legend: 'continuous', labelContent: ['value'], styleOptions: ['heatmap'], series: false, dimensions: 'dual', measures: 'single', grid: false, stability: 'stable' },

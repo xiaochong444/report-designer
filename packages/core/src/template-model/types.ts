@@ -155,6 +155,7 @@ export interface ChartBinding {
   dataSourceId?: string;
   arrayPath?: Expression;
   dimensions?: ChartDimension[];
+  seriesField?: string;
   measures?: ChartMeasure[];
   sort?: Array<{ field: string; direction: ChartSortDirection }>;
   filterExpression?: Expression;
@@ -232,6 +233,8 @@ export interface ChartAxisConfig {
   max?: number;
   nice?: boolean;
   format?: TextFormatConfig;
+  axisCount?: number;
+  shape?: 'polygon' | 'circle';
 }
 
 export interface ChartLabelConfig {

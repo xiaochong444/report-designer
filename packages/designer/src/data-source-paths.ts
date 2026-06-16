@@ -20,6 +20,13 @@ export function getFieldsForPath(dataSources: DataSource[], arrayPath?: string):
   if (!normalizedPath || normalizedPath === 'root') {
     return fields;
   }
+  const directSource = dataSources.find(source => source.id === normalizedPath);
+  if (directSource?.fields?.length || directSource?.schema?.length) {
+    const directFields = directSource.schema?.length ? directSource.schema : directSource.fields ?? [];
+    if (directFields.some(field => !field.name.startsWith(`${normalizedPath}.`))) {
+      return directFields;
+    }
+  }
   const prefix = `${normalizedPath}.`;
   return fields
     .filter(field => field.name.startsWith(prefix))

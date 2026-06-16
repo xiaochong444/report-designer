@@ -7,18 +7,20 @@ vi.mock('@visactor/vchart', () => ({
 vi.mock('@visactor/vdataset', () => ({}));
 
 vi.mock('@visactor/vseed', () => {
-  const mockBuilder = {
-    build: () => ({
-      type: 'bar',
-      data: [{ id: 'mock', values: [] }],
-      color: { range: ['#5B8FF9', '#5AD8A6', '#5D7092'] },
-      animation: false,
-    }),
-  };
-
   return {
     Builder: {
-      from: () => mockBuilder,
+      from: (input: Record<string, any>) => ({
+        build: () => ({
+          type: input.chartType === 'donut' ? 'pie' : input.chartType === 'column' ? 'bar' : input.chartType,
+          data: [{ id: input.chartType ?? 'mock', values: input.dataset ?? [] }],
+          xField: input.xField,
+          yField: input.yField,
+          categoryField: input.categoryField,
+          valueField: input.angleField ?? input.valueField,
+          color: { range: ['#5B8FF9', '#5AD8A6', '#5D7092'] },
+          animation: false,
+        }),
+      }),
     },
     registerAll: vi.fn(),
     registerLightTheme: vi.fn(),

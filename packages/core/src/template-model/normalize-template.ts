@@ -187,6 +187,7 @@ function normalizeChartBinding(binding: ChartBinding | undefined, chartType: Cha
     dataSourceId: binding?.dataSourceId,
     arrayPath: binding?.arrayPath,
     dimensions: trimmedDimensions,
+    seriesField: caps.series === false ? undefined : binding?.seriesField,
     measures: trimmedMeasures,
     sort: binding?.sort ?? [],
     filterExpression: binding?.filterExpression,

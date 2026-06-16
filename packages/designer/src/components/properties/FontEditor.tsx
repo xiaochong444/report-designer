@@ -25,6 +25,7 @@ export interface FontEditorProps {
   sizeRange?: [number, number];
   disabled?: boolean | ((field: FontField) => boolean);
   labels: FontEditorLabels;
+  ariaLabels?: Partial<FontEditorLabels>;
 }
 
 const FORM_LABEL_COL = { span: 8 };
@@ -42,6 +43,7 @@ export const FontEditor: React.FC<FontEditorProps> = ({
   sizeRange = [6, 72],
   disabled = false,
   labels,
+  ariaLabels,
 }) => {
   const active = React.useMemo(() => new Set(fields), [fields]);
   const isDisabled = React.useCallback(
@@ -62,11 +64,11 @@ export const FontEditor: React.FC<FontEditorProps> = ({
   );
 
   return (
-    <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL}>
+    <Form size="small" labelCol={FORM_LABEL_COL} wrapperCol={FORM_WRAPPER_COL} component={false}>
       {active.has('family') ? (
         <Form.Item label={labels.fontFamily}>
           <Select
-            aria-label={labels.fontFamily}
+            aria-label={ariaLabels?.fontFamily ?? labels.fontFamily}
             value={value.family || ''}
             onChange={v => update('family', v)}
             size="small"
@@ -82,7 +84,7 @@ export const FontEditor: React.FC<FontEditorProps> = ({
       {active.has('size') ? (
         <Form.Item label={labels.fontSize}>
           <InputNumber
-            aria-label={labels.fontSize}
+            aria-label={ariaLabels?.fontSize ?? labels.fontSize}
             value={value.size}
             onChange={v => update('size', v ?? sizeRange[0])}
             size="small"
@@ -97,7 +99,7 @@ export const FontEditor: React.FC<FontEditorProps> = ({
       {active.has('color') ? (
         <Form.Item label={labels.textColor}>
           <ColorPicker
-            aria-label={labels.textColor}
+            aria-label={ariaLabels?.textColor ?? labels.textColor}
             size="small"
             value={value.color || '#000000'}
             onChange={color => update('color', color.toHexString())}
@@ -111,7 +113,7 @@ export const FontEditor: React.FC<FontEditorProps> = ({
           <Space>
             {active.has('bold') ? (
               <Button
-                aria-label={labels.bold}
+                aria-label={ariaLabels?.bold ?? labels.bold}
                 title={labels.bold}
                 icon={<BoldOutlined />}
                 size="small"
@@ -123,7 +125,7 @@ export const FontEditor: React.FC<FontEditorProps> = ({
             ) : null}
             {active.has('italic') ? (
               <Button
-                aria-label={labels.italic}
+                aria-label={ariaLabels?.italic ?? labels.italic}
                 title={labels.italic}
                 icon={<ItalicOutlined />}
                 size="small"
@@ -135,7 +137,7 @@ export const FontEditor: React.FC<FontEditorProps> = ({
             ) : null}
             {active.has('underline') ? (
               <Button
-                aria-label={labels.underline}
+                aria-label={ariaLabels?.underline ?? labels.underline}
                 title={labels.underline}
                 icon={<UnderlineOutlined />}
                 size="small"
@@ -147,7 +149,7 @@ export const FontEditor: React.FC<FontEditorProps> = ({
             ) : null}
             {active.has('strikethrough') ? (
               <Button
-                aria-label={labels.strike}
+                aria-label={ariaLabels?.strike ?? labels.strike}
                 title={labels.strike}
                 icon={<StrikethroughOutlined />}
                 size="small"

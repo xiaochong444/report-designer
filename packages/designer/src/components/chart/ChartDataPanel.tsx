@@ -18,8 +18,7 @@ const EMPTY_BINDING: ChartBinding = {
  * 数据绑定面板。按能力矩阵适配维度/度量槽位：
  * - dimensions: single(1 维度) / dual(2 维度，如 scatter/heatmap/sankey) / hierarchical(有序多字段，如 treeMap)
  * - measures: single(1 度量) / multi(多度量，每度量一个系列) / dualAxis(2 度量带 left/right)
- *
- * 删除了 seriesField/labelField/aggregate（系列由多度量推导，聚合下沉到每个 measure.aggregation）。
+ * - series: 支持显式系列字段时优先使用字段分系列；未设置时多度量仍可按度量名生成系列。
  */
 export const ChartDataPanel: React.FC<{
   binding?: ChartBinding;
@@ -43,6 +42,7 @@ export const ChartDataPanel: React.FC<{
   );
   const aggregateOptions = React.useMemo(() => chartAggregateOptions(t), [t]);
   const valueFieldOptions = numberFieldOptions.length ? numberFieldOptions : fieldOptions;
+  const supportsSeriesField = capabilities.series === 'fieldOrMeasureNames';
   const update = React.useCallback((updates: Partial<ChartBinding>) => {
     onChange({ ...EMPTY_BINDING, ...binding, ...updates });
   }, [binding, onChange]);
@@ -67,6 +67,7 @@ export const ChartDataPanel: React.FC<{
       dataSourceId: dataSourceId ?? '',
       arrayPath: dataSourceId ?? '',
       dimensions: initialDimensions,
+      seriesField: undefined,
       measures: initialMeasures,
     });
   }, [capabilities, dataSourceDefinitions, update]);
@@ -160,6 +161,19 @@ export const ChartDataPanel: React.FC<{
           <Button size="small" type="dashed" icon={<PlusOutlined />} onClick={addDimension} block>
             {t('chartCategoryField')}
           </Button>
+        </Form.Item>
+      ) : null}
+      {supportsSeriesField ? (
+        <Form.Item label={t('chartSeriesField')}>
+          <Select
+            aria-label={t('chartSeriesField')}
+            value={binding.seriesField || undefined}
+            onChange={field => update({ seriesField: field })}
+            size="small"
+            options={fieldOptions}
+            allowClear
+            virtual={false}
+          />
         </Form.Item>
       ) : null}
 

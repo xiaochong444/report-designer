@@ -1,5 +1,5 @@
 import type { ChartPlotOptions, RenderChart } from '@report-designer/core';
-import { isBarLike, isLineLike, isPieLike } from '@report-designer/core';
+import { getChartCapabilities, isBarLike, isLineLike, isPieLike } from '@report-designer/core';
 import { getDimensionField, getMeasureField } from './chart-data';
 import { resolveChartTheme } from './chart-theme';
 
@@ -73,6 +73,12 @@ function applyLegend(spec: Record<string, any>, chart: RenderChart): void {
 }
 
 function applyAxes(spec: Record<string, any>, chart: RenderChart): void {
+  const axisMode = getChartCapabilities(chart.chartType).axes;
+  if (axisMode === false) {
+    delete spec.axes;
+    return;
+  }
+
   if (!chart.showAxes && !chart.axesConfig) {
     spec.axes = [];
     return;

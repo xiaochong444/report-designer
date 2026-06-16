@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { renderReport } from '@report-designer/core';
+import { buildVChartSpec } from '../../../viewer/src/renderers/chart/chart-spec';
 import { expressionFunctions } from '../expression-extensions';
 import { sampleGroups, sampleReports } from '../templates';
 import { commonTextStyles, template } from '../templates/common';
@@ -185,8 +186,10 @@ describe('example sample paper defaults', () => {
 
     const document = renderReport(sample!.template, sample!.data);
     const labels = document.pages.flatMap(page => page.items).filter(item => item.bandId === 'pht-data');
+    const bandIds = document.pages.flatMap(page => page.items.map(item => item.id));
 
     expect(labels).toHaveLength(12);
+    expect(new Set(bandIds).size).toBe(bandIds.length);
     expect(renderedContent(document)).toEqual(expect.arrayContaining([
       '特种绣花针织裤',
       '¥199',
@@ -275,6 +278,28 @@ describe('example sample paper defaults', () => {
     expect(renderedCharts).toHaveLength(7);
     expect(renderedCharts.find(chart => chart.chartType === 'column')?.data.length).toBeGreaterThan(0);
     expect(renderedCharts.find(chart => chart.chartType === 'donut')).toBeTruthy();
+
+    const previewSpecs = renderedCharts.map(chart => ({
+      type: chart.chartType,
+      dataLength: chart.data.length,
+      spec: buildVChartSpec(chart, { width: 320, height: 180 }) as Record<string, any>,
+    }));
+
+    expect(previewSpecs.map(({ type, dataLength, spec }) => ({
+      type,
+      dataLength,
+      specType: spec.type,
+      specDataLength: spec.data?.[0]?.values?.length,
+    }))).toEqual([
+      { type: 'column', dataLength: expect.any(Number), specType: 'bar', specDataLength: expect.any(Number) },
+      { type: 'line', dataLength: expect.any(Number), specType: 'line', specDataLength: expect.any(Number) },
+      { type: 'area', dataLength: expect.any(Number), specType: 'area', specDataLength: expect.any(Number) },
+      { type: 'donut', dataLength: expect.any(Number), specType: 'pie', specDataLength: expect.any(Number) },
+      { type: 'scatter', dataLength: expect.any(Number), specType: 'scatter', specDataLength: expect.any(Number) },
+      { type: 'funnel', dataLength: expect.any(Number), specType: 'funnel', specDataLength: expect.any(Number) },
+      { type: 'radar', dataLength: expect.any(Number), specType: 'radar', specDataLength: expect.any(Number) },
+    ]);
+    expect(previewSpecs.every(({ dataLength, spec }) => dataLength > 0 && (spec.data?.[0]?.values?.length ?? 0) > 0)).toBe(true);
   });
 
   it('bundles a component showcase sample with panel children and Chinese fonts', () => {

@@ -14,6 +14,7 @@ import {
   PAPER_PRESETS,
   type PaperType,
 } from '../../page-settings';
+import { FontEditor } from '../properties/FontEditor';
 
 interface PageSetupDialogProps {
   open: boolean;
@@ -192,16 +193,21 @@ const PageWatermarkDialogFields: React.FC<{
         <DialogSwitchField label={t('pageSettings.watermarkEnabled')} ariaLabel={t('pageSettings.watermarkEnabled')} checked={watermark.enabled} onChange={enabled => onWatermarkChange({ enabled })} />
         <DialogTextField label={t('pageSettings.watermarkText')} ariaLabel={t('pageSettings.watermarkText')} value={watermark.text} onChange={text => onWatermarkChange({ text })} />
         <DialogColorField label={t('pageSettings.watermarkColor')} ariaLabel={t('pageSettings.watermarkColor')} value={watermark.color} onChange={color => onWatermarkChange({ color })} />
-        <DialogNumberField label={t('pageSettings.watermarkFontSize')} value={watermark.fontSize} min={8} max={240} step={1} onChange={value => onWatermarkChange({ fontSize: Number(value ?? watermark.fontSize) })} ariaLabel={t('pageSettings.watermarkFontSize')} />
-        <DialogSelectField
-          label={t('pageSettings.watermarkFontFamily')}
-          ariaLabel={t('pageSettings.watermarkFontFamily')}
-          value={watermark.fontFamily ?? ''}
-          options={[
-            { value: '', label: t('common.default') },
-            ...reportFontOptions.map(font => ({ value: font.value, label: font.label })),
-          ]}
-          onChange={fontFamily => onWatermarkChange({ fontFamily: fontFamily || undefined })}
+        <FontEditor
+          value={{ family: watermark.fontFamily, size: watermark.fontSize }}
+          onChange={next => onWatermarkChange({ fontFamily: next.family || undefined, fontSize: Number(next.size ?? watermark.fontSize) })}
+          reportFontOptions={reportFontOptions}
+          fields={['family', 'size']}
+          sizeRange={[8, 240]}
+          labels={{
+            fontFamily: t('pageSettings.watermarkFontFamily'),
+            fontSize: t('pageSettings.watermarkFontSize'),
+            textColor: t('pageSettings.watermarkColor'),
+            bold: t('tableCell.bold'),
+            italic: t('tableCell.italic'),
+            underline: t('tableCell.underline'),
+            strike: t('tableCell.strikethrough'),
+          }}
         />
         <DialogNumberField label={t('pageSettings.watermarkOpacity')} value={watermark.opacity} min={0} max={1} step={0.05} onChange={value => onWatermarkChange({ opacity: Number(value ?? watermark.opacity) })} ariaLabel={t('pageSettings.watermarkOpacity')} />
         <DialogNumberField label={t('pageSettings.watermarkAngle')} value={watermark.angle} min={-180} max={180} step={1} onChange={value => onWatermarkChange({ angle: Number(value ?? watermark.angle) })} ariaLabel={t('pageSettings.watermarkAngle')} />

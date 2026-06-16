@@ -235,6 +235,30 @@ describe('phase 48 chart compiler', () => {
     expect(JSON.stringify(spec)).toContain('cornerRadius');
   });
 
+  it('does not inject cartesian axes into axisless donut and funnel specs', () => {
+    const donutSpec = buildVChartSpec(chart({
+      chartType: 'donut',
+      binding: {
+        dimensions: [{ field: 'category' }],
+        measures: [{ field: 'value' }],
+        aggregate: 'sum',
+        sort: [],
+      },
+    })) as Record<string, any>;
+    const funnelSpec = buildVChartSpec(chart({
+      chartType: 'funnel',
+      binding: {
+        dimensions: [{ field: 'category' }],
+        measures: [{ field: 'value' }],
+        aggregate: 'sum',
+        sort: [],
+      },
+    })) as Record<string, any>;
+
+    expect(donutSpec.axes).toBeUndefined();
+    expect(funnelSpec.axes).toBeUndefined();
+  });
+
   it('maps label content settings to VChart label formatters', () => {
     const nameValueSpec = buildVChartSpec(chart({
       labelsConfig: { visible: true, content: 'name-value' },

@@ -46,6 +46,7 @@ function loadSelectedComponent(component: ReportComponent) {
     type: 'json',
     fields: [
       { name: 'customer', type: 'string' },
+      { name: 'channel', type: 'string' },
       { name: 'amount', type: 'number' },
       { name: 'qty', type: 'number' },
     ],
@@ -62,9 +63,9 @@ function selectedChart(): ChartComponent {
   return useDesignerStore.getState().template.pages[0].bands.flatMap(band => band.components)[0] as ChartComponent;
 }
 
-function renderEditor() {
+function renderEditor(locale: 'en-US' | 'zh-CN' = 'en-US') {
   return render(
-    <DesignerI18nProvider locale="en-US">
+    <DesignerI18nProvider locale={locale}>
       <PropertyEditor />
     </DesignerI18nProvider>,
   );
@@ -73,6 +74,10 @@ function renderEditor() {
 function selectOption(label: string, optionText: string) {
   fireEvent.mouseDown(screen.getByLabelText(label));
   fireEvent.click(screen.getByText(optionText));
+}
+
+function expandChartSection(label: string) {
+  fireEvent.click(screen.getByText(label));
 }
 
 describe('phase 48 chart property panel', () => {
@@ -89,7 +94,49 @@ describe('phase 48 chart property panel', () => {
     expect(screen.getByText('Axes')).toBeInTheDocument();
     expect(screen.getByText('Labels')).toBeInTheDocument();
     expect(screen.getByText('Type style')).toBeInTheDocument();
+    expect(screen.getByLabelText('Chart type')).toBeInTheDocument();
+    expect(screen.getByLabelText('Data source')).toBeInTheDocument();
     expect(screen.queryByPlaceholderText('Comma separated, for example #2f6fed,#16a34a')).not.toBeInTheDocument();
+  });
+
+  it('groups chart title and axis fields with short visual labels', () => {
+    loadSelectedComponent(chartComponent());
+
+    renderEditor();
+
+    expandChartSection('Title');
+    expect(screen.getByText('Standard')).toBeInTheDocument();
+    expect(screen.getByText('Subtitle')).toBeInTheDocument();
+    expect(screen.getAllByText('Size').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Subtitle Font color')).not.toBeInTheDocument();
+
+    expandChartSection('Axes');
+    expect(screen.getByText('X Axis')).toBeInTheDocument();
+    expect(screen.getByText('Y Axis')).toBeInTheDocument();
+    expect(screen.getAllByText('Text').length).toBeGreaterThan(0);
+    expect(screen.queryByText('X title color')).not.toBeInTheDocument();
+    expect(screen.queryByText('Y label font size')).not.toBeInTheDocument();
+  });
+
+  it('localizes chart title and axis grouping labels in Chinese', () => {
+    loadSelectedComponent(chartComponent());
+
+    renderEditor('zh-CN');
+
+    expandChartSection('标题');
+    expect(screen.getByText('标准')).toBeInTheDocument();
+    expect(screen.getByText('副标题')).toBeInTheDocument();
+    expect(screen.getAllByText('字号').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Standard')).not.toBeInTheDocument();
+    expect(screen.queryByText('Subtitle')).not.toBeInTheDocument();
+
+    expandChartSection('坐标轴');
+    expect(screen.getByText('X 轴')).toBeInTheDocument();
+    expect(screen.getByText('Y 轴')).toBeInTheDocument();
+    expect(screen.getAllByText('文本').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('格式')).toHaveLength(2);
+    expect(screen.queryByText('X Axis')).not.toBeInTheDocument();
+    expect(screen.queryByText('Text')).not.toBeInTheDocument();
   });
 
   it('writes title, legend, axes, labels, plot options, and theme edits to structured chart fields', () => {
@@ -97,10 +144,15 @@ describe('phase 48 chart property panel', () => {
 
     renderEditor();
 
+    expandChartSection('Title');
     expect(screen.getByLabelText('Title text')).toHaveValue('Legacy Sales');
     fireEvent.change(screen.getByLabelText('Title text'), { target: { value: 'Quarterly Sales' } });
     fireEvent.change(screen.getByLabelText('Title font size'), { target: { value: '18' } });
+
+    expandChartSection('Legend');
     fireEvent.change(screen.getByLabelText('Legend font size'), { target: { value: '13' } });
+
+    expandChartSection('Axes');
     fireEvent.change(screen.getByLabelText('X axis title'), { target: { value: 'Customer' } });
     expect(screen.getByLabelText('X title color')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('X title font size'), { target: { value: '13' } });
@@ -109,9 +161,15 @@ describe('phase 48 chart property panel', () => {
     expect(screen.getByLabelText('Y title color')).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText('Y title font size'), { target: { value: '14' } });
     fireEvent.change(screen.getByLabelText('Y label font size'), { target: { value: '12' } });
+
+    expandChartSection('Labels');
     fireEvent.click(screen.getByLabelText('Labels visible'));
     selectOption('Label content', 'Value');
+
+    expandChartSection('Type style');
     fireEvent.change(screen.getByLabelText('Corner radius'), { target: { value: '6' } });
+
+    expandChartSection('Theme');
     selectOption('Base theme', 'Dark');
 
     const chart = selectedChart();
@@ -127,6 +185,43 @@ describe('phase 48 chart property panel', () => {
     expect(chart.title?.text).toBe('Quarterly Sales');
   });
 
+  it('shows distinct short labels inside the legend panel', () => {
+    loadSelectedComponent(chartComponent());
+
+    renderEditor();
+
+    expandChartSection('Legend');
+    expect(screen.getAllByText('Position')).toHaveLength(1);
+    expect(screen.getByText('Marker')).toBeInTheDocument();
+    expect(screen.getByText('Layout')).toBeInTheDocument();
+    expect(screen.getByText('Max rows')).toBeInTheDocument();
+    expect(screen.getByText('Max columns')).toBeInTheDocument();
+  });
+
+  it('shows distinct short labels inside the legend panel in Chinese', () => {
+    loadSelectedComponent(chartComponent());
+
+    renderEditor('zh-CN');
+
+    expandChartSection('图例');
+    expect(screen.getAllByText('位置')).toHaveLength(1);
+    expect(screen.getByText('标记')).toBeInTheDocument();
+    expect(screen.getByText('布局')).toBeInTheDocument();
+    expect(screen.getByText('最大行数')).toBeInTheDocument();
+    expect(screen.getByText('最大列数')).toBeInTheDocument();
+  });
+
+  it('shows and edits the chart series field for categorical charts', () => {
+    loadSelectedComponent(chartComponent());
+
+    renderEditor();
+
+    expect(screen.getByLabelText('Series field')).toBeInTheDocument();
+    selectOption('Series field', 'channel');
+
+    expect(selectedChart().binding.seriesField).toBe('channel');
+  });
+
   it('edits palette through preset and swatch controls', () => {
     loadSelectedComponent(chartComponent({
       theme: { baseTheme: 'light', palettePresetId: 'business', customPalette: ['#111111', '#222222'] },
@@ -134,6 +229,7 @@ describe('phase 48 chart property panel', () => {
 
     renderEditor();
 
+    expandChartSection('Theme');
     expect(screen.getByLabelText('Palette preset')).toBeInTheDocument();
     expect(screen.getAllByTestId(/chart-palette-swatch-/)).toHaveLength(2);
     expect(screen.queryByPlaceholderText('Comma separated, for example #2f6fed,#16a34a')).not.toBeInTheDocument();
@@ -157,6 +253,7 @@ describe('phase 48 chart property panel', () => {
 
     renderEditor();
 
+    expandChartSection('Theme');
     const firstSwatch = screen.getByTestId('chart-palette-swatch-0');
     selectOption('Palette preset', 'Soft');
 

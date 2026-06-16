@@ -32,10 +32,11 @@ import { createArrayPathOptions } from '../data-source-paths';
 import { buildChartPropertyItems } from './chart/ChartPropertyPanel';
 
 const NO_CONDITIONAL_FORMAT = '__none__';
+const EMPTY_DATA_PATHS: string[] = [];
 
 export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalogExtensions }> = ({ expressionExtensions }) => {
   const { locale, t: globalT } = useDesignerI18n();
-  const t = createPropertyT(locale);
+  const t = React.useMemo(() => createPropertyT(locale), [locale]);
   const template = useDesignerStore(s => s.template);
   const currentPageId = useDesignerStore(s => s.currentPageId);
   const selectedComponentIds = useDesignerStore(s => s.selectedComponentIds);
@@ -49,6 +50,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   const reportUnit = useDesignerStore(s => s.reportUnit);
   const pendingEventEditorTarget = useDesignerStore(s => s.pendingEventEditorTarget);
   const consumeEventEditorTarget = useDesignerStore(s => s.consumeEventEditorTarget);
+  const runtimeDataSources = useDesignerStore(s => s.dataSources);
   const [eventEditorDataTemplate, setEventEditorDataTemplate] = React.useState<ReportTemplate | null>(null);
 
   const { component, bandId } = useMemo(() => {
@@ -61,6 +63,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
     }
     return { component: null, bandId: null };
   }, [template, currentPageId, selectedComponentIds]);
+  const componentId = component?.id;
 
   const [expressionTarget, setExpressionTarget] = useState<{ field: string; label: string } | null>(null);
   const [eventEditorOpen, setEventEditorOpen] = useState(false);
@@ -96,6 +99,42 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
     () => (eventEditorOpen && eventEditorDataTemplate ? buildComponentEventItems(eventEditorDataTemplate) : []),
     [eventEditorDataTemplate, eventEditorOpen],
   );
+  const currentPage = React.useMemo(
+    () => template.pages.find(p => p.id === currentPageId),
+    [currentPageId, template.pages],
+  );
+  const bandDataPathSignature = React.useMemo(() => currentPage?.bands.map(b => b.dataBand?.dataSourceId ?? b.dataSource ?? '').join('|') ?? '', [currentPage?.bands]);
+  const bandDataPaths = React.useMemo(() => currentPage?.bands.reduce<string[]>((acc, b) => {
+    const dataSourceId = b.dataBand?.dataSourceId ?? b.dataSource;
+    if (dataSourceId && !acc.includes(dataSourceId)) acc.push(dataSourceId);
+    return acc;
+  }, []) ?? EMPTY_DATA_PATHS, [bandDataPathSignature]);
+  const dataSourceOptions = React.useMemo(
+    () => createArrayPathOptions(template.dataSources, runtimeDataSources, bandDataPaths),
+    [template.dataSources, runtimeDataSources, bandDataPaths],
+  );
+  const reportFontOptions = React.useMemo(() => getReportFontOptions(template.fonts), [template.fonts]);
+
+  const handleChange = React.useCallback((field: string, value: any) => {
+    if (!componentId || !bandId || !currentPageId) return;
+    const currentBand = useDesignerStore.getState().template.pages
+      .find(p => p.id === currentPageId)
+      ?.bands.find(b => b.id === bandId);
+    const currentComponent = currentBand ? findComponentInTree(currentBand.components, componentId) : null;
+    updateComponent(currentPageId, bandId, componentId, { [field]: value }, { [field]: (currentComponent as any)?.[field] });
+  }, [bandId, componentId, currentPageId, updateComponent]);
+
+  const handleChangeMany = React.useCallback((updates: Record<string, any>) => {
+    if (!componentId || !bandId || !currentPageId) return;
+    const currentBand = useDesignerStore.getState().template.pages
+      .find(p => p.id === currentPageId)
+      ?.bands.find(b => b.id === bandId);
+    const currentComponent = currentBand ? findComponentInTree(currentBand.components, componentId) : null;
+    const previous = Object.fromEntries(
+      Object.keys(updates).map(field => [field, (currentComponent as any)?.[field]]),
+    );
+    updateComponent(currentPageId, bandId, componentId, updates, previous);
+  }, [bandId, componentId, currentPageId, updateComponent]);
 
   if (selectedComponentIds.length === 0) {
     return (
@@ -116,26 +155,6 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   if (!component || !bandId) return null;
 
   const comp = component as any;
-  const currentPage = template.pages.find(p => p.id === currentPageId);
-  const bandDataPaths = currentPage?.bands.reduce<string[]>((acc, b) => {
-    const dataSourceId = b.dataBand?.dataSourceId ?? b.dataSource;
-    if (dataSourceId && !acc.includes(dataSourceId)) acc.push(dataSourceId);
-    return acc;
-  }, []) ?? [];
-  const dataSourceOptions = createArrayPathOptions(template.dataSources, useDesignerStore.getState().dataSources, bandDataPaths);
-
-  const handleChange = (field: string, value: any) => {
-    if (!component || !bandId || !currentPageId) return;
-    updateComponent(currentPageId, bandId, component.id, { [field]: value }, { [field]: (component as any)[field] });
-  };
-
-  const handleChangeMany = (updates: Record<string, any>) => {
-    if (!component || !bandId || !currentPageId) return;
-    const previous = Object.fromEntries(
-      Object.keys(updates).map(field => [field, (component as any)[field]]),
-    );
-    updateComponent(currentPageId, bandId, component.id, updates, previous);
-  };
 
   const handleNameChange = (value: string) => {
     const name = normalizeComponentName(value);
@@ -167,7 +186,6 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   };
 
   const format = (comp.format ?? { type: 'none' }) as TextFormatConfig;
-  const reportFontOptions = getReportFontOptions(template.fonts);
 
   // ---- Padding helpers ----
   const padding = normalizeOptionalPadding(comp.padding as Padding | undefined);
@@ -185,7 +203,7 @@ export const PropertyEditor: React.FC<{ expressionExtensions?: ExpressionCatalog
   return (
     <div style={{ padding: 8 }}>
       <Collapse
-        defaultActiveKey={['general', 'position', 'behavior', 'text', 'font', 'border', 'appearance', 'events', 'table', 'line', 'shape', 'pagenumber', 'datetime']}
+        defaultActiveKey={['general', 'position', 'behavior', 'text', 'font', 'border', 'appearance', 'events', 'table', 'line', 'shape', 'pagenumber', 'datetime', 'chartBasic', 'chartData']}
         size="small"
         items={[
           // ---- 基本信息 ----

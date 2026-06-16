@@ -110,6 +110,33 @@ describe('phase 41 chart rendering', () => {
     ]);
   });
 
+  it('renders explicit series field values as separate chart series', () => {
+    const document = renderReport(chartTemplate({
+      binding: {
+        dataSourceId: 'sales',
+        dimensions: [{ field: 'Region' }],
+        seriesField: 'Channel',
+        measures: [{ field: 'Amount', aggregation: 'sum' }],
+        sort: [{ field: 'Region', direction: 'asc' }],
+      },
+    }), {
+      sales: [
+        { Region: 'East', Channel: 'Online', Amount: 10 },
+        { Region: 'East', Channel: 'Online', Amount: 15 },
+        { Region: 'East', Channel: 'Retail', Amount: 20 },
+        { Region: 'West', Channel: 'Online', Amount: 8 },
+      ],
+    });
+
+    const chart = document.pages[0].items[0].components[0];
+    expect(chart.type).toBe('chart');
+    expect(('data' in chart ? chart.data : []).map(({ category, series, value, label, x, y }) => ({ category, series, value, label, x, y }))).toEqual([
+      { category: 'East', series: 'Online', value: 25, label: 'East', x: null, y: 25 },
+      { category: 'East', series: 'Retail', value: 20, label: 'East', x: null, y: 20 },
+      { category: 'West', series: 'Online', value: 8, label: 'West', x: null, y: 8 },
+    ]);
+  });
+
   it('renders scatter charts with x and y dimensions/measures', () => {
     const document = renderReport(chartTemplate({
       chartType: 'scatter',

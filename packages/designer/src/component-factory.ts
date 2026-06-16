@@ -64,9 +64,7 @@ export function createDefaultComponent(type: string, xMm: number, yMm: number): 
           dimensions: [],
           measures: [],
           seriesField: '',
-          labelField: '',
           sort: [],
-          aggregate: 'none',
         },
         appearance: {
           title: '',
