@@ -104,7 +104,7 @@ export interface DesignerState {
   selectedTableCell: TableCellSelection | null;
   tableCellStyleClipboard: TableCellStyleClipboard | null;
   pendingEventEditorTarget: PendingEventEditorTarget | null;
-  dataSources: Record<string, any[]>;
+  dataSources: Record<string, Record<string, unknown>[]>;
   dispatcher: CommandDispatcher;
   clipboard: ReportComponent[];
   reportUnit: ReportUnit;
@@ -138,7 +138,7 @@ export interface DesignerState {
   selectTableCell: (selection: TableCellSelection | null) => void;
   openEventEditorTarget: (target: DesignerEventNavigationTarget) => void;
   consumeEventEditorTarget: (requestId: number) => void;
-  setDataSources: (data: Record<string, any[]>) => void;
+  setDataSources: (data: Record<string, Record<string, unknown>[]>) => void;
   setReportUnit: (unit: ReportUnit) => void;
   setZoom: (zoom: number) => void;
 

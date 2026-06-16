@@ -3,7 +3,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import vm from 'node:vm';
 
-function createContext(nativeResult) {
+function createContext(printingResult = { status: 'OK', jobId: 'chrome-job-1' }) {
   const context = {
     atob: (value) => Buffer.from(value, 'base64').toString('binary'),
     Blob,
@@ -11,8 +11,10 @@ function createContext(nativeResult) {
       runtime: {
         lastError: null,
         onMessage: { addListener() {} },
-        sendNativeMessage(_hostName, _message, callback) {
-          callback(nativeResult);
+      },
+      printing: {
+        submitJob(_job, callback) {
+          callback(printingResult);
         },
       },
       storage: {
@@ -29,25 +31,32 @@ function createContext(nativeResult) {
   return context;
 }
 
-test('native host failures are forwarded as extension failures', async () => {
-  const context = createContext({ ok: false, error: 'No print command configured' });
+test('chrome printing failures are forwarded as extension failures', async () => {
+  const context = createContext({ status: 'FAILED' });
 
-  const response = await context.submitNativeHostPrintJob({ requestId: 'req-1' }, 'com.report_designer.print_host');
+  const response = await context.submitChromePrintJob({
+    requestId: 'req-1',
+    printerId: 'printer-01',
+    pdfBase64: Buffer.from('PDF').toString('base64'),
+  });
 
   assert.equal(response.ok, false);
-  assert.equal(response.error, 'No print command configured');
+  assert.equal(response.error, 'FAILED');
 });
 
-test('native host success is unwrapped for the page response', async () => {
-  const context = createContext({ ok: true, jobId: 'job-1', status: 'completed' });
+test('chrome printing success is unwrapped for the page response', async () => {
+  const context = createContext({ status: 'OK', jobId: 'chrome-job-1' });
 
-  const response = await context.submitNativeHostPrintJob({ requestId: 'req-1' }, 'com.report_designer.print_host');
+  const response = await context.submitChromePrintJob({
+    requestId: 'req-1',
+    printerId: 'printer-01',
+    pdfBase64: Buffer.from('PDF').toString('base64'),
+  });
 
   assert.equal(response.ok, true);
   assert.equal(JSON.stringify(response.result), JSON.stringify({
-    backend: 'nativeMessaging',
-    ok: true,
-    jobId: 'job-1',
-    status: 'completed',
+    backend: 'chromePrinting',
+    jobId: 'chrome-job-1',
+    status: 'OK',
   }));
 });

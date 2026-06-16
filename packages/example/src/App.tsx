@@ -25,7 +25,7 @@ const exampleMessages: Record<DesignerLocale, {
     openDesigner: '打开设计器',
     returnPreview: '返回预览',
     silentPrint: '静默打印测试',
-    silentPrintSent: '已发送给本机打印 Host',
+    silentPrintSent: '已发送给 Chrome 打印扩展',
     silentPrintFailed: '静默打印失败',
     pdfPrintValidation: 'PDF 打印验证',
     pdfPrintValidationSent: '已打开 PDF 保存窗口',
@@ -36,7 +36,7 @@ const exampleMessages: Record<DesignerLocale, {
     openDesigner: 'Open Designer',
     returnPreview: 'Return to Preview',
     silentPrint: 'Silent Print Test',
-    silentPrintSent: 'Sent to local print host',
+    silentPrintSent: 'Sent to Chrome print extension',
     silentPrintFailed: 'Silent print failed',
     pdfPrintValidation: 'PDF Print Validation',
     pdfPrintValidationSent: 'PDF save window opened',
@@ -94,8 +94,8 @@ function App() {
       await printReport(printDocument, {
         adapter: 'chrome-extension',
         chromeExtension: {
-          backend: 'nativeMessaging',
           jobName: previewTemplate.name,
+          printerId: 'printer-01',
           silent: true,
         },
       });
@@ -119,7 +119,6 @@ function App() {
       await printReport(printDocument, {
         adapter: 'chrome-extension',
         chromeExtension: {
-          backend: 'nativeMessaging',
           jobName: previewTemplate.name,
           printerId: 'Microsoft Print to PDF',
           silent: false,

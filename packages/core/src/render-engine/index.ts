@@ -202,7 +202,7 @@ function resolveRenderedBandBackground(band: Band, rowIndex: number, hasRow: boo
 /** Main renderer: produces a RenderTree from template + data */
 export function renderTemplate(
   template: ReportTemplate,
-  data: Record<string, any[]>,
+  data: Record<string, Record<string, any>[]>,
   options: RenderTemplateOptions = {},
 ): RenderTree {
   const formats = template.conditionalFormats || [];

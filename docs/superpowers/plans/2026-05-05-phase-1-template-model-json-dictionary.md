@@ -146,7 +146,7 @@ Expected fields:
 Rules:
 
 - Top-level arrays become data sources.
-- Nested arrays become child data sources with `parentSourceId` and `parentPath`.
+- Nested arrays are exposed as JSON array paths such as `items` and `orders.items`.
 - Primitive object fields become fields.
 - Mixed primitive values infer the broadest type in this order: null, boolean, number, date, string.
 - ISO-like strings remain `date` only if all non-empty samples parse as valid dates and include date separators.

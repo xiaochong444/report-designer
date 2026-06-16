@@ -9,7 +9,7 @@ export interface ChromePrintOffset {
   yMm?: number;
 }
 
-export type ChromePrintBackend = 'nativeMessaging' | 'chromePrinting';
+export type ChromePrintBackend = 'chromePrinting';
 
 export interface ChromePrintRequest {
   channel: typeof CHROME_PRINT_CHANNEL;
@@ -67,7 +67,7 @@ export function buildChromePrintRequest(pdfBytes: Uint8Array, options: ChromeExt
       printerId: options.printerId,
       copies: options.copies,
       silent: options.silent,
-      backend: options.backend,
+      backend: options.backend ?? 'chromePrinting',
       offset: options.offset,
     },
   };

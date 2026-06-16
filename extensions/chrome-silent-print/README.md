@@ -1,23 +1,22 @@
 # Chrome Silent Print Bridge
 
-This extension bridges the web viewer to silent printing.
+This extension receives PDF print jobs from the web viewer and submits them through Chrome's `chrome.printing` API.
 
 ## Flow
 
 1. The viewer builds a PDF print job and posts it to the page bridge.
 2. The content script forwards the job to the service worker.
-3. The service worker routes the job to one of two backends:
-   - `nativeMessaging` for desktop Chrome silent printing
-   - `chromePrinting` for ChromeOS deployments
+3. The service worker validates the page origin and submits the PDF with `chrome.printing.submitJob`.
+4. Chrome returns the print job result to the web page.
 
-## Default settings
+## Settings
 
-- `backend`: `nativeMessaging`
-- `nativeHostName`: `com.report_designer.print_host`
-- `allowedOrigins`: empty list, which allows localhost and file URLs during development
-- fixed development extension id: `ehppgngdhfmokcmjihddljjfjmcponik`
+- `allowedOrigins`: one origin per line. An empty list allows localhost, `127.0.0.1`, `::1`, and `file://` during development.
+- fixed development extension id: `ehppgngdhfmokcmjihddljjfjmcponik`.
 
-## Viewer usage
+Printer access is controlled by Chrome extension permissions and Chrome printer policy. Deployments that require zero-click printing should be installed in a managed Chrome environment where the target printers and extension permissions are configured by policy.
+
+## Viewer Usage
 
 ```ts
 await printReport(renderDocument, {
@@ -28,12 +27,12 @@ await printReport(renderDocument, {
     copies: 2,
     silent: true,
     offset: { xMm: 0, yMm: 0 },
-    backend: 'nativeMessaging',
+    backend: 'chromePrinting',
   },
 });
 ```
 
-The `Viewer` component also accepts the same print options:
+The `Viewer` component accepts the same print options:
 
 ```tsx
 <Viewer
@@ -41,92 +40,25 @@ The `Viewer` component also accepts the same print options:
   data={data}
   printOptions={{
     adapter: 'chrome-extension',
-    chromeExtension: { printerId: 'printer-01', silent: true },
+    chromeExtension: {
+      backend: 'chromePrinting',
+      printerId: 'printer-01',
+      silent: true,
+    },
   }}
 />
 ```
 
-## Native host message
+## Development Setup
 
-```json
-{
-  "type": "printPdf",
-  "payload": {
-    "requestId": "job-1",
-    "jobName": "Warehouse Order",
-    "printerId": "printer-01",
-    "copies": 2,
-    "silent": true,
-    "offset": { "xMm": 0, "yMm": 0 },
-    "pdfBase64": "..."
-  }
-}
-```
-
-## Native host response
-
-```json
-{
-  "ok": true,
-  "jobId": "native-1"
-}
-```
-
-or
-
-```json
-{
-  "ok": false,
-  "error": "Printer is offline"
-}
-```
+1. Open `chrome://extensions/`.
+2. Enable developer mode.
+3. Load `extensions/chrome-silent-print` as an unpacked extension.
+4. Open the extension options page and add the web app origin if it is not a localhost or file URL.
+5. Use the printer id exposed by Chrome's printing API or your managed Chrome printer configuration.
 
 ## Notes
 
-- Desktop Chrome cannot silently print by extension alone. A native host is required.
-- ChromeOS can use `chrome.printing` when printer policy and permissions are available.
-
-## Windows native host
-
-The Windows host lives in `native-hosts/windows-print-host`. It is a .NET `WinExe` Native Messaging host, so Chrome can launch it with redirected stdin/stdout without showing a console window.
-
-For local integration, run the one-click installer from the repository root:
-
-```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File .\installer\windows\install.ps1
-```
-
-The script publishes the host, creates the config, creates the native host manifest, registers the Chrome Native Messaging registry key under `HKCU`, and creates a Chrome launcher with the fixed-id extension loaded.
-
-The Host owns printer selection when a default printer is available in its config.
-
-Manual build and publish:
-
-```powershell
-dotnet publish native-hosts\windows-print-host\WindowsPrintHost.csproj -c Release -r win-x64 --self-contained false -o "C:\Program Files\ReportDesignerPrintHost"
-```
-
-Create `%LOCALAPPDATA%\ReportDesignerPrintHost\config.json`:
-
-```json
-{
-  "rootDir": "C:\\Users\\you\\AppData\\Local\\ReportDesignerPrintHost",
-  "printCommand": "SumatraPDF.exe",
-  "printArgs": [
-    "-print-to",
-    "{printerId}",
-    "-print-settings",
-    "{copies}x",
-    "-silent",
-    "{file}"
-  ]
-}
-```
-
-Register the native host manifest under:
-
-```text
-HKCU\Software\Google\Chrome\NativeMessagingHosts\com.report_designer.print_host
-```
-
-The registry value should point to `extensions\chrome-silent-print\native-host\com.report_designer.print_host.windows.example.json` after replacing the extension id and executable path for the installed machine.
+- The extension uses Chrome's printing API directly.
+- The old Windows print helper and installer have been removed from the project.
+- Standard browser printing and PDF export remain available for environments that do not need extension-based printing.

@@ -25,7 +25,7 @@ describe('Phase 5 JSON data source dialog', () => {
     });
 
     expect(screen.getByText('root')).toBeInTheDocument();
-    fireEvent.click(screen.getByRole('button', { name: 'Add data sources' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Infer fields' }));
 
     const template = useDesignerStore.getState().template;
     expect(template.dataSources.map(source => source.id)).toEqual(['root']);
@@ -47,7 +47,7 @@ describe('Phase 5 JSON data source dialog', () => {
       target: { value: '{ "orders": [{ "orderNo": "A001", "items": [{ "name": "Pen", "qty": 2 }] }] }' },
     });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Add data sources' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Infer fields' }));
 
     const template = useDesignerStore.getState().template;
     expect(template.dataSources.map(source => source.id)).toEqual(['root']);
@@ -70,7 +70,7 @@ describe('Phase 5 JSON data source dialog', () => {
     });
 
     expect(screen.getByText('JSON 数据源')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '添加数据源' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '推断字段' })).toBeInTheDocument();
     expect(screen.getByText('名称')).toBeInTheDocument();
     expect(screen.getByText('根数组')).toBeInTheDocument();
     expect(screen.queryByText('JSON Data Source')).not.toBeInTheDocument();

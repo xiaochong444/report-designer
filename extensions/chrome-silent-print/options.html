@@ -16,15 +16,7 @@
 <body>
   <h1>Silent Print Bridge Settings</h1>
 
-  <label for="backend">Backend</label>
-  <select id="backend">
-    <option value="nativeMessaging">Native messaging host</option>
-    <option value="chromePrinting">ChromeOS chrome.printing</option>
-  </select>
-  <div class="hint">Desktop Chrome silent printing should use Native Messaging. ChromeOS deployments may use chrome.printing with the required printer policy setup.</div>
-
-  <label for="nativeHostName">Native host name</label>
-  <input id="nativeHostName" value="com.report_designer.print_host">
+  <p class="hint">The extension submits PDF jobs through Chrome's <code>chrome.printing</code> API. Configure printer access with Chrome extension permissions and managed printer policy where required.</p>
 
   <label for="allowedOrigins">Allowed origins</label>
   <textarea id="allowedOrigins" placeholder="https://erp.example.com&#10;http://127.0.0.1:5173"></textarea>

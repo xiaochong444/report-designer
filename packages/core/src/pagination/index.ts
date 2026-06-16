@@ -44,7 +44,7 @@ export interface PaginatedComponent {
  */
 export function paginate(
   template: ReportTemplate,
-  data: Record<string, any[]>,
+  data: Record<string, Record<string, any>[]>,
 ): PaginatedPage[] {
   const renderTree = renderTemplate(template, data);
   const pages: PaginatedPage[] = [];

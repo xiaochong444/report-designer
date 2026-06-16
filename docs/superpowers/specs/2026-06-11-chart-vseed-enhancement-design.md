@@ -556,7 +556,7 @@ VChart ISpec
 | viewer spec 测试 | VSeed pipeline 输出有效 ISpec、customPalette 覆盖、markStyle 映射 |
 | viewer DOM 测试 | 各类型渲染成功、空数据 placeholder |
 | designer 测试 | 类型切换后配置组动态显隐、色板增删改、主题切换色板预览 |
-| 回归 | 所有 ChartType 渲染不崩溃、旧模板（如果有）兼容降级 |
+| 回归 | 所有 ChartType 在当前模板模型下渲染不崩溃 |
 
 ## 交付切片
 

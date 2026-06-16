@@ -45,7 +45,7 @@ describe('example silent print smoke entry', () => {
     printReportMock.mockResolvedValue(undefined);
   });
 
-  it('sends the selected sample to the Chrome native host without choosing a printer in the web app', async () => {
+  it('sends the selected sample to the Chrome printing extension', async () => {
     const container = document.createElement('div');
     document.body.appendChild(container);
     const root = createRoot(container);
@@ -66,8 +66,8 @@ describe('example silent print smoke entry', () => {
     expect(printReportMock.mock.calls[0][1]).toEqual({
       adapter: 'chrome-extension',
       chromeExtension: {
-        backend: 'nativeMessaging',
         jobName: '采购入库单',
+        printerId: 'printer-01',
         silent: true,
       },
     });
@@ -94,7 +94,6 @@ describe('example silent print smoke entry', () => {
     expect(printReportMock.mock.calls[0][1]).toEqual({
       adapter: 'chrome-extension',
       chromeExtension: {
-        backend: 'nativeMessaging',
         jobName: '采购入库单',
         printerId: 'Microsoft Print to PDF',
         silent: false,

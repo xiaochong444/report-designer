@@ -1,5 +1,4 @@
 const CHANNEL = 'report-designer.chrome-print';
-const DEFAULT_NATIVE_HOST = 'com.report_designer.print_host';
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (!message || message.channel !== CHANNEL || message.direction !== 'page-to-extension') {
@@ -34,19 +33,17 @@ async function handlePrintMessage(message, sender) {
     sourceOrigin: message.pageOrigin,
   };
 
-  const backend = message.payload.backend || settings.backend;
-  if (backend === 'chromePrinting' && chrome.printing?.submitJob) {
-    return await submitChromeOsPrintJob(payload, settings);
-  }
-
-  return await submitNativeHostPrintJob(payload, settings.nativeHostName);
+  return await submitChromePrintJob(payload, settings);
 }
 
-async function submitChromeOsPrintJob(payload, settings) {
+async function submitChromePrintJob(payload, settings = {}) {
   const pdfBytes = base64ToUint8Array(payload.pdfBase64);
   const printerId = payload.printerId;
   if (!printerId) {
     return makeErrorResponse(payload.requestId, 'A printerId is required for chrome.printing jobs.');
+  }
+  if (!chrome.printing?.submitJob) {
+    return makeErrorResponse(payload.requestId, 'chrome.printing is not available in this Chrome environment.');
   }
 
   const jobTicket = {
@@ -90,40 +87,6 @@ async function submitChromeOsPrintJob(payload, settings) {
   });
 }
 
-async function submitNativeHostPrintJob(payload, nativeHostName) {
-  return await new Promise((resolve) => {
-    chrome.runtime.sendNativeMessage(
-      nativeHostName || DEFAULT_NATIVE_HOST,
-      {
-        type: 'printPdf',
-        payload,
-      },
-      (result) => {
-        const lastError = chrome.runtime.lastError;
-        if (lastError) {
-          resolve(makeErrorResponse(payload.requestId, lastError.message));
-          return;
-        }
-        if (!result) {
-          resolve(makeErrorResponse(payload.requestId, 'Native host returned an empty response.'));
-          return;
-        }
-        if (result.ok === false) {
-          resolve(makeErrorResponse(payload.requestId, result.error || 'Native host print failed.'));
-          return;
-        }
-        resolve({
-          channel: CHANNEL,
-          direction: 'extension-to-page',
-          requestId: payload.requestId,
-          ok: true,
-          result: { backend: 'nativeMessaging', ...result },
-        });
-      },
-    );
-  });
-}
-
 function isAllowedOrigin(origin, allowedOrigins) {
   if (!origin) return true;
   if (!Array.isArray(allowedOrigins) || allowedOrigins.length === 0) {
@@ -135,8 +98,6 @@ function isAllowedOrigin(origin, allowedOrigins) {
 async function loadSettings() {
   return await new Promise((resolve) => {
     chrome.storage.local.get({
-      backend: 'nativeMessaging',
-      nativeHostName: DEFAULT_NATIVE_HOST,
       allowedOrigins: [],
     }, resolve);
   });

@@ -398,8 +398,6 @@ export interface DataSource {
   fields?: DataField[];
   schema?: DataField[];
   data?: Record<string, any>[];
-  parentSourceId?: string;
-  parentPath?: string;
 }
 
 export type ComponentType =

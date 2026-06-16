@@ -20,7 +20,7 @@ Report Designer is an embeddable React report designer, previewer, and print/PDF
 - Business-document layout primitives for headers, data bands, tables, rich text, barcodes, QR codes, charts, page numbers, and watermarks.
 - Data-driven rendering from JSON dictionaries, expressions, grouping, aggregates, conditional formats, and event scripts.
 - Browser preview with pagination that is designed to match print and PDF output.
-- PDF export, browser print, and Chrome extension/native-host silent printing flow for controlled environments.
+- PDF export, browser print, and Chrome extension printing flow for controlled environments.
 - React component packages that can be embedded into existing applications instead of shipping a separate designer product.
 - Chinese and English UI support for product teams serving mixed-language users.
 
@@ -91,20 +91,18 @@ The exact integration depends on whether you want a designer-only screen, a prev
 
 ## Chrome Extension and Silent Printing
 
-Report Designer includes a Chrome silent print bridge for scenarios where a web app needs to send print jobs to local printers with fewer manual steps.
+Report Designer includes a Chrome print bridge for scenarios where a web app needs to send print jobs to managed printers with fewer manual steps.
 
 The print bridge contains:
 
 - A Chrome extension in [`extensions/chrome-silent-print`](./extensions/chrome-silent-print/README.md).
-- A Windows Native Messaging print host in [`native-hosts/windows-print-host`](./native-hosts/windows-print-host/README.md).
-- A Windows one-click installer in [`installer/windows`](./installer/windows/README.md).
 
 Typical flow:
 
 1. The viewer renders a report into a print document or PDF payload.
 2. `@report-designer/viewer` sends the job to the Chrome extension.
-3. The extension forwards the job to the native host through Chrome Native Messaging.
-4. The native host submits the PDF to a configured local printer, such as a SumatraPDF-based silent printing command.
+3. The extension submits the PDF through Chrome's `chrome.printing` API.
+4. Chrome sends the job to a configured printer.
 
 ```tsx
 <Viewer
@@ -113,7 +111,7 @@ Typical flow:
   printOptions={{
     adapter: 'chrome-extension',
     chromeExtension: {
-      backend: 'nativeMessaging',
+      backend: 'chromePrinting',
       printerId: 'printer-01',
       silent: true,
     },
@@ -129,6 +127,7 @@ Use this path for controlled desktops, store counters, warehouse workstations, a
 - [Designer](./docs/user-guide/designer.md)
 - [Data Binding](./docs/user-guide/data-binding.md)
 - [Expressions](./docs/user-guide/expressions.md)
+- [Custom Variables and Functions](./docs/user-guide/custom-expressions.md)
 - [Events](./docs/user-guide/events.md)
 - [Preview and Print](./docs/user-guide/preview-and-print.md)
 - [PDF Export](./docs/user-guide/pdf-export.md)

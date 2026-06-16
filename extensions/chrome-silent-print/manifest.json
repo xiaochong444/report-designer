@@ -3,8 +3,8 @@
   "name": "Report Designer Silent Print Bridge",
   "version": "0.0.1",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAlu/pBWHbuT5ofQreFbijEbuUwSfyKxj0zE+ewRzVjCedMmVk+L8xlSP1fCfEQDKYsHM5lQhmGCFCRwtcybDgeycljZWomO5aa2NfNqdcKcpd1P8YwIHO58z6dbhTvPRPaxZsasPGel7aoXFZI2i6d0/ZjZHk/Mayp1+Ax7WK9JDezO9kahr21rZfCh5ybvLTVsMRUbzRiHk1ch8X3p/zyCD9bWn31mPfpoOY6tq94rV5Q1Yv0n8cxjQC1wCpZMTth1PfpJDMjVWrwoJP/mtwOoMONqhH34A1Bv79o8Ns1OhSY4djwVCY9e3AI69dhURJjvWywiOnMYHkbRhPD0dLVQIDAQAB",
-  "description": "Receives report print jobs from the web viewer and forwards them to ChromeOS printing or a native print host.",
-  "permissions": ["nativeMessaging", "printing", "storage"],
+  "description": "Receives report print jobs from the web viewer and submits them through the Chrome printing API.",
+  "permissions": ["printing", "storage"],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"

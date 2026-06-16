@@ -13,21 +13,20 @@ export function inferJsonDictionary(data: unknown): JsonDictionary {
 }
 
 export function mergeInferredDataSources(template: ReportTemplate, data: unknown | undefined): ReportTemplate {
-  const collapsed = collapseDataSources(template.dataSources);
+  const currentRoot = template.dataSources.find(source => source.id === 'root');
   if (!data) {
-    return collapsed === template.dataSources ? template : { ...template, dataSources: collapsed };
+    return currentRoot ? { ...template, dataSources: [cloneDataSource(currentRoot)] } : { ...template, dataSources: [] };
   }
 
   const inferred = inferJsonDictionary(data).dataSources;
   if (inferred.length === 0) {
-    return collapsed === template.dataSources ? template : { ...template, dataSources: collapsed };
+    return currentRoot ? { ...template, dataSources: [cloneDataSource(currentRoot)] } : { ...template, dataSources: [] };
   }
 
-  const existingRoot = collapsed.find(source => source.id === 'root');
   const inferredRoot = cloneDataSource(inferred[0]);
-  const mergedFields = mergeFields(existingRoot?.fields ?? existingRoot?.schema ?? [], inferredRoot.fields ?? []);
+  const mergedFields = mergeFields(currentRoot?.fields ?? currentRoot?.schema ?? [], inferredRoot.fields ?? []);
   inferredRoot.fields = mergedFields;
-  inferredRoot.schema = mergeFields(existingRoot?.schema ?? [], mergedFields);
+  inferredRoot.schema = mergeFields(currentRoot?.schema ?? [], mergedFields);
 
   return {
     ...template,
@@ -189,49 +188,6 @@ function cloneDataSource(source: DataSource): DataSource {
     fields: source.fields?.map(field => ({ ...field })),
     schema: source.schema?.map(field => ({ ...field })),
   };
-}
-
-function collapseDataSources(dataSources: DataSource[]): DataSource[] {
-  if (dataSources.length === 0) {
-    return dataSources;
-  }
-  if (dataSources.length === 1 && dataSources[0].id === 'root') {
-    return dataSources;
-  }
-
-  const root: DataSource = {
-    id: 'root',
-    name: 'root',
-    type: 'json',
-    path: 'root',
-    fields: [],
-    schema: [],
-  };
-
-  const fields: DataField[] = [];
-  const schemas: DataField[] = [];
-  for (const source of dataSources) {
-    fields.push(...collapseFieldsForSource(source, source.fields ?? source.schema ?? []));
-    schemas.push(...collapseFieldsForSource(source, source.schema ?? source.fields ?? []));
-  }
-  root.fields = mergeFields([], fields);
-  root.schema = mergeFields([], schemas);
-  return [root];
-}
-
-function collapseFieldsForSource(source: DataSource, fields: DataField[]): DataField[] {
-  const sourcePath = source.id === 'root' ? '' : source.path ?? source.id;
-  return fields.map(field => {
-    const name = sourcePath && !field.name.startsWith(`${sourcePath}.`)
-      ? `${sourcePath}.${field.name}`
-      : field.name;
-    return {
-      ...field,
-      id: name,
-      name,
-      path: name,
-    };
-  });
 }
 
 function mergeFields(current: DataField[], inferred: DataField[]): DataField[] {

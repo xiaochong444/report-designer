@@ -13,6 +13,7 @@ describe('phase 42 chrome extension print bridge', () => {
       printerId: 'printer-01',
       copies: 2,
       silent: true,
+      backend: 'chromePrinting',
       offset: { xMm: 1.5, yMm: -0.8 },
     });
 
@@ -28,9 +29,18 @@ describe('phase 42 chrome extension print bridge', () => {
         printerId: 'printer-01',
         copies: 2,
         silent: true,
+        backend: 'chromePrinting',
         offset: { xMm: 1.5, yMm: -0.8 },
       },
     });
+  });
+
+  it('uses the Chrome printing backend by default', () => {
+    const request = buildChromePrintRequest(new Uint8Array([37, 80, 68, 70]), {
+      requestId: 'job-default',
+    });
+
+    expect(request.payload.backend).toBe('chromePrinting');
   });
 
   it('posts the request and resolves the matching extension response', async () => {
@@ -41,7 +51,7 @@ describe('phase 42 chrome extension print bridge', () => {
         direction: 'extension-to-page',
         requestId: (message as any).requestId,
         ok: true,
-        result: { backend: 'nativeMessaging', jobId: 'native-1' },
+        result: { backend: 'chromePrinting', jobId: 'chrome-job-1' },
       };
       setTimeout(() => window.dispatchEvent(new MessageEvent('message', { data: response, source: window })), 0);
     });
@@ -49,7 +59,7 @@ describe('phase 42 chrome extension print bridge', () => {
     const result = await sendChromePrintRequest(request, { windowRef: window, timeoutMs: 100 });
 
     expect(postMessage).toHaveBeenCalledWith(request, '*');
-    expect(result).toMatchObject({ ok: true, result: { jobId: 'native-1' } });
+    expect(result).toMatchObject({ ok: true, result: { backend: 'chromePrinting', jobId: 'chrome-job-1' } });
     postMessage.mockRestore();
   });
 

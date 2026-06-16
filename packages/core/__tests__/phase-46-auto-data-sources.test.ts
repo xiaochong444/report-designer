@@ -53,7 +53,7 @@ describe('phase 46 automatic data sources', () => {
     expect(expanded.items.map(row => row['product.name'])).toEqual(['云服务年包', '实施服务']);
   });
 
-  it('collapses legacy template data sources into one root source', () => {
+  it('ignores non-root template data sources and uses the inferred root source', () => {
     const template = makeTemplate([]);
     template.dataSources = [
       {
@@ -67,7 +67,6 @@ describe('phase 46 automatic data sources', () => {
         name: 'items',
         type: 'json',
         path: 'orders.items',
-        parentSourceId: 'orders',
         fields: [{ name: 'product.name', type: 'string' }],
       },
     ];
@@ -81,6 +80,7 @@ describe('phase 46 automatic data sources', () => {
       'orders.orderNo',
       'orders.items.product.name',
     ]));
+    expect(merged.dataSources[0].fields?.some(field => field.name === 'product.name')).toBe(false);
   });
 
   it('infers JSON data sources and resolves current-row field expressions', () => {
