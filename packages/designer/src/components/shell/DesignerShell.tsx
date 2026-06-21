@@ -18,6 +18,7 @@ import { useDesignerStore } from '../../store/designer-store';
 import { useDesignerI18n } from '../../i18n';
 import type { ExpressionCatalogExtensions } from '../../expression/expression-catalog';
 import { DesignerStatusBar } from './DesignerStatusBar';
+import { saveTemplate, type DesignerSaveHandler } from '../template-save';
 import '../../styles/designer-shell.css';
 
 type DockMode = 'pinned' | 'auto';
@@ -33,9 +34,10 @@ interface DesignerShellProps {
   className?: string;
   subreports?: Record<string, ReportTemplate>;
   expressionExtensions?: ExpressionCatalogExtensions;
+  onSave?: DesignerSaveHandler;
 }
 
-export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subreports, expressionExtensions }) => {
+export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subreports, expressionExtensions, onSave }) => {
   const { t } = useDesignerI18n();
   const templateName = useDesignerStore(s => s.template.name);
   const undo = useDesignerStore(s => s.undo);
@@ -62,8 +64,8 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subrepo
 
   return (
     <div className={className ? `rd-designer-shell ${className}` : 'rd-designer-shell'}>
-      <QuickAccess templateName={templateName} undo={undo} redo={redo} canUndo={canUndo()} canRedo={canRedo()} />
-      <DesignerRibbon />
+      <QuickAccess templateName={templateName} undo={undo} redo={redo} canUndo={canUndo()} canRedo={canRedo()} onSave={onSave} />
+      <DesignerRibbon onSave={onSave} />
       <div
         className="rd-designer-body"
         data-testid="designer-body"
@@ -261,27 +263,21 @@ interface QuickAccessProps {
   redo: () => void;
   canUndo: boolean;
   canRedo: boolean;
+  onSave?: DesignerSaveHandler;
 }
 
-const QuickAccess: React.FC<QuickAccessProps> = ({ templateName, undo, redo, canUndo, canRedo }) => {
+const QuickAccess: React.FC<QuickAccessProps> = ({ templateName, undo, redo, canUndo, canRedo, onSave }) => {
   const { t } = useDesignerI18n();
-  const saveTemplate = () => {
+  const handleSave = () => {
     const currentTemplate = useDesignerStore.getState().template;
-    const json = JSON.stringify(currentTemplate, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${currentTemplate.name || 'report'}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+    saveTemplate(currentTemplate, onSave);
   };
 
   return (
     <header className="rd-quick-access" data-testid="designer-quick-access">
       <div className="rd-quick-access-buttons">
         <Tooltip title={t('shell.save')}>
-          <Button size="small" type="text" icon={<SaveOutlined />} onClick={saveTemplate} />
+          <Button size="small" type="text" icon={<SaveOutlined />} onClick={handleSave} />
         </Tooltip>
         <span className="rd-quick-access-separator" />
         <Tooltip title={t('shell.undo')}>

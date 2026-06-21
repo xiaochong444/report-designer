@@ -1,4 +1,5 @@
 export { Designer } from './components/Designer';
+export type { DesignerSaveHandler } from './components/template-save';
 export { DesignerShell } from './components/shell/DesignerShell';
 export { DesignerStatusBar } from './components/shell/DesignerStatusBar';
 export { DesignerRibbon } from './components/ribbon/DesignerRibbon';

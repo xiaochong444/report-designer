@@ -4,6 +4,7 @@ import { DesignerShell } from './shell/DesignerShell';
 import { useDesignerStore, type DesignerEventNavigationTarget } from '../store/designer-store';
 import { DesignerI18nProvider, type DesignerLocale } from '../i18n';
 import type { ExpressionCatalogExtensions } from '../expression/expression-catalog';
+import type { DesignerSaveHandler } from './template-save';
 
 interface DesignerProps {
   /** Optional initial template to load */
@@ -14,13 +15,15 @@ interface DesignerProps {
   subreports?: Record<string, ReportTemplate>;
   /** Emits the current in-designer template so hosts can preview or persist draft edits. */
   onTemplateChange?: (template: ReportTemplate) => void;
+  /** Called when the built-in save command is used. Defaults to downloading the JSON template. */
+  onSave?: DesignerSaveHandler;
   locale?: DesignerLocale;
   expressionExtensions?: ExpressionCatalogExtensions;
   eventNavigationTarget?: DesignerEventNavigationTarget;
   className?: string;
 }
 
-export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, onTemplateChange, locale = 'zh-CN', expressionExtensions, eventNavigationTarget, className }) => {
+export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, onTemplateChange, onSave, locale = 'zh-CN', expressionExtensions, eventNavigationTarget, className }) => {
   const loadTemplate = useDesignerStore(s => s.loadTemplate);
   const setDataSources = useDesignerStore(s => s.setDataSources);
   const currentDataSourceDefinitions = useDesignerStore(s => template?.dataSources ?? s.template.dataSources);
@@ -98,7 +101,7 @@ export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, 
 
   return (
     <DesignerI18nProvider locale={locale}>
-      <DesignerShell className={className} subreports={subreports} expressionExtensions={expressionExtensions} />
+      <DesignerShell className={className} subreports={subreports} expressionExtensions={expressionExtensions} onSave={onSave} />
     </DesignerI18nProvider>
   );
 };

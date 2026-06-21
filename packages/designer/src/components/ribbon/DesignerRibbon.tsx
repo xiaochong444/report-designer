@@ -49,6 +49,7 @@ import { isTextStylePropertyLocked } from '../../text-style-application';
 import { BAND_COLORS, BAND_DESCRIPTION_KEYS, BAND_GLYPH_KEYS, BAND_LABEL_KEYS, SUPPORTED_INSERT_BAND_TYPES } from '../../band-metadata';
 import { createDefaultComponent } from '../../component-factory';
 import { COMPONENT_TYPES } from '../../component-palette-model';
+import { saveTemplate, type DesignerSaveHandler } from '../template-save';
 
 const TAB_KEYS = ['home', 'insert', 'pageLayout', 'layout', 'preview'] as const;
 type RibbonTab = typeof TAB_KEYS[number];
@@ -61,7 +62,7 @@ const TAB_LABEL_KEYS: Record<RibbonTab, DesignerMessageKey> = {
   preview: 'ribbon.preview',
 };
 
-export const DesignerRibbon: React.FC = () => {
+export const DesignerRibbon: React.FC<{ onSave?: DesignerSaveHandler }> = ({ onSave }) => {
   const { t } = useDesignerI18n();
   const [activeTab, setActiveTab] = useState<RibbonTab>('home');
   const [pageDialogOpen, setPageDialogOpen] = useState(false);
@@ -130,15 +131,8 @@ export const DesignerRibbon: React.FC = () => {
     }
   }, [mode, activeTab]);
 
-  const saveTemplate = () => {
-    const json = JSON.stringify(useDesignerStore.getState().template, null, 2);
-    const blob = new Blob([json], { type: 'application/json' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `${template.name || 'report'}.json`;
-    link.click();
-    URL.revokeObjectURL(url);
+  const handleSave = () => {
+    saveTemplate(useDesignerStore.getState().template, onSave);
   };
 
   const handleTabClick = (tab: RibbonTab) => {
@@ -313,7 +307,7 @@ export const DesignerRibbon: React.FC = () => {
       <>
         <RibbonGroup title={t('ribbon.file')}>
           <Tooltip title={t('ribbon.saveTemplate')}>
-            <Button size="small" icon={<SaveOutlined />} onClick={saveTemplate} />
+            <Button size="small" icon={<SaveOutlined />} onClick={handleSave} />
           </Tooltip>
         </RibbonGroup>
 
