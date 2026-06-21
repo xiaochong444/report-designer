@@ -203,7 +203,7 @@ function mergeFields(current: DataField[], inferred: DataField[]): DataField[] {
 function inferFieldType(samples: unknown[]): JsonFieldType {
   const meaningful = samples.filter((sample) => sample !== null && sample !== undefined && sample !== '');
   if (meaningful.length === 0) {
-    return 'null';
+    return samples.some((sample) => sample === '') ? 'string' : 'null';
   }
 
   if (meaningful.every((sample) => typeof sample === 'boolean')) {

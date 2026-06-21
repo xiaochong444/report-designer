@@ -40,6 +40,19 @@ describe('Phase 1 JSON dictionary', () => {
     expect(fields['employees.score']).toBe('string');
   });
 
+  it('infers empty string fields as string fields', () => {
+    const dictionary = inferJsonDictionary({
+      code: '',
+      lines: [
+        { description: '' },
+      ],
+    });
+
+    const fields = Object.fromEntries(flattenFields(dictionary).map((field) => [field.path, field.type]));
+    expect(fields.code).toBe('string');
+    expect(fields['lines.description']).toBe('string');
+  });
+
   it('formats and parses json field expressions', () => {
     expect(formatJsonFieldExpression('orders', 'customer')).toBe('{orders.customer}');
     expect(formatJsonFieldExpression('orders.lines', 'qty')).toBe('{orders.lines.qty}');
