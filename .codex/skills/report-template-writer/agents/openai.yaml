@@ -1,0 +1,4 @@
+interface:
+  display_name: "Report Template Writer"
+  short_description: "Generate Report Designer templates from JSON"
+  default_prompt: "Use $report-template-writer to generate a Report Designer template JSON from my sample data and field descriptions."
