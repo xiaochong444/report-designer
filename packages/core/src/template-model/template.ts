@@ -188,7 +188,7 @@ export function createDefaultTemplate(name = '未命名报表'): ReportTemplate 
     backgroundColor: '#ffffff',
     watermark: createDefaultPageWatermark(),
     pageBorder: createDefaultPageBorder(),
-    margins: { top: 20, right: 20, bottom: 20, left: 20 },
+    margins: { top: 10, right: 10, bottom: 10, left: 10 },
     orientation: 'portrait',
     bands,
   };

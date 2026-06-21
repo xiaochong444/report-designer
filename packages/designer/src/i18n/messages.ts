@@ -52,6 +52,7 @@ export type DesignerMessageKey =
   | 'shell.save'
   | 'shell.undo'
   | 'shell.redo'
+  | 'shell.close'
   | 'shell.untitledReport'
   | 'shell.designerName'
   | 'shell.pinLeftPanel'
@@ -745,6 +746,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'shell.save': '保存',
     'shell.undo': '撤销',
     'shell.redo': '重做',
+    'shell.close': '关闭',
     'shell.untitledReport': '未命名报表',
     'shell.designerName': '报表设计器',
     'shell.pinLeftPanel': '固定侧边栏',
@@ -1435,6 +1437,7 @@ export const designerMessages: Record<DesignerLocale, DesignerMessages> = {
     'shell.save': 'Save',
     'shell.undo': 'Undo',
     'shell.redo': 'Redo',
+    'shell.close': 'Close',
     'shell.untitledReport': 'Untitled Report',
     'shell.designerName': 'Report Designer',
     'shell.pinLeftPanel': 'Pin sidebar',

@@ -12,7 +12,7 @@ describe('template-model', () => {
       expect(template.pages[0].height).toBe(297);
       expect(template.pages[0].orientation).toBe('portrait');
       expect(template.pages[0].margins).toEqual({
-        top: 20, right: 20, bottom: 20, left: 20
+        top: 10, right: 10, bottom: 10, left: 10
       });
     });
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import type { ReportTemplate } from '@report-designer/core';
 import {
+  CloseOutlined,
   PushpinOutlined,
   RedoOutlined,
   SaveOutlined,
@@ -35,9 +36,11 @@ interface DesignerShellProps {
   subreports?: Record<string, ReportTemplate>;
   expressionExtensions?: ExpressionCatalogExtensions;
   onSave?: DesignerSaveHandler;
+  showClose?: boolean;
+  onClose?: () => void;
 }
 
-export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subreports, expressionExtensions, onSave }) => {
+export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subreports, expressionExtensions, onSave, showClose = true, onClose }) => {
   const { t } = useDesignerI18n();
   const templateName = useDesignerStore(s => s.template.name);
   const undo = useDesignerStore(s => s.undo);
@@ -64,7 +67,7 @@ export const DesignerShell: React.FC<DesignerShellProps> = ({ className, subrepo
 
   return (
     <div className={className ? `rd-designer-shell ${className}` : 'rd-designer-shell'}>
-      <QuickAccess templateName={templateName} undo={undo} redo={redo} canUndo={canUndo()} canRedo={canRedo()} onSave={onSave} />
+      <QuickAccess templateName={templateName} undo={undo} redo={redo} canUndo={canUndo()} canRedo={canRedo()} onSave={onSave} showClose={showClose} onClose={onClose} />
       <DesignerRibbon onSave={onSave} />
       <div
         className="rd-designer-body"
@@ -264,14 +267,17 @@ interface QuickAccessProps {
   canUndo: boolean;
   canRedo: boolean;
   onSave?: DesignerSaveHandler;
+  showClose?: boolean;
+  onClose?: () => void;
 }
 
-const QuickAccess: React.FC<QuickAccessProps> = ({ templateName, undo, redo, canUndo, canRedo, onSave }) => {
+const QuickAccess: React.FC<QuickAccessProps> = ({ templateName, undo, redo, canUndo, canRedo, onSave, showClose = true, onClose }) => {
   const { t } = useDesignerI18n();
   const handleSave = () => {
     const currentTemplate = useDesignerStore.getState().template;
     saveTemplate(currentTemplate, onSave);
   };
+  const closeTitle = t('shell.close');
 
   return (
     <header className="rd-quick-access" data-testid="designer-quick-access">
@@ -288,7 +294,22 @@ const QuickAccess: React.FC<QuickAccessProps> = ({ templateName, undo, redo, can
         </Tooltip>
       </div>
       <div className="rd-quick-access-title">{templateName || t('shell.untitledReport')}</div>
-      <div className="rd-quick-access-meta">{t('shell.designerName')}</div>
+      <div className="rd-quick-access-meta">
+        <span>{t('shell.designerName')}</span>
+        {showClose ? (
+          <Tooltip title={closeTitle}>
+            <Button
+              aria-label={closeTitle}
+              data-testid="designer-close-button"
+              icon={<CloseOutlined />}
+              onClick={onClose}
+              size="small"
+              title={closeTitle}
+              type="text"
+            />
+          </Tooltip>
+        ) : null}
+      </div>
     </header>
   );
 };

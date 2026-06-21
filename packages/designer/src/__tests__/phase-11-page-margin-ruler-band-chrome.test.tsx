@@ -47,10 +47,10 @@ describe('Phase 11 page margin ruler and band chrome', () => {
     expect(contentArea.getAttribute('style')).toContain('linear-gradient');
 
     const contentStyle = contentArea.getAttribute('style') ?? '';
-    expect(contentStyle).toContain('left: 76px');
-    expect(contentStyle).toContain('top: 76px');
-    expect(contentStyle).toContain('width: 643px');
-    expect(contentStyle).toContain('height: 971px');
+    expect(contentStyle).toContain('left: 38px');
+    expect(contentStyle).toContain('top: 38px');
+    expect(contentStyle).toContain('width: 718px');
+    expect(contentStyle).toContain('height: 1047px');
 
     const pageStackStyle = pageStack.getAttribute('style') ?? '';
     const horizontalStyle = horizontalRuler.getAttribute('style') ?? '';
@@ -58,10 +58,10 @@ describe('Phase 11 page margin ruler and band chrome', () => {
     expect(pageStackStyle).toContain('margin: 0px');
     expect(horizontalStyle).toContain('left: 24px');
     expect(horizontalStyle).toContain('width: 794px');
-    expect(horizontalRuler).toHaveAttribute('data-printable-offset-px', '76');
+    expect(horizontalRuler).toHaveAttribute('data-printable-offset-px', '38');
     expect(verticalStyle).toContain('top: 24px');
     expect(verticalStyle).toContain('height: 1123px');
-    expect(verticalRuler).toHaveAttribute('data-printable-offset-px', '76');
+    expect(verticalRuler).toHaveAttribute('data-printable-offset-px', '38');
     expect(horizontalRuler).toHaveTextContent('0');
     expect(horizontalRuler).toHaveTextContent('10');
     expect(horizontalRuler).toHaveTextContent('20');

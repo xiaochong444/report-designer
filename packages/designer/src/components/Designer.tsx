@@ -17,13 +17,17 @@ interface DesignerProps {
   onTemplateChange?: (template: ReportTemplate) => void;
   /** Called when the built-in save command is used. Defaults to downloading the JSON template. */
   onSave?: DesignerSaveHandler;
+  /** Controls whether the built-in quick access close button is shown. */
+  showClose?: boolean;
+  /** Called when the built-in quick access close button is clicked. */
+  onClose?: () => void;
   locale?: DesignerLocale;
   expressionExtensions?: ExpressionCatalogExtensions;
   eventNavigationTarget?: DesignerEventNavigationTarget;
   className?: string;
 }
 
-export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, onTemplateChange, onSave, locale = 'zh-CN', expressionExtensions, eventNavigationTarget, className }) => {
+export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, onTemplateChange, onSave, showClose = true, onClose, locale = 'zh-CN', expressionExtensions, eventNavigationTarget, className }) => {
   const loadTemplate = useDesignerStore(s => s.loadTemplate);
   const setDataSources = useDesignerStore(s => s.setDataSources);
   const currentDataSourceDefinitions = useDesignerStore(s => template?.dataSources ?? s.template.dataSources);
@@ -101,7 +105,7 @@ export const Designer: React.FC<DesignerProps> = ({ template, data, subreports, 
 
   return (
     <DesignerI18nProvider locale={locale}>
-      <DesignerShell className={className} subreports={subreports} expressionExtensions={expressionExtensions} onSave={onSave} />
+      <DesignerShell className={className} subreports={subreports} expressionExtensions={expressionExtensions} onSave={onSave} showClose={showClose} onClose={onClose} />
     </DesignerI18nProvider>
   );
 };

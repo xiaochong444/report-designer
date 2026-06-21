@@ -1,5 +1,5 @@
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { Designer } from '../components/Designer';
 import { DesignerI18nProvider } from '../i18n';
@@ -34,6 +34,7 @@ describe('Phase 0 designer shell', () => {
     render(React.createElement(Designer));
 
     expect(screen.getByTestId('designer-quick-access')).toBeTruthy();
+    expect(screen.getByTestId('designer-close-button')).toBeTruthy();
     expect(screen.getByTestId('designer-ribbon')).toBeTruthy();
     expect(screen.getByTestId('designer-left-panel')).toBeTruthy();
     expect(screen.getByTestId('designer-canvas-frame')).toBeTruthy();
@@ -53,5 +54,20 @@ describe('Phase 0 designer shell', () => {
     expect(screen.getAllByText(/边距/).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/网格/).length).toBeGreaterThan(0);
     expect(screen.getByText('吸附开启')).toBeTruthy();
+  });
+
+  it('calls onClose from the quick access close button by default', () => {
+    const onClose = vi.fn();
+    render(React.createElement(Designer, { onClose }));
+
+    fireEvent.click(screen.getByTestId('designer-close-button'));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it('hides the quick access close button when showClose is false', () => {
+    render(React.createElement(Designer, { showClose: false, onClose: () => undefined }));
+
+    expect(screen.queryByTestId('designer-close-button')).toBeNull();
   });
 });
