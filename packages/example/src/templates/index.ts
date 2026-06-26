@@ -6,6 +6,7 @@ import { componentShowcaseTemplate } from './component-showcase';
 import { contractTermsData, contractTermsTemplate } from './contract-terms';
 import { memberConsumptionData, memberConsumptionTemplate } from './member-consumption';
 import { orgHierarchyData, orgHierarchyTemplate } from './org-hierarchy';
+import { performanceContractData, performanceContractTemplate } from './performance-contract';
 import { productHangTagsData, productHangTagsTemplate } from './product-hang-tags';
 import { purchaseReceiptData, purchaseReceiptTemplate } from './purchase-receipt';
 import { salesOrderPrintData, salesOrderPrintTemplate } from './sales-order-print';
@@ -49,7 +50,7 @@ type SampleReport = {
 export const sampleGroups = [
   {
     label: '单据打印',
-    samples: ['purchaseReceipt', 'salesOrderPrint'],
+    samples: ['purchaseReceipt', 'salesOrderPrint', 'performanceContract'],
   },
   {
     label: '分组汇总',
@@ -72,6 +73,7 @@ export const sampleGroups = [
 const sampleReportMap: Record<string, SampleReport> = {
   purchaseReceipt: { key: 'purchaseReceipt', label: '采购入库单', template: purchaseReceiptTemplate, data: purchaseReceiptData },
   salesOrderPrint: { key: 'salesOrderPrint', label: '销售订单打印', template: salesOrderPrintTemplate, data: salesOrderPrintData },
+  performanceContract: { key: 'performanceContract', label: '绩效合约打印', template: performanceContractTemplate, data: performanceContractData },
   storeDailySales: { key: 'storeDailySales', label: '门店销售日报', template: storeDailySalesTemplate, data: storeDailySalesData },
   warehouseTransfer: { key: 'warehouseTransfer', label: '仓库调拨单', template: warehouseTransferTemplate, data: warehouseTransferData },
   clothingOrderDynamicSize: { key: 'clothingOrderDynamicSize', label: '服装订单动态尺码打印', template: clothingOrderDynamicSizeTemplate, data: clothingOrderDynamicSizeData },
@@ -109,6 +111,8 @@ export {
   memberConsumptionTemplate,
   orgHierarchyData,
   orgHierarchyTemplate,
+  performanceContractData,
+  performanceContractTemplate,
   productHangTagsData,
   productHangTagsTemplate,
   purchaseReceiptData,

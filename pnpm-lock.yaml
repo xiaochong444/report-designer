@@ -54,9 +54,6 @@ importers:
       '@monaco-editor/react':
         specifier: ^4.7.0
         version: 4.7.0(monaco-editor@0.55.1)(react-dom@19.2.5(react@19.2.5))(react@19.2.5)
-      '@report-designer/core':
-        specifier: workspace:*
-        version: link:../core
       '@report-designer/viewer':
         specifier: workspace:*
         version: link:../viewer
@@ -112,6 +109,9 @@ importers:
         specifier: ^5.0.0
         version: 5.0.12(@types/react@19.2.14)(react@19.2.5)(use-sync-external-store@1.6.0(react@19.2.5))
     devDependencies:
+      '@report-designer/core':
+        specifier: workspace:*
+        version: link:../core
       '@testing-library/jest-dom':
         specifier: ^6.6.0
         version: 6.9.1
@@ -179,9 +179,6 @@ importers:
       '@pdf-lib/fontkit':
         specifier: ^1.1.1
         version: 1.1.1
-      '@report-designer/core':
-        specifier: workspace:*
-        version: link:../core
       '@visactor/vchart':
         specifier: ^2.0.22
         version: 2.0.22
@@ -207,6 +204,9 @@ importers:
         specifier: ^19.1.0
         version: 19.2.5(react@19.2.5)
     devDependencies:
+      '@report-designer/core':
+        specifier: workspace:*
+        version: link:../core
       '@testing-library/jest-dom':
         specifier: ^6.6.0
         version: 6.9.1

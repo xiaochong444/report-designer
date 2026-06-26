@@ -42,10 +42,11 @@ describe('example sample paper defaults', () => {
       '高级特性',
       '图表与综合',
     ]);
-    expect(sampleReports).toHaveLength(12);
+    expect(sampleReports).toHaveLength(13);
     expect(sampleReports.map(report => report.key)).toEqual([
       'purchaseReceipt',
       'salesOrderPrint',
+      'performanceContract',
       'storeDailySales',
       'warehouseTransfer',
       'clothingOrderDynamicSize',
